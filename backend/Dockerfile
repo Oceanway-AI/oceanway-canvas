@@ -36,7 +36,7 @@ FROM golang:1.25-alpine AS backend-build
 ARG GOPROXY=https://proxy.golang.org,direct
 ENV GOPROXY=$GOPROXY
 
-RUN apk add --no-cache build-base
+RUN apk add --no-cache build-base git
 
 WORKDIR /src/backend
 COPY backend/go.mod backend/go.sum ./
@@ -46,7 +46,10 @@ COPY backend/go.mod backend/go.sum ./
 # 后面 COPY backend ./ 会覆盖为完整源码，这里只为让依赖解析通过。
 COPY backend/third_party ./third_party
 # 模块保留在普通镜像层中，供后续编译及跨 Runner 的 GHA 层缓存复用。
-RUN go mod download
+# SDK belongs to a private OceanWay repository. Authentication is ephemeral and
+# never copied into the build context or image layers.
+RUN --mount=type=secret,id=github_netrc,target=/root/.netrc \
+    GOPRIVATE=github.com/Oceanway-AI/* go mod download
 COPY backend ./
 COPY VERSION /src/VERSION
 ARG BUILD_VERSION

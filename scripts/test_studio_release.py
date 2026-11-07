@@ -53,6 +53,12 @@ class IdentityRegistrationTests(unittest.TestCase):
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_private_sdk_uses_buildkit_secret_not_build_argument(self):
+        dockerfile = (ROOT / "backend/Dockerfile").read_text()
+        self.assertIn("--mount=type=secret,id=github_netrc", dockerfile)
+        self.assertNotIn("ARG GITHUB_TOKEN", dockerfile)
+        self.assertNotIn("COPY .netrc", dockerfile)
+
     def test_uses_upstream_topology_and_injects_server_only_configuration(self):
         model = release.compose_model(ROOT)
         services = model["services"]
