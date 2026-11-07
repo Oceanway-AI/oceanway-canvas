@@ -53,6 +53,7 @@ export type AdminUser = LocalUser & {
 
 export type AuthSessionPayload = {
     user: LocalUser | null;
+    provider?: "platform";
     runtimeLimits?: RuntimeLimits;
     drawingEngine?: CanvasDrawingEngineSetting;
     features?: FeatureAvailability;
@@ -471,7 +472,7 @@ export function getAuthSession() {
     if (authSessionRequest) return authSessionRequest;
     const generation = authSessionGeneration;
     const request = http
-        .get<AuthSessionPayload>("/auth/session")
+        .post<AuthSessionPayload>("/auth/session", {})
         .then((payload) => {
             if (generation !== authSessionGeneration) throw new Error("登录状态已变化，请重新读取");
             authSessionCache = { payload, expiresAt: Date.now() + 5_000 };

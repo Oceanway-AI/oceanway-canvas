@@ -2,6 +2,16 @@ package model
 
 import "time"
 
+// SessionHash is a one-way digest of the current session context. Neither the
+// cookie nor the delegated materials credential is exposed through public JSON.
+type StudioMaterialAuthority struct {
+	SessionHash            string    `gorm:"primaryKey;size:64"`
+	UserID                 string    `gorm:"index;size:36"`
+	AuthorizationEncrypted string    `gorm:"type:text;not null"`
+	ExpiresAt              time.Time `gorm:"index;not null"`
+	UpdatedAt              time.Time
+}
+
 // StudioExecution is server-only. Envelope includes the frozen native bytes;
 // authorization and native responses must never enter Task.InputJSON or logs.
 type StudioExecution struct {

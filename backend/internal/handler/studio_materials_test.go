@@ -3,8 +3,10 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
 	"yingce/backend/internal/model"
@@ -78,7 +80,7 @@ func TestStudioMaterialsUploadAdoptRecoverAndAccess(t *testing.T) {
 			_ = json.NewDecoder(r.Body).Decode(&in)
 			results := []platformclient.AccessResult{}
 			for _, item := range in.Items {
-				if item.AssetID != asset.AssetID || item.VersionID != "version_1" || item.Purpose != "display" || item.Variant != "preview" {
+				if item.AssetID != asset.AssetID || item.VersionID != "version_1" || item.BindingID != "binding_1" || item.Purpose != "display" || item.Variant != "preview" {
 					t.Error("wrong material access identity/purpose")
 				}
 				results = append(results, platformclient.AccessResult{ItemID: item.ItemID, Status: "ready", AssetID: item.AssetID, VersionID: item.VersionID, FileID: "file_1", RequestedVariant: item.Variant, ActualVariant: item.Variant, URL: "https://cdn.example.test/preview?signature=private", ExpiresAt: "2099-01-01T01:00:00Z", RefreshAt: "2099-01-01T00:30:00Z", Revision: "2"})
@@ -138,6 +140,103 @@ func TestStudioMaterialsUploadAdoptRecoverAndAccess(t *testing.T) {
 	if stored.PublicURL != "" || stored.ObjectKey != "" {
 		t.Fatal("signed address stored as identity")
 	}
+}
+
+func TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant(t *testing.T) {
+	f := newStudioFixture(t)
+	issues, accesses := 0, 0
+	f.materials = func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/platform/v1/materials/authorization" || r.Method != "POST" || r.Header.Get("Origin") != "https://studio.example.test" {
+			t.Errorf("unexpected material authorization: %s", r.URL.Path)
+			w.WriteHeader(500)
+			return
+		}
+		issues++
+		w.Header().Set("Content-Type", "application/json")
+		// The published producer sends unix seconds, while rc.5 types this field
+		// as a string. The narrow SDK response adapter must preserve this value.
+		_ = json.NewEncoder(w).Encode(map[string]any{"authorization": "mat1.fixture.signature", "expires_at": time.Now().Add(time.Hour).Unix()})
+	}
+	f.execution = func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/internal/materials/access" || r.Method != "POST" || r.Header.Get("Origin") != "" || r.Header.Get("Cookie") != "" || r.Header.Get("X-Platform-Material-Authorization") != "mat1.fixture.signature" {
+			t.Errorf("file read fabricated/mixed session authority: %s", r.URL.Path)
+			w.WriteHeader(500)
+			return
+		}
+		accesses++
+		var in platformclient.AccessRequest
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		if len(in.Items) != 1 || in.Items[0].BindingID != "binding_retained" || in.Items[0].AssetID != "asset_1" || in.Items[0].VersionID != "version_1" {
+			t.Error("fixed binding lost")
+		}
+		item := in.Items[0]
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(platformclient.AccessResponse{Protocol: platformclient.MaterialsProtocol, Results: []platformclient.AccessResult{{ItemID: item.ItemID, Status: "ready", AssetID: item.AssetID, VersionID: item.VersionID, FileID: "file_1", RequestedVariant: item.Variant, ActualVariant: item.Variant, URL: "https://cdn.example.test/video?signature=private", ExpiresAt: "2099-01-01T01:00:00Z", RefreshAt: "2099-01-01T00:30:00Z", Revision: "fixed-binding"}}})
+	}
+	f.request(t, "POST", "/api/auth/session", "platform_session=alice", `{}`, 200)
+	f.request(t, "POST", "/api/auth/session", "platform_session=alice; nonce=next", `{}`, 200)
+	var stored model.StudioMaterialAuthority
+	if err := f.db.First(&stored).Error; err != nil || len(stored.SessionHash) != 64 || stored.AuthorizationEncrypted == "" || strings.Contains(stored.AuthorizationEncrypted, "mat1.") {
+		t.Fatal("material authority must be encrypted and indexed by a session digest")
+	}
+	var user model.User
+	if err := f.db.First(&user).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := f.db.Create(&model.Resource{ID: "resource_file", UserID: user.ID, Kind: "video", Provider: "platform", Status: model.ResourceStatusReady}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := f.db.Create(&model.StudioMaterialReference{ResourceID: "resource_file", UserID: user.ID, AssetID: "asset_1", VersionID: "version_1", FileID: "file_1", OwnerID: "101", BindingID: "binding_retained"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	read := func(cookie, origin string, status int) {
+		r := httptest.NewRequest("GET", "https://studio.example.test/api/resources/resource_file/file", nil)
+		r.Header.Set("Cookie", cookie)
+		if origin != "" {
+			r.Header.Set("Origin", origin)
+		}
+		w := httptest.NewRecorder()
+		f.router.ServeHTTP(w, r)
+		if w.Code != status {
+			t.Fatalf("file status=%d body=%s", w.Code, w.Body.String())
+		}
+		if status == 307 && !strings.HasPrefix(w.Header().Get("Location"), "https://cdn.example.test/") {
+			t.Fatal("missing signed redirect")
+		}
+	}
+	read("platform_session=alice", "", 307)
+	read("platform_session=alice; nonce=next", "", 307)
+	read("platform_session=alice-other-session", "", 409)
+	read("platform_session=alice", "https://evil.test", 403)
+	read("platform_session=bob", "", 404)
+	f.revoked = true
+	read("platform_session=alice", "", 401)
+	if issues != 1 || accesses != 2 {
+		t.Fatalf("grant/access crossed account or repeated: %d %d", issues, accesses)
+	}
+}
+
+func TestStudioCanvasAcceptsOnlyOwnedBoundPlatformResources(t *testing.T) {
+	f := newStudioFixture(t)
+	f.request(t, "GET", "/api/auth/session", "platform_session=alice", "", 200)
+	var user model.User
+	f.db.First(&user)
+	if err := f.db.Create(&model.Resource{ID: "bound-resource", UserID: user.ID, Provider: "platform", Status: model.ResourceStatusReady, Kind: "video"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := f.db.Create(&model.StudioMaterialReference{ResourceID: "bound-resource", UserID: user.ID, AssetID: "asset_1", VersionID: "version_1", FileID: "file_1", OwnerID: "101", BindingID: "binding_1"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	body := `{"mutationId":"with-platform-video","operations":[{"type":"create_canvas","id":"material-canvas","patch":{"title":"素材画布"}},{"type":"create_node","node":{"id":"video-node","type":"video","metadata":{"storageKey":"resource:bound-resource","content":"/api/resources/bound-resource/file"}}}]}`
+	f.request(t, "PATCH", "/api/canvas-projects/material-canvas/operations", "platform_session=alice", body, 200)
+	read := f.request(t, "GET", "/api/canvas-projects/material-canvas", "platform_session=alice", "", 200)
+	if !strings.Contains(read.Body.String(), "bound-resource") {
+		t.Fatal("material reference not persisted")
+	}
+	f.request(t, "PATCH", "/api/canvas-projects/material-canvas/operations", "platform_session=bob", body, 409)
+	f.db.Model(&model.StudioMaterialReference{}).Where("resource_id = ?", "bound-resource").Update("binding_id", "")
+	missing := strings.ReplaceAll(strings.ReplaceAll(body, "material-canvas", "missing-binding-canvas"), "with-platform-video", "missing-binding")
+	f.request(t, "PATCH", "/api/canvas-projects/missing-binding-canvas/operations", "platform_session=alice", missing, 409)
 }
 
 func TestStudioMaterialBindingRecoveryAndImmutableVersion(t *testing.T) {

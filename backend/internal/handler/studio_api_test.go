@@ -44,7 +44,7 @@ func newStudioFixture(t *testing.T) *studioFixture {
 	f := &studioFixture{}
 	platform := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.requests++
-		if f.execution != nil && (strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
+		if f.execution != nil && (strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/internal/materials/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
 			f.execution(w, r)
 			return
 		}
@@ -92,10 +92,18 @@ func newStudioFixture(t *testing.T) *studioFixture {
 			return
 		}
 		id := 0
-		switch r.Header.Get("Cookie") {
-		case "platform_session=alice":
+		sid := "reference-only"
+		cookie, _ := r.Cookie("platform_session")
+		if cookie == nil {
+			cookie = &http.Cookie{}
+		}
+		switch cookie.Value {
+		case "alice", "alice-other-session":
 			id = 101
-		case "platform_session=bob":
+			if cookie.Value == "alice-other-session" {
+				sid = "another-session"
+			}
+		case "bob":
 			id = 202
 		}
 		if id == 0 || f.revoked {
@@ -111,7 +119,7 @@ func newStudioFixture(t *testing.T) *studioFixture {
 			w.Header().Add("Set-Cookie", "platform_session=rotated; Secure; HttpOnly")
 			w.Header().Add("Set-Cookie", "nonce=next; Secure; HttpOnly")
 		}
-		_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": gin.H{"user": gin.H{"id": id, "username": "same-name", "display_name": "Platform user", "status": 1, "role": 100}, "session": gin.H{"sid": "reference-only"}, "product_roles": roles}})
+		_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": gin.H{"user": gin.H{"id": id, "username": "same-name", "display_name": "Platform user", "status": 1, "role": 100}, "session": gin.H{"sid": sid}, "product_roles": roles}})
 	}))
 	t.Cleanup(platform.Close)
 	env := map[string]string{"STUDIO_PLATFORM_ORIGIN": platform.URL, "STUDIO_PLATFORM_PRODUCT_KEY": "fixture.secret", "STUDIO_PUBLIC_ORIGIN": "https://studio.example.test", "STUDIO_PLATFORM_SESSION_HOSTS": "studio.example.test", "STUDIO_PLATFORM_ALLOWED_ORIGINS": "https://studio.example.test"}

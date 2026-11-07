@@ -16,7 +16,7 @@
 | B 模型目录 | B1 已提交 | `/api/model-catalog` 经 SDK Models，保留完整平台价格/能力；OAC 选择器使用原模型名和精确小数展示；同一模型替代变体不合并。媒体预估继续 |
 | C 素材 | C1/C2 已提交 | v93 上传意图与固定素材映射、素材工作台/画布选择/容量设置已接通；任务产物关联继续 |
 | D 普通生成 | D1/D2 已提交 | 三种文本协议、精确媒体预估/上限、原请求恢复、固定产物采用；参考素材与原生图片/视频请求专项通过，真实媒体验收待协调侧 |
-| E 原生 Pi Agent | E1 专项通过；E2 媒体审批继续 | 根轮次共享 EXA，模型桥/压缩走持久执行；Node/Pi 画布工具往返通过，媒体审批尚未开放 |
+| E 原生 Pi Agent | E1 已提交 `78c37a4`；E2 媒体审批继续 | 根轮次共享 EXA，模型桥/压缩走持久执行；Node/Pi 画布工具往返通过，媒体审批尚未开放 |
 | F 首发联调 | 待环境 | 专项验证完成后交协调侧冻结与最终全量检查 |
 
 ## 测试与可验收入口
@@ -74,5 +74,11 @@ D2 红灯为 `/tasks/preview` 501 和缺少完整规格验证。当前媒体以 
 E1 红灯为缺少 Studio Pi 授权入口。已接通原生控制任务、冻结目录与整轮 EXA，每一步独立稳定请求 ID；子步骤不释放共享授权。未提交步骤与派发共用锁，停止后已提交请求继续恢复；禁止截断、失败与恢复后的旧自动重发。真实 Node/Pi + 免费 HTTP fixture 完成两次模型调用、canvas_get_state 工具结果回传、会话快照持久化；一次授权，整轮结束后一次释放。初次 Node 测试缺依赖，已按原 package-lock 执行 npm ci 后通过。前端改为明确 1–64 步上限，不再宣称本地积分限额/累计消费。媒体审批未开放，下一批继续接入会话报价与明确额度。
 
 协调侧发现素材访问待补：浏览器 GET 文件缺 Origin，而 SDK Access 为 POST；固定引用访问还需 BindingID。将在 E1 提交后独立补失败测试与修复，不通过改写通用 Session Origin 绕过。
+
+`78c37a4 feat(studio): Pi 对话 - 接通整轮授权与原步骤恢复`：E1 已提交，未推送。
+
+C3 素材读与画布同步修复：红灯确认 BindingID 缺失、Cookie 增加导致素材授权丢失、前端重绑为平台素材新建两份本地资产、文本节点被误要求文件身份。修复使用当前身份 SID 摘要索引加密的 material-only grant；浏览器 POST 初始化授权，无 Origin 文件 GET 使用 WorkerMaterials，未修改通用 Session 来源。数据库升至95。平台素材画布只校验同用户 ready 固定绑定，不再等待旧资产接口。后端 HTTP 采用→文件读取→跨账号拒绝、SID 隔离/撤销及画布保存/重开通过；浏览器实际播放与同步状态待协调侧部署验收。生成结果的旧本地物化、Pi 媒体审批继续审计，尚未宣称首发完成。
+
+C3 验证：`go test ./internal/app ./internal/handler ./internal/database -run 'TestStudio|TestValidateCanvasMediaAssets|TestCurrentSchemaVersionMatchesMigrationPlan' -count=1` 通过；前端素材节点、缺失资产修复、会话缓存、素材选择和画布资源同步 19 项/54 断言、typecheck、变更文件 ESLint/Prettier 通过。没有实际生成、部署或远端配置变更。协调侧另已确认5个 GPT Image 和3个 Seedance 可发现但仍 disabled；应用按发布能力处理，不另写模型分支。
 
 E1 验证：`go test ./internal/app ./internal/repository -run 'TestStudio|TestCloudAgent(Request|RuntimeCompletes|Tools|ToolAllowed)'`、`go test ./internal/handler -run TestStudio` 通过。后补同轮幂等、变更意图冲突及跨账号读取专项通过。仓库专项验证过期租约/被接管租约无法派发，重复派发只允许一次，停止未提交与保留已提交两种路径。前端 typecheck、变更文件 ESLint/Prettier 通过。尚未进行浏览器 Pi 验收，不宣称媒体审批可用。

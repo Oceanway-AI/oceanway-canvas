@@ -39,10 +39,9 @@ func (s *Service) ValidateCanvasMediaAssets(userID string, raw json.RawMessage) 
 	assetIDSet := make(map[string]struct{}, len(references))
 	resourceIDSet := make(map[string]struct{}, len(references)+len(allResourceReferences))
 	for _, reference := range references {
-		if reference.AssetID == "" {
-			return canvasMediaAssetsPendingError()
+		if reference.AssetID != "" {
+			assetIDSet[reference.AssetID] = struct{}{}
 		}
-		assetIDSet[reference.AssetID] = struct{}{}
 		resourceIDSet[reference.ResourceID] = struct{}{}
 	}
 	for _, reference := range allResourceReferences {
@@ -72,8 +71,16 @@ func (s *Service) ValidateCanvasMediaAssets(userID string, raw json.RawMessage) 
 		return err
 	}
 	readyResources := make(map[string]struct{}, len(resources))
+	platformResources := make(map[string]bool)
 	for _, resource := range resources {
 		if resource.Status == model.ResourceStatusReady {
+			if resource.Provider == "platform" {
+				ref, err := s.repo.StudioMaterialReference(userID, resource.ID)
+				if err != nil || ref.BindingID == "" || ref.AssetID == "" || ref.VersionID == "" || ref.FileID == "" {
+					continue
+				}
+				platformResources[resource.ID] = true
+			}
 			readyResources[resource.ID] = struct{}{}
 		}
 	}
@@ -89,6 +96,11 @@ func (s *Service) ValidateCanvasMediaAssets(userID string, raw json.RawMessage) 
 	}
 
 	for _, reference := range references {
+		if platformResources[reference.ResourceID] {
+			// The fixed Platform binding is the asset identity; creating another
+			// OAC Asset would duplicate the platform's material library.
+			continue
+		}
 		resourceIDs, assetExists := assetResources[reference.AssetID]
 		if !assetExists {
 			return canvasMediaAssetsPendingError()

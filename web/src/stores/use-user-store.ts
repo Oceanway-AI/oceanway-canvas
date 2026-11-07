@@ -68,6 +68,7 @@ export const defaultFeatureAvailability: FeatureAvailability = {
 
 type UserStore = {
     hydrated: boolean;
+    platformIdentity: boolean;
     user: LocalUser | null;
     runtimeLimits: RuntimeLimits;
     drawingEngine: CanvasDrawingEngineSetting;
@@ -87,6 +88,7 @@ type UserStore = {
 
 export const useUserStore = create<UserStore>()((set) => ({
     hydrated: false,
+    platformIdentity: false,
     user: null,
     runtimeLimits: { activeTaskLimit: 5, resourceUploadMB: 50, recycleBinRetentionDays: 30 },
     drawingEngine: { defaultEngine: DEFAULT_DRAWING_ENGINE },

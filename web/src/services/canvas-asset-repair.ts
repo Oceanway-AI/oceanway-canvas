@@ -6,6 +6,7 @@ import { useCanvasStore, type CanvasProject } from "@/stores/canvas/use-canvas-s
 import { CanvasNodeType, type CanvasNodeData } from "@/types/canvas";
 import type { TimelineDirectMedia } from "@/types/timeline";
 import { getActiveUserScope } from "@/lib/user-scope";
+import { useUserStore } from "@/stores/use-user-store";
 
 export type CanvasAssetRepairResult = {
     createdAssets: number;
@@ -13,6 +14,7 @@ export type CanvasAssetRepairResult = {
 };
 
 export function repairMissingCanvasAssets(projectIds?: Set<string>, partialAssets = false): CanvasAssetRepairResult {
+    if (useUserStore.getState().platformIdentity) return { createdAssets: 0, updatedProjects: 0 };
     const assetStore = useAssetStore.getState();
     const canvasStore = useCanvasStore.getState();
     const assetIdByStorageKey = new Map<string, string>();
@@ -165,15 +167,17 @@ export async function repairMissingCanvasVideoPreviews(projectIds?: Set<string>,
     const invalidIds = new Set<string>();
     const ids = [...previewResourceIds];
     for (let offset = 0; offset < ids.length; offset += 8) {
-        await Promise.all(ids.slice(offset, offset + 8).map(async (id) => {
-            try {
-                const resource = await lookup(id);
-                if (resource.status !== "ready") invalidIds.add(id);
-            } catch (error) {
-                if (error instanceof ApiError && error.status === 404) invalidIds.add(id);
-                else throw error;
-            }
-        }));
+        await Promise.all(
+            ids.slice(offset, offset + 8).map(async (id) => {
+                try {
+                    const resource = await lookup(id);
+                    if (resource.status !== "ready") invalidIds.add(id);
+                } catch (error) {
+                    if (error instanceof ApiError && error.status === 404) invalidIds.add(id);
+                    else throw error;
+                }
+            }),
+        );
     }
     if (getActiveUserScope() !== scope) throw new Error("账号已切换，已停止修复视频封面");
     if (!invalidIds.size) return { clearedPreviews: 0, updatedProjects: 0 };
@@ -225,6 +229,7 @@ const RESOURCE_ID_PATTERN = /^[A-Za-z0-9_-]{1,80}$/;
  * 推送即可在不破坏该不变式的前提下用本地画布覆盖云端。
  */
 export function rebindInconsistentCanvasAssets(records: Asset[], projectIds?: Set<string>): CanvasAssetRebindResult {
+    if (useUserStore.getState().platformIdentity) return { reboundNodes: 0, createdAssets: 0, updatedProjects: 0 };
     const identitiesByAssetId = new Map<string, Set<string>>();
     const assetIdByIdentity = new Map<string, string>();
     const registerAsset = (asset: Asset) => {

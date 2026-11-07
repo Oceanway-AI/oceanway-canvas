@@ -2,11 +2,27 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"yingce/backend/internal/model"
 )
+
+func (r *Repository) StudioMaterialAuthority(userID, sessionHash string) (*model.StudioMaterialAuthority, error) {
+	var row model.StudioMaterialAuthority
+	err := r.db.First(&row, "user_id = ? AND session_hash = ? AND expires_at > ?", userID, sessionHash, time.Now().Add(time.Minute)).Error
+	return &row, err
+}
+
+func (r *Repository) SaveStudioMaterialAuthority(row model.StudioMaterialAuthority) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("expires_at < ?", time.Now()).Delete(&model.StudioMaterialAuthority{}).Error; err != nil {
+			return err
+		}
+		return tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "session_hash"}}, DoUpdates: clause.AssignmentColumns([]string{"authorization_encrypted", "expires_at", "updated_at"})}).Create(&row).Error
+	})
+}
 
 func (r *Repository) CreateStudioMaterialUpload(in model.StudioMaterialUpload) (*model.StudioMaterialUpload, error) {
 	if err := r.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&in).Error; err != nil {

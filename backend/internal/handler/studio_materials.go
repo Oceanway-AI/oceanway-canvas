@@ -90,7 +90,7 @@ func RegisterStudioMaterialRoutes(api *gin.RouterGroup, svc *service.Service) {
 		if !studioMaterialJSON(c, &in) {
 			return
 		}
-		data, response, err := svc.StudioResourceAccess(c.Request.Context(), user.ID, platformintegration.Session(c.Request), in)
+		data, response, err := svc.StudioResourceAccess(c.Request.Context(), user, platformintegration.Session(c.Request), in)
 		studioMaterialReply(c, gin.H{"items": data}, response, err)
 	})
 	api.GET("/resources/:id", func(c *gin.Context) {
@@ -108,7 +108,7 @@ func RegisterStudioMaterialRoutes(api *gin.RouterGroup, svc *service.Service) {
 			failService(c, err)
 			return
 		}
-		items, response, err := svc.StudioResourceAccess(c.Request.Context(), user.ID, platformintegration.Session(c.Request), []service.ResourceAccessRequest{{ResourceID: c.Param("id"), AccessOptions: assets.AccessOptions{Purpose: assets.AccessPurpose(c.DefaultQuery("purpose", "display")), Variant: assets.ResourceVariant(c.DefaultQuery("variant", "original"))}}})
+		items, response, err := svc.StudioResourceAccess(c.Request.Context(), user, platformintegration.Session(c.Request), []service.ResourceAccessRequest{{ResourceID: c.Param("id"), AccessOptions: assets.AccessOptions{Purpose: assets.AccessPurpose(c.DefaultQuery("purpose", "display")), Variant: assets.ResourceVariant(c.DefaultQuery("variant", "original"))}}})
 		if response != nil {
 			response.AppendCookies(c.Writer.Header())
 		}
@@ -117,6 +117,10 @@ func RegisterStudioMaterialRoutes(api *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		if len(items) != 1 || items[0].Access == nil {
+			if len(items) == 1 && items[0].Error != nil {
+				failService(c, service.NewAppError(items[0].Error.Code, items[0].Error.Message))
+				return
+			}
 			failService(c, service.NewAppError(503, "素材暂时不可访问"))
 			return
 		}

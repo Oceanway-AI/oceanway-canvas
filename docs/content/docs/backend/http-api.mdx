@@ -33,6 +33,7 @@ Studio 已开放 `POST /api/tasks`、`POST /api/tasks/preview`、`GET /api/tasks
 | `GET /api/auth/settings` | `provider=platform`、`loginMode=page`、禁用本地注册，不回退密码登录 |
 | `GET /api/auth/login-url` | 返回经 Platform login-return 批准的登录 URL；固定回跳 `/platform/login/complete`，不接受外部 next 参数 |
 | `GET /api/auth/session` | SDK 验证会话；有效时返回产品用户和功能配置，平台 401 时 `user=null`；403/429 保留拒绝语义，上游不可用返回 503，不假装匿名成功 |
+| `POST /api/auth/session` | 浏览器工作区初始化：同上，并以真实 Origin 签发仅限素材的委托授权，按当前 SID 加密保存在服务端；返回 `provider: platform`，不返回授权正文 |
 | `POST /api/auth/logout` | SDK 退出，逐项透传清理 Cookie；必须带实际允许的 Origin |
 | `GET /api/auth/profile` | 平台身份只读视图：`provider=platform`、`consoleURL`，无本地密码/验证码管理能力 |
 

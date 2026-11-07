@@ -58,7 +58,7 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 		}
 		ok(c, gin.H{"ok": true})
 	})
-	api.GET("/auth/session", func(c *gin.Context) {
+	sessionHandler := func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
 			var appErr *service.AppError
@@ -68,6 +68,16 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 			}
 			failService(c, err)
 			return
+		}
+		if c.Request.Method == http.MethodPost {
+			response, err := svc.StudioAuthorizeMaterials(c.Request.Context(), user, platformintegration.Session(c.Request))
+			if response != nil {
+				response.AppendCookies(c.Writer.Header())
+			}
+			if err != nil {
+				failService(c, err)
+				return
+			}
 		}
 		limits, err := svc.PublicRuntimeLimits()
 		if err != nil {
@@ -84,8 +94,10 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 			failService(c, err)
 			return
 		}
-		ok(c, gin.H{"user": user, "runtimeLimits": limits, "drawingEngine": drawing, "features": features, "referralAvailable": false})
-	})
+		ok(c, gin.H{"user": user, "provider": "platform", "runtimeLimits": limits, "drawingEngine": drawing, "features": features, "referralAvailable": false})
+	}
+	api.GET("/auth/session", sessionHandler)
+	api.POST("/auth/session", sessionHandler)
 	api.GET("/public/appearance", func(c *gin.Context) {
 		appearance, err := svc.Appearance()
 		if err != nil {
