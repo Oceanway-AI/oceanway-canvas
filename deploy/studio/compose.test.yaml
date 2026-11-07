@@ -4,6 +4,7 @@ services:
     image: nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
     ports:
       - "0.0.0.0:18448:8443"
+      - "0.0.0.0:18450:8444"
     volumes:
       - ./deploy/studio/nginx.test.conf:/etc/nginx/nginx.conf:ro
       - /etc/letsencrypt/live/test.oceanway.tech:/etc/letsencrypt/live/test.oceanway.tech:ro

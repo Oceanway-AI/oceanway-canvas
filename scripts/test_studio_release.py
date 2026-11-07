@@ -86,6 +86,14 @@ class DeploymentTests(unittest.TestCase):
         self.assertNotIn("$request_uri", edge)
         self.assertNotIn("$http_referer", edge)
 
+    def test_legacy_gateway_bridge_exposes_no_admin_or_identity_routes(self):
+        edge = (ROOT / "deploy/studio/nginx.test.conf").read_text()
+        self.assertIn("listen 8444 ssl", edge)
+        self.assertIn("proxy_pass http://45.58.184.2:18420;", edge)
+        self.assertIn("location / { return 404; }", edge)
+        self.assertNotIn("proxy_set_header Authorization", edge)
+        self.assertNotIn("proxy_pass_request_headers off", edge)
+
 
 if __name__ == "__main__":
     unittest.main()
