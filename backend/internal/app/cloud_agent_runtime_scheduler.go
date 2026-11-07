@@ -61,7 +61,7 @@ func (s *Service) cloudAgentExecutionOutput(task *model.Task, initial cloudAgent
 	if !view.FromStart && view.SinceSeq == 0 && len(out.Events) < out.EventCount {
 		out.EventsTruncated = true
 	}
-	out.Approval = state.Approval
+	out.Approval = cloudAgentApprovalOutput(state.Approval)
 	if cloudAgentRunTerminal(run.Status) {
 		out.Approval = nil
 	}

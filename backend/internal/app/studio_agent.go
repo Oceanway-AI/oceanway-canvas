@@ -117,7 +117,7 @@ func (s *Service) studioCreateAgentRoot(ctx context.Context, userID string, sess
 
 func (s *Service) enqueueStudioAgentTask(run *model.CloudAgentExecution, state *cloudAgentRuntime, req CreateTaskRequest, media *cloudAgentMediaPlan) error {
 	if media != nil {
-		return NewAppError(501, "Agent 媒体审批正在接入平台")
+		return creationConflict("媒体步骤必须通过已确认的平台报价提交")
 	}
 	if req.Type != "canvas_text" || req.Model != state.Request.ChannelModelKey || req.ProjectID != state.Request.CanvasID {
 		return BadAuthRequest("模型步骤与本轮授权不一致")

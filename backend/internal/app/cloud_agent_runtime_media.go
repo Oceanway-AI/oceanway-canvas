@@ -435,6 +435,9 @@ func (s *Service) DecideCloudAgentApproval(userID, id, approvalID, decision, rea
 	if run.Status != "waiting_approval" || state.Approval == nil || state.Approval.ID != approvalID {
 		return creationConflict("审批不存在或已过期")
 	}
+	if s.UsesPlatformIdentity() && state.Approval.StudioMedia && decision == "approve" {
+		return creationConflict("平台媒体审批需要确认当前报价")
+	}
 	if settings != nil && state.MediaBatch != nil && state.MediaBatch.ID == approvalID {
 		return BadAuthRequest("批量生成的模型与规格在申请时统一确定，不能在审批卡里逐条修改；需要调整请暂不执行，让 Agent 重新申请")
 	}

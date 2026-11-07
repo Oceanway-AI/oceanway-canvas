@@ -652,6 +652,7 @@ export function AgentConversation({
     onUndo,
     undoStates,
     onApprovalReasonChange,
+    onQuote,
     onApprove,
     onReject,
     onWithdrawInterjection,
@@ -682,6 +683,7 @@ export function AgentConversation({
     onUndo?: (target: AgentCanvasUndoTarget) => void;
     undoStates?: Record<string, AgentCanvasUndoState>;
     onApprovalReasonChange: (reason: string) => void;
+    onQuote?: () => void;
     onApprove: (settings?: AgentMediaSettings) => void;
     onReject: () => void;
     onWithdrawInterjection?: (messageId: string) => void;
@@ -829,6 +831,7 @@ export function AgentConversation({
                             targetGenerating={approvalTargetGenerating}
                             onFocusNode={onFocusNode}
                             onReasonChange={onApprovalReasonChange}
+                            onQuote={onQuote}
                             onApprove={onApprove}
                             onReject={onReject}
                         />
@@ -966,6 +969,7 @@ export function ApprovalCard({
     targetGenerating,
     onFocusNode,
     onReasonChange,
+    onQuote,
     onApprove,
     onReject,
 }: {
@@ -979,6 +983,7 @@ export function ApprovalCard({
     targetGenerating?: CanvasNodeData;
     onFocusNode?: (nodeId: string) => void;
     onReasonChange: (value: string) => void;
+    onQuote?: () => void;
     onApprove: (settings?: AgentMediaSettings) => void;
     onReject: () => void;
 }) {
@@ -987,6 +992,33 @@ export function ApprovalCard({
     const imageApproval = agentImageApproval(approval.detail);
     const videoApproval = agentVideoApproval(approval.detail);
     const action = agentApprovalPresentation(approval.detail);
+    const studioMedia = approval.detail.studioMedia === true;
+    const quote = approval.detail.studioQuote as import("@/services/api/agent").StudioAgentMediaQuote | undefined;
+    const [quoteExpired, setQuoteExpired] = useState(false);
+    useEffect(() => {
+        const remaining = quote ? Date.parse(quote.expiresAt) - Date.now() : 0;
+        setQuoteExpired(Boolean(quote) && (!Number.isFinite(remaining) || remaining <= 0));
+        if (!quote || remaining <= 0 || !Number.isFinite(remaining)) return;
+        const timer = setTimeout(() => setQuoteExpired(true), Math.min(remaining, 2147483647));
+        return () => clearTimeout(timer);
+    }, [quote]);
+    const parameterLabels: Record<string, string> = {
+        size: "尺寸",
+        aspect_ratio: "比例",
+        ratio: "比例",
+        resolution: "分辨率",
+        image_size: "分辨率",
+        quality: "质量",
+        n: "张数",
+        images: "张数",
+        count: "张数",
+        duration: "时长（秒）",
+        seconds: "时长（秒）",
+        generate_audio: "生成音频",
+        watermark: "水印",
+        seed: "种子",
+        response_modalities: "输出类型",
+    };
     return (
         <section className="canvas-agent-approval-card" aria-label={action.title}>
             <div className="canvas-agent-approval-header">
@@ -1004,7 +1036,7 @@ export function ApprovalCard({
                     {action.items.map((item, index) => (
                         <ApprovalPreviewItemView
                             key={`${item.operation}-${item.nodeId || item.nodeTitle || index}-${index}`}
-                            item={imageApproval || videoApproval ? { ...item, details: item.details?.filter((detail) => !/^(模型|画幅|质量|时长|音频)[：:]/.test(detail)) } : item}
+                            item={!studioMedia && (imageApproval || videoApproval) ? { ...item, details: item.details?.filter((detail) => !/^(模型|画幅|质量|时长|音频)[：:]/.test(detail)) } : item}
                             theme={theme}
                             onFocusNode={onFocusNode}
                         />
@@ -1015,7 +1047,23 @@ export function ApprovalCard({
                     无法确认具体目标，继续前请重新读取画布。
                 </div>
             )}
-            {imageApproval ? (
+            {studioMedia ? (
+                <div aria-label="平台生成报价">
+                    {quote ? (
+                        <p>
+                            本次最高 {quote.walletMaxPoints} 平台积分；{quoteExpired ? "报价已过期，请刷新" : `有效至 ${new Date(quote.expiresAt).toLocaleTimeString()}`}。参数：
+                            {Object.entries(quote.parameters)
+                                .map(([key, value]) => `${parameterLabels[key] || key}：${typeof value === "string" ? value : JSON.stringify(value)}`)
+                                .join("，")}
+                        </p>
+                    ) : (
+                        <p>先获取平台报价，确认后执行。修改参数请暂不执行，编辑草稿后重新申请。</p>
+                    )}
+                    <button type="button" className="canvas-agent-approval-reason-toggle" disabled={submitting || Boolean(blockedReason) || Boolean(targetGenerating)} onClick={onQuote}>
+                        {quote ? "刷新报价" : "获取平台报价"}
+                    </button>
+                </div>
+            ) : imageApproval ? (
                 <CanvasAgentImageApprovalSettings initial={imageApproval} value={mediaSettings} onChange={setMediaSettings} theme={theme} disabled={submitting} />
             ) : videoApproval ? (
                 <CanvasAgentVideoApprovalSettings initial={videoApproval} value={mediaSettings} onChange={setMediaSettings} theme={theme} disabled={submitting} />
@@ -1047,7 +1095,12 @@ export function ApprovalCard({
                 <button type="button" className="canvas-agent-approval-reject" disabled={submitting || Boolean(blockedReason)} onClick={onReject}>
                     暂不执行
                 </button>
-                <button type="button" className="canvas-agent-approval-approve" disabled={submitting || Boolean(blockedReason) || Boolean(targetGenerating)} onClick={() => onApprove(mediaSettings)}>
+                <button
+                    type="button"
+                    className="canvas-agent-approval-approve"
+                    disabled={submitting || Boolean(blockedReason) || Boolean(targetGenerating) || (studioMedia && (!quote || quoteExpired))}
+                    onClick={() => onApprove(studioMedia ? undefined : mediaSettings)}
+                >
                     {submitting ? <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Check className="size-4" aria-hidden="true" />}
                     {submitting ? "正在提交" : targetGenerating ? "已在节点中生成" : "同意执行"}
                 </button>

@@ -453,6 +453,9 @@ func (s *Service) advanceCloudAgentTool(run *model.CloudAgentExecution, state *c
 	toolPolicy := agenttool.Of(call.Function.Name)
 	// 媒体工具在所有模式下都进入审批；其他写入只在 request_approval 下审批。
 	if allowed && toolPolicy.ApprovalRequired(state.Request.PermissionMode) && state.Approval == nil {
+		if s.UsesPlatformIdentity() && cloudAgentMediaTool(call.Function.Name) {
+			return s.requestStudioAgentMediaApproval(run, state, call)
+		}
 		if call.Function.Name == agenttool.GenerateMediaBatch {
 			return s.requestCloudAgentMediaBatchApproval(run, state, call)
 		}

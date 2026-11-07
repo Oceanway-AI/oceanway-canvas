@@ -283,7 +283,8 @@ func cloudAgentAllToolSchemas() []map[string]any {
 		"dryRun": map[string]any{"type": "boolean", "description": "true 只预演不写入"},
 	}, "snapshotHash")
 	add("generate_media", "创作媒体：给出提示词和真实参考，执行器创建草稿、连线、解析默认并报价审批，批准后提交。无需先建节点。规格默认继承；用户要求改变时用 configurationChange，勿为构图或风格擅改规格。已有任务/成品不可覆盖。sourceNodeId=文本，referenceNodeIds=媒体；角色卡同时取设定和三视图，仅取设定用 sourceNodeId，勿重复。临时参考只用工具ID。提交前按回执有界纠正；已提交失败不得自动重提或换模型。", map[string]any{
-		"mode": map[string]any{"type": "string", "enum": cloudAgentGenerationModeNames()}, "prompt": str("完整提示词；媒体按 referenceNodeIds 各类型分别编号 @图片1/@视频1/@音频1，文本来源不计数。漏标签由服务端补齐，不推断用途"),
+		"imageParameters": str("可选图片参数 JSON 字符串，字段用 model_list 的 options.image.parameters[].name，值必须符合该发布规格"),
+		"mode":            map[string]any{"type": "string", "enum": cloudAgentGenerationModeNames()}, "prompt": str("完整提示词；媒体按 referenceNodeIds 各类型分别编号 @图片1/@视频1/@音频1，文本来源不计数。漏标签由服务端补齐，不推断用途"),
 		"logicalModelId": str("selection.logicalModelId；与channelId/channelModelKey互斥"), "channelId": str("selection.channelId"), "channelModelKey": str("selection.channelModelKey"),
 		"durationSeconds": map[string]any{"type": "integer", "minimum": 0}, "size": str(cloudAgentMediaSizeDescription), "imageResolution": str("model_list 档位；未启用时省略"), "quality": str("按本回合 model_list 返回的 image.quality 或 video.resolutions 取值；视频输出分辨率保持目录返回的大小写"), "videoGenerateAudio": map[string]any{"type": "boolean", "description": "是否生成音频，仅视频可用"},
 		"videoStartFrameNodeId": str("视频首帧图片ID，须在 referenceNodeIds 中"),

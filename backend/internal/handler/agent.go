@@ -336,6 +336,26 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 		}
 		ok(c, result)
 	})
+	r.POST("/agent/runs/:id/approvals/:approvalId/quote", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		if !svc.UsesPlatformIdentity() {
+			failService(c, service.NewAppError(501, "平台报价暂不可用"))
+			return
+		}
+		quote, response, err := svc.QuoteStudioAgentMedia(c.Request.Context(), user.ID, platformintegration.Session(c.Request), c.Param("id"), c.Param("approvalId"))
+		if response != nil {
+			response.AppendCookies(c.Writer.Header())
+		}
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, quote)
+	})
 	r.POST("/agent/runs/:id/approvals/:approvalId/decision", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -350,6 +370,7 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 		var req struct {
 			Decision      string                           `json:"decision"`
 			Reason        string                           `json:"reason"`
+			QuoteID       string                           `json:"quoteId,omitempty"`
 			MediaSettings *service.CloudAgentMediaSettings `json:"mediaSettings,omitempty"`
 		}
 		decoder := json.NewDecoder(c.Request.Body)
@@ -370,7 +391,12 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 			fail(c, http.StatusBadRequest, errors.New("请求必须只包含一个 JSON 对象"))
 			return
 		}
-		if err := svc.DecideCloudAgentApproval(user.ID, c.Param("id"), c.Param("approvalId"), req.Decision, req.Reason, req.MediaSettings); err != nil {
+		if svc.UsesPlatformIdentity() {
+			err = svc.DecideStudioAgentMedia(user.ID, c.Param("id"), c.Param("approvalId"), req.Decision, req.Reason, req.QuoteID, req.MediaSettings)
+		} else {
+			err = svc.DecideCloudAgentApproval(user.ID, c.Param("id"), c.Param("approvalId"), req.Decision, req.Reason, req.MediaSettings)
+		}
+		if err != nil {
 			failService(c, err)
 			return
 		}

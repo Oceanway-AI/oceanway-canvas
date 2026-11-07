@@ -117,6 +117,14 @@ func TestStudioPiModelStepUsesOriginalRunAuthority(t *testing.T) {
 }
 
 func TestStudioPiRuntimeToolRoundTrip(t *testing.T) {
+	testStudioPiRuntimeToolRoundTrip(t, false)
+}
+
+func TestStudioPiRuntimeMediaApprovalRoundTrip(t *testing.T) {
+	testStudioPiRuntimeToolRoundTrip(t, true)
+}
+
+func testStudioPiRuntimeToolRoundTrip(t *testing.T, media bool) {
 	if _, err := exec.LookPath("node"); err != nil {
 		t.Fatal("native Pi acceptance requires node")
 	}
@@ -127,13 +135,18 @@ func TestStudioPiRuntimeToolRoundTrip(t *testing.T) {
 	var mu sync.Mutex
 	var bodies []map[string]any
 	issues, releases := 0, 0
+	mediaSubmits, mediaRecovers, quotes := 0, 0, 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		mu.Lock()
 		defer mu.Unlock()
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/models"):
-			_, _ = w.Write([]byte(`{"success":true,"data":{"items":[{"model_name":"pi-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}}]}}`))
+			if media {
+				_, _ = w.Write([]byte(studioAgentMediaFixtureCatalog))
+			} else {
+				_, _ = w.Write([]byte(`{"success":true,"data":{"items":[{"model_name":"pi-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}}]}}`))
+			}
 		case r.URL.Path == "/api/platform/v1/execution-authorizations":
 			issues++
 			var in map[string]string
@@ -142,6 +155,15 @@ func TestStudioPiRuntimeToolRoundTrip(t *testing.T) {
 		case strings.HasSuffix(r.URL.Path, "/release"):
 			releases++
 			w.WriteHeader(204)
+		case strings.HasSuffix(r.URL.Path, "/media/consumption-preview"):
+			quotes++
+			_, _ = w.Write([]byte(`{"success":true,"data":{"model":"image-model","model_type":"image","price_version":"price-1","combination_supported":true,"allowed":true,"wallet_points":"0.123456789"}}`))
+		case r.URL.Path == "/internal/relay/images/generations":
+			mediaSubmits++
+			w.WriteHeader(503)
+		case strings.HasPrefix(r.URL.Path, "/internal/relay/media-requests/"):
+			mediaRecovers++
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": platformclient.MediaRecovery{RequestID: strings.TrimPrefix(r.URL.Path, "/internal/relay/media-requests/"), Status: "FAILURE", NoExecution: true}})
 		case r.URL.Path == "/internal/relay/chat/completions":
 			if r.Header.Get("X-Platform-Execution-Authorization") != "exa_native_pi" || r.Header.Get("Cookie") != "" {
 				t.Error("incorrect Pi worker authority")
@@ -149,7 +171,10 @@ func TestStudioPiRuntimeToolRoundTrip(t *testing.T) {
 			var body map[string]any
 			_ = json.NewDecoder(r.Body).Decode(&body)
 			bodies = append(bodies, body)
-			if len(bodies) == 1 {
+			if len(bodies) == 1 && media {
+				args, _ := json.Marshal(map[string]any{"mode": "image", "channelId": StudioPlatformChannelID, "channelModelKey": "image-model", "prompt": "a green square", "size": "1:1", "title": "图片草稿", "referenceNodeIds": []string{}})
+				_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": "", "tool_calls": []any{map[string]any{"id": "create-image", "type": "function", "function": map[string]any{"name": "generate_media", "arguments": string(args)}}}}}}})
+			} else if len(bodies) == 1 {
 				_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"read-canvas","type":"function","function":{"name":"canvas_get_state","arguments":"{}"}}]}}]}`))
 			} else {
 				_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"画布已检查完毕"}}]}`))
@@ -177,18 +202,39 @@ func TestStudioPiRuntimeToolRoundTrip(t *testing.T) {
 	}
 	req := CloudAgentRequest{CanvasID: "studio-pi-canvas", Prompt: "检查画布", Model: "pi-model", ChannelID: StudioPlatformChannelID, ChannelModelKey: "pi-model", IdempotencyKey: "studio-pi-native-test", PermissionMode: "read_only", ContextScope: []string{"canvas"}}
 	req.Budget.MaxSteps = 4
+	if media {
+		req.PermissionMode = "request_approval"
+	}
 	view, _, err := s.CreateStudioCloudAgentRun(context.Background(), "user", platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "platform_session=alice"}, req, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	deadline := time.Now().Add(40 * time.Second)
+	approved := false
 	for time.Now().Before(deadline) {
+		if media {
+			db.Model(&model.Task{}).Where("agent_run_id = ? AND type = ?", view.ID, "canvas_image").Update("next_poll_at", time.Now().Add(-time.Second))
+		}
 		if err := s.ProcessNextTask(); err != nil {
 			t.Fatal(err)
 		}
 		run, err := s.repo.CloudAgent("user", view.ID)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if media && run.Status == "waiting_approval" && !approved {
+			state, err := cloudAgentDecode(run)
+			if err != nil {
+				t.Fatal(err)
+			}
+			quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "session=fixture"}, run.ID, state.Approval.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := s.DecideStudioAgentMedia("user", run.ID, state.Approval.ID, "approve", "", quote.ID, nil); err != nil {
+				t.Fatal(err)
+			}
+			approved = true
 		}
 		if cloudAgentRunTerminal(run.Status) {
 			if run.Status != "completed" {
@@ -201,8 +247,11 @@ func TestStudioPiRuntimeToolRoundTrip(t *testing.T) {
 				t.Fatalf("calls=%d issues=%d releases=%d", len(bodies), issues, releases)
 			}
 			raw, _ := json.Marshal(bodies[1]["messages"])
-			if !strings.Contains(string(raw), `"tool_call_id":"read-canvas"`) || strings.Contains(string(raw), `\"error\"`) {
+			if !media && (!strings.Contains(string(raw), `"tool_call_id":"read-canvas"`) || strings.Contains(string(raw), `\"error\"`)) {
 				t.Fatalf("tool receipt missing: %s", raw)
+			}
+			if media && (!approved || mediaSubmits != 1 || mediaRecovers != 1 || quotes != 1 || !strings.Contains(string(raw), "create-image")) {
+				t.Fatalf("native media approval not resumed exactly once: submits=%d recoveries=%d quotes=%d", mediaSubmits, mediaRecovers, quotes)
 			}
 			if session, err := s.repo.CloudAgentPiSession("user", view.ID); err != nil || session.SessionJSONL == "" {
 				t.Fatalf("Pi snapshot missing: %v", err)

@@ -130,11 +130,7 @@ func studioParameterName(key string) string {
 	return key
 }
 
-func (s *Service) studioMediaBody(ctx context.Context, userID string, req CreateTaskRequest, selected platformintegration.ModelSelection) ([]byte, error) {
-	input, err := studioDecodeInput(req)
-	if err != nil {
-		return nil, err
-	}
+func studioMediaSpecifications(input canvasGenerationInput, selected platformintegration.ModelSelection) (map[string]any, error) {
 	var schema struct {
 		Properties map[string]map[string]any `json:"properties"`
 	}
@@ -203,6 +199,18 @@ func (s *Service) studioMediaBody(ctx context.Context, userID string, req Create
 	}
 	if spec["stream"] == true || spec["async"] == true {
 		return nil, BadAuthRequest("当前仅支持可恢复的非流式生成")
+	}
+	return spec, nil
+}
+
+func (s *Service) studioMediaBody(ctx context.Context, userID string, req CreateTaskRequest, selected platformintegration.ModelSelection) ([]byte, error) {
+	input, err := studioDecodeInput(req)
+	if err != nil {
+		return nil, err
+	}
+	spec, err := studioMediaSpecifications(input, selected)
+	if err != nil {
+		return nil, err
 	}
 	body := map[string]any{"model": selected.Name, "prompt": req.Prompt}
 	switch selected.MediaRoute {

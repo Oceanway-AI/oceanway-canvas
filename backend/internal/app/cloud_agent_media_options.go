@@ -28,6 +28,9 @@ func (s *Service) resolveCloudAgentMediaConfiguration(a *cloudAgentMediaArgs, st
 	}
 	// 尺寸编码须使用草稿的有效档位；归一化后仍恢复保存值，不能清除用户配置。
 	applyCloudAgentMediaDraftOptions(a, options)
+	if s.UsesPlatformIdentity() {
+		return nil // Published Platform specifications are validated before quoting.
+	}
 	if err := s.normalizeCloudAgentImageOptions(a, refs); err != nil {
 		return err
 	}

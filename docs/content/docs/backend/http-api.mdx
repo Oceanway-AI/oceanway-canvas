@@ -7,6 +7,8 @@ description: 信封、错误码与 OpenAPI
 
 Studio 已开放 `POST /api/tasks`、`POST /api/tasks/preview`、`GET /api/tasks`、`GET /api/tasks/:id`、`GET /api/tasks/by-command/:command` 与只读日志/文本回放/SSE。创建必须提供账号内唯一的 `commandId`；同命令同意图返回原任务，改变意图为 409。支持已发布文本、图片及视频协议；媒体要求 `platform.expectedPriceVersion` 与十进制字符串 `platform.walletMaxPoints`（包括明确的 `"0"`），可选 variantId/billingPreference。预估入口使用同一 OAC 创作意图，返回平台原始精确预估，不能视为预留或执行事实。未知提交不自动重试；旧 `/retry`、供应商取消、浏览器自写文本结果未注册。执行授权只在服务端加密保存。
 
+Studio 原生 Pi 已开放 `/api/agent` 的轮次、事件、审批和同链工具。媒体草稿的 `approval.studioMedia=true`；`POST /agent/runs/:id/approvals/:approvalId/quote` 以当前浏览器会话获取精确报价，返回 `id/walletMaxPoints/priceVersion/expiresAt/parameters`。`POST .../decision` 批准时必须传该 `quoteId`，不接受同时修改 `mediaSettings`；报价不存在/过期/依赖变化为409。任务、画布绑定与决定同事务写入，共享整轮授权，不生成本地账单。报价原生请求加密保存在服务端，不进入公共审批 JSON；拒绝不提交模型请求。
+
 ## OceanWay Studio 素材 v2
 
 所有以下接口要求当前 Platform 登录、已登记 Host/Origin；写请求必须携带 Origin。成功仍使用 OAC 信封。
@@ -26,7 +28,7 @@ Studio 已开放 `POST /api/tasks`、`POST /api/tasks/preview`、`GET /api/tasks
 
 ## OceanWay Studio 首批接口边界
 
-当前可执行入口使用 `RegisterStudioAPI`；下文上游接口清单不代表都已在新 Studio 开放。已开放 Platform 身份、模型目录、素材 v2、画布持久化/编辑租约/实时连接/分享及外观/功能查询。生成、Agent、旧密码认证、支付和供应商代理等未挂载接口返回 HTTP 501，`msg` 为“此功能暂不可用”；阶段内不暴露旧 `/api/openapi.yaml`。
+当前可执行入口使用 `RegisterStudioAPI`；下文上游接口清单不代表都已在新 Studio 开放。已开放 Platform 身份、模型目录、素材 v2、文本/图片/视频任务、原生 Pi、画布持久化/编辑租约/实时连接/分享及外观/功能查询。旧密码认证、支付和供应商代理等未挂载接口返回 HTTP 501，`msg` 为“此功能暂不可用”；阶段内不暴露旧 `/api/openapi.yaml`。
 
 | 接口 | 当前合同 |
 | --- | --- |

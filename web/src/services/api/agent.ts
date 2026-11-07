@@ -60,6 +60,8 @@ export type AgentApprovalPreview = {
 };
 
 export type AgentApproval = {
+    studioMedia?: boolean;
+    studioQuote?: StudioAgentMediaQuote;
     modelName?: string;
     approvalId: string;
     call: { id: string; function: { name: string; arguments: string } };
@@ -233,8 +235,18 @@ export function undoAgentCanvasRun(runId: string, input: { stepId?: string; expe
     return http.post<{ accepted: boolean; snapshotHash: string }>(`/agent/runs/${encodeURIComponent(runId)}/undo`, input, { signal });
 }
 
-export async function decideAgentApproval(runId: string, approvalId: string, decision: "approve" | "reject", reason?: string, signal?: AbortSignal, mediaSettings?: AgentMediaSettings) {
-    return http.post<{ accepted: boolean }>(`/agent/runs/${encodeURIComponent(runId)}/approvals/${encodeURIComponent(approvalId)}/decision`, { decision, reason: reason?.trim() || undefined, ...(mediaSettings ? { mediaSettings } : {}) }, { signal });
+export type StudioAgentMediaQuote = { id: string; walletMaxPoints: string; priceVersion: string; expiresAt: string; parameters: Record<string, unknown> };
+
+export function quoteAgentMedia(runId: string, approvalId: string, signal?: AbortSignal) {
+    return http.post<StudioAgentMediaQuote>(`/agent/runs/${encodeURIComponent(runId)}/approvals/${encodeURIComponent(approvalId)}/quote`, {}, { signal });
+}
+
+export async function decideAgentApproval(runId: string, approvalId: string, decision: "approve" | "reject", reason?: string, signal?: AbortSignal, mediaSettings?: AgentMediaSettings, quoteId?: string) {
+    return http.post<{ accepted: boolean }>(
+        `/agent/runs/${encodeURIComponent(runId)}/approvals/${encodeURIComponent(approvalId)}/decision`,
+        { decision, reason: reason?.trim() || undefined, ...(mediaSettings ? { mediaSettings } : {}), ...(quoteId ? { quoteId } : {}) },
+        { signal },
+    );
 }
 
 export function subscribeAgentEvents(

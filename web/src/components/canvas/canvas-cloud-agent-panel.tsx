@@ -39,6 +39,7 @@ import {
     getAgentRun,
     createAgentRun,
     decideAgentApproval,
+    quoteAgentMedia,
     sendAgentInterjection,
     sendAgentMessage,
     withdrawAgentInterjection,
@@ -1750,7 +1751,8 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                 if (!accountIsCurrent() || currentScope.current !== scope) return;
             }
             if (!accountIsCurrent() || currentScope.current !== scope) return;
-            await decideAgentApproval(runId, approvalId, decision, approval.reason, AbortSignal.timeout(15_000), mediaSettings);
+            const quoteId = (approval.detail.studioQuote as { id?: string } | undefined)?.id;
+            await decideAgentApproval(runId, approvalId, decision, approval.reason, AbortSignal.timeout(15_000), mediaSettings, quoteId);
             if (accountIsCurrent() && currentScope.current === scope) {
                 setApproval((current) => (current?.approvalId === approvalId ? null : current));
                 setRun((current) =>
@@ -2597,6 +2599,28 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                                         onOpenSkillRecommendations={() => setSkillRecommendationsOpen(true)}
                                         onDraftPrompt={(draft) => setPrompt((current) => (current.trim() ? `${current}\n\n${draft}` : draft))}
                                         onApprovalReasonChange={(reason) => setApproval((current) => (current ? { ...current, reason } : current))}
+                                        onQuote={() => {
+                                            if (!run || !approval || approvalRequestRef.current) return;
+                                            const runId = run.id,
+                                                approvalId = approval.approvalId,
+                                                scope = conversationScope;
+                                            approvalRequestRef.current = approvalId;
+                                            setApprovalSubmitting(true);
+                                            void (async () => {
+                                                try {
+                                                    await prepareCanvasForCloudAction(run.canvasId);
+                                                    if (!accountIsCurrent() || currentScope.current !== scope) return;
+                                                    const quote = await quoteAgentMedia(runId, approvalId, AbortSignal.timeout(30_000));
+                                                    if (!accountIsCurrent() || currentScope.current !== scope) return;
+                                                    setApproval((current) => (current?.approvalId === approvalId ? { ...current, detail: { ...current.detail, studioQuote: quote } } : current));
+                                                } catch (error) {
+                                                    if (accountIsCurrent() && currentScope.current === scope) void appMessage.error(error instanceof Error ? error.message : "报价暂不可用");
+                                                } finally {
+                                                    if (approvalRequestRef.current === approvalId) approvalRequestRef.current = null;
+                                                    if (accountIsCurrent() && currentScope.current === scope) setApprovalSubmitting(false);
+                                                }
+                                            })();
+                                        }}
                                         onApprove={(settings) => void submitApproval("approve", settings)}
                                         onReject={() => void submitApproval("reject")}
                                         onWithdrawInterjection={running && !otherAgentRunning && connectionStatus === "connected" ? (messageId) => void withdrawInterjection(messageId) : undefined}

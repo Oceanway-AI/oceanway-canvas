@@ -16,7 +16,7 @@
 | B 模型目录 | B1 已提交 | `/api/model-catalog` 经 SDK Models，保留完整平台价格/能力；OAC 选择器使用原模型名和精确小数展示；同一模型替代变体不合并。媒体预估继续 |
 | C 素材 | C1/C2 已提交 | v93 上传意图与固定素材映射、素材工作台/画布选择/容量设置已接通；任务产物关联继续 |
 | D 普通生成 | D1/D2 已提交 | 三种文本协议、精确媒体预估/上限、原请求恢复、固定产物采用；参考素材与原生图片/视频请求专项通过，真实媒体验收待协调侧 |
-| E 原生 Pi Agent | E1 已提交 `78c37a4`；E2 媒体审批继续 | 根轮次共享 EXA，模型桥/压缩走持久执行；Node/Pi 画布工具往返通过，媒体审批尚未开放 |
+| E 原生 Pi Agent | E1 已提交 `78c37a4`；E2 专项通过，待提交 | 根轮次共享 EXA，模型桥/压缩走持久执行；Node/Pi 画布工具与媒体审批往返通过，真实浏览器媒体验收待协调侧 |
 | F 首发联调 | 待环境 | 专项验证完成后交协调侧冻结与最终全量检查 |
 
 ## 测试与可验收入口
@@ -80,5 +80,11 @@ E1 红灯为缺少 Studio Pi 授权入口。已接通原生控制任务、冻结
 C3 素材读与画布同步修复：红灯确认 BindingID 缺失、Cookie 增加导致素材授权丢失、前端重绑为平台素材新建两份本地资产、文本节点被误要求文件身份。修复使用当前身份 SID 摘要索引加密的 material-only grant；浏览器 POST 初始化授权，无 Origin 文件 GET 使用 WorkerMaterials，未修改通用 Session 来源。数据库升至95。平台素材画布只校验同用户 ready 固定绑定，不再等待旧资产接口。后端 HTTP 采用→文件读取→跨账号拒绝、SID 隔离/撤销及画布保存/重开通过；浏览器实际播放与同步状态待协调侧部署验收。生成结果的旧本地物化、Pi 媒体审批继续审计，尚未宣称首发完成。
 
 C3 验证：`go test ./internal/app ./internal/handler ./internal/database -run 'TestStudio|TestValidateCanvasMediaAssets|TestCurrentSchemaVersionMatchesMigrationPlan' -count=1` 通过；前端素材节点、缺失资产修复、会话缓存、素材选择和画布资源同步 19 项/54 断言、typecheck、变更文件 ESLint/Prettier 通过。没有实际生成、部署或远端配置变更。协调侧另已确认5个 GPT Image 和3个 Seedance 可发现但仍 disabled；应用按发布能力处理，不另写模型分支。
+
+`4a5205b fix(studio): 素材访问 - 绑定会话授权并解除画布旧资产依赖`：C3 已提交，未推送，包含 schema95 迁移。
+
+E2：红灯为缺少平台媒体报价/审批入口，继而核对原生工具权限、Pi 必填参数与草稿运行身份。现在媒体仍由 OAC generate_media 创建草稿与独立审批；浏览器真实会话读取新目录及 PreviewMedia，精确小数和参数显示在原生审批卡，批准携 quoteId，固定请求/价格/上限与整轮 EXA 同事务入队。拒绝、停止、过期、画布依赖改变、报价不匹配均不提交；503 后只查原请求。审批公开投影剥除内部加密准备态。参数在审批卡冻结，调整需拒绝后改草稿并重新申请。
+
+E2 验证：`go test ./internal/app ./internal/handler -run 'TestStudio|TestCloudAgent(Media|Approval|Tools|ToolAllowed)' -count=1` 通过。真实 Node/Pi 免费夹具完成申请→报价→批准→媒体503→原请求失败恢复→工具回执→继续对话，模型提交一次/报价一次/整轮授权及释放各一次。成功产物固定 Resource 回写画布的 Go 专项不创建本地 Asset。前端真实 React 审批卡和普通生成提交共6项/14断言通过，typecheck、变更 ESLint/Prettier、build 通过；构建仍有既有 chunk 大小/动态导入提示。未部署，未做实际收费调用，生成结果浏览器物化路径继续修复。
 
 E1 验证：`go test ./internal/app ./internal/repository -run 'TestStudio|TestCloudAgent(Request|RuntimeCompletes|Tools|ToolAllowed)'`、`go test ./internal/handler -run TestStudio` 通过。后补同轮幂等、变更意图冲突及跨账号读取专项通过。仓库专项验证过期租约/被接管租约无法派发，重复派发只允许一次，停止未提交与保留已提交两种路径。前端 typecheck、变更文件 ESLint/Prettier 通过。尚未进行浏览器 Pi 验收，不宣称媒体审批可用。
