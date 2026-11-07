@@ -4,13 +4,18 @@
 
 ## 部署与更新入口
 
-用户要求部署服务器时，默认使用官方 Release 镜像、`docker-compose.deploy.yml` 和 Host Updater。本地 SQLite 构建与自定义 Compose 不属于后台在线更新管理范围。
+上游部署使用 Release 镜像、`docker-compose.deploy.yml` 和 Host Updater。OceanWay 改造后的发布来源须按实施计划切换到自有仓库及制品，不能直接使用未改造上游版本。本地 SQLite 构建与自定义 Compose 不属于后台在线更新管理范围。
 
 - [Docker 部署](content/docs/overview/docker.mdx)：默认服务器方案、Compose 选择与已有部署核对。
 - [在线更新与安全回退](content/docs/backend/system-update.mdx)：受管部署条件、安装、备份、迁移和回退。
 - [本地开发](content/docs/backend/local-development.mdx)：宿主机与热更新开发环境。
 
 ## 设计沉淀
+
+- [新 Studio 改造需求](design/oceanway-studio-replacement.md)：以本项目替代旧 Studio，仅继承旧视觉，保留全部创作功能与自带 Agent，通过 platformclient 替换平台层（业务接入尚未完成）。
+- [新 Studio 逐步实施计划](plans/oceanway-studio-implementation.md)：阶段依赖、具体改造步骤、完成标准、平台缺口及全功能发布验收。
+- [Platform 接入盘点](plans/oceanway-platform-inventory.md)：现有调用地图、SDK 能力、环境记录与基础包进度。
+- [Studio 首批实施记录](plans/oceanway-studio-first-milestone.md)：Platform 身份、画布持久化、阶段接口范围、线上配置核对及待验收项。
 
 - [资源访问与 OSS/CDN 分发架构重构](design/resource-delivery-architecture.md)：资源身份、场景授权与分发策略分离，统一访问合同、全入口迁移、旧实现退场及流量/安全验收门槛（核心代码已实施，待真实 OSS/CDN 链路验收）。
 

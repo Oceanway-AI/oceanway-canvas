@@ -6,7 +6,7 @@ class Socket {
     bufferedAmount = 0;
     sent: any[] = [];
     onmessage?: (event: { data: string }) => void;
-    onclose?: (event: { code: number }) => void;
+    onclose?: (event: { code: number; reason?: string }) => void;
     send(value: string) {
         this.sent.push(JSON.parse(value));
     }
@@ -18,7 +18,7 @@ class Socket {
     }
 }
 
-function fixture() {
+function fixture(refreshSession?: () => Promise<boolean>) {
     let now = 0,
         sequence = 0;
     const timers = new Map<number, { at: number; callback: () => void }>();
@@ -27,6 +27,7 @@ function fixture() {
     let state: CanvasRealtimeSnapshot = { connected: false, selfId: null, peers: [] };
     const client = createCanvasRealtimeClient({
         url: "ws://localhost/api/canvas-projects/canvas/realtime",
+        refreshSession,
         socket: () => {
             const socket = new Socket();
             sockets.push(socket);
@@ -70,6 +71,28 @@ function fixture() {
         },
     };
 }
+
+test("cookie rotation refreshes HTTP identity before reconnecting, revocation stops", async () => {
+    for (const valid of [true, false]) {
+        let resolve!: (value: boolean) => void;
+        const f = fixture(
+            () =>
+                new Promise<boolean>((done) => {
+                    resolve = done;
+                }),
+        );
+        f.welcome();
+        f.sockets[0].onclose?.({ code: 1008, reason: "session expired" });
+        f.advance(1000);
+        expect(f.sockets).toHaveLength(1);
+        resolve(valid);
+        await Promise.resolve();
+        await Promise.resolve();
+        f.advance(1000);
+        expect(f.sockets).toHaveLength(valid ? 2 : 1);
+        f.client.close();
+    }
+});
 
 test("realtime URL follows API deployment path, HTTPS and encoded canvas identity", () => {
     expect(canvasRealtimeURL("/api", "a/b", "https://canvas.example/canvas/a")).toBe("wss://canvas.example/api/canvas-projects/a%2Fb/realtime");

@@ -1,5 +1,7 @@
 import { apiBaseURL } from "@/services/api/request";
 import { getActiveUserScope } from "@/lib/user-scope";
+import { getAuthSession, invalidateAuthSessionCache } from "@/services/api/auth";
+import { useUserStore } from "@/stores/use-user-store";
 import { canvasRealtimeURL, createCanvasRealtimeClient, type CanvasRealtimeEvent, type CanvasRealtimeSnapshot, type PresenceNode, type PresencePoint } from "./canvas-realtime-client";
 
 const clients = new Map<string, { client: ReturnType<typeof createCanvasRealtimeClient>; consumers: number }>();
@@ -10,7 +12,25 @@ export function subscribeCanvasRealtime(canvasId: string, listener: (state: Canv
     const scope = getActiveUserScope();
     let entry = clients.get(key);
     if (!entry) {
-        entry = { client: createCanvasRealtimeClient({ url: canvasRealtimeURL(apiBaseURL, canvasId, window.location.href) }), consumers: 0 };
+        entry = {
+            client: createCanvasRealtimeClient({
+                url: canvasRealtimeURL(apiBaseURL, canvasId, window.location.href),
+                refreshSession: async () => {
+                    const previousUserId = useUserStore.getState().user?.id;
+                    invalidateAuthSessionCache();
+                    const session = await getAuthSession();
+                    if (scope !== getActiveUserScope()) return false;
+                    if (!session.user || session.user.id !== previousUserId) {
+                        const { applyUserSession } = await import("@/lib/user-session");
+                        await applyUserSession(session);
+                        return false;
+                    }
+                    useUserStore.getState().setUser(session.user);
+                    return true;
+                },
+            }),
+            consumers: 0,
+        };
         clients.set(key, entry);
     }
     entry.consumers++;

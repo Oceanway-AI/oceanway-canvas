@@ -19,6 +19,7 @@ import (
 	"yingce/backend/internal/database"
 	"yingce/backend/internal/handler"
 	"yingce/backend/internal/logging"
+	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/repository"
 	"yingce/backend/internal/service"
 	"yingce/backend/internal/updaterclient"
@@ -40,6 +41,10 @@ func main() {
 }
 
 func run(ctx context.Context) error {
+	gateway, err := platformintegration.NewGatewayFromEnv(os.Getenv)
+	if err != nil {
+		return err
+	}
 	dataDir := env("CANVAS_BACKEND_DATA_DIR", "data")
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
 		return err
@@ -75,18 +80,15 @@ func run(ctx context.Context) error {
 
 	repo := repository.New(db)
 	addr := env("CANVAS_BACKEND_ADDR", ":8080")
-	svc := service.New(repo, dataDir)
+	svc, err := service.NewStudio(repo, dataDir, gateway)
+	if err != nil {
+		return err
+	}
 	if updaterToken := strings.TrimSpace(os.Getenv("CANVAS_UPDATER_TOKEN")); updaterToken != "" {
 		svc.ConfigureUpdateManager(updaterclient.New(env("CANVAS_UPDATER_SOCKET", "/run/open-ai-canvas-updater/updater.sock"), updaterToken))
 	}
 	defer svc.Close()
 	if err := svc.ValidateRuntime(); err != nil {
-		return err
-	}
-	if err := svc.EnsureSystemChannelModels(); err != nil {
-		return err
-	}
-	if err := svc.EnsureDefaultUserGroup(); err != nil {
 		return err
 	}
 	if err := svc.EnsureDefaultPromptTemplates(); err != nil {
@@ -122,11 +124,6 @@ func run(ctx context.Context) error {
 	} else {
 		slog.Info("industry taxonomy ready", "shipped", report.Shipped, "inserted", report.Inserted, "installed", report.AlreadyInstalled)
 	}
-	if summary, err := svc.MigrateLegacyStorage(); err != nil {
-		slog.Warn("storage migration skipped after error", "error", err)
-	} else if summary.Backup != "" {
-		slog.Info("storage migration completed", "tasks", summary.Tasks, "assets", summary.Assets, "projects", summary.Projects, "backup", summary.Backup)
-	}
 	r := gin.New()
 	// 访问日志：成功的查询类请求只在 debug 级别输出，避免轮询和列表查询把日志打爆。
 	r.Use(logging.AccessLog(redactCanvasSharePath), logging.Recovery())
@@ -140,9 +137,10 @@ func run(ctx context.Context) error {
 	api := r.Group("/api")
 	status := newSystemStatus(db, svc)
 	registerSystemStatusRoutes(api, status)
-	handler.RegisterOAuthCallbackRoutes(r, svc)
-	handler.RegisterCanvasAPI(api, svc)
-	r.NoRoute(handler.SystemProxyNoRouteHandler(svc))
+	if err := handler.RegisterStudioAPI(api, svc); err != nil {
+		return err
+	}
+	r.NoRoute(handler.StudioUnavailableRoute)
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -154,11 +152,8 @@ func run(ctx context.Context) error {
 		return err
 	}
 	httpServer := &http.Server{Handler: r, ReadHeaderTimeout: 10 * time.Second}
-	svc.StartWorker()
-	// 启动后回填存量视频的播放副本转码（幂等，无待处理项即退出）。
-	go svc.BackfillPlaybackTranscodes()
-	// 启动后为本地存储中尺寸未知的存量视频补探测宽高（有界、幂等；对象存储视频在短剧投送时按需修复）。
-	go svc.BackfillVideoResourceDimensions(ctx)
+	// Generation/material workers join this entry point after their Platform
+	// execution contracts are implemented. Do not run upstream billing workers.
 	status.markStarted()
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- httpServer.Serve(listener) }()

@@ -18,6 +18,7 @@ import (
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/payment"
 	"yingce/backend/internal/platform"
+	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/poselibrary"
 	"yingce/backend/internal/prompts"
 	"yingce/backend/internal/providercatalog"
@@ -29,6 +30,7 @@ import (
 )
 
 type Service struct {
+	studioPlatform           *platformintegration.Gateway
 	repo                     *repository.Repository
 	dataDir                  string
 	cancelMu                 sync.Mutex

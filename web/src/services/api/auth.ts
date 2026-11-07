@@ -11,9 +11,12 @@ import type { PublicUserGroup } from "@/services/api/user-groups";
 
 let authSessionRequest: Promise<AuthSessionPayload> | null = null;
 let authSessionCache: { payload: AuthSessionPayload; expiresAt: number } | null = null;
+let authSessionGeneration = 0;
 
 export function invalidateAuthSessionCache() {
+    authSessionGeneration++;
     authSessionCache = null;
+    authSessionRequest = null;
 }
 
 export type LocalUser = {
@@ -431,6 +434,7 @@ export type RuntimePolicySetting = {
 export type AuthLoginMode = "modal" | "page";
 
 export type AuthSettings = VerificationPolicy & {
+    provider?: "platform";
     firstUser: boolean;
     registrationEnabled: boolean;
     linuxdoEnabled: boolean;
@@ -451,6 +455,10 @@ export function getAuthSettings() {
     return http.get<AuthSettings>("/auth/settings");
 }
 
+export function getPlatformLoginURL() {
+    return http.get<{ url: string }>("/auth/login-url");
+}
+
 export function linuxDOLoginURL(next: string, acceptedTerms?: boolean) {
     const base = String(apiBaseURL).replace(/\/$/, "");
     const termsQuery = acceptedTerms === undefined ? "" : `&acceptedTerms=${acceptedTerms ? "true" : "false"}`;
@@ -461,15 +469,18 @@ export function getAuthSession() {
     const now = Date.now();
     if (authSessionCache && authSessionCache.expiresAt > now) return Promise.resolve(authSessionCache.payload);
     if (authSessionRequest) return authSessionRequest;
-    authSessionRequest = http
+    const generation = authSessionGeneration;
+    const request = http
         .get<AuthSessionPayload>("/auth/session")
         .then((payload) => {
+            if (generation !== authSessionGeneration) throw new Error("登录状态已变化，请重新读取");
             authSessionCache = { payload, expiresAt: Date.now() + 5_000 };
             return payload;
         })
         .finally(() => {
-            authSessionRequest = null;
+            if (authSessionRequest === request) authSessionRequest = null;
         });
+    authSessionRequest = request;
     return authSessionRequest;
 }
 

@@ -255,7 +255,7 @@ export const zhCN = {
             support: "帮助与反馈",
         },
         sections: {
-            profile: { label: "个人信息", description: "头像、密码与邮箱" },
+            profile: { label: "OceanWay 账号", description: "平台资料与账户中心" },
             channels: { label: "个人渠道", description: "模型服务与个人工作流" },
             runninghub: { label: "RunningHub 工作流", description: "个人渠道的云端工作流配置" },
             models: { label: "模型选择", description: "按领域选择默认模型" },

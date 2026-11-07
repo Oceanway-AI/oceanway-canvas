@@ -18,6 +18,9 @@ func (s *Service) RequireAdmin(user *model.User) error {
 	if user == nil {
 		return Unauthorized("请先登录")
 	}
+	if s.UsesPlatformIdentity() && !user.PlatformAuthenticated {
+		return Forbidden("需要当前 Platform 授权")
+	}
 	if user.Role != model.UserRoleAdmin {
 		return Forbidden("需要管理员权限")
 	}

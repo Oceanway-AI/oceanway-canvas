@@ -33,7 +33,15 @@ function validPeer(value: unknown): value is CanvasPresence {
     );
 }
 
-export function createCanvasRealtimeClient(options: { url: string; socket?: (url: string) => WebSocket; schedule?: (callback: () => void, delay: number) => Timer; clear?: (timer: Timer) => void; now?: () => number; random?: () => number }) {
+export function createCanvasRealtimeClient(options: {
+    url: string;
+    socket?: (url: string) => WebSocket;
+    schedule?: (callback: () => void, delay: number) => Timer;
+    clear?: (timer: Timer) => void;
+    now?: () => number;
+    random?: () => number;
+    refreshSession?: () => Promise<boolean>;
+}) {
     const schedule = options.schedule ?? setTimeout;
     const clear = options.clear ?? clearTimeout;
     const now = options.now ?? Date.now;
@@ -124,6 +132,19 @@ export function createCanvasRealtimeClient(options: { url: string; socket?: (url
             sending = undefined;
             emit("connection");
             if (event.code === 1008) {
+                if (event.reason === "session expired" && options.refreshSession) {
+                    void options
+                        .refreshSession()
+                        .then((valid) => {
+                            if (stopped || socket !== current) return;
+                            if (valid) reconnect();
+                            else stopped = true;
+                        })
+                        .catch(() => {
+                            stopped = true;
+                        });
+                    return;
+                }
                 stopped = true;
                 return;
             }

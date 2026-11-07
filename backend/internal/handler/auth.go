@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"yingce/backend/internal/model"
+	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -642,6 +643,17 @@ func readPayloadModel(body []byte) string {
 }
 
 func currentUser(c *gin.Context, svc *service.Service) (*model.User, error) {
+	if svc.UsesPlatformIdentity() {
+		if err := svc.ValidateStudioRequest(c.Request); err != nil {
+			return nil, err
+		}
+		user, response, err := svc.StudioCurrentUser(c.Request.Context(), platformintegration.Session(c.Request))
+		if response != nil && !c.Writer.Written() {
+			response.AppendCookies(c.Writer.Header())
+		}
+		c.Header("Cache-Control", "no-store")
+		return user, err
+	}
 	return svc.CurrentUser(sessionCookie(c))
 }
 

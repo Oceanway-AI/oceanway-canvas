@@ -52,6 +52,7 @@ const UsersPage = lazyAdminPage(() => import("@/pages/admin/users/users-page"));
 const UserGroupsPage = lazyAdminPage(() => import("@/pages/admin/user-groups/user-groups-page"));
 const AssetsPage = workspaceRoutePages.assets;
 const LoginPage = lazy(() => import("@/pages/auth/login"));
+const PlatformLoginComplete = lazy(() => import("@/pages/auth/platform-login-complete"));
 const RegisterPage = lazy(() => import("@/pages/auth/register"));
 const ForgotPasswordPage = lazy(() => import("@/pages/auth/forgot-password"));
 const CanvasPage = workspaceRoutePages.canvas;
@@ -123,6 +124,7 @@ export const router = createBrowserRouter([
         errorElement: <RouteErrorPage />,
         children: [
             { path: "/login", element: fullScreenDeferred(<LoginPage />) },
+            { path: "/platform/login/complete", element: fullScreenDeferred(<PlatformLoginComplete />) },
             { path: "/register", element: fullScreenDeferred(<RegisterPage />) },
             { path: "/forgot-password", element: fullScreenDeferred(<ForgotPasswordPage />) },
         ],

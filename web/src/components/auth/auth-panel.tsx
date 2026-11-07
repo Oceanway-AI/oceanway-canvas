@@ -1,12 +1,7 @@
 import { useId } from "react";
-import { useTranslation } from "react-i18next";
-
-import { useAuthSettings } from "@/hooks/use-auth-entry";
 import type { AuthView } from "@/lib/auth-entry";
 import { cn } from "@/lib/utils";
-import { useAppearanceStore } from "@/stores/use-appearance-store";
-import { AuthLoginForm } from "./auth-login-form";
-import { AuthRecoveryForm } from "./auth-recovery-form";
+import { PlatformLoginPanel } from "./platform-login-panel";
 import "./auth-panel.css";
 
 export type AuthPanelProps = {
@@ -18,26 +13,19 @@ export type AuthPanelProps = {
     variant: "page" | "dialog";
 };
 
-/** 登录注册一体表单与找回密码的共用面板。导航方式由外层决定：独立页面改路由，弹窗只切换视图。 */
-export function AuthPanel({ view, onViewChange, next, onAuthenticated, variant }: AuthPanelProps) {
-    const { t } = useTranslation();
+/** Studio always sends account authentication to OceanWay. */
+export function AuthPanel({ next, variant }: AuthPanelProps) {
     const titleId = useId();
-    const brand = useAppearanceStore((state) => state.appearance.brandName) || t("auth.register.platform");
-    const { settings, failed, reload } = useAuthSettings();
-    // 登录与注册是同一个表单；/register 仍保留给推广链接，打开的也是一体表单。
-    const title = view === "recovery" ? t("auth.panel.recoveryTitle") : t("auth.panel.loginTitle", { brand });
-    const formProps = { settings, next, onAuthenticated, onViewChange };
 
     return (
         <section className={cn("auth-panel", variant === "page" ? "is-page" : "is-dialog")} aria-labelledby={titleId}>
             <header className="auth-panel-header">
                 <h2 id={titleId} className="auth-panel-title">
-                    {title}
+                    登录 OceanWay Studio
                 </h2>
-                {view === "recovery" ? <p className="auth-panel-description">{t("auth.panel.recoveryDescription")}</p> : null}
             </header>
-            <div key={view} className="auth-panel-body">
-                {view !== "recovery" ? <AuthLoginForm {...formProps} settingsFailed={failed} onReloadSettings={() => void reload()} /> : <AuthRecoveryForm settings={settings} onViewChange={onViewChange} />}
+            <div className="auth-panel-body">
+                <PlatformLoginPanel next={next} />
             </div>
         </section>
     );

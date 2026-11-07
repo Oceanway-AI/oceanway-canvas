@@ -2,6 +2,8 @@ import type { LocalUser } from "./auth";
 import { apiBaseURL, http } from "./request";
 
 export type UserProfile = {
+    provider?: "platform";
+    consoleURL?: string;
     user: LocalUser;
     hasPassword: boolean;
     emailEnabled: boolean;

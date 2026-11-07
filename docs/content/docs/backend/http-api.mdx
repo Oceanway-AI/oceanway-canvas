@@ -5,6 +5,24 @@ description: 信封、错误码与 OpenAPI
 
 # HTTP API 合同
 
+## OceanWay Studio 首批接口边界
+
+当前可执行入口使用 `RegisterStudioAPI`；下文上游接口清单不代表都已在新 Studio 开放。首批仅包括 Platform 身份、画布持久化/编辑租约/实时连接/分享及外观/功能查询。模型、素材、生成、Agent、旧密码认证、支付和供应商代理等未挂载接口返回 HTTP 501，`msg` 为“此功能暂不可用”；阶段内不暴露旧 `/api/openapi.yaml`。
+
+| 接口 | 当前合同 |
+| --- | --- |
+| `GET /api/auth/settings` | `provider=platform`、`loginMode=page`、禁用本地注册，不回退密码登录 |
+| `GET /api/auth/login-url` | 返回经 Platform login-return 批准的登录 URL；固定回跳 `/platform/login/complete`，不接受外部 next 参数 |
+| `GET /api/auth/session` | SDK 验证会话；有效时返回产品用户和功能配置，平台 401 时 `user=null`；403/429 保留拒绝语义，上游不可用返回 503，不假装匿名成功 |
+| `POST /api/auth/logout` | SDK 退出，逐项透传清理 Cookie；必须带实际允许的 Origin |
+| `GET /api/auth/profile` | 平台身份只读视图：`provider=platform`、`consoleURL`，无本地密码/验证码管理能力 |
+
+所有阶段 API 校验实际 Host 和允许 Origin；写请求缺少 Origin 时拒绝。忽略 forwarded headers 对身份的声明。会话响应不缓存，Cookie 不写入 JSON；平台产品密钥只留在后端。
+
+画布 WebSocket 每 15 秒重新验证平台身份；会话失效、换号或 Cookie 轮换时关闭码为 1008、原因为 `session expired`。浏览器先 HTTP 刷新会话后再决定重连；连接升级后不尝试追加 Set-Cookie。公开分享继续按分享令牌与有效期授权，媒体资源的平台版本/下载合同在 P4 补齐。
+
+实际测试、环境限制及未验收项见[首批实施记录](../../../plans/oceanway-studio-first-milestone.md)。
+
 ## 灵感上新
 
 后端每 6 小时从 GitHub 拉取 YouMind 提示词库（两个 `README_zh.md`）和 awesome-seedance（`data/cases.json`、`data/case-taxonomy.json`），经出站 SSRF 客户端下载，只收正文已是中文的条目。上次有来源失败时 1 小时后重试；多实例部署通过协调器锁只让一个实例同步。服务器访问 GitHub 需要正常 DNS，必要时配置 `HTTPS_PROXY`。数据表见 [后端数据库](/docs/backend/backend-database)。

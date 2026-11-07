@@ -18,6 +18,7 @@ import (
 )
 
 func RegisterUserDataRoutes(r *gin.RouterGroup, svc *service.Service) {
+	RegisterCanvasDataRoutes(r, svc)
 	r.POST("/resources/access", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -433,19 +434,6 @@ func RegisterUserDataRoutes(r *gin.RouterGroup, svc *service.Service) {
 		}
 		ok(c, gin.H{"assetIds": req.AssetIDs, "folderId": req.FolderID})
 	})
-	r.GET("/user-data/snapshot", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		snapshot, err := svc.UserDataSnapshot(user.ID)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, snapshot)
-	})
 	r.GET("/assets/:id", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -502,6 +490,24 @@ func RegisterUserDataRoutes(r *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		ok(c, gin.H{"id": c.Param("id")})
+	})
+}
+
+// RegisterCanvasDataRoutes keeps canvas persistence independent of media and
+// supplier upload routes while those domains move to Platform materials.
+func RegisterCanvasDataRoutes(r *gin.RouterGroup, svc *service.Service) {
+	r.GET("/user-data/snapshot", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		snapshot, err := svc.UserDataSnapshot(user.ID)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, snapshot)
 	})
 	r.GET("/canvas-projects", func(c *gin.Context) {
 		user, err := currentUser(c, svc)

@@ -3,19 +3,20 @@ package model
 import "time"
 
 type User struct {
-	ID              string     `json:"id" gorm:"primaryKey;size:36"`
-	Username        string     `json:"username" gorm:"uniqueIndex;size:80"`
-	Email           string     `json:"email,omitempty" gorm:"size:160"`
-	Phone           string     `json:"phone,omitempty" gorm:"size:24"`
-	EmailVerifiedAt *time.Time `json:"emailVerifiedAt,omitempty"`
-	PhoneVerifiedAt *time.Time `json:"phoneVerifiedAt,omitempty"`
-	DisplayName     string     `json:"displayName" gorm:"size:80"`
-	AvatarMode      string     `json:"avatarMode" gorm:"size:16"`
-	AvatarPreset    string     `json:"avatarPreset,omitempty" gorm:"size:16"`
-	AvatarVersion   string     `json:"-" gorm:"size:36"`
-	Role            UserRole   `json:"role" gorm:"index;size:24"`
-	Status          UserStatus `json:"status" gorm:"index;size:24"`
-	IsPromoter      bool       `json:"isPromoter" gorm:"not null;default:false;index"`
+	PlatformAuthenticated bool       `json:"-" gorm:"-"`
+	ID                    string     `json:"id" gorm:"primaryKey;size:36"`
+	Username              string     `json:"username" gorm:"uniqueIndex;size:80"`
+	Email                 string     `json:"email,omitempty" gorm:"size:160"`
+	Phone                 string     `json:"phone,omitempty" gorm:"size:24"`
+	EmailVerifiedAt       *time.Time `json:"emailVerifiedAt,omitempty"`
+	PhoneVerifiedAt       *time.Time `json:"phoneVerifiedAt,omitempty"`
+	DisplayName           string     `json:"displayName" gorm:"size:80"`
+	AvatarMode            string     `json:"avatarMode" gorm:"size:16"`
+	AvatarPreset          string     `json:"avatarPreset,omitempty" gorm:"size:16"`
+	AvatarVersion         string     `json:"-" gorm:"size:36"`
+	Role                  UserRole   `json:"role" gorm:"index;size:24"`
+	Status                UserStatus `json:"status" gorm:"index;size:24"`
+	IsPromoter            bool       `json:"isPromoter" gorm:"not null;default:false;index"`
 	// UserGroup 是用户分组编码；空串归入 default 分组。
 	UserGroup    string     `json:"userGroup" gorm:"size:40;not null;default:'';index"`
 	PasswordHash string     `json:"-"`

@@ -254,7 +254,7 @@ export const enUS: Messages = {
             support: "Help & feedback",
         },
         sections: {
-            profile: { label: "Profile", description: "Avatar, password and email" },
+            profile: { label: "OceanWay account", description: "Profile and account center" },
             channels: { label: "My channels", description: "Model services and personal workflows" },
             runninghub: { label: "RunningHub workflows", description: "Cloud workflows for your channels" },
             models: { label: "Models", description: "Default models by category" },

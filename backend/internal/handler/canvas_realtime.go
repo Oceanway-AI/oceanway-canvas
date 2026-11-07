@@ -7,6 +7,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/gin-gonic/gin"
+	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/service"
 )
 
@@ -84,7 +85,7 @@ func RegisterCanvasRealtimeRoutes(r *gin.RouterGroup, svc *service.Service) {
 				}
 			case <-ticker.C:
 				// Revoked login sessions and deleted canvases cannot retain a subscription.
-				if _, err := svc.CurrentUser(sessionCookie(c)); err != nil {
+				if err := revalidateCanvasSession(ctx, c, svc, user.ID); err != nil {
 					_ = conn.Close(websocket.StatusPolicyViolation, "session expired")
 					return
 				}
@@ -105,4 +106,21 @@ func RegisterCanvasRealtimeRoutes(r *gin.RouterGroup, svc *service.Service) {
 			}
 		}
 	})
+}
+
+func revalidateCanvasSession(ctx context.Context, c *gin.Context, svc *service.Service, userID string) error {
+	if !svc.UsesPlatformIdentity() {
+		_, err := svc.CurrentUser(sessionCookie(c))
+		return err
+	}
+	user, response, err := svc.StudioCurrentUser(ctx, platformintegration.Session(c.Request))
+	if err != nil {
+		return err
+	}
+	// An upgraded connection cannot deliver rotated HTTP cookies. Require an
+	// HTTP session refresh before reconnecting with the current credentials.
+	if user.ID != userID || (response != nil && len(response.Header.Values("Set-Cookie")) > 0) {
+		return service.Unauthorized("登录状态需要刷新")
+	}
+	return nil
 }

@@ -5,6 +5,17 @@ description: 影策后端核心持久化表与状态边界
 
 # 后端数据库
 
+## OceanWay Studio 平台用户引用
+
+首批身份改造复用本仓库的 `users` 和 `user_identities` 表，不引入旧 Studio 表或数据，不新增本地认证会话/钱包。没有新增物理字段；`User.PlatformAuthenticated` 为 `gorm:"-"` / `json:"-"` 的请求期标志。
+
+- `users.id`：对固定 Platform origin、换行符和数字用户 ID 组成的主体字符串生成 UUID（NameSpaceURL）；同名账号不会合并，重试登录映射同一产品主体。配置 origin 是身份绑定的一部分，不能随意更换后期待复用同一业务数据。
+- `users.username`：内部唯一值 `platform_<uuid>`；对外返回本次平台响应的用户名。`display_name`、`email` 同步当前平台资料，密码哈希始终为空，持久角色固定普通用户。
+- `user_identities`：`provider=oceanway-platform`，`subject=SHA256(主体字符串)`；既有 `(provider,subject)` 唯一约束保护绑定，事务校验不能绑定到其他产品用户。此表只存身份引用，不存 Cookie、产品密钥或会话授权。
+- `studio:admin` 来自当前请求的 Platform 产品角色；角色撤销立即影响后续请求，数据库行不能单独授予管理权。画布仍按本地产品主体检查归属。
+
+本阶段仅实现个人用户引用，团队/工作区映射待 P2 完成。启动仍运行既有全量迁移，因此下文支付、渠道及本地认证等表仍可能存在；其 API/Worker 关闭不等于结构已删除。P8 才完成新库业务表和迁移精简，详见[实施计划](../../../plans/oceanway-studio-implementation.md)。
+
 ## 邮件发送记录与消费日报订阅（Schema 91）
 
 版本 91 `email_logs_and_notifications` 新增两张表，只建表不改旧数据：
