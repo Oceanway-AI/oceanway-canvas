@@ -262,7 +262,7 @@ export const enUS: Messages = {
             prompts: { label: "Prompt preferences", description: "Customize platform templates per task" },
             "agent-memory": { label: "Agent memory", description: "Approve, add, export, import and compact" },
             "ark-assets": { label: "Ark asset library", description: "Real-person verification and asset groups" },
-            storage: { label: "My object storage", description: "Manage personal media storage" },
+            storage: { label: "Material storage", description: "View your OceanWay material storage" },
             diagnostics: { label: "Diagnostics", description: "Export logs for troubleshooting" },
             feedbacks: { label: "My feedback", description: "Issues, suggestions and official replies" },
         },

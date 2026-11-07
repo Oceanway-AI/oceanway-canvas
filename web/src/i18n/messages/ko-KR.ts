@@ -263,7 +263,7 @@ export const koKR: Messages = {
             prompts: { label: "프롬프트 설정", description: "작업별 템플릿 맞춤 설정" },
             "agent-memory": { label: "에이전트 기억", description: "승인, 추가, 내보내기, 가져오기, 압축" },
             "ark-assets": { label: "Ark 소재 라이브러리", description: "실제 인물 인증과 소재 그룹 관리" },
-            storage: { label: "내 오브젝트 스토리지", description: "개인 미디어 스토리지 관리" },
+            storage: { label: "미디어 저장 공간", description: "OceanWay 계정의 미디어 저장 공간 보기" },
             diagnostics: { label: "문제 진단", description: "로그를 내보내 문제 해결 지원" },
             feedbacks: { label: "내 피드백", description: "문제, 제안, 공식 답변" },
         },

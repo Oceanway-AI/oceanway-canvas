@@ -20,11 +20,11 @@ type Upload = {
     resource?: RemoteResource;
 };
 
-export async function getPlatformMaterials(page = 1, query = "", kind = "") {
-    return http.get<{ items: PlatformMaterialAsset[]; total: string; page: number; limit: number }>("/materials/assets", { params: { page, limit: 50, q: query || undefined, kind: kind || undefined } });
+export async function getPlatformMaterials(page = 1, query = "", kind = "", signal?: AbortSignal) {
+    return http.get<{ items: PlatformMaterialAsset[]; total: string; page: number; limit: number }>("/materials/assets", { signal, params: { page, limit: 50, q: query || undefined, kind: kind || undefined } });
 }
-export function getPlatformMaterialStorage() {
-    return http.get<PlatformMaterialStorage>("/materials/storage");
+export function getPlatformMaterialStorage(signal?: AbortSignal) {
+    return http.get<PlatformMaterialStorage>("/materials/storage", { signal });
 }
 export async function adoptPlatformMaterial(assetId: string, versionId: string, meta?: ResourceUploadMeta) {
     const data = await http.post<{ resource: RemoteResource }>("/resources/adopt", { assetId, versionId, width: meta?.width, height: meta?.height, durationMs: meta?.durationMs });

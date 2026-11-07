@@ -263,7 +263,7 @@ export const deDE: Messages = {
             prompts: { label: "Prompt-Präferenzen", description: "Plattformvorlagen pro Aufgabe anpassen" },
             "agent-memory": { label: "Agent-Gedächtnis", description: "Freigeben, hinzufügen, exportieren, importieren, verdichten" },
             "ark-assets": { label: "Ark-Assetbibliothek", description: "Personenverifizierung und Asset-Gruppen" },
-            storage: { label: "Mein Objektspeicher", description: "Persönlichen Medienspeicher verwalten" },
+            storage: { label: "Medienspeicher", description: "OceanWay-Medienspeicher anzeigen" },
             diagnostics: { label: "Diagnose", description: "Protokolle zur Fehlersuche exportieren" },
             feedbacks: { label: "Mein Feedback", description: "Probleme, Vorschläge und offizielle Antworten" },
         },
