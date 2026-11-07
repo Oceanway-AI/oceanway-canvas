@@ -23,14 +23,16 @@ import (
 )
 
 type studioFixture struct {
-	router      *gin.Engine
-	db          *gorm.DB
-	svc         *service.Service
-	admin       bool
-	unavailable bool
-	revoked     bool
-	rotate      bool
-	requests    int
+	router       *gin.Engine
+	db           *gorm.DB
+	svc          *service.Service
+	admin        bool
+	unavailable  bool
+	revoked      bool
+	rotate       bool
+	requests     int
+	catalog      string
+	catalogCalls int
 }
 
 func newStudioFixture(t *testing.T) *studioFixture {
@@ -40,6 +42,20 @@ func newStudioFixture(t *testing.T) *studioFixture {
 	f := &studioFixture{}
 	platform := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.requests++
+		if r.URL.Path == "/api/platform/v1/products/studio/models" {
+			f.catalogCalls++
+			if r.Header.Get("X-Platform-Product-Key") != "fixture.secret" || r.Header.Get("Cookie") == "" {
+				t.Error("catalog did not carry both product and current account authority")
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Add("Set-Cookie", "catalog_nonce=next; Secure; HttpOnly")
+			if f.unavailable {
+				w.WriteHeader(503)
+				return
+			}
+			_, _ = w.Write([]byte(f.catalog))
+			return
+		}
 		if r.Header.Get("X-Platform-Product-Key") != "" {
 			t.Error("identity request received product key")
 		}
@@ -113,6 +129,49 @@ func newStudioFixture(t *testing.T) *studioFixture {
 	}
 	f.router.NoRoute(StudioUnavailableRoute)
 	return f
+}
+
+func TestStudioCatalogUsesPlatformAndNeverLocalChannels(t *testing.T) {
+	f := newStudioFixture(t)
+	f.catalog = `{"success":true,"data":{"items":[{"id":41,"model_name":"exact-text-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","mode":"ratio","version":"price-1","rate_unit":"million_tokens","rates":{"input":"1.23456789","output":"0"}},"content":{"display_name":"模型显示名称"}},{"id":42,"model_name":"draft-image","model_type":"image","invocation_status":"price_only","price":{"status":"available","version":"price-2"}}]}}`
+	w := f.request(t, "GET", "/api/model-catalog", "platform_session=alice", "", 200)
+	var result struct {
+		Data struct {
+			Source   string `json:"source"`
+			Channels []struct {
+				Models []struct {
+					ModelKey  string          `json:"modelKey"`
+					Available bool            `json:"available"`
+					Platform  json.RawMessage `json:"platform"`
+				} `json:"models"`
+			} `json:"channels"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Data.Source != "platform" || len(result.Data.Channels) != 1 || len(result.Data.Channels[0].Models) != 2 {
+		t.Fatalf("catalog: %s", w.Body.String())
+	}
+	models := result.Data.Channels[0].Models
+	if models[0].ModelKey != "exact-text-model" || !models[0].Available || models[1].Available {
+		t.Fatal("platform availability/model identity lost")
+	}
+	if !strings.Contains(string(models[0].Platform), `"1.23456789"`) {
+		t.Fatal("exact published price lost")
+	}
+	if len(w.Header().Values("Set-Cookie")) != 1 {
+		t.Fatal("catalog cookie update lost")
+	}
+	if f.catalogCalls != 1 {
+		t.Fatal("catalog bypassed SDK")
+	}
+	f.request(t, "GET", "/api/model-catalog", "", "", 401)
+	if f.catalogCalls != 1 {
+		t.Fatal("anonymous catalog reached product API")
+	}
+	f.unavailable = true
+	f.request(t, "GET", "/api/model-catalog", "platform_session=alice", "", 503)
 }
 
 func (f *studioFixture) request(t *testing.T, method, path, cookie, body string, status int) *httptest.ResponseRecorder {

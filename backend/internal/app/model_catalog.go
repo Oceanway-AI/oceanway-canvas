@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+
 	"yingce/backend/internal/logging"
 	"yingce/backend/internal/model"
 )
@@ -65,25 +67,27 @@ type PublicChannelCatalog struct {
 
 // PublicChannelModel 公开的渠道模型信息（脱敏）
 type PublicChannelModel struct {
-	ID               string                        `json:"id"`
-	ModelKey         string                        `json:"modelKey"`
-	ChannelLabel     string                        `json:"channelLabel"`
-	Tags             []model.ChannelModelTag       `json:"tags"`
-	Description      string                        `json:"description"`
-	DisplayName      string                        `json:"displayName"`
-	SortOrder        int                           `json:"sortOrder"`
-	Icon             string                        `json:"icon"`
-	Capability       string                        `json:"capability"`
-	Protocol         model.ChannelInterfaceType    `json:"protocol"`
-	TextWire         string                        `json:"textWire,omitempty"`
-	CapabilityConfig map[string]any                `json:"capabilityConfig,omitempty"`
-	DefaultOptions   map[string]any                `json:"defaultOptions,omitempty"`
-	PriceTiers       []PublicChannelModelPriceTier `json:"priceTiers"`
-	PricingMode      string                        `json:"pricingMode"`
-	DisplayPrice     *int64                        `json:"displayPrice,omitempty"`
-	PriceLabel       string                        `json:"priceLabel"`
-	Available        bool                          `json:"available"`
-	Availability     *PublicModelAvailability      `json:"availability,omitempty"`
+	Platform          *platformclient.Model         `json:"platform,omitempty"`
+	UnavailableReason string                        `json:"unavailableReason,omitempty"`
+	ID                string                        `json:"id"`
+	ModelKey          string                        `json:"modelKey"`
+	ChannelLabel      string                        `json:"channelLabel"`
+	Tags              []model.ChannelModelTag       `json:"tags"`
+	Description       string                        `json:"description"`
+	DisplayName       string                        `json:"displayName"`
+	SortOrder         int                           `json:"sortOrder"`
+	Icon              string                        `json:"icon"`
+	Capability        string                        `json:"capability"`
+	Protocol          model.ChannelInterfaceType    `json:"protocol"`
+	TextWire          string                        `json:"textWire,omitempty"`
+	CapabilityConfig  map[string]any                `json:"capabilityConfig,omitempty"`
+	DefaultOptions    map[string]any                `json:"defaultOptions,omitempty"`
+	PriceTiers        []PublicChannelModelPriceTier `json:"priceTiers"`
+	PricingMode       string                        `json:"pricingMode"`
+	DisplayPrice      *int64                        `json:"displayPrice,omitempty"`
+	PriceLabel        string                        `json:"priceLabel"`
+	Available         bool                          `json:"available"`
+	Availability      *PublicModelAvailability      `json:"availability,omitempty"`
 	// ReferenceVideoBilling 仅视频模型可能为 true：挂参考视频的请求按带参考视频价格另计费。
 	ReferenceVideoBilling bool `json:"referenceVideoBilling"`
 }
