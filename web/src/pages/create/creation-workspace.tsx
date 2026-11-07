@@ -656,26 +656,28 @@ export function CreationModeCard({ mode, agentActive, onModeChange, onAgentSelec
               right: slide.direction > 0 ? folderTabLeadingSpring : folderTabTrailingSpring,
           };
     return (
-        <HoverBorderGradient as="div" duration={2.2} containerClassName="creation-mode-card" className="creation-mode-card-inner">
-            <div className="creation-mode-folder" role="group" aria-label="创作模式" data-active-mode={activeKey} style={{ "--creation-mode-count": keys.length } as CSSProperties}>
-                <motion.span className="creation-mode-folder-tab" aria-hidden initial={false} animate={{ left: `${activeIndex * step}%`, right: `${(keys.length - 1 - activeIndex) * step}%` }} transition={tabTransition}>
-                    <CreationModeFolderWing side="start" />
-                    <CreationModeFolderWing side="end" />
-                </motion.span>
-                {creationModeItems.map((item) => (
-                    <button key={item.mode} type="button" className="creation-mode-folder-button" data-mode={item.mode} aria-pressed={activeKey === item.mode} aria-label={`${item.label}生成`} onClick={() => onModeChange(item.mode)}>
-                        {item.icon}
-                        <span>{item.label}</span>
+        <div className="creation-mode-card">
+            <div className="creation-mode-card-inner">
+                <div className="creation-mode-folder" role="group" aria-label="创作模式" data-active-mode={activeKey} style={{ "--creation-mode-count": keys.length } as CSSProperties}>
+                    <motion.span className="creation-mode-folder-tab" aria-hidden initial={false} animate={{ left: `${activeIndex * step}%`, right: `${(keys.length - 1 - activeIndex) * step}%` }} transition={tabTransition}>
+                        <CreationModeFolderWing side="start" />
+                        <CreationModeFolderWing side="end" />
+                    </motion.span>
+                    {creationModeItems.map((item) => (
+                        <button key={item.mode} type="button" className="creation-mode-folder-button" data-mode={item.mode} aria-pressed={activeKey === item.mode} aria-label={`${item.label}生成`} onClick={() => onModeChange(item.mode)}>
+                            {item.icon}
+                            <span>{item.label}</span>
+                        </button>
+                    ))}
+                    <button type="button" className="creation-mode-folder-button" data-mode="agent" aria-pressed={agentActive} onClick={onAgentSelect}>
+                        <Orbit />
+                        <span>Agent</span>
+                        <i className="creation-mode-spark" aria-hidden />
                     </button>
-                ))}
-                <button type="button" className="creation-mode-folder-button" data-mode="agent" aria-pressed={agentActive} onClick={onAgentSelect}>
-                    <Orbit />
-                    <span>Agent</span>
-                    <i className="creation-mode-spark" aria-hidden />
-                </button>
+                </div>
+                <div className="creation-mode-panel">{children}</div>
             </div>
-            <div className="creation-mode-panel">{children}</div>
-        </HoverBorderGradient>
+        </div>
     );
 }
 

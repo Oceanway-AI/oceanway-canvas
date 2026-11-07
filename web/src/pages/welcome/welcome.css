@@ -1,10 +1,10 @@
 .welcome-page {
-    --welcome-black: #080808;
-    --welcome-paper: #f3f2ef;
-    --welcome-muted: #aaa9a6;
-    --welcome-accent: #eee7d7;
-    --welcome-border: #ffffff24;
-    --welcome-radius: 3px;
+    --welcome-black: var(--ocean-air-background);
+    --welcome-paper: var(--ocean-air-text);
+    --welcome-muted: var(--ocean-air-text-muted);
+    --welcome-accent: var(--ocean-air-sky);
+    --welcome-border: var(--ocean-air-border);
+    --welcome-radius: 24px;
     --welcome-header-height: 88px;
     --welcome-content: 1380px;
     --welcome-gutter: 64px;
@@ -22,7 +22,7 @@
 }
 body:has(.welcome-page) {
     margin: 0;
-    background: #080808;
+    background: #11161d;
 }
 .welcome-page *,
 .welcome-page *::before,
@@ -81,7 +81,9 @@ body:has(.welcome-page) {
     align-items: center;
     gap: 40px;
     padding: 0 var(--welcome-gutter);
-    background: linear-gradient(#080808cc, #08080800);
+    background: rgba(17, 22, 29, 0.64);
+    border-bottom: 1px solid var(--welcome-border);
+    backdrop-filter: blur(24px);
 }
 .welcome-brand {
     display: flex;
@@ -288,6 +290,13 @@ body:has(.welcome-page) {
 }
 .welcome-opening {
     bottom: 15%;
+}
+.welcome-opening h1 {
+    max-width: 12ch;
+    font-size: clamp(44px, 7.5vw, 120px);
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    overflow-wrap: anywhere;
 }
 .welcome-subtitle {
     font-size: 16px;

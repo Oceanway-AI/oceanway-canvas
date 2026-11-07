@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import "../src/i18n";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CanvasAppearanceControls } from "../src/components/canvas/canvas-appearance-controls";
 import { canvasThemes } from "../src/lib/canvas-theme";

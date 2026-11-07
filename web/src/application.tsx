@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useLayoutEffect, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import "antd/dist/reset.css";
 import "./styles/globals.css";
 import "./styles/shared/model-picker.css";
 import "./styles/shared/overlays.css";
 import "./styles/shared/scrollbars.css";
+import "./styles/oceanway-palette.css";
+import "./styles/oceanway.css";
 import { RouterProvider } from "react-router";
 
 import { AuthDialogHost } from "@/components/auth/auth-dialog-host";
@@ -13,14 +15,27 @@ import { router } from "@/router";
 
 // 登录弹窗渲染在路由之外（分享页等路由也要能打开），导航直接交给 router。
 const navigateFromAuthDialog = (to: string) => void router.navigate(to);
+const subscribeToRoute = (callback: () => void) => router.subscribe(callback);
+const currentPath = () => router.state.location.pathname;
+
+function Application() {
+    const pathname = useSyncExternalStore(subscribeToRoute, currentPath);
+    const oceanway = !/^\/admin(?:\/|$)/.test(pathname);
+    useLayoutEffect(() => {
+        document.documentElement.toggleAttribute("data-oceanway", oceanway);
+    }, [oceanway]);
+    return (
+        <AppProviders oceanway={oceanway}>
+            <RouterProvider router={router} />
+            <AuthDialogHost navigate={navigateFromAuthDialog} />
+        </AppProviders>
+    );
+}
 
 document.body.style.fontFamily = '"SF Pro Display","SF Pro Text","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif';
 
 createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
-        <AppProviders>
-            <RouterProvider router={router} />
-            <AuthDialogHost navigate={navigateFromAuthDialog} />
-        </AppProviders>
+        <Application />
     </React.StrictMode>,
 );

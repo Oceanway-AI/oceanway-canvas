@@ -1,0 +1,115 @@
+:root {
+    color-scheme: light;
+    --ocean-air-background: #f3f6fa;
+    --ocean-air-surface: #f8fafc;
+    --ocean-air-surface-soft: #eaf0f6;
+    --ocean-air-surface-strong: #e1eaf3;
+    --ocean-air-text: #1d2025;
+    --ocean-air-text-muted: #5c6570;
+    --ocean-air-text-quiet: #64707c;
+    --ocean-air-border: rgba(46, 61, 78, 0.14);
+    --ocean-air-border-strong: rgba(47, 127, 211, 0.34);
+    --ocean-air-primary: #2f7fd3;
+    --ocean-air-primary-hover: #286db5;
+    --ocean-air-action-fill: #1f5f9c;
+    --ocean-air-action-hover: #174c7e;
+    --ocean-air-primary-text: #ffffff;
+    --ocean-air-sky: #64d2ff;
+    --ocean-air-seafoam: #5ac8fa;
+    --ocean-air-success: #34c759;
+    --ocean-air-success-text: #267a43;
+    --ocean-air-warning: #c98919;
+    --ocean-air-warning-text: #8a641d;
+    --ocean-air-danger: #d84a4a;
+    --ocean-air-danger-text: #b63c3c;
+    --ocean-air-on-primary: #ffffff;
+    --ocean-air-focus: #2f7fd3;
+    --ocean-air-spotlight: rgba(100, 210, 255, 0.24);
+    --ocean-air-shadow: rgba(23, 34, 49, 0.14);
+    --ocean-air-shadow-soft: rgba(24, 37, 56, 0.06);
+    --ocean-air-glow: rgba(47, 127, 211, 0.12);
+    --ocean-air-deep: #24364a;
+
+    /*
+     * Canonical Liquid Glass material. These are deliberately sRGB tokens:
+     * the same values are used by CSS fallback, Ant and the canvas palette.
+     * Keep only three opacity tiers so the final luminance is predictable.
+     */
+    --ocean-glass-subtle: rgba(248, 250, 252, 0.14);
+    --ocean-glass: rgba(248, 250, 252, 0.2);
+    --ocean-glass-strong: rgba(248, 250, 252, 0.34);
+    --ocean-glass-solid: #f4f7fb;
+    --ocean-glass-edge: rgba(46, 61, 78, 0.18);
+    --ocean-glass-control-edge: rgba(46, 61, 78, 0.14);
+    --ocean-glass-control-edge-strong: rgba(46, 61, 78, 0.22);
+    --ocean-glass-divider: rgba(46, 61, 78, 0.09);
+    --ocean-glass-rim: rgba(255, 255, 255, 0.22);
+    --ocean-glass-inset-shadow: rgba(36, 54, 74, 0.06);
+    --ocean-glass-control-shadow: var(--ow-shadow-overlay);
+    --ocean-glass-shadow-compact: var(--ow-shadow-card);
+    --ocean-glass-sheen: color-mix(in srgb, var(--ocean-air-on-primary) 16%, transparent);
+    /* Product-level material controls. React Bits SVG and CSS fallback
+       consume the same renderer-neutral values. */
+    --ocean-glass-blur-amount: 0.55;
+    --ocean-glass-saturation: 112%;
+    --ocean-glass-chromatic-aberration: 0.12;
+    --ocean-glass-elasticity: 0;
+    --ocean-glass-blur: 34px;
+    --ocean-glass-saturate: var(--ocean-glass-saturation);
+    --ocean-glass-brightness: 100%;
+    --ocean-glass-shadow: var(--ow-shadow-overlay);
+}
+
+.dark {
+    color-scheme: dark;
+    --ocean-air-background: #11161d;
+    --ocean-air-surface: #1a2028;
+    --ocean-air-surface-soft: #242d37;
+    --ocean-air-surface-strong: #2c3743;
+    --ocean-air-text: #f5f7fa;
+    --ocean-air-text-muted: #b8c1cc;
+    --ocean-air-text-quiet: #8d98a5;
+    --ocean-air-border: rgba(232, 241, 250, 0.14);
+    --ocean-air-border-strong: rgba(10, 132, 255, 0.42);
+    --ocean-air-primary: #0a84ff;
+    --ocean-air-primary-hover: #409cff;
+    --ocean-air-action-fill: #0874df;
+    --ocean-air-action-hover: #096fd1;
+    --ocean-air-primary-text: #ffffff;
+    --ocean-air-sky: #64d2ff;
+    --ocean-air-seafoam: #5ac8fa;
+    --ocean-air-success: #34c759;
+    --ocean-air-success-text: #7fe0a0;
+    --ocean-air-warning: #d9a441;
+    --ocean-air-warning-text: #e4bd67;
+    --ocean-air-danger: #ff6b6b;
+    --ocean-air-danger-text: #ff9b9b;
+    --ocean-air-on-primary: #ffffff;
+    --ocean-air-focus: #0a84ff;
+    --ocean-air-spotlight: rgba(100, 210, 255, 0.18);
+    --ocean-air-shadow: rgba(0, 0, 0, 0.32);
+    --ocean-air-shadow-soft: rgba(0, 0, 0, 0.18);
+    --ocean-air-glow: rgba(10, 132, 255, 0.16);
+    --ocean-air-deep: #050609;
+    --ocean-glass-subtle: rgba(27, 33, 42, 0.26);
+    --ocean-glass: rgba(27, 33, 42, 0.38);
+    --ocean-glass-strong: rgba(27, 33, 42, 0.54);
+    --ocean-glass-solid: #202830;
+    --ocean-glass-edge: rgba(232, 241, 250, 0.18);
+    --ocean-glass-control-edge: rgba(232, 241, 250, 0.14);
+    --ocean-glass-control-edge-strong: rgba(232, 241, 250, 0.24);
+    --ocean-glass-divider: rgba(232, 241, 250, 0.1);
+    --ocean-glass-rim: rgba(255, 255, 255, 0.12);
+    --ocean-glass-inset-shadow: rgba(0, 0, 0, 0.18);
+    --ocean-glass-control-shadow: var(--ow-shadow-overlay-dark);
+    --ocean-glass-shadow-compact: var(--ow-shadow-card-dark);
+    --ocean-glass-sheen: color-mix(in srgb, var(--ocean-air-on-primary) 8%, transparent);
+    --ocean-glass-blur-amount: 0.55;
+    --ocean-glass-saturation: 112%;
+    --ocean-glass-chromatic-aberration: 0.12;
+    --ocean-glass-elasticity: 0;
+    --ocean-glass-blur: 34px;
+    --ocean-glass-saturate: var(--ocean-glass-saturation);
+    --ocean-glass-brightness: 100%;
+    --ocean-glass-shadow: var(--ow-shadow-overlay-dark);
+}

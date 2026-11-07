@@ -22,11 +22,16 @@ let originalWindow: PropertyDescriptor | undefined;
 beforeEach(() => {
     originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
     storage.clear();
-    Object.defineProperty(globalThis, "window", { configurable: true, value: { localStorage: {
-        getItem: (key: string) => storage.get(key) ?? null,
-        setItem: (key: string, value: string) => storage.set(key, value),
-        removeItem: (key: string) => storage.delete(key),
-    } } });
+    Object.defineProperty(globalThis, "window", {
+        configurable: true,
+        value: {
+            localStorage: {
+                getItem: (key: string) => storage.get(key) ?? null,
+                setItem: (key: string, value: string) => storage.set(key, value),
+                removeItem: (key: string) => storage.delete(key),
+            },
+        },
+    });
 });
 afterEach(() => {
     if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
@@ -121,7 +126,7 @@ describe("canvas appearance persistence and presets", () => {
 
     test("changing tone switches background, grid and interface together and preserves the other tone", () => {
         const switched = updateCustomCanvasAppearance(custom, { baseTheme: "dark" }, "light");
-        expect(switched.custom).toEqual({ baseTheme: "dark", backgroundColor: "#000000", backgroundBrightness: 0, gridColor: "#FFFFFF", gridOpacity: 32 });
+        expect(switched.custom).toEqual({ baseTheme: "dark", backgroundColor: "#11161D", backgroundBrightness: 0, gridColor: "#E8F1FA", gridOpacity: 24 });
         expect(switchCanvasAppearanceTheme(switched, "light").custom).toEqual(custom.custom);
     });
 
@@ -149,15 +154,16 @@ describe("canvas appearance persistence and presets", () => {
     test("editing a fixed legacy appearance starts from what is visible", () => {
         const legacy = canvasAppearanceForTheme("light", custom);
         const values = canvasAppearanceValues(legacy, "dark");
-        expect(values.backgroundColor).toBe("#F0F0F0");
-        expect(values.gridOpacity).toBe(80);
+        expect(values.backgroundColor).toBe("#F3F6FA");
+        expect(values.gridOpacity).toBe(23);
         expect(updateCustomCanvasAppearance(legacy, { gridOpacity: 22 }, "dark").custom).toEqual({ ...values, gridOpacity: 22 });
     });
 
-    test("restores original light swatches exactly without dropping the current dark presets", () => {
+    test("uses Ocean Air for the default swatches while preserving the other presets", () => {
         const light = CANVAS_APPEARANCE_PRESETS.filter((preset) => preset.values.baseTheme === "light");
-        expect(light.map((preset) => preset.values.backgroundColor)).toEqual(["#F0F0F0", "#F3DCE5", "#EEE5D8", "#DFE9E6"]);
-        expect(light.every((preset) => preset.values.gridColor === "#000000" && preset.values.gridOpacity === 23)).toBe(true);
+        expect(light.map((preset) => preset.values.backgroundColor)).toEqual(["#F3F6FA", "#F3DCE5", "#EEE5D8", "#DFE9E6"]);
+        expect(light[0].values.gridColor).toBe("#2E3D4E");
+        expect(light.slice(1).every((preset) => preset.values.gridColor === "#000000" && preset.values.gridOpacity === 23)).toBe(true);
         expect(CANVAS_APPEARANCE_PRESETS.filter((preset) => preset.values.baseTheme === "dark").map((preset) => preset.id)).toEqual(["dark", "slate"]);
     });
 
@@ -215,7 +221,7 @@ describe("canvas appearance persistence and presets", () => {
             const restored = switchCanvasAppearanceTheme(reopened, theme);
             expect(canvasAppearanceValues(restored, opposite)).toEqual(visible);
             expect(restored.custom).toEqual(savedCustom.custom);
-            expect(restored.preset?.values.gridOpacity).toBe(theme === "light" ? 80 : 32);
+            expect(restored.preset?.values.gridOpacity).toBe(theme === "light" ? 23 : 24);
             expect(canvasAppearanceValues(switchCanvasAppearanceTheme(restored, opposite), theme)).toEqual(canvasAppearanceValues(away, theme));
         }
     });

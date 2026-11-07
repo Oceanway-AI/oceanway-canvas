@@ -81,6 +81,7 @@ import { CreationComposer, CreationEmptySuggest, CreationHistoryDrawer, Creation
 import { declaredInspirationSources } from "@/lib/inspirations/catalog";
 import { fillablePrompt } from "@/lib/inspirations/resolve";
 import { CreationRecentCanvases } from "./creation-recent-canvases";
+import { OceanwayContextPanel } from "./oceanway-context-panel";
 import { CreationAgentEntry } from "./creation-agent-entry";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig } from "./creation-generation-config";
@@ -151,6 +152,7 @@ export default function CreatePage() {
     const assets = useAssetStore((state) => state.assets);
     const addAsset = useAssetStore((state) => state.addAsset);
     const userId = useUserStore((state) => state.user?.id || null);
+    const displayName = useUserStore((state) => state.user?.displayName || state.user?.username || "创作者");
     const userSessionHydrated = useUserStore((state) => state.hydrated);
     const activeConversationScope = getActiveUserScope();
     const initialConversationSnapshot = userSessionHydrated ? readCreationConversationSnapshot<CreationConversation>(activeConversationScope) : null;
@@ -1492,8 +1494,9 @@ export default function CreatePage() {
                             <section ref={launchpadRef} className="creation-launchpad" aria-label={t("create.page.launchpadLabel")}>
                                 <header className="creation-start-heading">
                                     <div>
-                                        <h1>{t("create.page.heading", { brand: brandName })}</h1>
-                                        <p>{t("create.page.subheading")}</p>
+                                        <span className="oceanway-eyebrow">{brandName.toUpperCase()}</span>
+                                        <h1>{t("oceanway.home.greeting", { defaultValue: "欢迎回来，{{name}}", name: displayName })}</h1>
+                                        <p>{t("oceanway.home.subtitle", { defaultValue: "让灵感在图片、视频、音频与画布之间自由流动" })}</p>
                                     </div>
                                     <button type="button" className="creation-history-entry" aria-label={t("create.page.viewHistory")} aria-expanded={historyOpen} onClick={() => setHistoryOpen(true)}>
                                         <History aria-hidden="true" />
@@ -1528,7 +1531,10 @@ export default function CreatePage() {
                                     }}
                                 />
                             </section>
-                            <CreationRecentCanvases onRequireLogin={() => openAuth()} />
+                            <div className="oceanway-home-context-grid">
+                                <CreationRecentCanvases onRequireLogin={() => openAuth()} />
+                                <OceanwayContextPanel onRequireLogin={() => openAuth()} />
+                            </div>
                             <Suspense
                                 fallback={
                                     <div className="creation-hall-loading" role="status">

@@ -1,0 +1,821 @@
+/* Oceanway Studio presentation. Palette and ambient renderer are sourced from
+   oceanway-studio; existing Canvas routes and controls keep their behavior. */
+html[data-oceanway] body,
+html[data-oceanway] .app-user-workspace,
+html[data-oceanway] .app-user-overlays {
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    --font-heading: var(--font-sans);
+    --background: var(--ocean-air-background);
+    --foreground: var(--ocean-air-text);
+    --card: var(--ocean-air-surface);
+    --card-foreground: var(--ocean-air-text);
+    --popover: var(--ocean-air-surface);
+    --popover-foreground: var(--ocean-air-text);
+    --primary: var(--ocean-air-primary);
+    --primary-foreground: var(--ocean-air-on-primary);
+    --secondary: var(--ocean-air-surface-soft);
+    --secondary-foreground: var(--ocean-air-text);
+    --muted: var(--ocean-air-surface-soft);
+    --muted-foreground: var(--ocean-air-text-muted);
+    --accent: var(--ocean-air-surface-strong);
+    --accent-foreground: var(--ocean-air-text);
+    --border: var(--ocean-air-border);
+    --input: var(--ocean-air-border);
+    --ring: var(--ocean-air-focus);
+    --surface: var(--ocean-air-surface);
+    --surface-hover: var(--ocean-air-surface-soft);
+    --surface-raised: var(--ocean-air-surface);
+    --card-surface: var(--ocean-air-surface);
+    --card-surface-hover: var(--ocean-air-surface-soft);
+    --card-surface-raised: var(--ocean-air-surface-strong);
+    --card-border: var(--ocean-air-border);
+    --card-border-hover: var(--ocean-air-border-strong);
+    --card-radius: 20px;
+    --input-radius: 14px;
+    --control-radius: 14px;
+    --workspace-canvas: var(--ocean-air-background);
+    --workspace-page: var(--ocean-air-background);
+    --workspace-content: var(--ocean-air-background);
+    --workspace-surface: var(--ocean-air-surface);
+    --workspace-surface-strong: var(--ocean-air-surface-soft);
+    --workspace-border: var(--ocean-air-border);
+    --workspace-border-strong: var(--ocean-air-border-strong);
+    --workspace-accent-soft: var(--ocean-air-surface-strong);
+    --workspace-text-body: var(--ocean-air-text);
+    --workspace-text-muted: var(--ocean-air-text-muted);
+    --workspace-text-faint: var(--ocean-air-text-quiet);
+    --color-background: var(--ocean-air-background);
+    --color-foreground: var(--ocean-air-text);
+    --color-surface: var(--ocean-air-surface);
+    --color-surface-hover: var(--ocean-air-surface-soft);
+    --color-border: var(--ocean-air-border);
+    --color-primary: var(--ocean-air-primary);
+    --color-primary-foreground: var(--ocean-air-on-primary);
+    --color-muted-foreground: var(--ocean-air-text-muted);
+    --workspace-accent: var(--ocean-air-primary);
+    --workspace-reference-sidebar: 248px;
+    --workspace-reference-collapsed: 76px;
+    --workspace-reference-row: 40px;
+    --workspace-reference-topbar: 72px;
+    --control-primary-bg: var(--ocean-air-action-fill);
+    --control-primary-fg: var(--ocean-air-on-primary);
+    --control-selected-bg: var(--ocean-air-surface-strong);
+    --control-selected-fg: var(--ocean-air-text);
+    --control-focus-ring: var(--ocean-air-focus);
+    --button-primary-bg: var(--ocean-air-action-fill);
+    --button-primary-hover-bg: var(--ocean-air-action-hover);
+    --button-primary-active-bg: var(--ocean-air-primary);
+    --button-primary-fg: var(--ocean-air-on-primary);
+    --button-secondary-bg: var(--ocean-glass-strong);
+    --button-secondary-fg: var(--ocean-air-text);
+    --button-secondary-border: var(--ocean-glass-control-edge);
+    --button-secondary-hover-bg: var(--ocean-air-surface-soft);
+    --button-secondary-hover-border: var(--ocean-glass-control-edge-strong);
+    --button-secondary-active-bg: var(--ocean-air-surface-strong);
+    --button-ghost-fg: var(--ocean-air-text-muted);
+    --button-ghost-hover-fg: var(--ocean-air-text);
+    --button-ghost-hover-bg: var(--ocean-air-surface-soft);
+    --button-ghost-active-bg: var(--ocean-air-surface-strong);
+    --button-radius: 14px;
+    --user-page-bg: var(--ocean-air-background);
+    --user-surface: var(--ocean-air-surface);
+    --user-surface-raised: var(--ocean-air-surface);
+    --user-surface-muted: var(--ocean-air-surface-soft);
+    --user-surface-hover: var(--ocean-air-surface-strong);
+    --user-border: var(--ocean-air-border);
+    --user-border-strong: var(--ocean-air-border-strong);
+    --user-ink: var(--ocean-air-text);
+    --user-ink-muted: var(--ocean-air-text-muted);
+    --user-ink-soft: var(--ocean-air-text-quiet);
+    --user-accent: var(--ocean-air-primary);
+    --user-accent-soft: color-mix(in srgb, var(--ocean-air-primary) 10%, transparent);
+    --user-shadow-card: 0 8px 24px var(--ocean-air-shadow-soft);
+    --user-shadow-hover: 0 14px 34px var(--ocean-air-shadow);
+    --user-radius-card: 20px;
+    --user-radius-media: 12px;
+    --user-radius-control: 15px;
+    --user-radius-button: 14px;
+    --user-radius-button-sm: 10px;
+    --user-control-height: 40px;
+    --user-control-height-sm: 32px;
+    --user-control-pressed: var(--ocean-air-surface-strong);
+    --user-card-hover: var(--ocean-air-surface-soft);
+    --auth-background: var(--ocean-air-background);
+    --auth-page-bg: var(--ocean-air-background);
+    --auth-panel: var(--ocean-air-surface);
+    --auth-card: var(--ocean-air-surface);
+    --auth-accent: var(--ocean-air-primary);
+    --auth-card-bg: var(--ocean-air-surface);
+    --auth-panel-bg: var(--ocean-air-surface-soft);
+    --auth-muted: var(--ocean-air-text-muted);
+    --library-surface: var(--ocean-glass-strong);
+    --library-surface-hover: var(--ocean-air-surface-soft);
+    --library-cover-surface: var(--ocean-air-surface-soft);
+    --library-icon-surface: var(--ocean-air-surface-strong);
+    --ow-shadow-card: 0 12px 30px rgba(24, 37, 56, 0.07), 0 2px 8px rgba(24, 37, 56, 0.025);
+    --ow-shadow-overlay: 0 24px 68px rgba(24, 37, 56, 0.15);
+    --ow-shadow-card-dark: 0 14px 34px rgba(0, 0, 0, 0.18);
+    --ow-shadow-overlay-dark: 0 24px 68px rgba(0, 0, 0, 0.3);
+    font-family: var(--font-sans);
+    color: var(--ocean-air-text);
+}
+
+.oceanway-background {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+    background: var(--ocean-air-background) url("/oceanway-workspace/particle-wave.webp") center / cover;
+}
+.dark .oceanway-background {
+    background-image: url("/oceanway-workspace/particle-wave-premium.webp");
+}
+.dark .oceanway-background::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 12, 18, 0.45);
+}
+html[data-oceanway] .app-user-workspace .app-workspace-shell {
+    position: relative;
+    isolation: isolate;
+    background: transparent;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-main-row {
+    position: relative;
+    z-index: 1;
+    gap: 0;
+    padding: 20px;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-stage,
+html[data-oceanway] .app-user-workspace .app-workspace-shell.is-creation-workspace .app-workspace-stage,
+html[data-oceanway] .app-user-workspace .app-user-content,
+html[data-oceanway] .app-user-workspace .creation-home {
+    background: transparent !important;
+}
+
+/* The sidebar is Studio's floating navigation surface. */
+html[data-oceanway] .app-user-workspace .app-workspace-sidebar {
+    position: relative;
+    height: 100%;
+    margin: 0;
+    border: 1px solid var(--ocean-glass-edge) !important;
+    border-radius: 34px;
+    background: var(--ocean-glass) !important;
+    box-shadow: var(--ow-shadow-card);
+    backdrop-filter: blur(34px) saturate(112%);
+    transition:
+        width 220ms ease,
+        flex-basis 220ms ease;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-sidebar-nav {
+    background: transparent;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-sidebar-brand-row {
+    min-height: 94px;
+    padding: 24px 16px 12px;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-sidebar-brand-button {
+    gap: 10px;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-brand-mark {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent !important;
+    box-shadow: none;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-brand-mark img {
+    width: 32px;
+    height: 32px;
+    filter: none;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-brand-wordmark {
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: -0.035em;
+    color: var(--ocean-air-text);
+}
+html[data-oceanway] .app-user-workspace .app-workspace-sidebar-scroll-area {
+    padding: 20px 12px 12px !important;
+    gap: 20px !important;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-nav-link {
+    min-height: 38px !important;
+    border-radius: 14px !important;
+    font-size: 13px !important;
+    color: var(--ocean-air-text-muted) !important;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-nav-link.is-active {
+    color: var(--ocean-air-text) !important;
+    background: color-mix(in srgb, var(--ocean-air-surface) 48%, transparent) !important;
+    box-shadow: inset 0 0 0 1px var(--ocean-glass-rim);
+}
+html[data-oceanway] .app-user-workspace .app-workspace-nav-active-pill {
+    background: transparent;
+    box-shadow: none;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-nav-link.is-active .app-workspace-nav-icon {
+    color: var(--ocean-air-primary);
+}
+html[data-oceanway] .app-user-workspace .app-workspace-nav-link:hover:not(.is-active) {
+    background: var(--ocean-glass-strong) !important;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-nav-group-toggle {
+    color: var(--ocean-air-text-quiet) !important;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-sidebar-footer {
+    padding: 12px !important;
+    border-top: 1px solid var(--ocean-glass-divider) !important;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-sidebar-profile {
+    color: var(--ocean-air-text);
+    border: 1px solid var(--ocean-glass-control-edge);
+    border-radius: 20px;
+    background: var(--ocean-glass-strong);
+}
+html[data-oceanway] .app-user-workspace .app-workspace-sidebar-profile :is(p, span) {
+    color: inherit;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-topbar {
+    height: 64px !important;
+    min-height: 64px !important;
+    padding: 0 20px 0 36px !important;
+    background: transparent !important;
+    border: 0 !important;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-topbar-breadcrumb {
+    color: var(--ocean-air-text-muted);
+    font-size: 12px;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-topbar-actions {
+    gap: 8px;
+}
+html[data-oceanway] .app-user-workspace .app-workspace-topbar-icon-button {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--ocean-glass-control-edge);
+    border-radius: 14px;
+    background: var(--ocean-glass-strong);
+    color: var(--ocean-air-text-muted);
+}
+html[data-oceanway] .app-user-workspace .app-workspace-topbar-credit-pill {
+    border-color: var(--ocean-glass-edge);
+    background: var(--ocean-glass-strong);
+    color: var(--ocean-air-text);
+}
+
+/* Homepage: the live Canvas composer and collections occupy Studio's grid. */
+html[data-oceanway] .app-user-workspace .creation-home-scroll {
+    padding: 20px 30px 40px 60px;
+}
+html[data-oceanway] .app-user-workspace .creation-launchpad {
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0;
+    background: transparent;
+}
+html[data-oceanway] .app-user-workspace .creation-start-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    width: 100%;
+    margin: 8px 0 26px;
+    text-align: left;
+}
+.oceanway-eyebrow {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--ocean-air-text-muted);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+}
+html[data-oceanway] .app-user-workspace .creation-start-heading h1 {
+    color: var(--ocean-air-text);
+    font-size: clamp(25px, 2.5vw, 34px);
+    font-weight: 650;
+    line-height: 1.3;
+    letter-spacing: -0.045em;
+}
+html[data-oceanway] .app-user-workspace .creation-start-heading p {
+    margin-top: 10px;
+    color: var(--ocean-air-text-muted);
+    font-size: 13px;
+}
+html[data-oceanway] .app-user-workspace .creation-composer-stage {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+}
+html[data-oceanway] .app-user-workspace .creation-mode-card {
+    border: 1px solid var(--ocean-glass-edge);
+    border-radius: 28px;
+    background: var(--ocean-glass);
+    box-shadow: var(--ow-shadow-card);
+    backdrop-filter: blur(28px) saturate(112%);
+    overflow: visible;
+}
+html[data-oceanway] .app-user-workspace .creation-mode-card-inner {
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    padding: 0;
+}
+html[data-oceanway] .app-user-workspace .creation-mode-folder {
+    border: 0;
+    border-radius: 18px;
+    background: transparent;
+    margin: 12px 12px 0;
+    padding: 0;
+    height: 42px;
+}
+html[data-oceanway] .app-user-workspace .creation-mode-folder-tab {
+    top: 2px;
+    bottom: 2px;
+    margin-inline: 2px;
+    background: var(--ocean-glass-strong);
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px var(--ocean-glass-control-edge);
+}
+html[data-oceanway] .app-user-workspace .creation-mode-folder-wing {
+    display: none;
+}
+html[data-oceanway] .app-user-workspace .creation-mode-panel {
+    border-radius: 0 0 28px 28px;
+}
+html[data-oceanway] .app-user-workspace .creation-mode-folder-tab::before,
+html[data-oceanway] .app-user-workspace .creation-mode-folder-tab::after {
+    display: none;
+}
+html[data-oceanway] .app-user-workspace .creation-mode-folder button {
+    color: var(--ocean-air-text-muted);
+    font-size: 13px;
+}
+html[data-oceanway] .app-user-workspace .creation-mode-folder button[aria-pressed="true"] {
+    color: var(--ocean-air-text);
+}
+html[data-oceanway] .app-user-workspace .creation-mode-card-body,
+html[data-oceanway] .app-user-workspace .creation-empty-composer,
+html[data-oceanway] .app-user-workspace .creation-composer,
+html[data-oceanway] .app-user-workspace .creation-composer-surface {
+    background: transparent !important;
+    border-color: transparent;
+    box-shadow: none !important;
+}
+html[data-oceanway] .app-user-workspace .creation-composer {
+    border-radius: 24px;
+}
+html[data-oceanway] .app-user-workspace .creation-composer textarea {
+    font-size: 15px;
+    color: var(--ocean-air-text);
+}
+html[data-oceanway] .app-user-workspace .creation-empty-suggest {
+    width: 100%;
+    max-width: 1080px;
+    margin: 14px auto 24px;
+}
+html[data-oceanway] .app-user-workspace .creation-empty-suggest :is(.suggest-card, .creation-hero-prompt) {
+    background: var(--ocean-glass-strong);
+    border: 1px solid var(--ocean-glass-control-edge);
+    border-radius: 16px;
+}
+html[data-oceanway] .app-user-workspace .creation-history-entry {
+    width: 38px;
+    height: 38px;
+    padding: 9px;
+    flex-shrink: 0;
+    border: 1px solid var(--ocean-glass-control-edge);
+    border-radius: 14px;
+    background: var(--ocean-glass-strong);
+}
+html[data-oceanway] .app-user-workspace .creation-history-entry span {
+    display: none;
+}
+.oceanway-home-context-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.36fr) minmax(300px, 1fr);
+    align-items: stretch;
+    gap: 28px;
+    width: min(100%, 1080px);
+    margin: 28px auto;
+}
+html[data-oceanway] .app-user-workspace .creation-recent-canvases,
+.oceanway-context-panel {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    min-height: 310px;
+    padding: 24px;
+    border: 1px solid var(--ocean-glass-edge);
+    border-radius: 28px;
+    background: var(--ocean-glass);
+    box-shadow: var(--ow-shadow-card);
+    backdrop-filter: blur(28px) saturate(112%);
+}
+html[data-oceanway] .app-user-workspace .creation-section-heading {
+    margin-bottom: 22px;
+}
+html[data-oceanway] .app-user-workspace .creation-section-heading h2,
+.oceanway-context-panel h2 {
+    margin: 0;
+    color: var(--ocean-air-text);
+    font-size: 17px;
+    font-weight: 650;
+    letter-spacing: -0.018em;
+}
+html[data-oceanway] .app-user-workspace .creation-section-link {
+    color: var(--ocean-air-text-muted);
+    font-size: 11px;
+}
+html[data-oceanway] .app-user-workspace .creation-canvas-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    overflow-x: auto;
+    padding: 0 0 4px;
+}
+html[data-oceanway] .app-user-workspace .creation-canvas-strip-item {
+    width: auto;
+    min-width: 0;
+}
+html[data-oceanway] .app-user-workspace .creation-canvas-tile {
+    display: flex;
+    width: 100%;
+    height: auto;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    padding: 8px;
+    border: 1px solid var(--ocean-glass-control-edge);
+    border-radius: 20px;
+    background: var(--ocean-glass-strong);
+    text-align: left;
+}
+html[data-oceanway] .app-user-workspace .creation-canvas-thumbnail {
+    width: 100%;
+    flex: 0 0 auto;
+    aspect-ratio: 1.3;
+    height: auto;
+    border: 0;
+    border-radius: 13px;
+    background: var(--ocean-air-surface-soft);
+}
+.creation-canvas-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+html[data-oceanway] .app-user-workspace .creation-canvas-copy {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 4px 8px;
+}
+html[data-oceanway] .app-user-workspace .creation-canvas-copy strong {
+    color: var(--ocean-air-text);
+    font-size: 12px;
+    font-weight: 600;
+}
+html[data-oceanway] .app-user-workspace .creation-canvas-copy small {
+    color: var(--ocean-air-text-muted);
+    font-size: 10px;
+}
+html[data-oceanway] .app-user-workspace .creation-canvas-strip-state {
+    grid-column: 1 / -1;
+    min-height: 120px;
+    color: var(--ocean-air-text-muted);
+}
+.oceanway-context-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.oceanway-context-header > button {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid var(--ocean-glass-control-edge);
+    border-radius: 13px;
+    background: var(--ocean-glass-strong);
+    color: var(--ocean-air-text-muted);
+}
+.oceanway-context-header svg {
+    width: 16px;
+    height: 16px;
+}
+.oceanway-context-tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    margin: 18px 0 12px;
+    padding: 2px;
+}
+.oceanway-context-tabs button {
+    flex-shrink: 0;
+    padding: 7px 12px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    color: var(--ocean-air-text-muted);
+    font-size: 11px;
+}
+.oceanway-context-tabs button[aria-pressed="true"] {
+    border-color: var(--ocean-glass-control-edge);
+    background: var(--ocean-glass-strong);
+    color: var(--ocean-air-text);
+}
+.oceanway-context-items {
+    display: flex;
+    flex-direction: column;
+}
+.oceanway-context-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 14px 0;
+    color: var(--ocean-air-text);
+    text-align: left;
+}
+.oceanway-context-item + .oceanway-context-item {
+    border-top: 1px solid var(--ocean-glass-divider);
+}
+.oceanway-context-item > svg {
+    box-sizing: content-box;
+    flex-shrink: 0;
+    width: 19px;
+    height: 19px;
+    padding: 12px;
+    border: 1px solid var(--ocean-glass-control-edge);
+    border-radius: 14px;
+    color: var(--ocean-air-text-muted);
+    background: var(--ocean-glass-subtle);
+}
+.oceanway-context-item span {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+.oceanway-context-item strong {
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.oceanway-context-item small {
+    color: var(--ocean-air-text-muted);
+    font-size: 11px;
+}
+.oceanway-context-state {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 12px;
+    min-height: 150px;
+    color: var(--ocean-air-text-muted);
+    font-size: 12px;
+}
+.oceanway-context-state button {
+    padding: 8px 14px;
+    border: 1px solid var(--ocean-glass-control-edge);
+    border-radius: 12px;
+    color: var(--ocean-air-text);
+    background: var(--ocean-glass-strong);
+}
+
+/* Shared page surfaces carry the same material without placing glass over media. */
+html[data-oceanway] .app-user-workspace :is(.library-page, .studio-collection-page, .tasks-page, .settings-page, .project-workspace, .workbench-page) {
+    background: transparent !important;
+}
+html[data-oceanway] .app-user-workspace :is(.library-page, .studio-collection-page) > div {
+    max-width: 1420px;
+    padding-top: 20px;
+}
+html[data-oceanway] .app-user-workspace :is(.app-page-header-title, .app-page-header h1) {
+    color: var(--ocean-air-text);
+    font-size: 26px;
+    font-weight: 650;
+    letter-spacing: -0.025em;
+}
+html[data-oceanway] .app-user-workspace :is(.collection-toolbar, .library-toolbar) {
+    border-radius: 20px;
+}
+html[data-oceanway] .app-user-workspace :is(.product-collection-card, .library-card, .plugin-card, .canvas-collection-card) {
+    border: 1px solid var(--ocean-glass-control-edge);
+    border-radius: 20px !important;
+    background: color-mix(in srgb, var(--ocean-air-surface) 88%, transparent);
+    box-shadow: var(--ow-shadow-card);
+}
+html[data-oceanway] .app-user-workspace :is(.product-collection-card, .library-card, .plugin-card, .canvas-collection-card):hover {
+    border-color: var(--ocean-air-border-strong);
+}
+html[data-oceanway] .app-user-workspace :is(.story-launcher-panel, .collection-filter-bar, .settings-section, .settings-card) {
+    border: 1px solid var(--ocean-glass-control-edge);
+    border-radius: 24px;
+    background: color-mix(in srgb, var(--ocean-air-surface) 92%, transparent);
+}
+html[data-oceanway] :is(.app-user-workspace, .app-user-overlays, .auth-panel) .ant-btn-primary:not(:disabled):not(.ant-btn-dangerous) {
+    background: var(--ocean-air-action-fill) !important;
+    color: var(--ocean-air-on-primary) !important;
+    border-color: transparent !important;
+}
+html[data-oceanway] :is(.app-user-workspace, .app-user-overlays, .auth-panel) .ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):hover {
+    background: var(--ocean-air-action-hover) !important;
+}
+html[data-oceanway] :is(.workspace-modal, .app-modal, .auth-dialog) .ant-modal-container {
+    border: 1px solid var(--ocean-glass-edge);
+    border-radius: 28px;
+    background: var(--ocean-air-surface);
+}
+
+/* Auth remains the existing working form, on Studio's brand material. */
+html[data-oceanway] .auth-scene {
+    background: var(--ocean-air-background);
+    color: var(--ocean-air-text);
+}
+html[data-oceanway] .auth-scene-hero {
+    background: var(--ocean-air-background);
+}
+html[data-oceanway] .auth-scene-hero-overlay {
+    background: linear-gradient(180deg, rgba(17, 22, 29, 0.08), rgba(17, 22, 29, 0.48));
+}
+html[data-oceanway] .auth-scene-hero-title {
+    color: #f5f7fa;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+}
+html[data-oceanway] .auth-scene-brand,
+html[data-oceanway] .auth-scene-hero-muted {
+    color: #f5f7fa;
+}
+html[data-oceanway] .auth-scene-form-pane {
+    background: var(--ocean-air-background);
+}
+html[data-oceanway] .auth-panel {
+    border-radius: 28px;
+    border-color: var(--ocean-glass-control-edge);
+    background: var(--ocean-air-surface);
+    color: var(--ocean-air-text);
+}
+html[data-oceanway] .auth-dialog-stage {
+    color: var(--ocean-air-text);
+    background: var(--ocean-air-surface-soft) url("/oceanway-workspace/particle-wave.webp") center / cover;
+}
+html[data-oceanway].dark .auth-dialog-stage {
+    background-image: url("/oceanway-workspace/particle-wave-premium.webp");
+}
+html[data-oceanway] .auth-dialog-stage::before,
+html[data-oceanway] .auth-dialog-stage::after {
+    display: none;
+}
+
+/* Full-screen editors keep every pixel for their actual content. */
+html[data-oceanway] .app-workspace-shell:not(:has(.app-workspace-sidebar)) .app-workspace-main-row {
+    padding: 0;
+}
+html[data-oceanway] .app-user-workspace :is(.canvas-toolbar, .canvas-topbar, .canvas-bottom-toolbar) {
+    border-color: var(--ocean-glass-edge);
+    border-radius: 18px;
+}
+html[data-oceanway] :is(button, a, input, textarea):focus-visible {
+    outline-color: var(--ocean-air-focus);
+    outline-offset: 3px;
+}
+
+@media (max-width: 1279px) {
+    html[data-oceanway] .app-user-workspace {
+        --workspace-reference-sidebar: 220px;
+    }
+    html[data-oceanway] .app-user-workspace .creation-home-scroll {
+        padding-left: 28px;
+        padding-right: 16px;
+    }
+    .oceanway-home-context-grid {
+        gap: 20px;
+        grid-template-columns: minmax(0, 1.3fr) minmax(260px, 1fr);
+    }
+    html[data-oceanway] .app-user-workspace .creation-recent-canvases,
+    .oceanway-context-panel {
+        padding: 20px;
+    }
+}
+@media (max-width: 1023px) {
+    html[data-oceanway] .app-user-workspace .app-workspace-main-row {
+        padding: 0;
+    }
+    html[data-oceanway] .app-user-workspace .app-workspace-sidebar {
+        position: fixed;
+        inset: 12px auto 12px 12px;
+        z-index: 70;
+        width: 248px !important;
+        height: calc(100dvh - 24px);
+        transform: translateX(calc(-100% - 24px));
+        visibility: hidden;
+        background: var(--ocean-glass-solid) !important;
+        transition:
+            transform 220ms ease,
+            visibility 220ms;
+    }
+    html[data-oceanway] .app-user-workspace .app-workspace-sidebar.is-mobile-expanded {
+        transform: translateX(0);
+        visibility: visible;
+    }
+    html[data-oceanway] .app-user-workspace .app-workspace-sidebar-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        background: rgba(17, 22, 29, 0.28);
+    }
+    html[data-oceanway] .app-user-workspace .app-workspace-mobile-menu {
+        display: inline-grid;
+    }
+    html[data-oceanway] .app-user-workspace .app-workspace-topbar {
+        padding: 0 20px !important;
+    }
+    html[data-oceanway] .app-user-workspace .creation-home-scroll {
+        padding: 16px 24px 32px;
+    }
+}
+@media (max-width: 767px) {
+    html[data-oceanway] .app-user-workspace .creation-home-scroll {
+        padding: 12px 14px 28px;
+    }
+    html[data-oceanway] .app-user-workspace .creation-start-heading {
+        margin: 10px 0 22px;
+        gap: 12px;
+    }
+    html[data-oceanway] .app-user-workspace .creation-start-heading h1 {
+        font-size: 25px;
+    }
+    html[data-oceanway] .app-user-workspace .creation-start-heading p {
+        max-width: 290px;
+        font-size: 12px;
+        line-height: 1.7;
+    }
+    html[data-oceanway] .app-user-workspace .creation-mode-card {
+        border-radius: 24px;
+    }
+    .oceanway-eyebrow {
+        font-size: 9px;
+        letter-spacing: 0.2em;
+        margin-bottom: 10px;
+    }
+    .oceanway-home-context-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+        margin-top: 24px;
+    }
+    html[data-oceanway] .app-user-workspace .creation-recent-canvases,
+    .oceanway-context-panel {
+        padding: 18px;
+        border-radius: 24px;
+        min-height: 250px;
+    }
+    html[data-oceanway] .app-user-workspace .creation-canvas-strip {
+        gap: 10px;
+        grid-template-columns: repeat(3, minmax(120px, 1fr));
+    }
+    html[data-oceanway] .app-user-workspace .app-workspace-topbar {
+        padding: 0 14px !important;
+        height: 58px !important;
+        min-height: 58px !important;
+    }
+    html[data-oceanway] .app-user-workspace .app-workspace-topbar-breadcrumb {
+        flex: 1;
+        min-width: 0;
+    }
+    html[data-oceanway] .app-user-workspace .app-workspace-topbar-breadcrumb > a {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    html[data-oceanway] .app-user-workspace .app-workspace-topbar-actions {
+        gap: 5px;
+    }
+    html[data-oceanway] .app-user-workspace .app-workspace-topbar-icon-button {
+        width: 34px;
+        height: 34px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    html[data-oceanway] .app-user-workspace .app-workspace-sidebar {
+        transition: none;
+    }
+}
+@media (prefers-reduced-transparency: reduce) {
+    html[data-oceanway] .app-user-workspace :is(.app-workspace-sidebar, .creation-mode-card, .creation-recent-canvases),
+    .oceanway-context-panel {
+        background: var(--ocean-glass-solid) !important;
+        backdrop-filter: none;
+    }
+}
