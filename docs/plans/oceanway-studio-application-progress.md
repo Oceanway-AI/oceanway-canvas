@@ -16,7 +16,7 @@
 | B 模型目录 | B1 已提交 | `/api/model-catalog` 经 SDK Models，保留完整平台价格/能力；OAC 选择器使用原模型名和精确小数展示；同一模型替代变体不合并。媒体预估继续 |
 | C 素材 | C1/C2 已提交 | v93 上传意图与固定素材映射、素材工作台/画布选择/容量设置已接通；任务产物关联继续 |
 | D 普通生成 | D1/D2 已提交 | 三种文本协议、精确媒体预估/上限、原请求恢复、固定产物采用；参考素材与原生图片/视频请求专项通过，真实媒体验收待协调侧 |
-| E 原生 Pi Agent | E1 已提交 `78c37a4`；E2 专项通过，待提交 | 根轮次共享 EXA，模型桥/压缩走持久执行；Node/Pi 画布工具与媒体审批往返通过，真实浏览器媒体验收待协调侧 |
+| E 原生 Pi Agent | E1 已提交 `78c37a4`；E2 已提交 `991e462` | 根轮次共享 EXA，模型桥/压缩走持久执行；Node/Pi 画布工具与媒体审批往返通过，真实浏览器媒体验收待协调侧 |
 | F 首发联调 | 待环境 | 专项验证完成后交协调侧冻结与最终全量检查 |
 
 ## 测试与可验收入口
@@ -86,5 +86,13 @@ C3 验证：`go test ./internal/app ./internal/handler ./internal/database -run 
 E2：红灯为缺少平台媒体报价/审批入口，继而核对原生工具权限、Pi 必填参数与草稿运行身份。现在媒体仍由 OAC generate_media 创建草稿与独立审批；浏览器真实会话读取新目录及 PreviewMedia，精确小数和参数显示在原生审批卡，批准携 quoteId，固定请求/价格/上限与整轮 EXA 同事务入队。拒绝、停止、过期、画布依赖改变、报价不匹配均不提交；503 后只查原请求。审批公开投影剥除内部加密准备态。参数在审批卡冻结，调整需拒绝后改草稿并重新申请。
 
 E2 验证：`go test ./internal/app ./internal/handler -run 'TestStudio|TestCloudAgent(Media|Approval|Tools|ToolAllowed)' -count=1` 通过。真实 Node/Pi 免费夹具完成申请→报价→批准→媒体503→原请求失败恢复→工具回执→继续对话，模型提交一次/报价一次/整轮授权及释放各一次。成功产物固定 Resource 回写画布的 Go 专项不创建本地 Asset。前端真实 React 审批卡和普通生成提交共6项/14断言通过，typecheck、变更 ESLint/Prettier、build 通过；构建仍有既有 chunk 大小/动态导入提示。未部署，未做实际收费调用，生成结果浏览器物化路径继续修复。
+
+`991e462 feat(studio): Pi 媒体审批 - 冻结平台报价并恢复原步骤`：E2 已提交，未推送。
+
+C4 生成结果消费：先补6个失败场景，确认仍进入旧 Asset 物化和 Pi 节点准备守卫。Platform 任务现在只校验固定 Resource，直接回填多图、视频和消息，保留原生 attach effect 幂等；不新建 OAC Asset，不调用旧资产同步/外部素材源。每次恢复绕过资源元数据缓存复核归属、状态和类型；换号/取消拒绝。持久结果使用本站文件地址，移除旧 Asset ID 与过期签名 URL。原生 Pi 回填节点也可以直接准备画布保存。
+
+C4 验证：平台生成/素材、旧结果恢复、画布回填及跨页存储一致性共29项/201断言通过；新增测试包含真实画布存储写入→清空内存→重读全部图片。typecheck/变更 ESLint/Prettier/build 通过。没有实际浏览器、付费生成或部署；上游素材远端撤销仍由真实素材访问授权确认，本地校验不代替该权限检查。
+
+C4 补充：`generation-task-durability.node.test.ts` 3项通过。额外执行 `provider-neutral-generation-effects.test.ts` 时第1项通过，第2/3项 Bun Worker 在5秒超时，单独第2项仍超时并无法自行退出，已终止。该 effect store/Worker 用例未在本批修改；原因尚未定位，不能列为已通过，协调侧最终全量验证需复核。日志 `.local/verification/studio-platform-results-effects.log` 与 `studio-platform-effects-lock.log`。
 
 E1 验证：`go test ./internal/app ./internal/repository -run 'TestStudio|TestCloudAgent(Request|RuntimeCompletes|Tools|ToolAllowed)'`、`go test ./internal/handler -run TestStudio` 通过。后补同轮幂等、变更意图冲突及跨账号读取专项通过。仓库专项验证过期租约/被接管租约无法派发，重复派发只允许一次，停止未提交与保留已提交两种路径。前端 typecheck、变更文件 ESLint/Prettier 通过。尚未进行浏览器 Pi 验收，不宣称媒体审批可用。

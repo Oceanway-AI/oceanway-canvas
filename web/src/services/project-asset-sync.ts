@@ -7,7 +7,8 @@ import { ApiError } from "@/services/api/request";
 import { linkProjectAsset, moveProjectAsset, updateProjectAssetCategory } from "@/services/api/projects";
 import type { GenerationTask, GenerationTaskOutput } from "@/services/api/task-center";
 import { getMediaBlob, resolveMediaUrl, setMediaBlob } from "@/services/file-storage";
-import { createGenerationTaskMaterializer, createIdempotentMaterializeOutput, materializeEffectKey, type MaterializeGenerationTaskOutput } from "@/services/generation-task-materializer";
+import { createGenerationTaskMaterializer, createIdempotentMaterializeOutput, generationTaskOutputReady, materializeEffectKey, type MaterializeGenerationTaskOutput } from "@/services/generation-task-materializer";
+import { materializePlatformGenerationResults } from "@/services/platform-generation-results";
 import { withGenerationArtifactCommitLock } from "@/services/generation-asset-repository";
 import { uploadGeneratedAssetToConfiguredSources } from "@/services/external-asset-sources";
 import { getImageBlob, resolveImageUrl, setImageBlob } from "@/services/image-storage";
@@ -25,7 +26,7 @@ import { runGenerationConsumer } from "@/services/generation-consumer-lifecycle"
 import { ASSET_STORE_KEY, flushAssetStorePersistence, generationAssetId, useAssetStore, type AssetCategory, type AssetStatus, type NewAsset } from "@/stores/use-asset-store";
 import { CanvasNodeType, type CanvasNodeData } from "@/types/canvas";
 import { useUserStore } from "@/stores/use-user-store";
-import { getResource, resourceIdFromStorageKey } from "@/services/api/resources";
+import { getResource, resourceIdFromStorageKey, resolveResourceUrl } from "@/services/api/resources";
 
 function throwIfAborted(signal?: AbortSignal) {
     if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
@@ -673,6 +674,7 @@ export function isGenerationOutputAssetDeletedError(error: unknown): boolean {
 }
 
 export async function materializeGenerationTaskAssets(task: GenerationTask, signal?: AbortSignal): Promise<GenerationTask> {
+    if (task.provider === "platform") return materializePlatformGenerationResults(task, signal);
     const scope = getActiveUserScope();
     const ensureCurrentScope = () => {
         throwIfAborted(signal);
@@ -755,7 +757,7 @@ export async function consumeGenerationTaskNode(
     }
     const materialized = await (dependencies.materialize ?? materializeGenerationTaskAssets)(task, dependencies.signal);
     const output = materialized.outputs?.find((candidate) => candidate.outputIndex === outputIndex);
-    if (!output?.materializedAssetId) throw new Error("生成任务输出尚未物化");
+    if (!output || !generationTaskOutputReady(materialized, output)) throw new Error("生成任务输出尚未物化");
     await (dependencies.attachNode ?? attachGenerationTaskNode)(
         materialized,
         nodeId,
@@ -814,7 +816,7 @@ export async function consumeGenerationTaskMessage(
     const resultUrls = (dependencies.materializedUrls ?? generationTaskMaterializedUrls)(materialized);
     const resultStorageKeys = (dependencies.materializedStorageKeys ?? generationTaskMaterializedStorageKeys)(materialized);
     const attach = dependencies.attachMessage ?? attachGenerationTaskMessage;
-    const outputs = materialized.outputs?.filter((output) => output.materializedAssetId) ?? [];
+    const outputs = materialized.outputs?.filter((output) => generationTaskOutputReady(materialized, output)) ?? [];
     for (const output of outputs) {
         await attach(
             materialized,
@@ -830,6 +832,7 @@ export async function consumeGenerationTaskMessage(
 }
 
 export function generationTaskMaterializedUrls(task: GenerationTask): string[] {
+    if (task.provider === "platform") return (task.outputs || []).filter((output) => generationTaskOutputReady(task, output)).map((output) => resolveResourceUrl(output.providerArtifactRef));
     const assets = useAssetStore.getState().assets;
     return (task.outputs || []).flatMap((output) => {
         const asset = output.materializedAssetId ? assets.find((candidate) => candidate.id === output.materializedAssetId) : undefined;
@@ -845,6 +848,7 @@ export function generationTaskMaterializedUrls(task: GenerationTask): string[] {
  * 本地 IndexedDB storageKey。它可以持久化到历史记录，不能被短时效签名 URL 替代。
  */
 export function generationTaskMaterializedStorageKeys(task: GenerationTask): string[] {
+    if (task.provider === "platform") return (task.outputs || []).filter((output) => generationTaskOutputReady(task, output)).map((output) => output.providerArtifactRef!);
     const assets = useAssetStore.getState().assets;
     return (task.outputs || []).flatMap((output) => {
         const asset = output.materializedAssetId ? assets.find((candidate) => candidate.id === output.materializedAssetId) : undefined;

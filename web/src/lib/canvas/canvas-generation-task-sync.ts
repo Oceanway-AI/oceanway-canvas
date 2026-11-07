@@ -16,6 +16,8 @@ import { runGenerationConsumer } from "@/services/generation-consumer-lifecycle"
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useAssetStore } from "@/stores/use-asset-store";
 import { applyGenerationConsumerEffect, generationEffectApplied } from "@/services/generation-consumer-dedupe";
+import { generationTaskOutputReady } from "@/services/generation-task-materializer";
+import { resolveResourceUrl } from "@/services/api/resources";
 import { commitProducedModel } from "@/lib/canvas/produced-model";
 import { experimentalLayerSignature, hasUsableLayerTransparency, imageLayerCompositeSignature, validateImageLayerOutput } from "@/lib/canvas/canvas-image-layers";
 import { composeCanvasImageLayerGroup, decodeAndComposeImageLayers, inspectImageLayer, normalizeImageLayerCanvas } from "@/services/canvas-image-layer-compositor";
@@ -195,7 +197,7 @@ export async function buildGenerationTaskNodeResult(node: CanvasNodeData, task: 
         const listed = result.images?.[outputIndex];
         if (!listed?.dataUrl && !listed?.storageKey) throw new Error("后端任务没有返回图片");
         // 已持久化的图片可以只有 storageKey（素材库回传、跨设备同步时 dataUrl 为空），展示地址按资源现取。
-        const image = listed.dataUrl ? listed : { ...listed, dataUrl: await resolveImageUrl(listed.storageKey, "") };
+        const image = listed.dataUrl ? listed : { ...listed, dataUrl: task.provider === "platform" ? resolveResourceUrl(listed.storageKey) : await resolveImageUrl(listed.storageKey, "") };
         if (!image.dataUrl) throw new Error("图片结果资源不可用");
         let resultDataUrl = image.dataUrl;
         const emotionEdit = node.metadata?.emotionEdit;
@@ -209,7 +211,14 @@ export async function buildGenerationTaskNodeResult(node: CanvasNodeData, task: 
         }
         const uploaded =
             image.storageKey && !emotionEdit
-                ? { url: await resolveImageUrl(image.storageKey, image.dataUrl), storageKey: image.storageKey, width: image.width || 0, height: image.height || 0, bytes: image.bytes || 0, mimeType: image.mimeType || "image/png" }
+                ? {
+                      url: task.provider === "platform" ? resolveResourceUrl(image.storageKey) : await resolveImageUrl(image.storageKey, image.dataUrl),
+                      storageKey: image.storageKey,
+                      width: image.width || 0,
+                      height: image.height || 0,
+                      bytes: image.bytes || 0,
+                      mimeType: image.mimeType || "image/png",
+                  }
                 : extraction || emotionEdit
                   ? await uploadDerivedImageResult(resultDataUrl)
                   : await uploadImage(resultDataUrl);
@@ -237,7 +246,12 @@ export async function buildGenerationTaskNodeResult(node: CanvasNodeData, task: 
 
     if (mode === "video") {
         if (!result.video?.storageKey && !result.video?.dataUrl) throw new Error("后端任务没有返回视频");
-        const video = result.video.storageKey ? await resolveGeneratedStoredVideo({ ...result.video, storageKey: result.video.storageKey }) : await storeGeneratedVideo({ url: result.video.dataUrl, mimeType: result.video.mimeType || "video/mp4" });
+        const video =
+            task.provider === "platform" && result.video.storageKey
+                ? { ...result.video, url: resolveResourceUrl(result.video.storageKey), storageKey: result.video.storageKey, bytes: result.video.bytes || 0, mimeType: result.video.mimeType || "video/mp4" }
+                : result.video.storageKey
+                  ? await resolveGeneratedStoredVideo({ ...result.video, storageKey: result.video.storageKey })
+                  : await storeGeneratedVideo({ url: result.video.dataUrl, mimeType: result.video.mimeType || "video/mp4" });
         const videoSize = fitNodeSize(video.width || node.width || VIDEO_NODE_MAX_SIZE.width, video.height || node.height || VIDEO_NODE_MAX_SIZE.height, VIDEO_NODE_MAX_SIZE.width, VIDEO_NODE_MAX_SIZE.height);
         const geometry = node.metadata?.locked
             ? {}
@@ -328,6 +342,14 @@ export async function applyMaterializedGenerationTaskResultToNodes(nodes: Canvas
     if (generationEffectApplied(node.metadata || {}, effectKey) && generationTaskOutputsApplied(node, task, nodes)) {
         return { nodes, updated: true, nodeId: node.id, node, additionalNodes: [] };
     }
+    if (task.provider === "platform") {
+        if (!task.outputs?.length || !generationTaskOutputReady(task, output) || !task.outputs.every((item) => generationTaskOutputReady(task, item))) throw new Error("平台生成素材尚未校验");
+        const { node: updatedNode, additionalNodes } = await buildGenerationTaskNodeResults(node, task, nodes);
+        const stamp = (item: CanvasNodeData) => ({ ...item, metadata: applyGenerationConsumerEffect({ ...item.metadata, assetId: undefined }, effectKey, (metadata) => metadata).value });
+        const durableNode = stamp(updatedNode);
+        const durableChildren = additionalNodes.map(stamp);
+        return { nodes: commitCanvasGenerationResult(nodes, node, durableNode, task.id, durableChildren), updated: true, nodeId: node.id, node: durableNode, additionalNodes: durableChildren };
+    }
     const asset = useAssetStore.getState().assets.find((candidate) => candidate.id === output.materializedAssetId);
     if (!asset) throw new Error("生成任务输出素材不存在");
     const result = parseBackendGenerationResult(task);
@@ -385,7 +407,12 @@ export function generationTaskOutputsApplied(node: CanvasNodeData, task: Generat
     if (batchOutputResultPending(node.metadata)) return false;
     if (generationTaskMode(task) !== "text") {
         const assets = useAssetStore.getState().assets;
-        const hasBoundAsset = (item: CanvasNodeData) => Boolean(item.metadata?.assetId && findCanvasNodeAsset(assets, item, task.projectId || "")?.id === item.metadata.assetId);
+        const result = task.provider === "platform" ? parseBackendGenerationResult(task) : undefined;
+        const resourceKeys = new Set((result?.images || (result?.video ? [result.video] : [])).map((item) => item.storageKey).filter((key) => key?.startsWith("resource:")));
+        const hasBoundAsset = (item: CanvasNodeData) =>
+            task.provider === "platform"
+                ? Boolean(item.metadata?.taskId === task.id && item.metadata.storageKey && resourceKeys.has(item.metadata.storageKey))
+                : Boolean(item.metadata?.assetId && findCanvasNodeAsset(assets, item, task.projectId || "")?.id === item.metadata.assetId);
         if (!hasBoundAsset(node)) return false;
         if (
             node.metadata?.batchChildIds?.some((id) => {

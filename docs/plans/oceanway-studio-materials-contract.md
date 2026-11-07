@@ -13,6 +13,7 @@
 - `POST /api/auth/session`：浏览器使用真实 Origin 验证身份并通过 SDK IssueMaterial 获取仅限素材的委托授权；服务端加密缓存，以用户、Host 和 Identity 返回的 SID 摘要隔离。Cookie 更新或无关 Cookie 不改变归属；其他 SID 不复用授权，过期需重新初始化。`GET /auth/session` 只读身份，不签发授权。
 - `GET /api/resources/:id/file`：每次先验证当前平台会话及本地归属。无 Origin 的浏览器媒体 GET 使用该 SID 的 WorkerMaterials 授权申请访问；不伪造 Origin，不向 WorkerMaterials 发送 Cookie。访问始终带固定 binding_id，授权不存在返回 409 `material_authorization_required`，撤销会话立即拒绝。
 - 画布媒体持久化以本人 ready Resource 和完整 asset/version/file/binding 映射为准，不要求额外 OAC Asset。前端不再为采用的素材补造本地资产或等待旧 `/assets` 同步；普通本地资源仍保留原有守卫。
+- Platform 生成结果消费只读取并校验原结果的固定 Resource（当前账号、ready、媒体类型），不创建 OAC Asset、不调用旧资产同步或外部素材源上传。每次恢复重新校验，失效/删除/跨账号资源不能凭已完成的本地 effect 复活。输出单独记录已校验的 Resource ID，画布和消息持久化 `resource:ID` 与本站文件地址，不持久化短期签名 URL。多图、视频仍使用原生节点/消息幂等 effect；账号切换或取消不得完成消费。
 
 rc.5 的 `MaterialAuthorization.expires_at` 类型为 string，已发布生产者返回 Unix 秒数。应用只在该 SDK 调用的 2xx 响应体中解码该字段，接受 Unix 秒数、数字字符串或 RFC3339 并校验有效期；不替换 SDK HTTP、身份策略或扩大授权。素材授权只加密保存在 schema95 表中，不能执行收费生成。
 
