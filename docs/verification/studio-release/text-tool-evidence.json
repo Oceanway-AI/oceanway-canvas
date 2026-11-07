@@ -1,0 +1,49 @@
+{
+  "content": [
+    {
+      "caller": {
+        "type": "direct"
+      },
+      "id": "toolu_012LdcMxdjSwdyqoQz2FuPtL",
+      "input": {
+        "value": "STUDIO_TOOL_OK"
+      },
+      "name": "studio_ping",
+      "type": "tool_use"
+    }
+  ],
+  "model": "claude-haiku-4-5",
+  "protocol": "anthropic-messages",
+  "ready": true,
+  "request_id": "studio-text-20261108-tool",
+  "status": "ready",
+  "stop_reason": "tool_use",
+  "task_id": "text_566ab0c5e2f40bebe276ee4409c31e5a8d9ece715c659eacb4a9bb9a5445f9aa",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 682,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 682,
+        "output_tokens": 45,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 45,
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "original_response_equal": true
+}

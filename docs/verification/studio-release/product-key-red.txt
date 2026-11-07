@@ -1,0 +1,27 @@
+test_full_host_survives_every_nginx_proxy (test_studio_release.DeploymentTests.test_full_host_survives_every_nginx_proxy) ... ok
+test_legacy_gateway_bridge_exposes_no_admin_or_identity_routes (test_studio_release.DeploymentTests.test_legacy_gateway_bridge_exposes_no_admin_or_identity_routes) ... ok
+test_private_sdk_uses_buildkit_secret_not_build_argument (test_studio_release.DeploymentTests.test_private_sdk_uses_buildkit_secret_not_build_argument) ... ok
+test_uses_upstream_topology_and_injects_server_only_configuration (test_studio_release.DeploymentTests.test_uses_upstream_topology_and_injects_server_only_configuration) ... ok
+test_adds_only_test_registration_without_mutating_input (test_studio_release.IdentityRegistrationTests.test_adds_only_test_registration_without_mutating_input) ... ok
+test_idempotent_without_rotating_key (test_studio_release.IdentityRegistrationTests.test_idempotent_without_rotating_key) ... ok
+test_preparation_exports_formal_credential_without_rotating_secret (test_studio_release.IdentityRegistrationTests.test_preparation_exports_formal_credential_without_rotating_secret) ... FAIL
+test_rejects_production_cookie_and_revoked_credential (test_studio_release.IdentityRegistrationTests.test_rejects_production_cookie_and_revoked_credential) ... ok
+test_rejects_short_or_multiline_secret (test_studio_release.IdentityRegistrationTests.test_rejects_short_or_multiline_secret) ... ok
+
+======================================================================
+FAIL: test_preparation_exports_formal_credential_without_rotating_secret (test_studio_release.IdentityRegistrationTests.test_preparation_exports_formal_credential_without_rotating_secret)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/wangzihao/Projects/OceanWay/.local/worktrees/studio-release-20261108/scripts/test_studio_release.py", line 81, in test_preparation_exports_formal_credential_without_rotating_secret
+    self.assertEqual(exported["STUDIO_PLATFORM_PRODUCT_KEY"], credential["key_id"] + "." + credential["secret"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa[19 chars]aaaa' != 'studio-preview-20261108.aaaaaaaaaaaaaaaaa[43 chars]aaaa'
+- aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
++ studio-preview-20261108.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+? ++++++++++++++++++++++++
+
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.149s
+
+FAILED (failures=1)
