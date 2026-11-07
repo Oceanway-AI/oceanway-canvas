@@ -5,9 +5,26 @@ description: 信封、错误码与 OpenAPI
 
 # HTTP API 合同
 
+## OceanWay Studio 素材 v2
+
+所有以下接口要求当前 Platform 登录、已登记 Host/Origin；写请求必须携带 Origin。成功仍使用 OAC 信封。
+
+| 接口 | 行为 |
+| --- | --- |
+| `POST /api/resources/platform-uploads` | commandId、filename、contentType、byteLength（十进制字符串）、sha256 及可选宽高时长；返回本地 id、平台 upload 状态及票据 |
+| `GET /api/resources/platform-uploads/:id` | 查询原上传；完成后采用固定素材版本，返回 ready resource |
+| `POST /api/resources/platform-uploads/:id/complete` | 提交原分片 part_number/etag；响应未知时 GET 原上传，不重新创建 |
+| `POST /api/resources/adopt` | assetId/versionId；校验当前 owner、版本与文件，恢复/确认固定绑定后返回 resource |
+| `GET /api/resources/:id` | 读取属于当前用户的 ready Resource 元数据 |
+| `POST /api/resources/access` | 1–100 项 `{resourceId,purpose,variant}`；逐项访问结果，展示 original 意图转换为 preview/playback，返回真实变体 |
+| `GET /api/resources/:id/file` | 兼容画布的资源 URL，当前账号授权后临时重定向到平台签名访问地址，无本地原件兜底 |
+| `GET /api/materials/assets`、`GET /api/materials/storage` | 当前账号平台素材列表、容量（十进制字符串） |
+
+浏览器只按票据独立 PUT，不携带登录凭据、不跟随重定向。provider-input 仅供后续服务端执行流程，浏览器不可申请。列表、上传与签名访问均不代表生成调用已接通。完整状态/恢复合同见[素材实施合同](../../../plans/oceanway-studio-materials-contract.md)。
+
 ## OceanWay Studio 首批接口边界
 
-当前可执行入口使用 `RegisterStudioAPI`；下文上游接口清单不代表都已在新 Studio 开放。首批仅包括 Platform 身份、画布持久化/编辑租约/实时连接/分享及外观/功能查询。模型、素材、生成、Agent、旧密码认证、支付和供应商代理等未挂载接口返回 HTTP 501，`msg` 为“此功能暂不可用”；阶段内不暴露旧 `/api/openapi.yaml`。
+当前可执行入口使用 `RegisterStudioAPI`；下文上游接口清单不代表都已在新 Studio 开放。已开放 Platform 身份、模型目录、素材 v2、画布持久化/编辑租约/实时连接/分享及外观/功能查询。生成、Agent、旧密码认证、支付和供应商代理等未挂载接口返回 HTTP 501，`msg` 为“此功能暂不可用”；阶段内不暴露旧 `/api/openapi.yaml`。
 
 | 接口 | 当前合同 |
 | --- | --- |

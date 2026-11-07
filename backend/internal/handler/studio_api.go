@@ -122,6 +122,7 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 		}
 		ok(c, catalog)
 	})
+	RegisterStudioMaterialRoutes(api, svc)
 	RegisterCanvasDataRoutes(api, svc)
 	RegisterCanvasRealtimeRoutes(api, svc)
 	RegisterCanvasShareRoutes(api, svc)

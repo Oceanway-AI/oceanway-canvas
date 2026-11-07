@@ -5,6 +5,12 @@ description: 影策后端核心持久化表与状态边界
 
 # 后端数据库
 
+## OceanWay Studio 素材引用（Schema 93）
+
+`studio_material_uploads` 保存按用户隔离的稳定上传命令、文件意图 JSON 和 Platform upload_id；同命令不同意图拒绝。`studio_material_references` 以 Resource ID 为主键，固定 account owner、asset_id、version_id、file_id、SHA256、十进制字节数和 binding_id，`(user_id,asset_id,version_id)` 唯一。采用时与 pending Resource 同事务建立引用，确认平台 binding active 后 Resource 才 ready；未知响应按原命令恢复。
+
+这两张表不存原件、上传票据、签名 URL、Cookie、产品密钥或素材授权。Resource 的 provider 固定 platform，object_key/public_url 留空，只保留画布所需元数据；平台后续的新版本不会替换已有画布引用。容量和文件删除仍由 Platform 控制，本批未开放删除。
+
 ## OceanWay Studio 平台用户引用
 
 首批身份改造复用本仓库的 `users` 和 `user_identities` 表，不引入旧 Studio 表或数据，不新增本地认证会话/钱包。没有新增物理字段；`User.PlatformAuthenticated` 为 `gorm:"-"` / `json:"-"` 的请求期标志。

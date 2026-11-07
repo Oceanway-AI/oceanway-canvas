@@ -33,6 +33,7 @@ type studioFixture struct {
 	requests     int
 	catalog      string
 	catalogCalls int
+	materials    http.HandlerFunc
 }
 
 func newStudioFixture(t *testing.T) *studioFixture {
@@ -42,6 +43,13 @@ func newStudioFixture(t *testing.T) *studioFixture {
 	f := &studioFixture{}
 	platform := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.requests++
+		if strings.HasPrefix(r.URL.Path, "/api/platform/v1/materials/") && f.materials != nil {
+			if r.Header.Get("X-Platform-Product-Key") != "fixture.secret" || r.Header.Get("Cookie") == "" || r.Header.Get("X-Oceanway-Materials-Version") != "2" {
+				t.Error("material request missing account/product/version authority")
+			}
+			f.materials(w, r)
+			return
+		}
 		if r.URL.Path == "/api/platform/v1/products/studio/models" {
 			f.catalogCalls++
 			if r.Header.Get("X-Platform-Product-Key") != "fixture.secret" || r.Header.Get("Cookie") == "" {
