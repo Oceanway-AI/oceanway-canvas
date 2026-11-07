@@ -85,6 +85,9 @@ func compileCloudAgentTools(req CloudAgentRequest, includeProfileTool bool) []ma
 	definitions := cloudAgentRegistry().Definitions(cloudAgentToolScope(req, includeProfileTool))
 	tools := make([]map[string]any, 0, len(definitions))
 	for _, definition := range definitions {
+		if req.ChannelID == StudioPlatformChannelID && !studioAgentToolSupported(definition.Name) {
+			continue
+		}
 		var parameters map[string]any
 		if err := json.Unmarshal(definition.Parameters, &parameters); err != nil {
 			panic(err)
@@ -418,6 +421,34 @@ func cloudAgentPatchSchema() map[string]any {
 }
 
 func cloudAgentToolAllowed(req CloudAgentRequest, name string) bool {
+	if req.ChannelID == StudioPlatformChannelID && !studioAgentToolSupported(name) {
+		return false
+	}
 	policy, known := agenttool.Get(name)
 	return known && policy.Allowed(cloudAgentToolScope(req, true))
+}
+
+func studioAgentToolSupported(name string) bool {
+	switch name {
+	case agenttool.AgentProfileRead, agenttool.PlanUpdate, agenttool.AskUser,
+		agenttool.CanvasListNodeTypes, agenttool.CanvasGetState, agenttool.CanvasReadText,
+		agenttool.CanvasReadBatchTable, agenttool.CanvasReadStoryboard, agenttool.TaskGet,
+		agenttool.SkillReadFile, agenttool.SkillSearch, agenttool.MemoryUpdate,
+		agenttool.ModelList, agenttool.CanvasCreateStoryboard, agenttool.CanvasEditStoryboard,
+		agenttool.CanvasEditBatchTable, agenttool.CanvasApplyOps, agenttool.CanvasArrangeNodes,
+		agenttool.CanvasBuildBoard, agenttool.CanvasPreflight, agenttool.GenerateMedia:
+		return true
+	default:
+		return false
+	}
+}
+
+func StudioAgentSupportedToolNames() []string {
+	names := []string{}
+	for _, name := range CloudAgentSupportedToolNames() {
+		if studioAgentToolSupported(name) {
+			names = append(names, name)
+		}
+	}
+	return names
 }

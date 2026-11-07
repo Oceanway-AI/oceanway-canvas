@@ -41,6 +41,9 @@ func cloudAgentMediaCall(call cloudAgentCall) cloudAgentCall {
 }
 
 func (s *Service) enqueueCloudAgentTask(run *model.CloudAgentExecution, state *cloudAgentRuntime, req CreateTaskRequest, media *cloudAgentMediaPlan) error {
+	if s.UsesPlatformIdentity() {
+		return s.enqueueStudioAgentTask(run, state, req, media)
+	}
 	orders, err := s.repo.BillingOrdersByTaskIDs(run.UserID, state.TaskIDs)
 	if err != nil {
 		return err

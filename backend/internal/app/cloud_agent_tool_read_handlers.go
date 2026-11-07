@@ -19,6 +19,9 @@ func cloudAgentHandleModelList(repo *repository.Repository, userID string, state
 	if service == nil {
 		return nil, BadAuthRequest("模型目录服务不可用")
 	}
+	if service.UsesPlatformIdentity() {
+		return service.studioAgentModelList(userID, state, call)
+	}
 	intent, err := service.cloudAgentModelIntent(userID, state.Request.CanvasID, call.Function.Arguments)
 	if err != nil {
 		return nil, err

@@ -24,6 +24,23 @@ func (s *Service) StartStudioWorker() {
 	}
 	s.taskWorker().start(ctx)
 	s.runWorkerLoop(func(ctx context.Context) {
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+		for {
+			if roots, err := s.repo.StudioAgentRootsWithoutRun(); err == nil {
+				for _, root := range roots {
+					_, _ = s.CloudAgentRun(root.UserID, root.ID)
+				}
+			}
+			s.recoverCloudAgentPiRunners()
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	})
+	s.runWorkerLoop(func(ctx context.Context) {
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
 		for {
@@ -152,6 +169,9 @@ func (s *Service) failStudioTask(task *model.Task, message string) error {
 }
 
 func (s *Service) releaseCompletedStudioExecutions(ctx context.Context) {
+	if err := s.repo.CompleteStudioAgentExecutions(); err != nil {
+		return
+	}
 	rows, err := s.repo.StudioExecutionsToRelease()
 	if err != nil {
 		return

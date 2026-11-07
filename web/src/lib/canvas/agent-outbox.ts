@@ -24,7 +24,7 @@ export type AgentRunSettings = {
     reasoningMode: AgentReasoningMode;
     skillIds: string[];
     contextScope: string[];
-    maxCredits: string;
+    maxSteps: string;
     maxGenerationTasks: string;
     maxVideoSeconds: string;
 };
@@ -317,7 +317,7 @@ function isRunSettings(value: unknown): value is AgentRunSettings {
         typeof settings.reasoningMode === "string" &&
         stringArray(settings.skillIds) &&
         stringArray(settings.contextScope) &&
-        typeof settings.maxCredits === "string" &&
+        typeof settings.maxSteps === "string" &&
         typeof settings.maxGenerationTasks === "string" &&
         typeof settings.maxVideoSeconds === "string"
     );

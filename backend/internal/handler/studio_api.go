@@ -124,6 +124,7 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 	})
 	RegisterStudioMaterialRoutes(api, svc)
 	RegisterStudioTaskRoutes(api, svc)
+	RegisterAgentRoutes(api, svc)
 	RegisterCanvasDataRoutes(api, svc)
 	RegisterCanvasRealtimeRoutes(api, svc)
 	RegisterCanvasShareRoutes(api, svc)

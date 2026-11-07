@@ -68,6 +68,9 @@ func cloudAgentContextBudgetFor(contextWindow, maxOutput int, source string) clo
 // of every eligible text route so route selection cannot choose a smaller window
 // after the context was assembled.
 func (s *Service) cloudAgentContextBudgetForRequest(req CloudAgentRequest) cloudAgentContextBudget {
+	if req.ChannelID == StudioPlatformChannelID {
+		return defaultCloudAgentContextBudget()
+	}
 	if s == nil || s.repo == nil {
 		return defaultCloudAgentContextBudget()
 	}
@@ -109,6 +112,9 @@ func (s *Service) cloudAgentContextBudgetForRequest(req CloudAgentRequest) cloud
 // model this turn will actually run on. Logical models have no single channel
 // model, so they return nil and keep the route-intersection path.
 func (s *Service) cloudAgentChannelTextCapability(req CloudAgentRequest) *TextCapabilityConfig {
+	if req.ChannelID == StudioPlatformChannelID {
+		return nil
+	}
 	if s == nil || s.repo == nil || req.ChannelID == "" || req.ChannelModelKey == "" {
 		return nil
 	}

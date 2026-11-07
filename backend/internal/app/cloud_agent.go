@@ -110,7 +110,8 @@ type CloudAgentRun struct {
 	Events         []CloudAgentEvent   `json:"events,omitempty"`
 	Skills         []cloudAgentSkill   `json:"skills,omitempty"`
 	Approval       *cloudAgentApproval `json:"approval,omitempty"`
-	SpentCredits   float64             `json:"spentCredits"`
+	SpentCredits   float64             `json:"spentCredits,omitempty"`
+	Billing        string              `json:"billing,omitempty"`
 	Step           int                 `json:"step"`
 	ActiveMessage  map[string]string   `json:"activeMessage,omitempty"`
 	// 事件已全量落库，运行详情只返回一页，因此必须把"这一页在整条日志里的位置"说清楚：
@@ -241,7 +242,11 @@ func validateCloudAgentRequest(req *CloudAgentRequest) error {
 	if req.CanvasID == "" && (len(req.ContextScope) > 0 || len(req.FocusNodeIDs) > 0 || req.FocusNodeOmittedCount > 0) {
 		return BadAuthRequest("未绑定画布的对话不能读取画布上下文或焦点节点")
 	}
-	if math.IsNaN(req.Budget.MaxCredits) || math.IsInf(req.Budget.MaxCredits, 0) || req.Budget.MaxCredits <= 0 || req.Budget.MaxCredits > 1000000 {
+	if req.ChannelID == StudioPlatformChannelID {
+		if req.Budget.MaxCredits != 0 || req.Budget.MaxSteps < 1 || req.Budget.MaxSteps > 64 {
+			return BadAuthRequest("平台负责计费；请设置 1–64 步的执行上限，不设置本地积分预算")
+		}
+	} else if math.IsNaN(req.Budget.MaxCredits) || math.IsInf(req.Budget.MaxCredits, 0) || req.Budget.MaxCredits <= 0 || req.Budget.MaxCredits > 1000000 {
 		return BadAuthRequest("本轮积分上限必须大于 0 且不超过 1000000")
 	}
 	return nil
@@ -374,6 +379,13 @@ func (s *Service) CloudAgentRunIfChanged(userID, id string, revision int64, opti
 // is deterministic per user/key. Competing requests may race, but task creation
 // and credit reservation share a transaction: only one can commit.
 func (s *Service) CreateCloudAgentRun(userID string, req CloudAgentRequest, parentID string) (*CloudAgentRun, error) {
+	if s.UsesPlatformIdentity() {
+		return nil, NewAppError(501, "Agent 必须通过平台会话授权入口创建")
+	}
+	return s.createCloudAgentRun(userID, req, parentID, s.CreateTask)
+}
+
+func (s *Service) createCloudAgentRun(userID string, req CloudAgentRequest, parentID string, createRoot func(string, CreateTaskRequest) (*model.Task, error)) (*CloudAgentRun, error) {
 	if err := validateCloudAgentRequest(&req); err != nil {
 		return nil, err
 	}
@@ -573,7 +585,7 @@ func (s *Service) CreateCloudAgentRun(userID string, req CloudAgentRequest, pare
 			input["piSessionJSONL"] = inherited
 		}
 	}
-	task, err := s.CreateTask(userID, CreateTaskRequest{ProjectID: req.CanvasID, Type: "canvas_text", Operation: cloudAgentOperation, Prompt: req.Prompt, Model: req.Model, LogicalModelID: req.LogicalModelID, Input: input,
+	task, err := createRoot(userID, CreateTaskRequest{ProjectID: req.CanvasID, Type: "canvas_text", Operation: cloudAgentOperation, Prompt: req.Prompt, Model: req.Model, LogicalModelID: req.LogicalModelID, Input: input,
 		admission: &taskAdmission{ID: id, MaxCharge: int64(math.Floor(req.Budget.MaxCredits * float64(CreditScale))), NonBillable: true}})
 	if err != nil {
 		// A concurrent identical request may have won the transaction. Never

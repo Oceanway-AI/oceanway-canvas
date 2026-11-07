@@ -25,6 +25,8 @@ type studioExecutionEnvelope struct {
 	ContentType string                                      `json:"contentType"`
 	Body        []byte                                      `json:"body"`
 	Consumption *platformclient.MediaConsumptionConstraints `json:"consumption,omitempty"`
+	AgentRunID  string                                      `json:"agentRunId,omitempty"`
+	Catalog     []platformclient.Model                      `json:"catalog,omitempty"`
 }
 
 func studioTaskID(userID, commandID string) string {

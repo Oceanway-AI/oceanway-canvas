@@ -81,6 +81,10 @@ func (s *Service) cloudAgentExecutionOutput(task *model.Task, initial cloudAgent
 		skill.Files = nil
 		out.Skills = append(out.Skills, skill)
 	}
+	if s.UsesPlatformIdentity() {
+		out.Billing = "platform"
+		return out, nil
+	}
 	orders, err := s.repo.BillingOrdersByTaskIDs(task.UserID, state.TaskIDs)
 	if err != nil {
 		return nil, err

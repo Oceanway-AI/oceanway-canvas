@@ -15,8 +15,8 @@
 | A 身份/画布 | 已提交 `4e64c70` | 既有 dirty 全部保留；SDK/HTTP/SQLite、前端专项、构建、浏览器夹具通过，详见 first-milestone |
 | B 模型目录 | B1 已提交 | `/api/model-catalog` 经 SDK Models，保留完整平台价格/能力；OAC 选择器使用原模型名和精确小数展示；同一模型替代变体不合并。媒体预估继续 |
 | C 素材 | C1/C2 已提交 | v93 上传意图与固定素材映射、素材工作台/画布选择/容量设置已接通；任务产物关联继续 |
-| D 普通生成 | D1 已提交，D2 完成首批专项 | 三种文本协议、精确媒体预估/上限、原请求恢复、固定产物采用；参考素材与原生图片/视频请求专项通过，真实媒体验收待协调侧 |
-| E 原生 Pi Agent | 待实施 | 模型桥/压缩/审批/工具走同一执行边界；恢复不重复收费 |
+| D 普通生成 | D1/D2 已提交 | 三种文本协议、精确媒体预估/上限、原请求恢复、固定产物采用；参考素材与原生图片/视频请求专项通过，真实媒体验收待协调侧 |
+| E 原生 Pi Agent | E1 专项通过；E2 媒体审批继续 | 根轮次共享 EXA，模型桥/压缩走持久执行；Node/Pi 画布工具往返通过，媒体审批尚未开放 |
 | F 首发联调 | 待环境 | 专项验证完成后交协调侧冻结与最终全量检查 |
 
 ## 测试与可验收入口
@@ -68,3 +68,11 @@ D1 验证：`go test ./internal/handler ./internal/database -run 'TestStudio|Tes
 `2965b70 feat(studio): 文本生成 - 接通平台原请求与断线恢复`：D1 已提交，未推送。HTTP fixture 证明三协议工具结果与断线恢复，不是 Pi 验收。
 
 D2 红灯为 `/tasks/preview` 501 和缺少完整规格验证。当前媒体以 JSON Schema 校验所选变体（拒绝外部 schema 加载），原生 JSON 先 PreviewMedia，再冻结相同 JSON/价格版本/精确十进制上限。前端点击生成先读取报价，以返回 wallet_points 作为本次最高额度，不自动接受上涨或换模型。Worker 只提交一次，后续经原 EXA RecoverMedia → TaskOutputs → 固定 Asset/version/file → binding active → OAC Result。HTTP 模拟提交和绑定响应丢失后恢复，只有一次模型 POST/Bind。Gemini、OpenAI video、Doubao 参数映射与资源引用归属/数量专项通过；不保存 CDN URL、不从本地钱包扣费。前端任务专项 4 项/11 断言、typecheck、lint、format、build 通过。
+
+`b56e914 feat(studio): 媒体生成 - 固定平台报价与素材产物恢复`：D2 已提交，未推送。
+
+E1 红灯为缺少 Studio Pi 授权入口。已接通原生控制任务、冻结目录与整轮 EXA，每一步独立稳定请求 ID；子步骤不释放共享授权。未提交步骤与派发共用锁，停止后已提交请求继续恢复；禁止截断、失败与恢复后的旧自动重发。真实 Node/Pi + 免费 HTTP fixture 完成两次模型调用、canvas_get_state 工具结果回传、会话快照持久化；一次授权，整轮结束后一次释放。初次 Node 测试缺依赖，已按原 package-lock 执行 npm ci 后通过。前端改为明确 1–64 步上限，不再宣称本地积分限额/累计消费。媒体审批未开放，下一批继续接入会话报价与明确额度。
+
+协调侧发现素材访问待补：浏览器 GET 文件缺 Origin，而 SDK Access 为 POST；固定引用访问还需 BindingID。将在 E1 提交后独立补失败测试与修复，不通过改写通用 Session Origin 绕过。
+
+E1 验证：`go test ./internal/app ./internal/repository -run 'TestStudio|TestCloudAgent(Request|RuntimeCompletes|Tools|ToolAllowed)'`、`go test ./internal/handler -run TestStudio` 通过。后补同轮幂等、变更意图冲突及跨账号读取专项通过。仓库专项验证过期租约/被接管租约无法派发，重复派发只允许一次，停止未提交与保留已提交两种路径。前端 typecheck、变更文件 ESLint/Prettier 通过。尚未进行浏览器 Pi 验收，不宣称媒体审批可用。

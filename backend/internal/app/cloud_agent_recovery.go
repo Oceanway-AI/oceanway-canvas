@@ -15,6 +15,11 @@ func (s *Service) finishCloudAgentCleanup(ctx context.Context, run *model.CloudA
 	if !run.CleanupPending || !cloudAgentRunTerminal(run.Status) {
 		return nil
 	}
+	if s.UsesPlatformIdentity() {
+		if err := s.repo.StopPreparedStudioAgentTasks(run.UserID, run.ID); err != nil {
+			return err
+		}
+	}
 	state, decodeErr := cloudAgentDecode(run)
 	activeID, mediaID, canvasID := run.ActiveTaskID, run.MediaTaskID, run.CanvasID
 	if decodeErr == nil {
@@ -50,6 +55,12 @@ func (s *Service) finishCloudAgentCleanup(ctx context.Context, run *model.CloudA
 		}
 		if err != nil {
 			return err
+		}
+		if s.UsesPlatformIdentity() && id != run.ID && !cloudAgentTaskTerminal(task.Status) {
+			// StopPreparedStudioAgentTasks fenced unsent requests above. Every
+			// remaining child must recover its original response, including text.
+			awaitingMedia = true
+			continue
 		}
 		if id == mediaID && s.cloudAgentMediaContinuesAfterStop(run, task) {
 			// 用户停止本轮只停止 Agent 后续步骤。已提交上游的媒体任务可能已经计费，

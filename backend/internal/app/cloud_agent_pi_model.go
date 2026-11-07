@@ -354,7 +354,7 @@ func (s *Service) runCloudAgentModelStep(ctx context.Context, userID, runID stri
 		if failed, lookupErr := s.repo.Task(taskID); lookupErr == nil && failed != nil && failed.Status != model.TaskStatusSucceeded {
 			truncated = cloudAgentTruncatedToolArguments(failed)
 		}
-		retryable := ctx.Err() == nil && (truncated || s.cloudAgentModelTaskRetryable(taskID))
+		retryable := !s.UsesPlatformIdentity() && ctx.Err() == nil && (truncated || s.cloudAgentModelTaskRetryable(taskID))
 		if retryable {
 			// 释放失败的步骤，下一次重试才能重新入队。
 			if releaseErr := s.finishCloudAgentPiModelStep(userID, runID, taskID, "", cloudAgentStepReasoning{}); releaseErr != nil {
@@ -383,7 +383,7 @@ func (s *Service) runCloudAgentModelStep(ctx context.Context, userID, runID stri
 			if err := s.finishCloudAgentPiModelStep(userID, runID, task.ID, "", cloudAgentStepReasoning{}); err != nil {
 				return nil, false, err
 			}
-			return nil, true, &cloudAgentPiOutputLimitError{Detail: violation}
+			return nil, !s.UsesPlatformIdentity(), &cloudAgentPiOutputLimitError{Detail: violation}
 		}
 	}
 	finishText := result.Text
@@ -444,6 +444,9 @@ func (s *Service) adoptCloudAgentPiModelStep(userID, runID, taskID string) (adop
 	case model.TaskStatusQueued, model.TaskStatusRunning, model.TaskStatusSucceeded:
 		return true, false, nil
 	case model.TaskStatusFailed, model.TaskStatusCancelled:
+		if s.UsesPlatformIdentity() {
+			return false, false, NewAppError(409, "原模型步骤已结束，请核对结果后开始新一轮")
+		}
 		if err := s.finishCloudAgentPiModelStep(userID, runID, taskID, "", cloudAgentStepReasoning{}); err != nil {
 			return false, false, err
 		}

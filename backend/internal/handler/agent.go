@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
+	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/service"
 )
 
@@ -24,6 +25,10 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		capabilities := service.CloudAgentCapabilitySetInfo()
+		if svc.UsesPlatformIdentity() {
+			ok(c, gin.H{"version": 2, "permissionModes": []string{"read_only", "request_approval", "auto"}, "contextScopes": []string{"canvas"}, "skills": true, "writeTools": true, "billing": "platform", "maxHistoryPairs": 10, "maxHistoryBytes": 64000, "maxSteps": 64, "tools": service.StudioAgentSupportedToolNames(), "capabilitySetVersion": capabilities.Version, "capabilitySetHash": capabilities.Hash, "nodeTypes": capabilities.Nodes})
+			return
+		}
 		ok(c, gin.H{"version": 2, "permissionModes": []string{"read_only", "request_approval", "auto"}, "contextScopes": []string{"canvas"}, "skills": true, "writeTools": true, "billing": "fixed_request", "maxHistoryPairs": 10, "maxHistoryBytes": 64000, "maxSteps": 0, "tools": service.CloudAgentSupportedToolNames(), "capabilitySetVersion": capabilities.Version, "capabilitySetHash": capabilities.Hash, "nodeTypes": capabilities.Nodes})
 	})
 	// Skill usage is derived from the caller's own journal receipts, so it stays
@@ -186,7 +191,16 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 			fail(c, http.StatusBadRequest, errors.New("请求必须只包含一个 JSON 对象"))
 			return
 		}
-		run, err := svc.CreateCloudAgentRun(user.ID, req, c.Param("id"))
+		var run *service.CloudAgentRun
+		if svc.UsesPlatformIdentity() {
+			view, response, createErr := svc.CreateStudioCloudAgentRun(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req, c.Param("id"))
+			if response != nil {
+				response.AppendCookies(c.Writer.Header())
+			}
+			run, err = view, createErr
+		} else {
+			run, err = svc.CreateCloudAgentRun(user.ID, req, c.Param("id"))
+		}
 		if err != nil {
 			failService(c, err)
 			return
@@ -388,6 +402,7 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 		defer ticker.Stop()
 		revision := run.Revision
 		lastWrite := time.Now()
+		nextSessionCheck := time.Now().Add(15 * time.Second)
 		for {
 			if err != nil {
 				c.SSEvent("error", gin.H{"message": "Agent 状态读取失败"})
@@ -419,6 +434,12 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 			case <-c.Request.Context().Done():
 				return
 			case <-ticker.C:
+				if !time.Now().Before(nextSessionCheck) {
+					if err := revalidateCanvasSession(c.Request.Context(), c, svc, user.ID); err != nil {
+						return
+					}
+					nextSessionCheck = time.Now().Add(15 * time.Second)
+				}
 				run, err = svc.CloudAgentRunIfChanged(user.ID, c.Param("id"), revision, options)
 			}
 		}
