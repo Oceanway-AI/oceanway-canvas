@@ -5,6 +5,8 @@ description: 信封、错误码与 OpenAPI
 
 # HTTP API 合同
 
+Studio 已开放 `POST /api/tasks`、`GET /api/tasks`、`GET /api/tasks/:id`、`GET /api/tasks/by-command/:command` 与只读日志/文本回放/SSE。创建必须提供账号内唯一的 `commandId`；同命令同意图返回原任务，改变意图为 409。当前先接通三种已发布文本协议，其他生成按批次开放。未知提交不自动重试；旧 `/retry`、供应商取消、浏览器自写文本结果未注册。执行授权只在服务端加密保存。
+
 ## OceanWay Studio 素材 v2
 
 所有以下接口要求当前 Platform 登录、已登记 Host/Origin；写请求必须携带 Origin。成功仍使用 OAC 信封。

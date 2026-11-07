@@ -13,15 +13,15 @@
 | 批次 | 状态 | 行为与证据 |
 | --- | --- | --- |
 | A 身份/画布 | 已提交 `4e64c70` | 既有 dirty 全部保留；SDK/HTTP/SQLite、前端专项、构建、浏览器夹具通过，详见 first-milestone |
-| B 模型目录 | 读取已接通，预估/提交继续 | `/api/model-catalog` 经 SDK Models，保留完整平台价格/能力；OAC 选择器使用原模型名和精确小数展示；同一模型替代变体不合并。当前不启用生成 |
-| C 素材 | 上传/采用核心实施中 | 新增 v93 上传意图与固定素材映射；HTTP 夹具验证完成响应丢失恢复、重复采用、跨账号拒绝与签名访问。浏览器票据直传、账号切换隔离通过首批测试；素材库 UI/任务结果关联继续 |
-| D 普通生成 | 待实施 | 复用 OAC 任务/租约/事件；保存执行授权与原请求，文本→图片→视频，不本地扣费/重发 |
+| B 模型目录 | B1 已提交 | `/api/model-catalog` 经 SDK Models，保留完整平台价格/能力；OAC 选择器使用原模型名和精确小数展示；同一模型替代变体不合并。媒体预估继续 |
+| C 素材 | C1/C2 已提交 | v93 上传意图与固定素材映射、素材工作台/画布选择/容量设置已接通；任务产物关联继续 |
+| D 普通生成 | D1 文本完成专项，媒体实施中 | 三种非流式文本协议、原请求恢复、租约防重发、加密记录、任务/SSE/账号隔离；图片→视频继续 |
 | E 原生 Pi Agent | 待实施 | 模型桥/压缩/审批/工具走同一执行边界；恢复不重复收费 |
 | F 首发联调 | 待环境 | 专项验证完成后交协调侧冻结与最终全量检查 |
 
 ## 测试与可验收入口
 
-此前测试：后端 platformintegration/handler/server/repository 通过；前端身份、实时、缓存专项、typecheck、eslint、build 通过。当前正式 API 仅身份和画布，生成与 Agent 未开放。没有真实付费调用或部署证据。后续批次在此增量记录红灯测试、通过命令和提交 ID。
+此前测试：后端 platformintegration/handler/server/repository 通过；前端身份、实时、缓存专项、typecheck、eslint、build 通过。应用侧使用免费夹具，部署与真实付费验收由协调侧记录。后续批次在此增量记录红灯测试、通过命令和提交 ID。
 
 B1 红灯：`TestStudioCatalogUsesPlatformAndNeverLocalChannels` 原路由返回 501；`TestPublished*` 缺少实现；前端 platform-catalog 缺少价格投影。实现后 `go test ./internal/platformintegration ./internal/handler -run 'TestPublished|TestStudio' -count=1` 通过；`bun test test/platform-catalog.test.ts test/model-picker-groups.test.ts` 12 项 / 48 断言通过，typecheck 通过。目录没有本地渠道兜底、匿名不能读取产品 API、目录 Cookie 轮换逐项保留；仅价格草稿保持不可用。下一步为素材与提交前精确参数/预估验证。
 
@@ -36,17 +36,18 @@ C2 运行入口：素材库、画布侧栏/弹窗选择器、设置中的素材�
 ## 接口/环境要求（协调侧提供）
 
 1. 独立 Studio HTTPS origin、保留 Host 的反代入口、测试 Platform origin、对应产品凭据文件位置（不在文档写密钥）。当前 rc.5 锁定，必须核对服务实现实际匹配。
-2. 测试 Platform 的 Studio Origin、回跳、模型调用与材料 v2 权限；当前已知 W7 只登记测试站自身并只有 operation:read，不能据此假定 Studio 全链可用。
+2. W7 已登记 Studio 测试入口、修复同主机跨端口回跳；协调侧确认登录与画布保存/恢复，materials v2 已单独验证。仍按每个实际调用验证权限，不以登录或模型列表替代全链验收。
 3. PG/Redis 测试连接的私密配置路径与可用模型清单（文本工具调用、图片、视频）；真实收费调用预算与测试账号会话由协调侧安排。
 4. 生产 Console 只作已核对的历史参考，不把其密钥用于付费测试；应用侧仅跑隔离 HTTP 契约夹具。
 
 ## 当前接口缺口
 
-协调侧环境核查：生产 Console 为 `cca3f516` / image `0e068d30c7ea`，旧版不含 W7 素材 v2，禁止切换/重启。W7 `https://test.oceanway.tech:18447` 为 `23d0f402` / image `2933ff284eb6`，素材/CDN 已由协调侧验证，59 个模型仅禁用草稿、连接数 0。用户最新明确新 Media Gateway 尚未就绪，临时使用旧网关，由协调侧接到 Platform；Studio 仍只使用 platformclient，不直连供应商，不恢复旧素材权威。Studio 拟使用 `https://test.oceanway.tech:18448`，W7 同主机跨端口登录回跳被拒由协调侧修复；应用侧仅使用免费夹具，不把生产域名登记视为完整功能支持。
+协调侧环境核查：生产 Console 为 `cca3f516` / image `0e068d30c7ea`，旧版不含 W7 素材 v2，禁止切换/重启。W7 `https://test.oceanway.tech:18447` 已更新至至少 `9cf4c914`，素材/CDN 已由协调侧验证。用户明确新 Media Gateway 尚未就绪，临时使用旧网关，由协调侧接到 Platform；Studio 仍只使用 platformclient，不直连供应商。Studio 测试入口 `https://test.oceanway.tech:18448` 登录/画布已验证；应用侧仅使用免费夹具。
 
 - rc.5 不含 LoginReturn SDK 方法，身份批次已限定使用发布的匿名 HTTP 登录准备合同。
-- 协调侧最新：旧网关明确为 ow-main `45.58.184.2:18420`，隔离 HTTPS 入口 `https://test.oceanway.tech:18450`，通过 W7 接入，应用侧不直连。W7 测试版 `9cf4c914` 修复同主机跨端口回跳，Studio `:18448/api/auth/login-url` 200；普通文本模型来源仍待协调侧确认。
+- 协调侧最新：旧网关明确为 ow-main `45.58.184.2:18420`，隔离 HTTPS 入口 `https://test.oceanway.tech:18450`，通过 W7 接入，应用侧不直连。W7 测试版 `9cf4c914` 修复同主机跨端口回跳，Studio `:18448/api/auth/login-url` 200。
 - 后续环境更新：协调侧已通过 W7 管理 API 复用线上 5 条 standard-text 连接并启用 32 个已有定价模型；候选 `gpt-6.1-sol`（Responses）、`claude-haiku-4-5`（Messages）、`deepseek-v4-flash`（Chat/Responses）。图片/Seedance 旧网关连接已登记、具体参数发布中。应用侧仍只使用免费夹具，模型目录不等同实际生成验收。
+- C2 已合并到独立发布分支，协调侧准备部署目录/素材批次；Messages/强制工具选择真实冒烟正在进行，不等于 Pi 验收。W7 图片 new-api 类型/路径缺口已由协调侧先红后绿及 race 验证，准备仅更新测试环境；视频报价尚未发布，不重试旧失败。
 - 音频、转写、外部工作流无对应公开 SDK 执行枚举，首发暂不可用，源码保留。
 - 模型、素材、执行恢复合同正在逐项核对；未知项不伪装成支持，后续将精确记录字段/端点/影响。
 
@@ -57,3 +58,9 @@ C2 运行入口：素材库、画布侧栏/弹窗选择器、设置中的素材�
 `ceebee9 feat(studio): 模型目录 - 接入平台发布能力与精确价格`：B1 只读目录、精确价格显示和 OAC 协议/能力投影；未推送。模型可调用环境与提交链仍待后续。
 
 `1d61a51 feat(studio): 素材接入 - 平台上传采用与原状态恢复`：C1 上传/采用/访问 API、v93 迁移、浏览器票据直传与恢复；未推送。C2 将替换素材列表/画布选择/存储设置的运行入口，保留 OAC 上游源码；只在点击插入时固定版本采用，不把签名 URL 作为画布身份。
+
+`b97f0de feat(studio): 素材工作台 - 接通平台素材库与画布选择`：C2 已提交，未推送。D/E 继续，执行合同已写入 `oceanway-studio-execution-contract.md`，先补响应丢失与原请求恢复红灯。
+
+D1：首个红灯为 POST /tasks 的 501。已实现 schema94 加密执行记录、三协议文本提交与原请求恢复；补测授权响应丢失、原请求 not_found 连续查询、同 command 冲突、跨账号拒绝、无本地账单。原生协议字段与恢复响应 envelope 按 SDK/发布合同校正。前端创建响应丢失只 GET 原 command，账号切换不采用结果，2 项/6 断言及 typecheck 通过。图片/视频/Pi 继续实施，尚未宣布首发完成。
+
+D1 验证：`go test ./internal/handler ./internal/database -run 'TestStudio|TestCurrentSchemaVersionMatchesMigrationPlan' -count=1` 通过；前端任务提交专项、typecheck、变更文件 ESLint/Prettier 通过。Studio 专用 worker 只启动任务调度与回放清理，不启动旧账务/供应商取消 worker。SSE 每 15 秒重新验证平台账号。

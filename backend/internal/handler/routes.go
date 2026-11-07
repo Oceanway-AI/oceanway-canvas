@@ -336,6 +336,11 @@ func streamTaskTextEvents(c *gin.Context, svc *service.Service, userID string, t
 		case <-c.Request.Context().Done():
 			return
 		case <-heartbeatTicker.C:
+			if svc.UsesPlatformIdentity() {
+				if err := revalidateCanvasSession(c.Request.Context(), c, svc, userID); err != nil {
+					return
+				}
+			}
 			if _, err := fmt.Fprint(c.Writer, ": heartbeat\n\n"); err != nil {
 				return
 			}

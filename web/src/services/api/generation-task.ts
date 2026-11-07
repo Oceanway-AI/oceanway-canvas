@@ -433,6 +433,9 @@ export function backendProviderConfig(config: AiConfig, mode: BackendGenerationM
         systemPrompt: config.systemPrompt,
     };
     if (logicalModelIDForConfig(config)) return generationOptions;
+    if (requestConfig.channelId === "oceanway-platform") {
+        return { channelId: requestConfig.channelId, model: requestConfig.model, ...generationOptions };
+    }
     return {
         channelId: requestConfig.channelId,
         apiFormat: requestConfig.apiFormat,
