@@ -60,6 +60,9 @@ func (s *Service) processStudioTask(ctx context.Context, task *model.Task) error
 		return errors.New("平台执行授权无法解密")
 	}
 	exec := platformclient.ExecutionContext{Authorization: authorization}
+	if envelope.Selection.Kind != "text" {
+		return s.processStudioMedia(ctx, task, execution, envelope, exec)
+	}
 	var raw []byte
 	if execution.ResponseEncrypted != "" {
 		if err := s.decryptStudioValue(execution.ResponseEncrypted, &raw); err != nil {
@@ -112,6 +115,10 @@ func (s *Service) processStudioTask(ctx context.Context, task *model.Task) error
 	if err != nil || stringValue(result["text"]) == "" && len(interfaceSlice(result["toolCalls"])) == 0 {
 		return s.failStudioTask(task, "平台原响应没有可用内容，已保留原任务，请核对结果")
 	}
+	return s.completeStudioTask(ctx, task, result)
+}
+
+func (s *Service) completeStudioTask(ctx context.Context, task *model.Task, result map[string]any) error {
 	encoded, err := json.Marshal(result)
 	if err != nil {
 		return err

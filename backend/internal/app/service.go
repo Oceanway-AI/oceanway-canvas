@@ -131,7 +131,8 @@ const taskWorkerConcurrency = 3
 const taskLogPayloadLimit = 4000
 
 type CreateTaskRequest struct {
-	CommandID       string `json:"commandId,omitempty"`
+	CommandID       string             `json:"commandId,omitempty"`
+	Platform        *StudioTaskOptions `json:"platform,omitempty"`
 	creationPrepare *creationTaskPreparation
 	admission       *taskAdmission
 	workbenchKind   string

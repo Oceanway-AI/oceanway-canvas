@@ -296,6 +296,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
     const videoOperation = generationOperation(options);
     const workflow = resolveGenerationWorkflowExecution(config, mode);
     const logicalModelId = workflow ? "" : logicalModelIDForConfig(config);
+    const platform = resolveModelChannel(config, config.model).modelCosts?.find((item) => item.model === modelOptionName(config.model))?.platform;
     return {
         ...(projectId ? { projectId } : {}),
         type: `canvas_${mode}`,
@@ -303,6 +304,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
         prompt,
         ...(workflow ? { provider: workflow.provider } : {}),
         model: workflow?.taskModel || config.model,
+        ...(platform && (mode === "image" || mode === "video") ? { platform: { expectedPriceVersion: platform.price.version } } : {}),
         ...(logicalModelId ? { logicalModelId } : {}),
         input: {
             mode,

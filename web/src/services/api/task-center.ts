@@ -130,6 +130,7 @@ export type TaskLog = {
 
 export type CreateTaskInput = {
     commandId?: string;
+    platform?: { variantId?: string; expectedPriceVersion: string; walletMaxPoints?: string; billingPreference?: "wallet-fallback" | "only-benefits" };
     projectId?: string;
     type?: string;
     operation?: string;
@@ -141,6 +142,7 @@ export type CreateTaskInput = {
 };
 export function createGenerationTask(input: CreateTaskInput) {
     return submitPlatformTask(input, {
+        preview: (body) => http.post("/tasks/preview", body),
         create: (body) => http.post<GenerationTask>("/tasks", body),
         recover: (commandId) => http.get<GenerationTask>(`/tasks/by-command/${encodeURIComponent(commandId)}`),
         scope: getActiveUserScope,

@@ -10,6 +10,26 @@ import (
 )
 
 func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
+	r.POST("/tasks/preview", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16<<20)
+		var req service.CreateTaskRequest
+		if c.ShouldBindJSON(&req) != nil {
+			failService(c, service.BadAuthRequest("任务输入无效"))
+			return
+		}
+		quote, response, err := svc.StudioPreviewTask(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req)
+		response.AppendCookies(c.Writer.Header())
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, quote)
+	})
 	r.POST("/tasks", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

@@ -73,38 +73,29 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 		if err := s.ensureTaskProjectActive(userID, req.ProjectID); err != nil {
 			return nil, response, err
 		}
-		catalog, e := s.studioPlatform.Client.Models(ctx, session)
-		catalog.Response.AppendCookies(response.Header)
-		if e != nil {
-			return nil, response, platformIdentityError(e)
-		}
-		var selected platformintegration.ModelSelection
-		found := false
-		config, _ := req.Input["config"].(map[string]any)
-		name := firstNonEmpty(stringValue(config["model"]), req.Model)
-		for _, m := range catalog.Data.Items {
-			if m.ModelName == name {
-				selected, e = platformintegration.SelectModel(m, "")
-				found = e == nil
-				break
-			}
-		}
-		if !found {
-			return nil, response, BadAuthRequest("所选平台模型暂不可用，请刷新模型目录")
-		}
-		if selected.Kind != "text" {
-			return nil, response, NewAppError(501, "此类生成任务尚未接通")
-		}
-		if req.Type != "canvas_text" || strings.TrimSpace(req.Prompt) == "" {
-			return nil, response, BadAuthRequest("文本任务输入无效")
-		}
-		body, e := studioTextBody(req, selected)
+		selected, e := s.studioSelectTaskModel(ctx, session, req, response)
 		if e != nil {
 			return nil, response, e
 		}
-		publicInput, _ := json.Marshal(map[string]any{"mode": "text", "metadata": studioTaskMetadata(req.Input)})
+		var body []byte
+		var consumption *platformclient.MediaConsumptionConstraints
+		if selected.Kind == "text" {
+			body, e = studioTextBody(req, selected)
+		} else {
+			body, e = s.studioMediaBody(ctx, userID, req, selected)
+			if e == nil {
+				_, e = s.studioPreviewMedia(ctx, session, req, selected, body, response, true)
+			}
+			if e == nil {
+				consumption = &platformclient.MediaConsumptionConstraints{ExpectedPriceVersion: req.Platform.ExpectedPriceVersion, WalletMaxPoints: req.Platform.WalletMaxPoints, BillingPreference: req.Platform.BillingPreference}
+			}
+		}
+		if e != nil {
+			return nil, response, e
+		}
+		publicInput, _ := json.Marshal(map[string]any{"mode": selected.Kind, "metadata": studioTaskMetadata(req.Input)})
 		task := model.Task{ID: id, UserID: userID, ProjectID: req.ProjectID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: string(publicInput), Status: model.TaskStatusQueued, Stage: "等待平台任务调度", TraceID: req.TraceID, RequestID: req.RequestID, WorkbenchKind: workbenchKindFromTaskInput(req.Input, req.Type)}
-		envelope := studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, ContentType: "application/json", Body: body}
+		envelope := studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, ContentType: "application/json", Body: body, Consumption: consumption}
 		encoded, e := s.encryptStudioValue(envelope)
 		if e != nil {
 			return nil, response, e

@@ -136,15 +136,7 @@ func studioCapabilityProjection(s platformintegration.ModelSelection) map[string
 			if typ != "string" && typ != "boolean" && typ != "number" && typ != "integer" {
 				continue
 			}
-			name := key
-			switch key {
-			case "aspect_ratio":
-				name = "size"
-			case "n":
-				name = "count"
-			case "resolution":
-				name = "imageResolution"
-			}
+			name := studioParameterName(key)
 			param := map[string]any{"name": name, "label": key, "type": typ, "binding": s.Bindings[key], "enabled": true}
 			for _, name := range schema.Required {
 				if name == key {

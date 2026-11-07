@@ -5,7 +5,7 @@ description: 信封、错误码与 OpenAPI
 
 # HTTP API 合同
 
-Studio 已开放 `POST /api/tasks`、`GET /api/tasks`、`GET /api/tasks/:id`、`GET /api/tasks/by-command/:command` 与只读日志/文本回放/SSE。创建必须提供账号内唯一的 `commandId`；同命令同意图返回原任务，改变意图为 409。当前先接通三种已发布文本协议，其他生成按批次开放。未知提交不自动重试；旧 `/retry`、供应商取消、浏览器自写文本结果未注册。执行授权只在服务端加密保存。
+Studio 已开放 `POST /api/tasks`、`POST /api/tasks/preview`、`GET /api/tasks`、`GET /api/tasks/:id`、`GET /api/tasks/by-command/:command` 与只读日志/文本回放/SSE。创建必须提供账号内唯一的 `commandId`；同命令同意图返回原任务，改变意图为 409。支持已发布文本、图片及视频协议；媒体要求 `platform.expectedPriceVersion` 与十进制字符串 `platform.walletMaxPoints`（包括明确的 `"0"`），可选 variantId/billingPreference。预估入口使用同一 OAC 创作意图，返回平台原始精确预估，不能视为预留或执行事实。未知提交不自动重试；旧 `/retry`、供应商取消、浏览器自写文本结果未注册。执行授权只在服务端加密保存。
 
 ## OceanWay Studio 素材 v2
 

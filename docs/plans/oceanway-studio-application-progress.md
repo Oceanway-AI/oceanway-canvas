@@ -15,7 +15,7 @@
 | A 身份/画布 | 已提交 `4e64c70` | 既有 dirty 全部保留；SDK/HTTP/SQLite、前端专项、构建、浏览器夹具通过，详见 first-milestone |
 | B 模型目录 | B1 已提交 | `/api/model-catalog` 经 SDK Models，保留完整平台价格/能力；OAC 选择器使用原模型名和精确小数展示；同一模型替代变体不合并。媒体预估继续 |
 | C 素材 | C1/C2 已提交 | v93 上传意图与固定素材映射、素材工作台/画布选择/容量设置已接通；任务产物关联继续 |
-| D 普通生成 | D1 文本完成专项，媒体实施中 | 三种非流式文本协议、原请求恢复、租约防重发、加密记录、任务/SSE/账号隔离；图片→视频继续 |
+| D 普通生成 | D1 已提交，D2 完成首批专项 | 三种文本协议、精确媒体预估/上限、原请求恢复、固定产物采用；参考素材与原生图片/视频请求专项通过，真实媒体验收待协调侧 |
 | E 原生 Pi Agent | 待实施 | 模型桥/压缩/审批/工具走同一执行边界；恢复不重复收费 |
 | F 首发联调 | 待环境 | 专项验证完成后交协调侧冻结与最终全量检查 |
 
@@ -47,7 +47,7 @@ C2 运行入口：素材库、画布侧栏/弹窗选择器、设置中的素材�
 - rc.5 不含 LoginReturn SDK 方法，身份批次已限定使用发布的匿名 HTTP 登录准备合同。
 - 协调侧最新：旧网关明确为 ow-main `45.58.184.2:18420`，隔离 HTTPS 入口 `https://test.oceanway.tech:18450`，通过 W7 接入，应用侧不直连。W7 测试版 `9cf4c914` 修复同主机跨端口回跳，Studio `:18448/api/auth/login-url` 200。
 - 后续环境更新：协调侧已通过 W7 管理 API 复用线上 5 条 standard-text 连接并启用 32 个已有定价模型；候选 `gpt-6.1-sol`（Responses）、`claude-haiku-4-5`（Messages）、`deepseek-v4-flash`（Chat/Responses）。图片/Seedance 旧网关连接已登记、具体参数发布中。应用侧仍只使用免费夹具，模型目录不等同实际生成验收。
-- C2 已合并到独立发布分支，协调侧准备部署目录/素材批次；Messages/强制工具选择真实冒烟正在进行，不等于 Pi 验收。W7 图片 new-api 类型/路径缺口已由协调侧先红后绿及 race 验证，准备仅更新测试环境；视频报价尚未发布，不重试旧失败。
+- C2 已合并到独立发布分支，协调侧准备部署目录/素材批次；Messages 普通文本 `STUDIO_TEXT_OK`、指定 studio_ping 工具 `STUDIO_TOOL_OK` 已经 rc.5 真实冒烟，两个原请求均 RecoverText ready 且内容一致，未重发。这支持 Pi 模型候选，不等于 Pi 浏览器验收。W7 图片 new-api 类型/路径缺口已由协调侧先红后绿及 race 验证，准备仅更新测试环境；视频报价尚未发布，不重试旧失败。
 - 音频、转写、外部工作流无对应公开 SDK 执行枚举，首发暂不可用，源码保留。
 - 模型、素材、执行恢复合同正在逐项核对；未知项不伪装成支持，后续将精确记录字段/端点/影响。
 
@@ -64,3 +64,7 @@ C2 运行入口：素材库、画布侧栏/弹窗选择器、设置中的素材�
 D1：首个红灯为 POST /tasks 的 501。已实现 schema94 加密执行记录、三协议文本提交与原请求恢复；补测授权响应丢失、原请求 not_found 连续查询、同 command 冲突、跨账号拒绝、无本地账单。原生协议字段与恢复响应 envelope 按 SDK/发布合同校正。前端创建响应丢失只 GET 原 command，账号切换不采用结果，2 项/6 断言及 typecheck 通过。图片/视频/Pi 继续实施，尚未宣布首发完成。
 
 D1 验证：`go test ./internal/handler ./internal/database -run 'TestStudio|TestCurrentSchemaVersionMatchesMigrationPlan' -count=1` 通过；前端任务提交专项、typecheck、变更文件 ESLint/Prettier 通过。Studio 专用 worker 只启动任务调度与回放清理，不启动旧账务/供应商取消 worker。SSE 每 15 秒重新验证平台账号。
+
+`2965b70 feat(studio): 文本生成 - 接通平台原请求与断线恢复`：D1 已提交，未推送。HTTP fixture 证明三协议工具结果与断线恢复，不是 Pi 验收。
+
+D2 红灯为 `/tasks/preview` 501 和缺少完整规格验证。当前媒体以 JSON Schema 校验所选变体（拒绝外部 schema 加载），原生 JSON 先 PreviewMedia，再冻结相同 JSON/价格版本/精确十进制上限。前端点击生成先读取报价，以返回 wallet_points 作为本次最高额度，不自动接受上涨或换模型。Worker 只提交一次，后续经原 EXA RecoverMedia → TaskOutputs → 固定 Asset/version/file → binding active → OAC Result。HTTP 模拟提交和绑定响应丢失后恢复，只有一次模型 POST/Bind。Gemini、OpenAI video、Doubao 参数映射与资源引用归属/数量专项通过；不保存 CDN URL、不从本地钱包扣费。前端任务专项 4 项/11 断言、typecheck、lint、format、build 通过。
