@@ -263,7 +263,7 @@ export const jaJP: Messages = {
             prompts: { label: "プロンプト設定", description: "タスクごとにテンプレートを調整" },
             "agent-memory": { label: "エージェントの記憶", description: "承認、追加、エクスポート、インポート、圧縮" },
             "ark-assets": { label: "Ark 素材ライブラリ", description: "本人認証と素材グループの管理" },
-            storage: { label: "マイオブジェクトストレージ", description: "個人のメディアストレージを管理" },
+            storage: { label: "素材ストレージ", description: "OceanWay アカウントの素材ストレージを表示" },
             diagnostics: { label: "問題診断", description: "ログをエクスポートして調査に協力" },
             feedbacks: { label: "マイフィードバック", description: "問題・提案と公式の回答" },
         },

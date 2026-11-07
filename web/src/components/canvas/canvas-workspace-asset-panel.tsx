@@ -11,9 +11,32 @@ import { useUserStore } from "@/stores/use-user-store";
 import type { Asset } from "@/stores/use-asset-store";
 import { assetPickerItemsToInsertPayloads, type InsertAssetPayload } from "./asset-picker-modal";
 import { Select } from "@/components/ui/base/select";
+import { PlatformMaterialLibrary } from "@/components/assets/platform-material-library";
 
 const categories: AssetCategory[] = ["material", "character", "environment", "prop", "other"];
 export function CanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAssets }: { onInsert: (payloads: InsertAssetPayload[]) => Promise<unknown>; onManage: () => void; onProjectAssets?: () => void }) {
+    return (
+        <>
+            <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
+                <Images className="size-4" />
+                <strong className="text-sm">素材库</strong>
+            </header>
+            <PlatformMaterialLibrary compact onInsert={onInsert} />
+            <footer className="flex gap-2 border-t border-border p-2">
+                <Button size="small" onClick={onManage}>
+                    管理素材
+                </Button>
+                {onProjectAssets ? (
+                    <Button size="small" onClick={onProjectAssets}>
+                        项目素材
+                    </Button>
+                ) : null}
+            </footer>
+        </>
+    );
+}
+
+export function OACCanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAssets }: { onInsert: (payloads: InsertAssetPayload[]) => Promise<unknown>; onManage: () => void; onProjectAssets?: () => void }) {
     const { message } = App.useApp();
     const userId = useUserStore((state) => state.user?.id);
     const hydrated = useUserStore((state) => state.hydrated);

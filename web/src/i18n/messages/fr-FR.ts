@@ -263,7 +263,7 @@ export const frFR: Messages = {
             prompts: { label: "Préférences de prompts", description: "Personnaliser les modèles par tâche" },
             "agent-memory": { label: "Mémoire de l'Agent", description: "Approuver, ajouter, exporter, importer, compacter" },
             "ark-assets": { label: "Bibliothèque Ark", description: "Vérification de personnes et groupes de ressources" },
-            storage: { label: "Mon stockage objet", description: "Gérer le stockage multimédia personnel" },
+            storage: { label: "Stockage des médias", description: "Afficher le stockage des médias OceanWay" },
             diagnostics: { label: "Diagnostic", description: "Exporter les journaux pour le dépannage" },
             feedbacks: { label: "Mes retours", description: "Problèmes, suggestions et réponses officielles" },
         },

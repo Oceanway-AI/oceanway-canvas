@@ -1,7 +1,7 @@
 import { getActiveUserScope } from "@/lib/user-scope";
 import { localForageStorageForScope } from "@/lib/localforage-storage";
 import { http, apiBaseURL, ApiError } from "@/services/api/request";
-import { uploadPlatformResource } from "./platform-materials";
+import { getPlatformMaterialStorage, uploadPlatformResource } from "./platform-materials";
 import type { OSSConnectionTestInput, OSSConnectionTestResult, OSSProvider, S3Preset } from "@/lib/oss-settings";
 
 export type RemoteResource = {
@@ -240,8 +240,14 @@ export function testUserOSSConnection(input: OSSConnectionTestInput) {
 }
 
 export async function getAccountFileStorageUsage() {
-    const data = await http.get<{ usage: AccountFileStorageUsage }>("/resources/storage-usage");
-    return data.usage;
+    const data = await getPlatformMaterialStorage();
+    const safeBytes = (value: string) => {
+        const number = Number(value);
+        if (!/^\d+$/.test(value) || !Number.isSafeInteger(number)) throw new Error("容量超过当前显示范围，请打开素材空间查看");
+        return number;
+    };
+    const totalBytes = safeBytes(data.limit_bytes);
+    return { usedBytes: safeBytes(data.used_bytes), totalBytes, baseBytes: totalBytes, purchasedBytes: 0, overLimit: data.over_limit, readOnly: data.over_limit } satisfies AccountFileStorageUsage;
 }
 
 export async function syncResourceToArkPrivateAsset(id: string) {
