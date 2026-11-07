@@ -34,6 +34,7 @@ type studioFixture struct {
 	catalog      string
 	catalogCalls int
 	materials    http.HandlerFunc
+	execution    http.HandlerFunc
 }
 
 func newStudioFixture(t *testing.T) *studioFixture {
@@ -43,6 +44,10 @@ func newStudioFixture(t *testing.T) *studioFixture {
 	f := &studioFixture{}
 	platform := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.requests++
+		if f.execution != nil && (strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
+			f.execution(w, r)
+			return
+		}
 		if strings.HasPrefix(r.URL.Path, "/api/platform/v1/materials/") && f.materials != nil {
 			if r.Header.Get("X-Platform-Product-Key") != "fixture.secret" || r.Header.Get("Cookie") == "" || r.Header.Get("X-Oceanway-Materials-Version") != "2" {
 				t.Error("material request missing account/product/version authority")
@@ -263,7 +268,7 @@ func TestStudioPlatformFailureAndLegacyRoutesStayClosed(t *testing.T) {
 		t.Fatal("upstream details leaked")
 	}
 	f.unavailable = false
-	for _, path := range []string{"/api/auth/register", "/api/auth/login", "/api/auth/password-reset", "/api/ai/custom", "/api/tasks", "/api/payments", "/v1/chat/completions"} {
+	for _, path := range []string{"/api/auth/register", "/api/auth/login", "/api/auth/password-reset", "/api/ai/custom", "/api/tasks/legacy/retry", "/api/payments", "/v1/chat/completions"} {
 		f.request(t, "POST", path, "platform_session=alice", "{}", 501)
 	}
 	request := httptest.NewRequest("PATCH", "https://studio.example.test/api/canvas-projects/c/operations", strings.NewReader(`{}`))

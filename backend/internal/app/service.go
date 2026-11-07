@@ -131,6 +131,8 @@ const taskWorkerConcurrency = 3
 const taskLogPayloadLimit = 4000
 
 type CreateTaskRequest struct {
+	CommandID       string             `json:"commandId,omitempty"`
+	Platform        *StudioTaskOptions `json:"platform,omitempty"`
 	creationPrepare *creationTaskPreparation
 	admission       *taskAdmission
 	workbenchKind   string
@@ -284,6 +286,9 @@ func (s *Service) TasksWithOptions(userID string, options TaskListOptions) ([]Ta
 	tasks, err := s.repo.TasksWithWorkbenchKind(userID, options.Limit, options.ProjectID, options.ActiveOnly, options.WorkbenchKind)
 	if err != nil {
 		return nil, err
+	}
+	if s.UsesPlatformIdentity() {
+		return taskSummariesForOutput(tasks), nil
 	}
 	orders, err := s.repo.BillingOrdersByTaskIDs(userID, taskBillingTaskIDs(tasks))
 	if err != nil {

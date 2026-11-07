@@ -152,8 +152,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 	httpServer := &http.Server{Handler: r, ReadHeaderTimeout: 10 * time.Second}
-	// Generation/material workers join this entry point after their Platform
-	// execution contracts are implemented. Do not run upstream billing workers.
+	svc.StartStudioWorker()
 	status.markStarted()
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- httpServer.Serve(listener) }()

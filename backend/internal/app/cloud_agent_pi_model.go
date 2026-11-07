@@ -568,6 +568,9 @@ func cloudAgentTransientModelFailure(call model.ApiCallLog) bool {
 // 5xx、429、408、明确的临时业务错误和没有拿到任何响应的网络错误可以重试；
 // 参数、鉴权、模型不存在和内容审核错误不会重试。
 func (s *Service) cloudAgentModelTaskRetryable(taskID string) bool {
+	if s.UsesPlatformIdentity() {
+		return false
+	}
 	task, err := s.repo.Task(taskID)
 	if err != nil || task == nil || task.Status == model.TaskStatusSucceeded || task.Status == model.TaskStatusCancelled {
 		return false

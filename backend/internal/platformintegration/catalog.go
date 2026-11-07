@@ -30,14 +30,17 @@ type NativeEndpoint struct {
 }
 
 type NativeReference struct {
-	Protocol     string   `json:"protocol"`
-	Operation    string   `json:"operation"`
-	Field        string   `json:"field"`
-	Transport    string   `json:"transport"`
-	Roles        []string `json:"roles"`
-	MaxItems     int      `json:"max_items"`
-	MaxItemBytes int64    `json:"max_item_bytes"`
-	MIMETypes    []string `json:"mime_types"`
+	Protocol      string   `json:"protocol"`
+	Operation     string   `json:"operation"`
+	Field         string   `json:"field"`
+	Transport     string   `json:"transport"`
+	Roles         []string `json:"roles"`
+	MaxItems      int      `json:"max_items"`
+	MinItems      int      `json:"min_items"`
+	MaxItemBytes  int64    `json:"max_item_bytes"`
+	MaxTotalBytes int64    `json:"max_total_bytes"`
+	ImageFormat   string   `json:"image_format"`
+	MIMETypes     []string `json:"mime_types"`
 }
 
 type MediaProfile struct {

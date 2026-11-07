@@ -2,6 +2,22 @@ package model
 
 import "time"
 
+// StudioExecution is server-only. Envelope includes the frozen native bytes;
+// authorization and native responses must never enter Task.InputJSON or logs.
+type StudioExecution struct {
+	TaskID                 string `gorm:"primaryKey;size:36"`
+	UserID                 string `gorm:"size:36;uniqueIndex:idx_studio_execution_command,priority:1"`
+	CommandID              string `gorm:"size:128;uniqueIndex:idx_studio_execution_command,priority:2"`
+	IntentHash             string `gorm:"size:64;not null"`
+	EnvelopeEncrypted      string `gorm:"type:text;not null"`
+	AuthorizationEncrypted string `gorm:"type:text"`
+	ResponseEncrypted      string `gorm:"type:text"`
+	State                  string `gorm:"size:32;index"`
+	Released               bool   `gorm:"not null;default:false;index"`
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+}
+
 // StudioMaterialUpload is an upload intent, never an object store ticket or file.
 // Its ID and the Platform command are stable across ambiguous HTTP responses.
 type StudioMaterialUpload struct {

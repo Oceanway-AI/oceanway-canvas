@@ -296,6 +296,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
     const videoOperation = generationOperation(options);
     const workflow = resolveGenerationWorkflowExecution(config, mode);
     const logicalModelId = workflow ? "" : logicalModelIDForConfig(config);
+    const platform = resolveModelChannel(config, config.model).modelCosts?.find((item) => item.model === modelOptionName(config.model))?.platform;
     return {
         ...(projectId ? { projectId } : {}),
         type: `canvas_${mode}`,
@@ -303,6 +304,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
         prompt,
         ...(workflow ? { provider: workflow.provider } : {}),
         model: workflow?.taskModel || config.model,
+        ...(platform && (mode === "image" || mode === "video") ? { platform: { expectedPriceVersion: platform.price.version } } : {}),
         ...(logicalModelId ? { logicalModelId } : {}),
         input: {
             mode,
@@ -433,6 +435,9 @@ export function backendProviderConfig(config: AiConfig, mode: BackendGenerationM
         systemPrompt: config.systemPrompt,
     };
     if (logicalModelIDForConfig(config)) return generationOptions;
+    if (requestConfig.channelId === "oceanway-platform") {
+        return { channelId: requestConfig.channelId, model: requestConfig.model, ...generationOptions };
+    }
     return {
         channelId: requestConfig.channelId,
         apiFormat: requestConfig.apiFormat,

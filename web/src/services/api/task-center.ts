@@ -4,6 +4,7 @@ import { consumeTaskTextStream, createTaskTextStreamParser, type TaskTextStreamE
 import { recordDiagnosticEvent } from "@/services/diagnostics/client-diagnostics";
 import { observeGenerationTaskStatus, observeGenerationTaskStatuses } from "@/services/generation-completion-tracker";
 import { getActiveUserScope } from "@/lib/user-scope";
+import { submitPlatformTask } from "@/services/platform-task-submission";
 
 export type { BackendEnvelope } from "@/services/api/request";
 
@@ -128,6 +129,8 @@ export type TaskLog = {
 };
 
 export type CreateTaskInput = {
+    commandId?: string;
+    platform?: { variantId?: string; expectedPriceVersion: string; walletMaxPoints?: string; billingPreference?: "wallet-fallback" | "only-benefits" };
     projectId?: string;
     type?: string;
     operation?: string;
@@ -138,12 +141,15 @@ export type CreateTaskInput = {
     input?: Record<string, unknown>;
 };
 export function createGenerationTask(input: CreateTaskInput) {
-    return http.post<GenerationTask>("/tasks", input).then((task) => {
+    return submitPlatformTask(input, {
+        preview: (body) => http.post("/tasks/preview", body),
+        create: (body) => http.post<GenerationTask>("/tasks", body),
+        recover: (commandId) => http.get<GenerationTask>(`/tasks/by-command/${encodeURIComponent(commandId)}`),
+        scope: getActiveUserScope,
+    }).then((task) => {
         recordDiagnosticEvent({ level: "info", category: "task", message: "任务已创建", taskId: task.id, projectId: task.projectId });
         observeGenerationTaskStatus(task);
         notifyCanvasTaskCreated(task);
-        // 创建任务时积分已被预占，不能等任务结束后才刷新可用余额。
-        window.dispatchEvent(new CustomEvent("wallet:updated"));
         return task;
     });
 }
