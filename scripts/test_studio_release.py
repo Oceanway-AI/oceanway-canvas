@@ -1,7 +1,11 @@
 import copy
 import importlib.util
 import pathlib
+import runpy
+import tempfile
 import unittest
+from unittest import mock
+import json
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("studio_release", ROOT / "scripts/studio_release.py")
@@ -50,6 +54,33 @@ class IdentityRegistrationTests(unittest.TestCase):
         for secret in ["", "abc", "a" * 64 + "\n"]:
             with self.assertRaises(ValueError):
                 release.register_test_studio(self.config, secret)
+
+    def test_preparation_exports_formal_credential_without_rotating_secret(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            identity = root / "identity.json"
+            identity.write_text(json.dumps(self.config))
+            private = root / "private"
+            private.mkdir()
+            (private / "platform-product-key").write_text("a" * 64 + "\n")
+            original_path = pathlib.Path
+            def isolated_path(value):
+                if value == "/opt/oceanway-w7-test/private/identity.json":
+                    return identity
+                if value == "/opt/oceanway-studio-preview/private":
+                    return private
+                return original_path(value)
+            with mock.patch.dict("sys.modules", {"studio_release": release}):
+                prepared = runpy.run_path(str(ROOT / "scripts/prepare_studio_test_identity.py"))
+                with mock.patch("pathlib.Path", side_effect=isolated_path), mock.patch("builtins.print"):
+                    prepared["main"]()
+            config = json.loads(identity.read_text())
+            credential = config["products"][-1]
+            exported = dict(line.split("=", 1) for line in (private / "studio-platform.env").read_text().splitlines())
+            self.assertEqual(credential["secret"], "a" * 64)
+            self.assertEqual(exported["STUDIO_PLATFORM_PRODUCT_KEY"], credential["key_id"] + "." + credential["secret"])
+            self.assertEqual((private / "platform-product-key").read_text(), "a" * 64 + "\n")
+            self.assertEqual((private / "studio-platform.env").stat().st_mode & 0o777, 0o600)
 
 
 class DeploymentTests(unittest.TestCase):

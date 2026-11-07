@@ -43,7 +43,7 @@ def main():
         private_write(source, payload)
     private_write(private / "studio-platform.env", "\n".join([
         "STUDIO_PLATFORM_ORIGIN=https://test.oceanway.tech:18447",
-        "STUDIO_PLATFORM_PRODUCT_KEY=" + key,
+        "STUDIO_PLATFORM_PRODUCT_KEY=studio-preview-20261108." + key,
         "STUDIO_PUBLIC_ORIGIN=" + TEST_ORIGIN,
         "STUDIO_PLATFORM_SESSION_HOSTS=test.oceanway.tech:18448",
         "STUDIO_PLATFORM_ALLOWED_ORIGINS=" + TEST_ORIGIN,
