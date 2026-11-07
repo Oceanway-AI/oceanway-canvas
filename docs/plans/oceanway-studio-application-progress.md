@@ -12,9 +12,9 @@
 
 | 批次 | 状态 | 行为与证据 |
 | --- | --- | --- |
-| A 身份/画布 | 已实现，准备提交 | 既有 dirty 全部保留；SDK/HTTP/SQLite、前端专项、构建、浏览器夹具通过，详见 first-milestone |
-| B 模型目录 | 进行中 | 先写 SDK 目录/参数/价格映射合同与失败测试，再开放 OAC 模型目录 |
-| C 素材 | 待实施 | SDK v2 上传、采用绑定、稳定 asset/version/resource 映射与结果关联；平台原件，本地仅临时计算 |
+| A 身份/画布 | 已提交 `4e64c70` | 既有 dirty 全部保留；SDK/HTTP/SQLite、前端专项、构建、浏览器夹具通过，详见 first-milestone |
+| B 模型目录 | 读取已接通，预估/提交继续 | `/api/model-catalog` 经 SDK Models，保留完整平台价格/能力；OAC 选择器使用原模型名和精确小数展示；同一模型替代变体不合并。当前不启用生成 |
+| C 素材 | 上传/采用核心实施中 | 新增 v93 上传意图与固定素材映射；HTTP 夹具验证完成响应丢失恢复、重复采用、跨账号拒绝与签名访问。浏览器票据直传、账号切换隔离通过首批测试；素材库 UI/任务结果关联继续 |
 | D 普通生成 | 待实施 | 复用 OAC 任务/租约/事件；保存执行授权与原请求，文本→图片→视频，不本地扣费/重发 |
 | E 原生 Pi Agent | 待实施 | 模型桥/压缩/审批/工具走同一执行边界；恢复不重复收费 |
 | F 首发联调 | 待环境 | 专项验证完成后交协调侧冻结与最终全量检查 |
@@ -22,6 +22,14 @@
 ## 测试与可验收入口
 
 此前测试：后端 platformintegration/handler/server/repository 通过；前端身份、实时、缓存专项、typecheck、eslint、build 通过。当前正式 API 仅身份和画布，生成与 Agent 未开放。没有真实付费调用或部署证据。后续批次在此增量记录红灯测试、通过命令和提交 ID。
+
+B1 红灯：`TestStudioCatalogUsesPlatformAndNeverLocalChannels` 原路由返回 501；`TestPublished*` 缺少实现；前端 platform-catalog 缺少价格投影。实现后 `go test ./internal/platformintegration ./internal/handler -run 'TestPublished|TestStudio' -count=1` 通过；`bun test test/platform-catalog.test.ts test/model-picker-groups.test.ts` 12 项 / 48 断言通过，typecheck 通过。目录没有本地渠道兜底、匿名不能读取产品 API、目录 Cookie 轮换逐项保留；仅价格草稿保持不可用。下一步为素材与提交前精确参数/预估验证。
+
+B1 补充红灯：OAC 安装协议 ID 与目录映射不一致、缺省数字参数被投成空串。修复后 `go test ./internal/app ./internal/platformintegration ./internal/handler -run 'TestPublished|TestStudio' -count=1` 通过；前端同范围 13 项 / 52 断言、typecheck 通过。平台模型直接使用发布投影，不继承旧插件虚构的上下文、尺寸或参考图上限。目录读取完成，参数提交验证、报价、执行仍未开放。
+
+C1 合同见 `oceanway-studio-materials-contract.md`。HTTP 红灯为上传接口 501；前端红灯为仍走旧 `/resources` 和账号切换后继续处理。当前改为 materials v2，SDK 原上传 ID 恢复、固定版本采用、binding 确认后才 ready；浏览器独立 fetch 不携带账号凭据，使用增量 SHA256 避免整段视频读入内存。数据库/HTTP 专项通过，前端正在补充分片、票据拒绝和既有边界回归。尚未提交。
+
+C1 补充验证：绑定 POST 已提交但返回 503 时，重复采用通过 Binding(command_id) 恢复并确认，只有一个 Resource/一次 Bind；file/version/owner 不匹配拒绝。前端上传专项 10 项 / 58 断言通过，typecheck 通过。首发仍未开放生成或 Agent；没有实际对象存储写入或收费请求。
 
 ## 接口/环境要求（协调侧提供）
 
@@ -32,10 +40,15 @@
 
 ## 当前接口缺口
 
+协调侧环境核查：生产 Console 为 `cca3f516` / image `0e068d30c7ea`，旧版不含 W7 素材 v2，禁止切换/重启。W7 `https://test.oceanway.tech:18447` 为 `23d0f402` / image `2933ff284eb6`，素材/CDN 已由协调侧验证，59 个模型仅禁用草稿、连接数 0。用户最新明确新 Media Gateway 尚未就绪，临时使用旧网关，由协调侧接到 Platform；Studio 仍只使用 platformclient，不直连供应商，不恢复旧素材权威。Studio 拟使用 `https://test.oceanway.tech:18448`，W7 同主机跨端口登录回跳被拒由协调侧修复；应用侧仅使用免费夹具，不把生产域名登记视为完整功能支持。
+
 - rc.5 不含 LoginReturn SDK 方法，身份批次已限定使用发布的匿名 HTTP 登录准备合同。
+- 协调侧最新：旧网关明确为 ow-main `45.58.184.2:18420`，隔离 HTTPS 入口 `https://test.oceanway.tech:18450`，通过 W7 接入，应用侧不直连。W7 测试版 `9cf4c914` 修复同主机跨端口回跳，Studio `:18448/api/auth/login-url` 200；普通文本模型来源仍待协调侧确认。
 - 音频、转写、外部工作流无对应公开 SDK 执行枚举，首发暂不可用，源码保留。
 - 模型、素材、执行恢复合同正在逐项核对；未知项不伪装成支持，后续将精确记录字段/端点/影响。
 
 ## 提交记录
 
-尚未提交；先将身份批次与已归属 dirty 纳入本分支，再按完整行为分批提交。专项检查由应用侧执行，最终全量检查由协调侧执行，避免共享目录并发检查。
+`4e64c70 feat(studio): 平台身份 - 接入 SDK 会话与画布持久化`：已纳入原有应用 dirty、SDK 身份/画布与文档；没有推送。后续按完整行为分批提交。专项检查由应用侧执行，最终全量检查由协调侧执行，避免共享目录并发检查。
+
+`ceebee9 feat(studio): 模型目录 - 接入平台发布能力与精确价格`：B1 只读目录、精确价格显示和 OAC 协议/能力投影；未推送。模型可调用环境与提交链仍待后续。

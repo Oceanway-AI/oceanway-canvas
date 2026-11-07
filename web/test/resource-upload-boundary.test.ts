@@ -74,7 +74,11 @@ describe("资源直传失败分类", () => {
     test("成功响应仍返回后端资源本身", async () => {
         const resource = await uploadWith({
             status: 200,
-            body: { code: 0, msg: "", data: { resource: { id: "res-1", kind: "image", status: "ready", publicUrl: "", size: 1 } } },
+            body: {
+                code: 0,
+                msg: "",
+                data: { id: "upload-1", upload: { protocol: "oceanway.materials.v2", upload_id: "original-1", state: "ready" }, resource: { id: "res-1", kind: "image", status: "ready", provider: "platform", publicUrl: "", size: 1 } },
+            },
         });
         expect(resource.id).toBe("res-1");
     });

@@ -171,7 +171,7 @@ export type ModelQuoteRequest = {
     intent: ModelRequestIntent;
 };
 
-export type ModelCatalogSource = "system";
+export type ModelCatalogSource = "system" | "platform";
 
 export type PublicChannelCatalog = {
     id: string;
@@ -182,6 +182,8 @@ export type PublicChannelCatalog = {
 };
 
 export type PublicChannelModel = {
+    platform?: import("@/lib/platform-models").PlatformModel;
+    unavailableReason?: string;
     id: string;
     modelKey: string;
     displayName: string;
@@ -195,6 +197,7 @@ export type PublicChannelModel = {
     /** 文本模型协议按插件 create 路径识别出的请求格式；插件自定义接口时缺省。 */
     textWire?: string;
     capabilityConfig?: Record<string, any>;
+    defaultOptions?: Record<string, unknown>;
     priceTiers: PublicChannelModelPriceTier[];
     pricingMode: string;
     displayPrice?: number;

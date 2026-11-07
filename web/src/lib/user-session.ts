@@ -175,7 +175,7 @@ export async function refreshSystemChannels() {
 
 // 目录仅接受系统渠道模型，避免畸形响应被当成空目录写入配置。
 function modelCatalogChannels(catalog: ModelCatalogResponse): ModelChannel[] {
-    if (catalog.source === "system") {
+    if (catalog.source === "system" || catalog.source === "platform") {
         if (!Array.isArray(catalog.channels)) throw new Error("模型目录响应缺少系统渠道列表");
         return systemChannelModelChannels(catalog.channels);
     }
@@ -223,6 +223,7 @@ export function systemChannelModelChannels(channels: PublicChannelCatalog[]): Mo
                 }));
 
                 return {
+                    platform: model.platform,
                     model: model.modelKey,
                     displayName: model.displayName,
                     channelLabel: model.channelLabel,
@@ -240,6 +241,7 @@ export function systemChannelModelChannels(channels: PublicChannelCatalog[]): Mo
                     cachedTokenPriceMicrocredits: cachedPrice,
                     cacheWriteTokenPriceMicrocredits: firstTier?.cacheWriteTokenPriceMicrocredits || 0,
                     capabilityConfig: (model.capabilityConfig as ModelCapabilityConfig | undefined) || defaultModelCapabilityConfig(),
+                    defaultOptions: model.defaultOptions,
                     channelModelId: model.id,
                     channelId: channel.id,
                     modelKey: model.modelKey,

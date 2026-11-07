@@ -4,6 +4,7 @@ import { Popover } from "antd";
 import { usePopoverAnchorAlign } from "@/hooks/use-popover-anchor-align";
 
 import { imageQualityLabel } from "@/lib/image-quality";
+import { platformPriceLabel } from "@/lib/platform-models";
 import { canvasThemes, type CanvasTheme } from "@/lib/canvas-theme";
 import { modelCapabilityConfigFor, videoDurationOptions } from "@/lib/model-capabilities";
 import { formatPriceRange, modelQuoteDescription, modelQuoteRequest, normalizeTierResolution, priceTierSummaryLabel, priceTiersForCurrentSelection, referenceVideoBillingLabel, tokenPriceRuleDescription } from "@/lib/model-pricing";
@@ -537,6 +538,7 @@ function modelMenuPrice(config: AiConfig, model: string, capability?: ModelCapab
     const channel = resolveModelChannel(config, model);
     const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
     if (!cost) return channel.scope === "system" ? null : undefined;
+    if (cost.platform) return { kind: "estimate", label: platformPriceLabel(cost.platform.price), title: "价格与实际费用由 OceanWay 确认" };
     if (cost.pricePolicy === "channel") {
         const tiers = cost.logicalPriceTiers || [];
         if (!tiers.length) return null;

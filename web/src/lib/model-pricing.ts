@@ -8,6 +8,7 @@ import { modelOptionName, resolveModelChannel, type AiConfig, type ModelCapabili
 export type ModelPriceTier = NonNullable<NonNullable<AiConfig["channels"][number]["modelCosts"]>[number]["logicalPriceTiers"]>[number];
 
 type ModelCreditCost = {
+    platform?: import("@/lib/platform-models").PlatformModel;
     model: string;
     pricePolicy?: "channel" | "unified";
     billingMode: "fixed_request" | "per_second" | "token";
@@ -18,7 +19,7 @@ type ModelCreditCost = {
 export function requestCreditCost(options: { channelMode: string; modelCosts?: ModelCreditCost[]; model: string; count?: string | number; seconds?: string | number; capability?: ModelCapability; config?: AiConfig; requirements?: ModelRequirements }) {
     if (options.channelMode !== "remote") return null;
     const cost = options.modelCosts?.find((item) => item.model === options.model) || null;
-    if (!cost) return null;
+    if (!cost || cost.platform) return null;
     if (cost.pricePolicy === "channel") {
         if (!options.config) return null;
         const tiers = priceTiersForCurrentSelection(cost.logicalPriceTiers || [], options.capability, options.config, options.requirements);

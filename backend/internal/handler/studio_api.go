@@ -107,6 +107,22 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 		}
 		ok(c, gin.H{"features": features})
 	})
+	api.GET("/model-catalog", func(c *gin.Context) {
+		if _, err := currentUser(c, svc); err != nil {
+			failService(c, err)
+			return
+		}
+		catalog, response, err := svc.StudioModelCatalog(c.Request.Context(), platformintegration.Session(c.Request))
+		if response != nil {
+			response.AppendCookies(c.Writer.Header())
+		}
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, catalog)
+	})
+	RegisterStudioMaterialRoutes(api, svc)
 	RegisterCanvasDataRoutes(api, svc)
 	RegisterCanvasRealtimeRoutes(api, svc)
 	RegisterCanvasShareRoutes(api, svc)
