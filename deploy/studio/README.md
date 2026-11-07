@@ -34,6 +34,21 @@ Platform 要求托管连接使用 HTTPS；测试 edge 的独立 18450 端口为�
 
 Gemini `gemini-3.1-flash-image-preview` 已通过手工能力发布并启用，初验范围为 1K、1:1、单张、同步、无参考图，保持已有 W7 销售价与固定素材限额。原生供应调用尚未执行。三款 Seedance 仍禁用：18420 当前 `param()` 报价配置与运行插件的 TaskUsageBilling/usage 事实存在不匹配，不能按旧百万倍率猜测或用固定测试价覆盖全参数。需核对正确供应报价与插件实际计量，再发布视频，不重试旧失败任务。
 
+用户追加要求核对 5 个 GPT Image 型号和网关渠道 5。2026-11-08 通过 ow-main 的只读配置查询、现有 Key 的实际鉴权目录，以及 W7 管理 API 回读确认：
+
+| 范围 | 网关观察事实 | W7 当前状态 |
+|---|---|---|
+| `gpt-image-2` | GPT Image 分组实际返回，声明 `image-generation` | 模型 39，绑定 `studio-old-gpt-image`，未启用 |
+| `gpt-image-2.5-flare` | 同上 | 模型 40，同一连接，未启用 |
+| `gpt-image-2.5-sunburst` | 同上 | 模型 41，同一连接，未启用 |
+| `gpt-image-2.6-flare` | 同上 | 新增模型 63，同一连接，未启用 |
+| `gpt-image-2.6-sunburst` | 同上 | 新增模型 64，同一连接，未启用 |
+| 渠道 5 Doubao | 渠道启用、类型 61、分组 `seedance 官方特价`；目录返回 `doubao-seedance-2-0-mini-260615`、`doubao-seedance-2-0-fast-260128`、`doubao-seedance-2-5-260628` | 原 `studio-old-seedance` / `native-doubao-video` 连接已存在，模型 60–62 已绑定，均未启用 |
+
+GPT Image 使用网关已有的 `gpt-image系列` Key；该 Key 实际可见全部 5 型号。原 `gpt-image系列原生Adobe` Key 仅见其中 3 型号，已有 Seedance/Gemini Key 均不能列出这 5 个图片型号；公开价格目录可见不等于任意 Key 可调用。凭据仅经服务端传入 W7 并加密，不进入仓库或浏览器。原模型 39–41 的描述和售价未改，新增 63/64 仅为草稿。原生协议证据已刷新，第二次预览确认 5 项全部存在、来源版本相同。
+
+本批只完成目录发现、W7 连接及草稿绑定，不发布图片能力规格、不自动采用网关价格，不提交图片/视频生成。GPT Image 接下来按各自协议与报价完成能力校验；不能以网关列表中的 `model_price: 0` 当作免费，实际配置有按用量或按张的计价表达式。Doubao 的目录连接已完成，报价/计量核对与真实生成仍未完成。脱敏证据：`docs/verification/studio-release/gpt-doubao-catalog.json`；本批生成次数、旧网关写入、生产 Console 写入均为 0。
+
 媒体模型供应暂用旧网关，长期素材仍为 W7 Platform 独立桶/CDN。旧网关没有 `/v1/models/metadata`（200 业务错误 `model_not_found`），图片连接不伪装为支持元数据发现；采用明确的手工能力发布合同，按已核实的原生 Gemini 协议配置。Seedance 使用原生 Doubao 协议及 TaskAdaptor。
 
 ## 部署验收要求
