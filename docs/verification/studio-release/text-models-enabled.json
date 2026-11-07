@@ -1,0 +1,288 @@
+[
+  {
+    "model": "claude-fable-5",
+    "status": "enabled",
+    "revision": 1794072601,
+    "protocols": [
+      "anthropic-messages",
+      "openai-responses",
+      "openai-chat"
+    ]
+  },
+  {
+    "model": "claude-fable-5-1",
+    "status": "enabled",
+    "revision": 1794072602,
+    "protocols": [
+      "anthropic-messages"
+    ]
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "status": "enabled",
+    "revision": 1794072603,
+    "protocols": [
+      "anthropic-messages"
+    ]
+  },
+  {
+    "model": "claude-haiku-5-5",
+    "status": "enabled",
+    "revision": 1794072603,
+    "protocols": [
+      "anthropic-messages"
+    ]
+  },
+  {
+    "model": "claude-opus-4-6",
+    "status": "enabled",
+    "revision": 1794072604,
+    "protocols": [
+      "anthropic-messages"
+    ]
+  },
+  {
+    "model": "claude-opus-4-7",
+    "status": "enabled",
+    "revision": 1794072605,
+    "protocols": [
+      "anthropic-messages"
+    ]
+  },
+  {
+    "model": "claude-opus-4-8",
+    "status": "enabled",
+    "revision": 1794072606,
+    "protocols": [
+      "anthropic-messages"
+    ]
+  },
+  {
+    "model": "claude-opus-5",
+    "status": "enabled",
+    "revision": 1794072606,
+    "protocols": [
+      "anthropic-messages"
+    ]
+  },
+  {
+    "model": "claude-opus-5-5",
+    "status": "enabled",
+    "revision": 1794072607,
+    "protocols": [
+      "anthropic-messages"
+    ]
+  },
+  {
+    "model": "claude-sonnet-4-5",
+    "status": "not_in_current_directory"
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "status": "enabled",
+    "revision": 1794072608,
+    "protocols": [
+      "anthropic-messages"
+    ]
+  },
+  {
+    "model": "claude-sonnet-5",
+    "status": "enabled",
+    "revision": 1794072609,
+    "protocols": [
+      "anthropic-messages"
+    ]
+  },
+  {
+    "model": "claude-sonnet-5-5",
+    "status": "enabled",
+    "revision": 1794072610,
+    "protocols": [
+      "anthropic-messages"
+    ]
+  },
+  {
+    "model": "codex-auto-review",
+    "status": "enabled",
+    "revision": 1794072610,
+    "protocols": [
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "deepseek-v4-flash",
+    "status": "enabled",
+    "revision": 1794072611,
+    "protocols": [
+      "openai-chat",
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "deepseek-v4-pro",
+    "status": "enabled",
+    "revision": 1794072612,
+    "protocols": [
+      "openai-chat",
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "deepseek-v4.1-flash",
+    "status": "enabled",
+    "revision": 1794072613,
+    "protocols": [
+      "openai-chat",
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "gemini-2.5-flash",
+    "status": "enabled",
+    "revision": 1794072613,
+    "protocols": [
+      "gemini"
+    ]
+  },
+  {
+    "model": "gemini-2.5-flash-lite",
+    "status": "enabled",
+    "revision": 1794072614,
+    "protocols": [
+      "gemini"
+    ]
+  },
+  {
+    "model": "gemini-3-flash",
+    "status": "enabled",
+    "revision": 1794072615,
+    "protocols": [
+      "gemini"
+    ]
+  },
+  {
+    "model": "gemini-3.1-flash-lite",
+    "status": "enabled",
+    "revision": 1794072616,
+    "protocols": [
+      "gemini"
+    ]
+  },
+  {
+    "model": "gemini-3.8-flash",
+    "status": "enabled",
+    "revision": 1794072616,
+    "protocols": [
+      "gemini"
+    ]
+  },
+  {
+    "model": "glm-5.2",
+    "status": "enabled",
+    "revision": 1794072617,
+    "protocols": [
+      "openai-chat",
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "glm-5.3",
+    "status": "enabled",
+    "revision": 1794072618,
+    "protocols": [
+      "openai-chat",
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "glm-5.3-flash",
+    "status": "enabled",
+    "revision": 1794072619,
+    "protocols": [
+      "openai-chat",
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "gpt-5.6-luna",
+    "status": "enabled",
+    "revision": 1794072620,
+    "protocols": [
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "gpt-5.6-sol",
+    "status": "enabled",
+    "revision": 1794072622,
+    "protocols": [
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "status": "enabled",
+    "revision": 1794072623,
+    "protocols": [
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "gpt-6-astra",
+    "status": "enabled",
+    "revision": 1794072623,
+    "protocols": [
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "gpt-6-luna",
+    "status": "enabled",
+    "revision": 1794072624,
+    "protocols": [
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "gpt-6-sol",
+    "status": "enabled",
+    "revision": 1794072625,
+    "protocols": [
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "gpt-6.1-sol",
+    "status": "enabled",
+    "revision": 1794072626,
+    "protocols": [
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "grok-4.5",
+    "status": "enabled",
+    "revision": 1794072626,
+    "protocols": [
+      "openai-chat",
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "grok-4.6",
+    "status": "enabled",
+    "revision": 1794072627,
+    "protocols": [
+      "openai-chat",
+      "openai-responses"
+    ]
+  },
+  {
+    "model": "kimi-k3-1",
+    "status": "not_in_current_directory"
+  },
+  {
+    "model": "minimax-m3",
+    "status": "not_in_current_directory"
+  }
+]
