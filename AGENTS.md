@@ -7,7 +7,7 @@
 - 原 Studio 全部放弃，仅复用品牌、Logo、配色、字体等视觉元素；不继承旧业务代码、架构、数据模型、任务机制或历史约束，不迁移旧业务数据。
 - OceanWay 独立 Runtime 已放弃，不接入或恢复。保留本项目自带的 Agent 进程/容器。
 - 平台层通过服务端 `platformclient` 接入：身份、模型、执行授权、调用、资金及统一素材按实际发布契约改造。普通生成和 Agent 内部模型调用均须覆盖。
-- 当前启动入口已强制使用 Platform 身份，已开放身份、画布数据及分享、模型目录、素材 v2 上传/采用/访问；素材 UI、生成和 Agent 的平台接入继续实施。启动必须注入 `STUDIO_*` 配置并保留已登记的 HTTPS Host/Origin，不能直接照下文旧命令启动未配置服务。执行顺序和阶段状态见 [逐步实施计划](docs/plans/oceanway-studio-implementation.md)，验证与配置边界见 [首批实施记录](docs/plans/oceanway-studio-first-milestone.md)。下文描述的自有账号、渠道、积分、支付和供应商直连是上游现状，不能作为继续保留第二套平台能力的目标要求。
+- 当前启动入口已强制使用 Platform 身份，已开放身份、画布数据、模型目录、素材 v2 上传/采用/访问、文本/图片/视频与原生 Pi；生成结果直接回填 Platform 素材。公开分享在独立素材授权接通前暂不可用，其他尚未接通入口见 [首发入口合同](docs/plans/oceanway-studio-release-surface.md)。启动必须注入 `STUDIO_*` 配置并保留已登记的 HTTPS Host/Origin，不能直接照下文旧命令启动未配置服务。执行顺序和阶段状态见 [逐步实施计划](docs/plans/oceanway-studio-implementation.md)，验证与配置边界见 [首批实施记录](docs/plans/oceanway-studio-first-milestone.md)。下文描述的自有账号、渠道、积分、支付和供应商直连是上游现状，不能作为继续保留第二套平台能力的目标要求。
 - 需求见 [新 Studio 改造需求](docs/design/oceanway-studio-replacement.md)。后续发布必须使用 OceanWay 自有仓库与制品，安装器和在线更新不能切回未改造上游。本节与下文冲突时以本节及用户最新指令为准。
 
 本文件是影策仓库中 AI、自动化工具和协作者的工作约定。用户当前任务优先于本文件；本文件优先于个人习惯。所有结论应能回溯到代码、配置、测试、日志或文档，不用历史印象替代现状。

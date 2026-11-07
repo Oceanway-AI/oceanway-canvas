@@ -139,7 +139,8 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 	RegisterAgentRoutes(api, svc)
 	RegisterCanvasDataRoutes(api, svc)
 	RegisterCanvasRealtimeRoutes(api, svc)
-	RegisterCanvasShareRoutes(api, svc)
+	// Public material delivery needs a distinct Platform sharing authorization.
+	// Do not expose the upstream share/token or local resource delivery paths.
 	return nil
 }
 
@@ -152,6 +153,15 @@ func studioFeatures(svc *service.Service) (*service.PublicFeatureAvailability, e
 	features.CustomChannelsEnabled = false
 	features.FrontendModelsEnabled = false
 	features.WelcomeEnabled = false
+	features.ShortDramaEnabled = false
+	features.EcommerceEnabled = false
+	features.EcommerceVideoEnabled = false
+	features.ImageWorkbenchEnabled = false
+	features.VideoWorkbenchEnabled = false
+	features.PluginCenterEnabled = false
+	features.SystemPluginsVisibleToUsers = false
+	features.InspirationSourcesVisible = false
+	features.TimelineTranscriptionEnabled = false
 	return features, nil
 }
 

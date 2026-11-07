@@ -1,68 +1,48 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { App } from "antd";
-import { useTranslation } from "react-i18next";
-
-import { createModelChannel, useConfigStore } from "@/stores/use-config-store";
-import { navigateToSettings } from "@/lib/settings-navigation";
 import { initializeClientDiagnostics, setDiagnosticUserScope } from "@/services/diagnostics/client-diagnostics";
-import { fetchPluginRuntimeState, setUserPluginEnabled } from "@/services/api/plugins";
 import { usePluginStore } from "@/stores/use-plugin-store";
 import { useUserStore } from "@/stores/use-user-store";
-import { appQueryClient } from "@/lib/query-client";
 
 export function ClientRootInit({ children }: { children: ReactNode }) {
-    const { t } = useTranslation();
-    const config = useConfigStore((state) => state.config);
     const userId = useUserStore((state) => state.user?.id || "");
     const { message } = App.useApp();
     const handledConfigParams = useRef(false);
-    const updateConfig = useConfigStore((state) => state.updateConfig);
     const setRuntimeStatuses = usePluginStore((state) => state.setRuntimeStatuses);
     const setPluginStates = usePluginStore((state) => state.setPluginStates);
     const pluginStoreHydrated = usePluginStore((state) => state.hydrated);
+    const installations = usePluginStore((state) => state.installations);
 
-    useEffect(() => () => {
-        usePluginStore.getState().setRuntimeStatuses({});
-        usePluginStore.getState().setPluginStates({});
-    }, []);
+    useEffect(
+        () => () => {
+            usePluginStore.getState().setRuntimeStatuses({});
+            usePluginStore.getState().setPluginStates({});
+        },
+        [],
+    );
 
     useEffect(() => {
-        if (!userId || !pluginStoreHydrated) return;
-        let cancelled = false;
-        void appQueryClient.fetchQuery({ queryKey: ["plugin-runtime", userId], queryFn: fetchPluginRuntimeState, staleTime: 30_000 })
-            .then(async (runtime) => {
-                if (cancelled || useUserStore.getState().user?.id !== userId) return;
-                const statuses = { ...runtime.statuses };
-                const states = { ...runtime.states };
-                const legacyEnabledIds = usePluginStore
-                    .getState()
-                    .installations.filter((installation) => installation.enabled && states[installation.manifest.id]?.canToggle && !states[installation.manifest.id]?.userConfigured)
-                    .map((installation) => installation.manifest.id);
-                if (legacyEnabledIds.length) {
-                    try {
-                        const migrated = await Promise.all(legacyEnabledIds.map((pluginId) => setUserPluginEnabled(pluginId, true)));
-                        for (const state of migrated) states[state.pluginId] = state;
-                        for (const pluginId of legacyEnabledIds) statuses[pluginId] = states[pluginId]?.effectiveEnabled ? "enabled" : "disabled";
-                    } catch (error) {
-                        console.warn("迁移用户插件启用状态失败，已保留服务端状态", error);
-                    }
-                }
-                if (!cancelled && useUserStore.getState().user?.id === userId) {
-                    setRuntimeStatuses(statuses);
-                    setPluginStates(states);
-                }
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setRuntimeStatuses({});
-                    setPluginStates({});
-                }
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [pluginStoreHydrated, setPluginStates, setRuntimeStatuses, userId]);
+        if (!pluginStoreHydrated) return;
+        setRuntimeStatuses(Object.fromEntries(installations.map(({ manifest }) => [manifest.id, "disabled"])));
+        setPluginStates(
+            Object.fromEntries(
+                installations.map(({ manifest }) => [
+                    manifest.id,
+                    {
+                        pluginId: manifest.id,
+                        platformAvailable: false,
+                        userEnabled: false,
+                        userConfigured: false,
+                        effectiveEnabled: false,
+                        canToggle: false,
+                        canConfigure: false,
+                        blockedReason: "此功能暂不可用",
+                    },
+                ]),
+            ),
+        );
+    }, [installations, pluginStoreHydrated, setPluginStates, setRuntimeStatuses, userId]);
 
     useEffect(() => {
         initializeClientDiagnostics();
@@ -99,25 +79,8 @@ export function ClientRootInit({ children }: { children: ReactNode }) {
         searchParams.delete("apiKey");
         searchParams.delete("apikey");
         window.history.replaceState(null, "", `${window.location.pathname}${searchParams.size ? `?${searchParams}` : ""}${window.location.hash}`);
-        const firstChannel = config.channels[0];
-        updateConfig(
-            "channels",
-            firstChannel
-                ? config.channels.map((channel, index) =>
-                      index === 0
-                          ? {
-                                ...channel,
-                                ...(baseUrl ? { baseUrl } : {}),
-                            }
-                          : channel,
-                  )
-                : [createModelChannel({ id: "default", name: t("account.layout.clientInit.defaultChannel"), baseUrl: baseUrl || undefined })],
-        );
-        if (baseUrl) updateConfig("baseUrl", baseUrl);
-        navigateToSettings({ section: "channels" });
-        if (ignoredApiKey) message.warning(t("account.layout.clientInit.apiKeyIgnored"));
-        else message.success(t("account.layout.clientInit.baseUrlImported"));
-    }, [config.channels, message, t, updateConfig]);
+        message.warning("渠道配置链接暂不可用，请在模型设置中选择平台模型");
+    }, [message]);
 
     return <>{children}</>;
 }

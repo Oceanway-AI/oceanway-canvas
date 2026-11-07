@@ -2963,7 +2963,7 @@ function CanvasViewportPage() {
                                     onImportTapNow={() => setTapNowImportOpen(true)}
                                     onUndo={undoCanvas}
                                     onRedo={redoCanvas}
-                                    onShare={() => setShareModalOpen(true)}
+                                    onShare={() => message.info("公开分享暂不可用")}
                                     shortcutRequestNonce={shortcutRequestNonce}
                                     syncIcon={<CanvasSyncStatus projectId={projectId} />}
                                     onOpenSearch={() => setNodeSearchOpen(true)}

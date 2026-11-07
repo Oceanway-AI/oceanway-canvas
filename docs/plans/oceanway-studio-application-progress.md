@@ -14,10 +14,10 @@
 | --- | --- | --- |
 | A 身份/画布 | 已提交 `4e64c70` | 既有 dirty 全部保留；SDK/HTTP/SQLite、前端专项、构建、浏览器夹具通过，详见 first-milestone |
 | B 模型目录 | B1 已提交 | `/api/model-catalog` 经 SDK Models，保留完整平台价格/能力；OAC 选择器使用原模型名和精确小数展示；同一模型替代变体不合并。媒体预估继续 |
-| C 素材 | C1/C2 已提交 | v93 上传意图与固定素材映射、素材工作台/画布选择/容量设置已接通；任务产物关联继续 |
+| C 素材 | C1–C4 已提交，最新 `8e542a8` | v93 上传意图与固定素材映射、v95 会话素材授权、工作台/画布选择及生成结果消费已接通；项目/任务引用生命周期继续 |
 | D 普通生成 | D1/D2 已提交 | 三种文本协议、精确媒体预估/上限、原请求恢复、固定产物采用；参考素材与原生图片/视频请求专项通过，真实媒体验收待协调侧 |
 | E 原生 Pi Agent | E1 已提交 `78c37a4`；E2 已提交 `991e462` | 根轮次共享 EXA，模型桥/压缩走持久执行；Node/Pi 画布工具与媒体审批往返通过，真实浏览器媒体验收待协调侧 |
-| F 首发联调 | 待环境 | 专项验证完成后交协调侧冻结与最终全量检查 |
+| F 首发联调 | F1 入口门禁专项通过；真实联调待协调侧 | 专项验证完成后交协调侧冻结与最终全量检查 |
 
 ## 测试与可验收入口
 
@@ -94,5 +94,11 @@ C4 生成结果消费：先补6个失败场景，确认仍进入旧 Asset 物化
 C4 验证：平台生成/素材、旧结果恢复、画布回填及跨页存储一致性共29项/201断言通过；新增测试包含真实画布存储写入→清空内存→重读全部图片。typecheck/变更 ESLint/Prettier/build 通过。没有实际浏览器、付费生成或部署；上游素材远端撤销仍由真实素材访问授权确认，本地校验不代替该权限检查。
 
 C4 补充：`generation-task-durability.node.test.ts` 3项通过。额外执行 `provider-neutral-generation-effects.test.ts` 时第1项通过，第2/3项 Bun Worker 在5秒超时，单独第2项仍超时并无法自行退出，已终止。该 effect store/Worker 用例未在本批修改；原因尚未定位，不能列为已通过，协调侧最终全量验证需复核。日志 `.local/verification/studio-platform-results-effects.log` 与 `studio-platform-effects-lock.log`。
+
+`8e542a8 fix(studio): 生成结果 - 直接回填平台素材并恢复画布`：C4 已提交，未推送。
+
+F1 首发入口：合同见 `oceanway-studio-release-surface.md`。红灯确认旧功能开关仍宣传短剧/插件/转写等能力，分享请求仍进入旧交付链。现强制关闭未接通标志，真实路由边界阻止工作台/后台/公开分享子页面挂载；设置只开放资料、偏好、模型、素材空间，不调用供应商素材库预查询。启动不再迁移旧插件启用状态或采纳渠道 URL，平台会话禁止旧插件 fallback。分享路由整体撤出 Studio，原 OAC 创作源码保留。身份/画布/任务路径继续回归；完整 P8 清扫与视觉、素材引用生命周期和真实服务验收仍未完成。
+
+F1 验证：`go test ./internal/handler -run 'TestStudio' -count=1` 通过；路由/插件门禁与平台生成、会话缓存、目录、素材选择共14项/150断言通过。typecheck、变更文件 ESLint/Prettier、build、diff whitespace 检查通过。未推送/部署/修改远端配置，未调用收费生成；构建仍有既有 chunk 大小/动态导入提示。
 
 E1 验证：`go test ./internal/app ./internal/repository -run 'TestStudio|TestCloudAgent(Request|RuntimeCompletes|Tools|ToolAllowed)'`、`go test ./internal/handler -run TestStudio` 通过。后补同轮幂等、变更意图冲突及跨账号读取专项通过。仓库专项验证过期租约/被接管租约无法派发，重复派发只允许一次，停止未提交与保留已提交两种路径。前端 typecheck、变更文件 ESLint/Prettier 通过。尚未进行浏览器 Pi 验收，不宣称媒体审批可用。

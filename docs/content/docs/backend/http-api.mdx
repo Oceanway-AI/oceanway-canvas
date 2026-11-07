@@ -28,7 +28,7 @@ Studio 原生 Pi 已开放 `/api/agent` 的轮次、事件、审批和同链工�
 
 ## OceanWay Studio 首批接口边界
 
-当前可执行入口使用 `RegisterStudioAPI`；下文上游接口清单不代表都已在新 Studio 开放。已开放 Platform 身份、模型目录、素材 v2、文本/图片/视频任务、原生 Pi、画布持久化/编辑租约/实时连接/分享及外观/功能查询。旧密码认证、支付和供应商代理等未挂载接口返回 HTTP 501，`msg` 为“此功能暂不可用”；阶段内不暴露旧 `/api/openapi.yaml`。
+当前可执行入口使用 `RegisterStudioAPI`；下文上游接口清单不代表都已在新 Studio 开放。已开放 Platform 身份、模型目录、素材 v2、文本/图片/视频任务、原生 Pi、画布持久化/编辑租约/实时连接及外观/功能查询。旧密码认证、支付和供应商代理等未挂载接口返回 HTTP 501，`msg` 为“此功能暂不可用”；阶段内不暴露旧 `/api/openapi.yaml`。首发关闭短剧、电商、独立图片/视频工作台、插件、转写、外部灵感源等尚未接通的功能标志，旧配置不能重新启用这些入口。
 
 | 接口 | 当前合同 |
 | --- | --- |
@@ -41,7 +41,7 @@ Studio 原生 Pi 已开放 `/api/agent` 的轮次、事件、审批和同链工�
 
 所有阶段 API 校验实际 Host 和允许 Origin；写请求缺少 Origin 时拒绝。忽略 forwarded headers 对身份的声明。会话响应不缓存，Cookie 不写入 JSON；平台产品密钥只留在后端。
 
-画布 WebSocket 每 15 秒重新验证平台身份；会话失效、换号或 Cookie 轮换时关闭码为 1008、原因为 `session expired`。浏览器先 HTTP 刷新会话后再决定重连；连接升级后不尝试追加 Set-Cookie。公开分享继续按分享令牌与有效期授权，媒体资源的平台版本/下载合同在 P4 补齐。
+画布 WebSocket 每 15 秒重新验证平台身份；会话失效、换号或 Cookie 轮换时关闭码为 1008、原因为 `session expired`。浏览器先 HTTP 刷新会话后再决定重连；连接升级后不尝试追加 Set-Cookie。公开分享尚无独立 Platform 素材授权，首发不注册 `/canvas-projects/:id/share`、`/public/canvas-shares/:token` 及其资源文件路由，统一返回501。不得借用登录者素材委托或旧资源执行器提供匿名媒体。
 
 实际测试、环境限制及未验收项见[首批实施记录](../../../plans/oceanway-studio-first-milestone.md)。
 

@@ -1,4 +1,5 @@
 import { preloadableLazy, preloadWhenIdle } from "@/lib/preloadable-lazy";
+import { studioUnavailableRoute } from "@/lib/studio-release-surface";
 
 // 用户端页面统一在这里声明：路由渲染和悬停/空闲预取用同一个组件实例，
 // 预取完成后切换页面同步渲染，不再闪出加载提示。
@@ -25,18 +26,7 @@ export const workspaceRoutePages = {
 export const loadCanvasProjectPage = workspaceRoutePages.canvasProject.preload;
 
 // 侧栏一级入口对应的页面；画布编辑器、作品详情等二级页面仍在悬停或进入列表时预取。
-const workspaceNavigationPages = [
-    workspaceRoutePages.create,
-    workspaceRoutePages.canvas,
-    workspaceRoutePages.assets,
-    workspaceRoutePages.projects,
-    workspaceRoutePages.tasks,
-    workspaceRoutePages.skills,
-    workspaceRoutePages.imageWorkbench,
-    workspaceRoutePages.videoWorkbench,
-    workspaceRoutePages.plugins,
-    workspaceRoutePages.settings,
-];
+const workspaceNavigationPages = [workspaceRoutePages.create, workspaceRoutePages.canvas, workspaceRoutePages.assets, workspaceRoutePages.tasks, workspaceRoutePages.settings];
 
 let navigationPreloadStarted = false;
 
@@ -66,6 +56,7 @@ function warm(key: keyof typeof workspaceRoutePages) {
 }
 
 export function preloadWorkspaceRoute(pathnameOrSlug: string) {
+    if (studioUnavailableRoute(pathnameOrSlug)) return;
     // 根路径就是创作页，预加载时仍映射到其内部模块名。
     const segments = pathnameOrSlug.replace(/^\//, "").split("/").filter(Boolean);
     const slug = segments[0] || "create";

@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate, Outlet, useLocation } from "react-router
 import { lazyAdminPage } from "@/pages/admin/admin-page-loader";
 
 import { RequireAuth } from "@/components/auth/require-auth";
+import { StudioRouteBoundary } from "@/components/auth/studio-route-boundary";
 // 功能开关守卫包在页面 Suspense 之外，懒加载会让整个工作区退回全屏加载页；体积很小，直接静态引入。
 import { RequireFeature } from "@/components/auth/require-feature";
 import { FullScreenLoader, WorkspaceRouteLoader } from "@/components/ui/aceternity/full-screen-loader";
@@ -94,7 +95,9 @@ function AuthenticatedWorkspaceLayout() {
         <RequireAuth allowAnonymous={isGuestWorkspacePath(pathname)}>
             <Suspense fallback={fallback}>
                 <UserLayout>
-                    <Outlet />
+                    <StudioRouteBoundary>
+                        <Outlet />
+                    </StudioRouteBoundary>
                 </UserLayout>
             </Suspense>
         </RequireAuth>
@@ -129,9 +132,9 @@ export const router = createBrowserRouter([
             { path: "/forgot-password", element: fullScreenDeferred(<ForgotPasswordPage />) },
         ],
     },
-    { path: "/share/canvas/:token", element: fullScreenDeferred(<SharedCanvasPage />), errorElement: <RouteErrorPage /> },
+    { path: "/share/canvas/:token", element: <StudioRouteBoundary>{fullScreenDeferred(<SharedCanvasPage />)}</StudioRouteBoundary>, errorElement: <RouteErrorPage /> },
     // H5 真人认证回跳页：多在未登录的手机上打开，不进入工作区登录守卫。
-    { path: "/ark-portrait/result", element: fullScreenDeferred(<ArkPortraitResultPage />), errorElement: <RouteErrorPage /> },
+    { path: "/ark-portrait/result", element: <StudioRouteBoundary>{fullScreenDeferred(<ArkPortraitResultPage />)}</StudioRouteBoundary>, errorElement: <RouteErrorPage /> },
     ...(import.meta.env.DEV ? devRoutes() : []),
     {
         element: <AuthenticatedWorkspaceLayout />,

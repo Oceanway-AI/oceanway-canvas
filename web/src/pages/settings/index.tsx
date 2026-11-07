@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 
 import { PlatformStoragePane } from "./platform-storage-pane";
+import { studioSettingsSectionAvailable } from "@/lib/studio-release-surface";
 import { secretKeyProtocolIds, useUserProtocolCatalog } from "@/hooks/use-user-protocol-catalog";
 import { refreshSystemChannels } from "@/lib/user-session";
 import { useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
@@ -61,7 +62,7 @@ export default function SettingsPage() {
     const customChannelsEnabled = useUserStore((state) => state.features.customChannelsEnabled);
     const runtimeStatuses = usePluginStore((state) => state.runtimeStatuses);
     const runningHubPluginEnabled = runtimeStatuses[RUNNINGHUB_PLUGIN_ID] === "enabled";
-    const requestedSectionEnabled = requestedSection !== "runninghub" || runningHubPluginEnabled;
+    const requestedSectionEnabled = requestedSection !== null && studioSettingsSectionAvailable(requestedSection) && (requestedSection !== "runninghub" || runningHubPluginEnabled);
     const initialSection = isConfigSection(requestedSection) && requestedSectionEnabled ? requestedSection : "profile";
     const [activeTab, setActiveTab] = useState<ConfigSectionKey>(initialSection === "channels" && !customChannelsEnabled ? "models" : initialSection);
     const config = useConfigStore((state) => state.config);
@@ -73,11 +74,12 @@ export default function SettingsPage() {
     const protocolCatalog = useUserProtocolCatalog(customChannelsEnabled);
     const secretKeyProtocols = useMemo(() => secretKeyProtocolIds(protocolCatalog), [protocolCatalog]);
     // 方舟素材库只在管理员开放后显示；读取中或读取失败时，仅在链接直达该分类时保留入口，由分类内展示加载与重试。
-    const arkOverviewQuery = useQuery({ queryKey: arkPortraitOverviewQueryKey, queryFn: ({ signal }) => getArkPortraitOverview(signal), enabled: Boolean(userId), staleTime: 60_000 });
+    const arkOverviewQuery = useQuery({ queryKey: arkPortraitOverviewQueryKey, queryFn: ({ signal }) => getArkPortraitOverview(signal), enabled: studioSettingsSectionAvailable("ark-assets") && Boolean(userId), staleTime: 60_000 });
     const arkAssetsVisible = arkOverviewQuery.data ? arkOverviewQuery.data.enabled : requestedSection === "ark-assets";
     const visibleConfigSections = useMemo(
         () =>
             (customChannelsEnabled ? configSections : configSections.filter((section) => section.key !== "channels"))
+                .filter((section) => studioSettingsSectionAvailable(section.key))
                 .filter((section) => section.key !== "runninghub" || runningHubPluginEnabled)
                 .filter((section) => section.key !== "ark-assets" || arkAssetsVisible),
         [arkAssetsVisible, customChannelsEnabled, runningHubPluginEnabled],
