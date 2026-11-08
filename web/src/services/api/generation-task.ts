@@ -6,7 +6,7 @@ import { getMediaBlob } from "@/services/file-storage";
 import { getImageBlob } from "@/services/image-storage";
 import { resourceIdFromStorageKey, resourceStorageKey, uploadResourceFile } from "@/services/api/resources";
 import { createGenerationTask, waitForGenerationTask, type GenerationTask, type CreateTaskInput } from "@/services/api/task-center";
-import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
+import { modelCapabilityConfigFor, videoResolutionRequest } from "@/lib/model-capabilities";
 import { grokImagePromptLimitError } from "@/lib/grok-image-prompt-limit";
 import { resolveGenerationWorkflowExecution, type GenerationWorkflowExecution } from "@/lib/generation-workflow-execution";
 import { isArkPlanBaseUrl } from "@/lib/seedance-video";
@@ -436,7 +436,10 @@ export function backendProviderConfig(config: AiConfig, mode: BackendGenerationM
     };
     if (logicalModelIDForConfig(config)) return generationOptions;
     if (requestConfig.channelId === "oceanway-platform") {
-        return { channelId: requestConfig.channelId, model: requestConfig.model, ...generationOptions };
+        const video = mode === "video" ? modelCapabilityConfigFor(config, config.model).video : undefined;
+        // UI preferences may use 720; Platform validates the published value
+        // (e.g. 720p). Keep unsupported input intact so admission rejects it.
+        return { channelId: requestConfig.channelId, model: requestConfig.model, ...generationOptions, ...(video ? { vquality: videoResolutionRequest(video, config.vquality) ?? config.vquality } : {}) };
     }
     return {
         channelId: requestConfig.channelId,

@@ -192,5 +192,9 @@ func studioCapabilityProjection(s platformintegration.ModelSelection) map[string
 			}
 		}
 	}
-	return map[string]any{"version": 1, "video": map[string]any{"references": refs, "duration": duration, "durationSupported": schema.Properties[durationKey] != nil, "ratios": values("aspect_ratio"), "defaultRatio": stringDefault("aspect_ratio"), "resolutions": values("resolution"), "defaultResolution": stringDefault("resolution"), "generateAudio": map[string]any{"supported": schema.Properties["generate_audio"] != nil, "default": boolDefault("generate_audio")}, "watermark": map[string]any{"supported": schema.Properties["watermark"] != nil, "default": boolDefault("watermark")}, "operations": operations, "defaultOperation": operations[0]}}
+	ratioKey := "aspect_ratio"
+	if schema.Properties[ratioKey] == nil && schema.Properties["ratio"] != nil {
+		ratioKey = "ratio"
+	}
+	return map[string]any{"version": 1, "video": map[string]any{"references": refs, "duration": duration, "durationSupported": schema.Properties[durationKey] != nil, "ratios": values(ratioKey), "defaultRatio": stringDefault(ratioKey), "resolutions": values("resolution"), "defaultResolution": stringDefault("resolution"), "generateAudio": map[string]any{"supported": schema.Properties["generate_audio"] != nil, "default": boolDefault("generate_audio")}, "watermark": map[string]any{"supported": schema.Properties["watermark"] != nil, "default": boolDefault("watermark")}, "operations": operations, "defaultOperation": operations[0]}}
 }

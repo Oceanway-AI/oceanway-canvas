@@ -60,14 +60,9 @@ describe("creation library button", () => {
     });
 
     test("视频创作使用同名模型组的全部参考能力开放素材入口", () => {
-        const source = readCreateSource();
-        const workspace = readCreateWorkspaceSource();
-
-        expect(source).toContain('modelGroupReferenceLimits(config, preferredModel || selectedModel, "video")');
-        expect(source).toContain("reconcileCreationAttachmentLimits(attachments, mentionReferences, videoReferenceLimits)");
-        expect(workspace).toContain('props.mode !== "video" || props.maxReferences > 0');
-        expect(workspace).not.toContain('props.videoProfile.operations.includes("image_to_video")');
-    });
+        const result = Bun.spawnSync([process.execPath, "test", "./test/fixtures/creation-platform-capabilities.harness.tsx", "-t", "同名模型参考能力"], { cwd: resolve(import.meta.dir, ".."), timeout: 30000 });
+        expect(result.exitCode, new TextDecoder().decode(result.stderr)).toBe(0);
+    }, 35000);
 
     test("previews prompt reference images without removing them", () => {
         const createSource = readCreateWorkspaceSource();

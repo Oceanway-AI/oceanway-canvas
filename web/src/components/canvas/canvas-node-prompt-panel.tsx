@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { ArrowUp, ChevronDown, FileText, ImagePlus, LayoutList, LoaderCircle, Maximize2, Music2, SlidersHorizontal, Video, X, PenLine } from "lucide-react";
 
 import { ModelPicker } from "@/components/model-picker";
-import { modelOptionName, resolveModelChannel, useEffectiveConfig } from "@/stores/use-config-store";
+import { modelOptionName, resolveModelChannel, selectableModelsByCapability, useEffectiveConfig } from "@/stores/use-config-store";
+import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
 import { canonicalGenerationMetadata, nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
 import { PROMPT_EDITOR_VIEWPORT_MARGIN, insertPromptReferenceAtSelection } from "@/lib/canvas/canvas-prompt-editor-size";
 import { useCanvasPromptPreferencesStore } from "@/stores/canvas/use-canvas-prompt-preferences-store";
@@ -201,6 +202,8 @@ export function CanvasNodePromptPanel({
         ),
     };
     const config = buildNodeConfig(globalConfig, node, mode, requirements, referenceImageSize);
+    const profile = modelCapabilityConfigFor(config, config.model);
+    const modelAvailable = selectableModelsByCapability(config, mode).includes(config.model) && (mode === "image" ? Boolean(profile.image) : mode === "video" ? Boolean(profile.video) : true);
     const resolvedRequirements: ModelRequirements = {
         ...requirements,
         options: modelRequestOptions(config, mode),
@@ -252,7 +255,7 @@ export function CanvasNodePromptPanel({
         if (!rect?.width || !rect.height) return { width: PROMPT_EDITOR_MODAL_DEFAULT_WIDTH, height: PROMPT_EDITOR_MODAL_DEFAULT_HEIGHT };
         return { width: Math.round(rect.width), height: Math.round(rect.height) };
     };
-    const isSubmitDisabled = !isRunning && !prompt.trim();
+    const isSubmitDisabled = !modelAvailable || !prompt.trim();
     const canExpandPrompt = mode === "image" || mode === "video";
     const canOptimizePrompt = Boolean(promptOptimizerProvider) && canExpandPrompt;
     const isPortraitTexture = mode === "image" && Boolean(node.metadata?.portraitTexture);
@@ -354,7 +357,7 @@ export function CanvasNodePromptPanel({
 
     const submit = () => {
         const text = prompt.trim();
-        if (!text || isRunning) return false;
+        if (isSubmitDisabled || isRunning) return false;
         if (mode === "text" && node.metadata?.listMode && onListGenerate) onListGenerate(node.id, text);
         else onGenerate(node.id, mode, text);
         return true;
@@ -503,7 +506,7 @@ export function CanvasNodePromptPanel({
         simpleMode ? (
             <div className="canvas-node-composer-footer">
                 <span className="min-w-0 truncate px-2 text-[var(--fs-tiny)]" style={{ color: theme.node.muted }}>
-                    {activeReferenceCount ? `已连接 ${activeReferenceCount} 个素材` : "将使用默认模型与参数"}
+                    {!modelAvailable ? "当前模式暂无可用模型" : activeReferenceCount ? `已连接 ${activeReferenceCount} 个素材` : "将使用默认模型与参数"}
                 </span>
                 <ReferenceToolsPopover canAutoMention={canAutoMention} autoLinkEnabled={autoLinkEnabled} onAutoMention={() => updatePrompt(autoMentionedPrompt)} onAutoLinkEnabledChange={setAutoLinkEnabled} accent={monochromeAccent} compact />
                 {renderSubmitButton(expanded)}
@@ -515,7 +518,7 @@ export function CanvasNodePromptPanel({
                         className="canvas-node-composer-model-trigger !h-8 !w-full !min-w-0 !text-[var(--fs-tiny)] !font-normal [&_img]:!size-3 [&_.lucide]:!size-3"
                         fullWidth
                         config={config}
-                        value={config.model}
+                        value={modelAvailable ? config.model : ""}
                         onChange={changeModel}
                         capability={mode}
                         requirements={resolvedRequirements}
@@ -525,6 +528,11 @@ export function CanvasNodePromptPanel({
                         variant="creation"
                         showConfiguredModelName
                     />
+                    {!modelAvailable ? (
+                        <span role="status" className="text-[var(--fs-tiny)]" style={{ color: theme.node.muted }}>
+                            当前模式暂无可用模型
+                        </span>
+                    ) : null}
                 </div>
                 <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1">
                     <ReferenceToolsPopover
@@ -581,7 +589,7 @@ export function CanvasNodePromptPanel({
                                 </span>
                             )}
                         </>
-                    ) : mode === "image" ? (
+                    ) : mode === "image" && modelAvailable ? (
                         // 图片模式下，显示相机配置与镜头配置
                         <>
                             <CanvasCameraControlPopover cameraControl={node.metadata?.cameraControl} onCameraControlChange={(options) => onConfigChange(node.id, { cameraControl: options })} theme={theme} compact={!expanded} />
@@ -594,7 +602,7 @@ export function CanvasNodePromptPanel({
                                 onOpenChange={expanded ? undefined : onImageSettingsOpenChange}
                             />
                         </>
-                    ) : mode === "video" ? (
+                    ) : mode === "video" && modelAvailable ? (
                         <CanvasVideoSettingsPopover config={config} buttonClassName="canvas-node-composer-settings-trigger [&>span]:min-w-0 [&_.lucide]:!size-3" onConfigChange={(key, value) => onConfigChange(node.id, videoConfigPatch(key, value))} />
                     ) : mode === "audio" ? (
                         <CanvasAudioSettingsPopover config={config} buttonClassName="canvas-node-composer-settings-trigger [&>span]:min-w-0 [&_.lucide]:!size-3" onConfigChange={(key, value) => onConfigChange(node.id, audioConfigPatch(key, value))} />

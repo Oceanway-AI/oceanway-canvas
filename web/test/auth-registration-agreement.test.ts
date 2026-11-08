@@ -49,21 +49,21 @@ describe("注册服务协议", () => {
         expect(zhCatalog).toContain("服务协议内容待补充");
     });
 
-    test("读取设置失败时不猜协议标题，改为提示并允许重新读取", () => {
+    test("旧表单读取设置失败时不猜协议标题，Studio 注册与弹窗使用平台失败重试", () => {
         const login = read("components/auth/auth-login-form.tsx");
-        const panel = read("components/auth/auth-panel.tsx");
         const store = read("stores/use-auth-settings-store.ts");
 
         // 失败必须留下状态位，不能静默降级成品牌名拼接的协议名。
         expect(store).toContain('set({ status: "error" })');
-        expect(panel).toContain("settingsFailed={failed}");
+        const result = Bun.spawnSync([process.execPath, "test", "./test/fixtures/platform-auth-entry.harness.tsx", "-t", "/register|/dialog"], { cwd: resolve(import.meta.dir, ".."), timeout: 30000 });
+        expect(result.exitCode, new TextDecoder().decode(result.stderr)).toBe(0);
         const zhCatalog = read("i18n/messages/zh-CN.ts");
         expect(login).toContain('t("auth.register.settingsFailed")');
         expect(zhCatalog).toContain("读取注册设置失败，暂时无法确认服务协议名称与条款。");
         expect(login).toContain("onClick={onReloadSettings}");
         // 协议入口只在拿到设置后渲染，读不到配置就不展示协议名。
         expect(login).toContain("{settings && (pending || canRegister) ? (");
-    });
+    }, 35000);
 
     test("公开认证设置暴露协议字段，管理接口可回传协议正文", () => {
         const auth = read("services/api/auth.ts");
