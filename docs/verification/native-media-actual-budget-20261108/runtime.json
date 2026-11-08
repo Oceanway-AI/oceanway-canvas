@@ -1,0 +1,36 @@
+{
+  "platform": {
+    "source": "dba921b5cb60d408ad7c8f0da1151936b7111f4a",
+    "image": "sha256:16dee03d8cb846467923d1e4f8848d5d0fb6c36bd2534875bbbc8470bde3a94f",
+    "origin": "https://test.oceanway.tech:18447",
+    "release": "/opt/oceanway-w7-test/releases/platform-dba921b5-c2",
+    "backup": "/opt/oceanway-w7-test/private/before-dba921b5.dump",
+    "healthy": true,
+    "material_worker_unchanged": "sha256:2132d5ca6f41ba014ec59d95802db45466e1c2a626284e63e81881710902ded8"
+  },
+  "studio": {
+    "source": "ff6a3cec90759b70892ac23ab7bfb5d00dbc0082",
+    "origin": "https://test.oceanway.tech:18448",
+    "release": "/opt/oceanway-studio-preview/releases/ff6a3ce",
+    "images": {
+      "backend": "sha256:02254de49198fdd58e7a2d6c54d21d637cbc3b2bc6cfe37634b18fa6a5f33ca0",
+      "web": "sha256:55a46ea43f1284de0a922c01d4c544130f75e0bb091b8ca27c12e67735d059ab"
+    },
+    "backup": "/opt/oceanway-studio-preview/private/studio-before-ff6a3ce.dump",
+    "pi_unchanged": true
+  },
+  "gateway": {
+    "base_source": "87e1f9f83d2e3080a42ca9d8e59b9e951190398d",
+    "patch": "gateway-processing.patch",
+    "image": "sha256:7fa5b271ca4645a4f8dfb32344d85d2f59195db2e7fb0cc8bf2bc2a689dc4bf0",
+    "reported_version": "v1.0.0-rc.48-ow-async.20261105.2",
+    "base_plugin_sha256": "58da524648f3b43e6944c34cc14de59b7162123fe046b033037680a0fa4d182b",
+    "patched_plugin_sha256": "2b76bc6ebea6f35facb56bf3cc44874e71501a03b8f21be084abca27174b64c5",
+    "release": "ow-main:/opt/new-api-standalone/candidates/processing-20261108",
+    "backup": "ow-main:/opt/new-api-standalone/backups/before-processing-20261108",
+    "healthy": true
+  },
+  "production_console_changed": false,
+  "git_push": false,
+  "rollback": "Backups and prior images retained. Do not roll a prior Task writer onto pending newer funding records; prefer a forward repair after reviewing original task/funding state."
+}

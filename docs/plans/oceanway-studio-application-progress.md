@@ -163,3 +163,4 @@ F7 验证：先保存 const 目录/Pi 与图片 DOM 失败日志，再运行 `go
 
 先补失败回归，再连接原 Ant Design 确认弹窗；Agent 在原报价接口中选择上限，仍按原审批 ID / 报价 ID 执行。独立 W7 / Studio 发布与真实验收分别记录，生产 Console 不切换。
 
+23:43 发布及真实浏览器验收：`ff6a3ce`已部署18448，Platform `dba921b5`已部署18447；原Pi和material-worker保持。原生按钮分别生成一张gpt-image-2与一段Mini视频，确认上限20/250积分，实际20/200.7878积分；视频87,299 tokens的差额在原上限内通过原资金事务结算。两原件均通过原素材链入库，下载摘要一致，四派生可从测试CDN读取，画布重开后节点/Task/Resource/版本稳定且视频可播放。画布为0接线，不代验非空接线或进行中关页；Agent本批只有免费审批/额度测试。证据见[真实验收记录](../verification/native-media-actual-budget-20261108/README.md)，全局事实见Docs PROC-02-067。未推送Git，旧失败任务未重试，生产Console及受保护容器/nginx不变。

@@ -1,5 +1,7 @@
 # AGENTS.md
 
+2026-11-08 23:43 真实闭环：本轮用户授权测试发布，Studio ff6a3ce 已在18448运行，Platform dba921b5在18447，18420原异步发行补processing映射。新画布sQ3Xqpn5rFRjYHy6Pjigf通过原生按钮真实生成gpt-image-2与Seedance Mini（4秒720p），明确上限20/250，最终结算20/200.7878积分；原worker入库、原件摘要、CDN派生、播放和关页重开同ID通过。原Pi/Task保留，旧失败未重试，Console及受保护服务不变。证据docs/verification/native-media-actual-budget-20261108，规范/全局交接Docs PROC-02-067。本批Agent额度路径只有免费测试，付费审批/参考素材、异步图片、第二视频系列及完整故障矩阵仍待验；不宣称全部首发已完成。下文禁止部署为早期分工，未来操作仍按当前用户范围。
+
 ## OceanWay Studio 当前改造边界（2026-11-07）
 
 - 2026-11-08 首发范围：身份、素材、文本/图片/视频、原生 Pi Agent 与画布恢复。其他创作源码保留，未接通能力明确暂不可用；不以全插件/音频/3D 完成阻塞首发。应用侧仅改 backend、web、应用配置与计划，部署文件由协调会话负责；不推送、不部署、不操作远端配置。进度见 [应用侧实施进度](docs/plans/oceanway-studio-application-progress.md)。

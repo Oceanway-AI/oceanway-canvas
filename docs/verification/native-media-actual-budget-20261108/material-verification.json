@@ -1,0 +1,91 @@
+[
+  {
+    "asset_id": "a_b9ede97e177940d9b7d0d5388f85042ef6e770a8d4d3b72acbfeb5929564",
+    "file_id": "f_b9ede97e177940d9b7d0d5388f85042ef6e770a8d4d3b72acbfeb5929564",
+    "variant": "original",
+    "state": "ready",
+    "http": 200,
+    "host": "oceanway-w7-assets-cn.tos-s3-cn-beijing.volces.com",
+    "mime": "image/png",
+    "bytes": 1897297,
+    "sha256": "72e24e2944e5d9cf9dc2a64969c8e77856adf091844cbb895d03a2b0a7aaf3ab",
+    "cache": null,
+    "digest_matches": true,
+    "bytes_match": true,
+    "dimensions": [
+      1024,
+      1024
+    ]
+  },
+  {
+    "asset_id": "a_b9ede97e177940d9b7d0d5388f85042ef6e770a8d4d3b72acbfeb5929564",
+    "file_id": "f_b9ede97e177940d9b7d0d5388f85042ef6e770a8d4d3b72acbfeb5929564",
+    "variant": "thumbnail",
+    "state": "ready",
+    "http": 200,
+    "host": "cdn-test.oceanway.tech",
+    "mime": "image/webp",
+    "bytes": 7188,
+    "sha256": "570837a22023f48b90e7dc4ba168b970e9ef6286efeba0d47a212d82dea85f56",
+    "cache": null,
+    "second_cache": null,
+    "repeat_digest_matches": true
+  },
+  {
+    "asset_id": "a_b9ede97e177940d9b7d0d5388f85042ef6e770a8d4d3b72acbfeb5929564",
+    "file_id": "f_b9ede97e177940d9b7d0d5388f85042ef6e770a8d4d3b72acbfeb5929564",
+    "variant": "preview",
+    "state": "ready",
+    "http": 200,
+    "host": "cdn-test.oceanway.tech",
+    "mime": "image/webp",
+    "bytes": 34418,
+    "sha256": "dbc30940420bcdd347e9ebf08fb712ee2c493be9cc46c6e27127a4fcddb1e8e9",
+    "cache": null,
+    "second_cache": null,
+    "repeat_digest_matches": true
+  },
+  {
+    "asset_id": "a_34e56c616587668bf5d0a106d00a0db2e0accb63671cb583ce3ce2ca8de7",
+    "file_id": "f_34e56c616587668bf5d0a106d00a0db2e0accb63671cb583ce3ce2ca8de7",
+    "variant": "original",
+    "state": "ready",
+    "http": 200,
+    "host": "oceanway-w7-assets-cn.tos-s3-cn-beijing.volces.com",
+    "mime": "video/mp4",
+    "bytes": 3298064,
+    "sha256": "99860e3ccafd38baa3ff1bda960b69b37d2c07a9b3d8b08705c366b0d25c017f",
+    "cache": null,
+    "digest_matches": true,
+    "bytes_match": true,
+    "probe": "ffprobe unavailable on host"
+  },
+  {
+    "asset_id": "a_34e56c616587668bf5d0a106d00a0db2e0accb63671cb583ce3ce2ca8de7",
+    "file_id": "f_34e56c616587668bf5d0a106d00a0db2e0accb63671cb583ce3ce2ca8de7",
+    "variant": "poster",
+    "state": "ready",
+    "http": 200,
+    "host": "cdn-test.oceanway.tech",
+    "mime": "image/webp",
+    "bytes": 23250,
+    "sha256": "944b84444781b04b91e08634e92087dcb0c4ae97ad1402fcff176eb83e7649d4",
+    "cache": null,
+    "second_cache": null,
+    "repeat_digest_matches": true
+  },
+  {
+    "asset_id": "a_34e56c616587668bf5d0a106d00a0db2e0accb63671cb583ce3ce2ca8de7",
+    "file_id": "f_34e56c616587668bf5d0a106d00a0db2e0accb63671cb583ce3ce2ca8de7",
+    "variant": "playback",
+    "state": "ready",
+    "http": 200,
+    "host": "cdn-test.oceanway.tech",
+    "mime": "video/mp4",
+    "bytes": 652282,
+    "sha256": "cfe9cac96ddf495f6420ffe859a4a71389dca494964186854b79b672df833d9b",
+    "cache": null,
+    "second_cache": null,
+    "repeat_digest_matches": true
+  }
+]
