@@ -1,0 +1,10 @@
+{
+  "source": "f6de3296b1c160547a47f5c520bfd606fcc03fb6",
+  "tag": "f6de329",
+  "release": "/opt/oceanway-studio-preview/releases/f6de329",
+  "images": {
+    "backend": "sha256:96393e5e6e41d949e7fef265505f8d02e9784bdc448e8acd0be70f8496f6906d",
+    "web": "sha256:03e1933c5a0f2ad30816197472d4d63b0010133e6d87497e3e5f671a0741c57f",
+    "agent": "sha256:1d7e05d75d6aa04e7ac0604104c5a9ab02266af2215a3bc04cf681a8a6e60f93"
+  }
+}

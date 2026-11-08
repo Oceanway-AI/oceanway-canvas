@@ -31,3 +31,13 @@ SDK rc.5缺少当前Platform版本字段，rc.6已发布，tag指向889e4c75ec31
 用户最新明确18420价格已经亲自配置，本批停止价格写入。只读核对现存三模型使用tokens/resolution/video_input表达式，保留其币种及分组设置。本次不会把该设置当商务结算审计结论。
 
 后续收费验证使用新画布-bKBYMSjbXzF6r99d1Nx-（Studio 图片视频真实验收 1108），保留原失败画布。新图片提示词为黄色陶瓷杯，待SDK冻结修复部署后点击一次；视频选择Mini720p4秒。所有请求只查询原记录，不自动重试。
+
+## 真实图片已通过，视频参数回归待修
+
+测试18448已部署f6de3296b1c160547a47f5c520bfd606fcc03fb6（合入应用2e2c2f2），固定正式rc.6；结构检查95/95，100个非Studio容器及nginx指纹不变。
+
+- 原生图片按钮仅点击一次。Studio Task `09bbd47a-5747-5a83-9e9e-92adb5911064` 成功；Platform Task `media_cf352dba4b9ff9137baa34d454457db4515108b9a22526a2626c2994da26c8c7` SUCCESS，资金settled、result saved，100000内部quota=20积分，冻结0。
+- 18420日志641、渠道13、model=gpt-image-2、一次type2成功；原请求 `202611080736303235160438268d9d63AhQtW14`，供应请求 `202611080736304069842688268d9d6GMr1KECy`。Studio attempts=3是原Task轮询调度次数，不是供应生成次数。
+- 原件PNG 1024×1024、1039672字节，SHA256 `8201e10b72ee6a3c340a3cea4dd6a4816f8de31e1507d7ae7b14fac9f9ffa3f0`。Platform worker saved一次；原件下载摘要一致，thumbnail/preview从cdn-test.oceanway.tech读取、重复字节一致（未据此声称缓存HIT）。原件/派生URL不入仓。
+- Canvas绑定原生resource `edb37a3c-7819-54a8-b8f6-168d59c661d8`，图片已显示；UI误把thumbnail的320×320显示为原件尺寸，应用侧补回归中，不能把该尺寸当真实原件。
+- 同画布Mini视频节点 `video-1794122853974-z6ejc` 首次点击在 `/api/tasks/preview` 400拒绝，request `req-05777111c02c25c1ebdf4bbc`，原因“生成参数不符合所选模型的发布规格”。无Studio Task、无供应视频请求、无扣费。实际发布resolution为const 720p；目录投影只读enum，漏const，前端提交内部720。应用侧补精确schema回归，不改Platform规格来绕过检查。此失败节点保留，修复后仅用新节点继续验收。
