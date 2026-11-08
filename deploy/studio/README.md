@@ -62,6 +62,12 @@ GPT Image 使用网关已有的 `gpt-image系列` Key；该 Key 实际可见全�
 
 ## 验证记录
 
+### 本轮真实验收执行门槛
+
+用户已授权本轮真实图片与视频验收。先合并 `19838d8` 的原生 Pi 审批、素材会话授权及生成结果回填修复，再在独立环境备份、迁移至 schema95、部署。模型能力以受限的单张/最短视频测试规格发布，使用已存在的价格或明确记录的隔离测试售价；供应商成本单独核对。每次提交前冻结原请求和报价，响应不明只查询，不重发。
+
+逐项记录真实任务 ID、Platform operation/素材固定版本、上游记录、实际费用、画布节点与连线，以及关页/重启恢复。目录发布、免费夹具及接口健康不代替上述结果；旧失败任务保持原样。首轮整合检查发现旧账号恢复 UI 断言、工具 schema 金样、独立 Agent token 与旧 updater 回退断言冲突；先记录失败再按已采用的 Platform 登录/专用 Agent 凭据合同修复。发布工作区 Node/Pi 依赖缺失由锁文件安装解决。
+
 独立新 Studio 已运行于 18448，应用镜像为 `a326620`，W7 为 `80cabd47`。W7 登录/new-api 图片/素材只读修复已部署；Studio 独立 PG 备份在 `/opt/oceanway-studio-preview/private/studio-before-a326620.dump`。尚未正式切换 `studio.oceanway.tech`。实际请求仅上述两次文本，图片/视频尚未请求。最新运行快照与操作前对比仅 W7 Platform 容器变化，生产 Console、宿主 nginx 未变；后续增量须继续对比。
 
 证据在 `docs/verification/studio-release/`：`runtime-before.json` / `runtime-after-login.json`、`text-connections.json`、`text-models-enabled.json`、`canvas-reopened.png`。画布 `ow3bFkuS2McNFgipOuhGZ` 为本轮隔离创建；浏览器关页后原名、文本内容、1 个节点及 0 条接线恢复，不能替代尚未完成的 Agent/素材/生成恢复验收。发布前须冻结应用提交并完成相关全量检查。
