@@ -1,0 +1,27 @@
+{
+  "observed_at": "2026-11-08T08:13:32.999663+00:00",
+  "gateway_task": {
+    "task_id": "task_avCw4Ci08kogPk00EICu4gpOlgAt0bOO",
+    "status": "FAILURE",
+    "progress": "100%",
+    "quota": 0,
+    "fail_reason": "Failed to query the upstream task status",
+    "upstream_task_id": "task_iEyD8wti2SzZt5Nreo2rlMZCPGQ2VJcG",
+    "poll_failures": 20
+  },
+  "supplier_original_get": {
+    "http_status": 200,
+    "id": "task_iEyD8wti2SzZt5Nreo2rlMZCPGQ2VJcG",
+    "model": "doubao-seedance-2-0-mini-260615",
+    "status": "processing",
+    "duration": 4,
+    "resolution": "720p",
+    "ratio": "16:9",
+    "usage": null,
+    "created_at": 1794124481,
+    "updated_at": 1794125607,
+    "has_video_url": false
+  },
+  "running_source_plugin_sha256": "58da524648f3b43e6944c34cc14de59b7162123fe046b033037680a0fa4d182b",
+  "patch_deployed": false
+}

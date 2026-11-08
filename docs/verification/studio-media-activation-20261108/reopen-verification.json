@@ -1,0 +1,117 @@
+{
+  "observed_at": "2026-11-08T08:13:08.320405+00:00",
+  "before_close": {
+    "revision": 23,
+    "nodes": [
+      {
+        "id": "image-1794122645812-4uqrg",
+        "type": "image",
+        "task_id": "09bbd47a-5747-5a83-9e9e-92adb5911064",
+        "resource": "resource:edb37a3c-7819-54a8-b8f6-168d59c661d8",
+        "canvas_media_version_id": "cvPaBazzcpOAfjrtIBMIw",
+        "status": "success"
+      },
+      {
+        "id": "video-1794122853974-z6ejc",
+        "type": "video",
+        "task_id": null,
+        "resource": null,
+        "canvas_media_version_id": null,
+        "status": "error"
+      },
+      {
+        "id": "video-1794124436312-iaknp",
+        "type": "video",
+        "task_id": "e85871d9-c8c7-5b61-8ac4-e160e75db36f",
+        "resource": null,
+        "canvas_media_version_id": null,
+        "status": "loading"
+      }
+    ],
+    "connections": []
+  },
+  "after_reopen": {
+    "revision": 33,
+    "nodes": [
+      {
+        "id": "image-1794122645812-4uqrg",
+        "type": "image",
+        "task_id": "09bbd47a-5747-5a83-9e9e-92adb5911064",
+        "resource": "resource:edb37a3c-7819-54a8-b8f6-168d59c661d8",
+        "canvas_media_version_id": "cvPaBazzcpOAfjrtIBMIw",
+        "status": "success"
+      },
+      {
+        "id": "video-1794122853974-z6ejc",
+        "type": "video",
+        "task_id": null,
+        "resource": null,
+        "canvas_media_version_id": null,
+        "status": "error"
+      },
+      {
+        "id": "video-1794124436312-iaknp",
+        "type": "video",
+        "task_id": "e85871d9-c8c7-5b61-8ac4-e160e75db36f",
+        "resource": null,
+        "canvas_media_version_id": null,
+        "status": "error"
+      }
+    ],
+    "connections": []
+  },
+  "stable_node_task_resource_version_bindings": true,
+  "connections_unchanged": true,
+  "studio_tasks_before": 2,
+  "studio_tasks_after": 2,
+  "material_versions_unchanged": true,
+  "tasks": [
+    {
+      "id": "09bbd47a-5747-5a83-9e9e-92adb5911064",
+      "model": "gpt-image-2",
+      "status": "succeeded",
+      "stage": "生成完成",
+      "error": "",
+      "attempts": 3
+    },
+    {
+      "id": "e85871d9-c8c7-5b61-8ac4-e160e75db36f",
+      "model": "doubao-seedance-2-0-mini-260615",
+      "status": "failed",
+      "stage": "原任务待核对",
+      "error": "平台原任务生成失败，请核对任务记录",
+      "attempts": 78
+    }
+  ],
+  "operations": [
+    {
+      "id": "op_aff608979d28df14a6f20296d27b7a99a5c58110ea1a6822",
+      "business_task_id": "09bbd47a-5747-5a83-9e9e-92adb5911064",
+      "kind": "model",
+      "item": "gpt-image-2",
+      "execution_state": "succeeded",
+      "funds_state": "settled",
+      "result_state": "saved",
+      "reserved_quota": 100000,
+      "frozen_quota": 0,
+      "settled_quota": 100000,
+      "request_id": "202611080736298138044598268d9d6F8kDRfi6",
+      "created_at": 1794123390
+    },
+    {
+      "id": "op_eef8c25e9c8b294ea69358c841d17837ac7fbe6cdb0ee470",
+      "business_task_id": "e85871d9-c8c7-5b61-8ac4-e160e75db36f",
+      "kind": "model",
+      "item": "doubao-seedance-2-0-mini-260615",
+      "execution_state": "failed",
+      "funds_state": "released",
+      "result_state": "pending",
+      "reserved_quota": 993600,
+      "frozen_quota": 0,
+      "settled_quota": 0,
+      "request_id": "202611080754401460455288268d9d6Y2KmzZGs",
+      "created_at": 1794124480
+    }
+  ],
+  "limitation": "Video ended in gateway polling failure; successful video material and playback recovery are not verified."
+}

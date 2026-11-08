@@ -41,3 +41,38 @@ SDK rc.5缺少当前Platform版本字段，rc.6已发布，tag指向889e4c75ec31
 - 原件PNG 1024×1024、1039672字节，SHA256 `8201e10b72ee6a3c340a3cea4dd6a4816f8de31e1507d7ae7b14fac9f9ffa3f0`。Platform worker saved一次；原件下载摘要一致，thumbnail/preview从cdn-test.oceanway.tech读取、重复字节一致（未据此声称缓存HIT）。原件/派生URL不入仓。
 - Canvas绑定原生resource `edb37a3c-7819-54a8-b8f6-168d59c661d8`，图片已显示；UI误把thumbnail的320×320显示为原件尺寸，应用侧补回归中，不能把该尺寸当真实原件。
 - 同画布Mini视频节点 `video-1794122853974-z6ejc` 首次点击在 `/api/tasks/preview` 400拒绝，request `req-05777111c02c25c1ebdf4bbc`，原因“生成参数不符合所选模型的发布规格”。无Studio Task、无供应视频请求、无扣费。实际发布resolution为const 720p；目录投影只读enum，漏const，前端提交内部720。应用侧补精确schema回归，不改Platform规格来绕过检查。此失败节点保留，修复后仅用新节点继续验收。
+
+
+## 视频修复与新任务
+
+应用修复f678990已合入并部署dd7d6c6616f5a59353e8a89e7801301b15ce7860；原const规格投影/Agent默认与输入归一化、派生图尺寸来源已修复，前端34项及Go专项/构建通过，历史画布不批量改写。已有图片节点此前误存的320×320仍保留，原件以已核对的1024×1024为准。100个非Studio容器及nginx指纹不变。
+
+新视频节点video-1794124436312-iaknp（白帆船，Mini720p/16:9/4秒、声音开启），原生按钮一次。Studio Task e85871d9-c8c7-5b61-8ac4-e160e75db36f；Platform Task media_b760a30df354bd4c96b069df1a6ab56968ab9f333eebf0cdd52299f7931b0472；18420原生Doubao task_avCw4Ci08kogPk00EICu4gpOlgAt0bOO，渠道5。已获原任务回执，当前排队，尚不记成功。浏览器标签页已关闭，后端继续查询原任务，无重复提交。
+
+仅修正18447 GPT Image2的过期营销文案“1积分/张”为按消费预览确认，并移除该旧标签；没有更改价格或绑定。18420由用户配置的报价保持。
+
+## 视频轮询失败的实际根因与修复门槛
+
+原视频供应任务 `task_iEyD8wti2SzZt5Nreo2rlMZCPGQ2VJcG` 返回 HTTP 200、`status=processing`；18420 的内置 `plugins/tasks/doubao/plugin.js:965` 只识别 queued/running/succeeded/failed/expired/cancelled，连续20次记为 UNKNOWN 后停止跟踪。2026-11-08 08:02 UTC 左右网关与 Platform 已失败，但供应任务随后直接只读查询仍为 processing。不能将此写为供应方生成失败或继续排队成功。
+
+修复先补实际插件测试：processing 必须保持 IN_PROGRESS，不能成为终态或触发结算；pending/未知值仍为 UNKNOWN；成功与失败规则保持。该兼容映射只根据本次已观测响应增加明确状态，不改模型参数、价格、授权、资金链或重新提交逻辑。需核对实际运行插件版本，免费通过不等于已部署。
+
+Platform operation `op_eef8c25e9c8b294ea69358c841d17837ac7fbe6cdb0ee470` 已 funds_state=released、reserved_quota=993600、frozen_quota=0、settled_quota=0。Studio 原 Task 已 failed，浏览器重开显示原失败节点。不得手工改回 running、重试或补扣；供应方后续结果与结算需按原 ID 单独核对。
+
+修复已提交在独立 new-api 分支 `codex/legacy-doubao-processing-20261108`，提交 `6e517a322`（基于 `706144769`，不是直接构建该整版覆盖线上）。修改仅为内置 Doubao 的 processing→IN_PROGRESS 及原插件测试；待发布补丁适用的运行源码 SHA256 为 `58da524648f3b43e6944c34cc14de59b7162123fe046b033037680a0fa4d182b`，已与本次修改前插件逐字节匹配。实际18420仍为87e1f9f，补丁未部署、未推送。发布时应在其原异步图片版本上应用此小补丁，不丢失原异步执行改动。
+
+失败测试 `go test ./plugins -run '^TestDoubaoNativeOfficialBodies$/query_replies' -count=1` 观察到 processing=UNKNOWN，见 [失败记录](doubao-processing-red.txt)。修复后 `go test ./plugins ./relay/channel/task/jsplugin -run Doubao -count=1` 两包通过，见 [免费回归](doubao-processing-green.txt)。未调用供应方生成、未更改网关价格、未改写失败任务。
+
+## 本批验收结论与后续
+
+| 项目 | 实际结果 | 证据 |
+| --- | --- | --- |
+| 五图三视频目录、价格及消费预览 | 免费配置验证通过；只有 GPT Image 2 和 Mini 发起过本批真实生成 | 前述配置及原Task记录 |
+| GPT Image 2 原生生成→Platform入库→原件/派生访问 | 通过，一张图片，原件1024×1024，摘要及字节一致 | [素材验证](real-material-verification.json) |
+| 关页重开 | 3节点、0接线、2原Task、图片resource与结果版本逐项一致；无新增生成 | [绑定比较](reopen-verification.json)、[浏览器截图](reopened-image-and-video-failure.png) |
+| Seedance Mini 视频闭环 | 未通过：网关误判processing，停止轮询；Platform释放冻结；尚无视频素材和播放结果 | [原任务最终核对](video-original-status.json) |
+| 网关修复 | 代码和免费测试通过，尚未发布 | `6e517a322`，上列red/green |
+
+08:13 UTC 最后一次只读查询供应原ID仍为 processing、无video_url/usage。网关与Platform quota均已释放不能等同于供应方免费或退款；供应侧最终账单仍需原ID对账。不要重试这条任务来获取结果，也不要手工伪造成功/归档/结算。
+
+下一步：将上述小补丁应用到18420原运行源码，免费验证再发布；按原ID核对供应终态及费用。随后另行安排一次新的最小视频验收（不使用失败节点的重试），补齐成功视频的原件/海报/播放、画布回填和重开比对。真实Agent媒体审批尚未在本批覆盖。正式 Studio 域名尚未切换，生产 Console 保持不变。

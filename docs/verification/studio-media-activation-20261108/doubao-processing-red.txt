@@ -1,0 +1,29 @@
+go: downloading github.com/MoeForge/moego v0.1.0-alpha.1
+go: downloading github.com/Calcium-Ion/moejs v0.1.0-alpha.7
+go: downloading github.com/klauspost/compress v1.18.7
+go: downloading github.com/go-jose/go-jose/v4 v4.1.6
+--- FAIL: TestDoubaoNativeOfficialBodies (0.00s)
+    --- FAIL: TestDoubaoNativeOfficialBodies/query_replies (0.00s)
+        doubao_responses_test.go:1155:
+                Error Trace:    plugins/doubao_responses_test.go:1155
+                Error:          Not equal:
+                                expected: "IN_PROGRESS"
+                                actual  : "UNKNOWN"
+
+                                Diff:
+                                --- Expected
+                                +++ Actual
+                                @@ -1 +1 @@
+                                -IN_PROGRESS
+                                +UNKNOWN
+                Test:           TestDoubaoNativeOfficialBodies/query_replies
+                Messages:       processing
+        doubao_responses_test.go:1159:
+                Error Trace:    plugins/doubao_responses_test.go:1159
+                Error:          Not equal:
+                                expected: string("50%")
+                                actual  : <nil>(<nil>)
+                Test:           TestDoubaoNativeOfficialBodies/query_replies
+FAIL
+FAIL    github.com/QuantumNous/new-api/plugins  0.488s
+FAIL
