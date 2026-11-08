@@ -102,3 +102,7 @@ F1 首发入口：合同见 `oceanway-studio-release-surface.md`。红灯确认�
 F1 验证：`go test ./internal/handler -run 'TestStudio' -count=1` 通过；路由/插件门禁与平台生成、会话缓存、目录、素材选择共14项/150断言通过。typecheck、变更文件 ESLint/Prettier、build、diff whitespace 检查通过。未推送/部署/修改远端配置，未调用收费生成；构建仍有既有 chunk 大小/动态导入提示。
 
 E1 验证：`go test ./internal/app ./internal/repository -run 'TestStudio|TestCloudAgent(Request|RuntimeCompletes|Tools|ToolAllowed)'`、`go test ./internal/handler -run TestStudio` 通过。后补同轮幂等、变更意图冲突及跨账号读取专项通过。仓库专项验证过期租约/被接管租约无法派发，重复派发只允许一次，停止未提交与保留已提交两种路径。前端 typecheck、变更文件 ESLint/Prettier 通过。尚未进行浏览器 Pi 验收，不宣称媒体审批可用。
+
+F2 首页能力缺省修复：真实 CreatePage 与 CreationComposer 曾无条件读取同一模型的 image.references、video.ratios；Platform 目录只发布模型实际具备的能力，导致文本/视频模式 references 崩溃，图片模式也可能在视频参数处崩溃。现在按当前模式及有效目录选择模型，仅在对应能力存在时恢复参数、显示设置和提交；空目录或失效偏好显示不可用提示，禁用生成，不注入虚构能力。
+
+F2 验证：同一真实 React 页面测试在修复前 HEAD 重现 references/ratios 崩溃（6项失败），修复后6项/60断言通过，覆盖文本/图片/视频单能力、空目录、残留模型偏好、输入提示词与跨模式切换。typecheck、变更 ESLint/Prettier 通过；证据位于 `.local/verification/studio-create-capabilities-{baseline,fixed}.log`。未部署，待协调侧合入后验收 `:18448` 实际首页。协调侧正独立处理 W7 素材授权503和 PlatformUI连接类型验证，不在本分支修改服务配置。
