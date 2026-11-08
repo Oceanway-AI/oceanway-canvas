@@ -43,3 +43,13 @@ Pi 媒体审批分为草稿、报价、批准三步。后台只按冻结目录�
 免费验收已覆盖：真实首页视频按钮将 `input.config.channelId=oceanway-platform`、原始模型名、`size=16:9`、`videoSeconds="4"`、`vquality=720p` 送至任务预览，版本变化时零任务创建；服务链保留 usage_schema、新价格版本和精确小数上限，创建回执丢失只查询原 command。图片和原生 Doubao 视频的 HTTP 测试验证预览/执行原生正文逐字节相同，媒体503后原请求恢复，绑定回执丢失后恢复同一绑定，最终固定 asset/version/file；目录更新后旧价预览409且原任务仍可读。原生视频不提交 `tokens` / `video_input` 计量事实。前端结果测试继续覆盖图片/视频的消息与画布回填、重复消费、跨账号拒绝及刷新重读。
 
 画布节点补充：全局默认可能是只有文本能力的模型。节点参数预检不得读取缺失的图片 `parameters`；缺失能力返回空参数，不补造默认能力。真实图片/视频节点在当前目录没有对应模型时显示提示、隐藏参数设置并拒绝提交；有已发布模型时按节点模式解析，恢复旧模型偏好不崩溃。组件夹具不等于线上浏览器验收，实际图片生成与720p/4秒视频验收仍由协调侧执行。
+
+## 媒体消费版本冻结补齐（2026-11-08）
+
+先红后绿确认：直接生成与 Pi 审批原来仅冻结价格版本/额度，丢弃消费预览的 `capability_revision`、`connection_revision`，正式 EXA 无法通过能力准入。已发布 rc.5 也缺少这两个字段；协调侧已发布 rc.6，应用已从远端固定 `v0.1.0-rc.6`（commit `889e4c75`），没有 SDK replace。首轮失败测试曾使用独立副本，正式回归全部使用已发布模块。
+
+当前合同：三种版本与原生正文、精确额度一起保存进原 `studioExecutionEnvelope.Consumption`，经 SDK `MediaConsumptionConstraints.ExpectedCapabilityRevision/ExpectedConnectionRevision` 发出；不新增授权或任务体系。capability revision 必须为平台发布的64位小写十六进制，connection revision 必须为正整数，缺失不得回填当前目录值。浏览器还会拒绝不能精确表示的整数，避免连接版本在 JavaScript 中失真。
+
+直接生成的现有展示预览与创建前复核保留：浏览器从展示预览冻结两个 revision 并作为 `platform.expectedCapabilityRevision/expectedConnectionRevision` 提交；创建复核必须与其相同，变化返回409，缺失请求版本返回400，不能接受新版本代替原确认。授权响应丢失时读取已加密 envelope，恢复同 task_reference，不重新预览。Agent 的报价阶段冻结两个 revision，批准只用原报价和整轮 EXA，缺失的旧审批准备态直接拒绝；版本在批准后变化由 Platform 对原冻结约束拒绝，Studio 查询原请求的明确失败，不重报价/新建请求。
+
+旧持久任务：尚未提交且缺少冻结版本的 envelope 明确失败，不补造版本、不调用供应商；已经 submitted 的原请求即使缺少旧字段也继续原查询，不误报未执行或另行提交。验证先补 HTTP/数据库与浏览器服务红灯，再接线：图片/视频的完整消费头、缺失及版本变化拒绝、审批持久化、授权/执行回执丢失恢复、零额外报价与零重复模型 POST。

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -19,7 +20,7 @@ import (
 const studioAgentMediaFixtureCatalog = `{"success":true,"data":{"items":[{"model_name":"pi-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}},{"model_name":"image-model","model_type":"image","invocation_status":"available","price":{"status":"available","version":"price-1"},"media_generation_profile":{"default_variant":"generate","variants":[{"id":"generate","protocol":"openai-images","operation":"generate","method":"POST","path":"/images/generations","defaults":{"n":1,"size":"1:1"},"specifications_schema":{"type":"object","additionalProperties":false,"properties":{"n":{"type":"integer","enum":[1]},"size":{"type":"string","enum":["1:1"]}},"required":["n","size"]},"parameter_bindings":{"n":"n","size":"size"}}]}}]}}`
 
 func TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority(t *testing.T) {
-	for _, scenario := range []string{"approve", "image_parameters", "expired", "changed_canvas", "reject", "stopped"} {
+	for _, scenario := range []string{"approve", "image_parameters", "expired", "changed_canvas", "reject", "stopped", "missing_preview_capability", "missing_preview_connection", "missing_prepared_capability", "missing_prepared_connection", "changed_capability", "changed_connection", "missing_queued_capability", "missing_queued_connection", "submitted_legacy"} {
 		t.Run(scenario, func(t *testing.T) { studioPiMediaApprovalScenario(t, scenario) })
 	}
 }
@@ -33,6 +34,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	s.activeCancels = make(map[string]context.CancelFunc)
 	quotes, issues := 0, 0
 	submits, recoveries := 0, 0
+	currentCapability, currentConnection := strings.Repeat("a", 64), int64(7)
 	catalog := studioAgentMediaFixtureCatalog
 	if scenario == "image_parameters" {
 		// Publish a parameter which has no dedicated generate_media argument.
@@ -59,16 +61,36 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 			if r.Header.Get("Origin") != "https://studio.example.test" || r.Header.Get("Cookie") == "" {
 				t.Error("quote lost genuine browser authority")
 			}
-			_, _ = w.Write([]byte(`{"success":true,"data":{"model":"image-model","model_type":"image","price_version":"price-1","combination_supported":true,"allowed":true,"wallet_points":"0.123456789"}}`))
+			quote := platformclient.ConsumptionPreview{CapabilityRevision: strings.Repeat("a", 64), ConnectionRevision: 7, Model: "image-model", ModelType: "image", PriceVersion: "price-1", CombinationSupported: true, Allowed: true, WalletPoints: "0.123456789"}
+			if scenario == "missing_preview_capability" {
+				quote.CapabilityRevision = ""
+			}
+			if scenario == "missing_preview_connection" {
+				quote.ConnectionRevision = 0
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": quote})
 		case r.URL.Path == "/internal/relay/images/generations":
 			submits++
 			body, _ := io.ReadAll(r.Body)
+			raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get("X-Platform-Media-Consumption"))
+			var constraints platformclient.MediaConsumptionConstraints
+			if json.Unmarshal(raw, &constraints) != nil || constraints.ExpectedCapabilityRevision != strings.Repeat("a", 64) || constraints.ExpectedConnectionRevision != 7 || constraints.ExpectedPriceVersion != "price-1" || constraints.WalletMaxPoints != "0.123456789" {
+				t.Error("Pi consumption header lost confirmed versions")
+			}
 			if string(body) != string(quotedBody) || r.Header.Get("X-Platform-Execution-Authorization") != "exa_media_run" || r.Header.Get("Cookie") != "" {
 				t.Error("media dispatch changed approved authority or bytes")
 			}
-			w.WriteHeader(503)
+			if constraints.ExpectedCapabilityRevision != currentCapability || constraints.ExpectedConnectionRevision != currentConnection {
+				w.WriteHeader(409)
+			} else {
+				w.WriteHeader(503)
+			}
 		case strings.HasPrefix(r.URL.Path, "/internal/relay/media-requests/"):
 			recoveries++
+			if scenario == "changed_capability" || scenario == "changed_connection" {
+				_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": platformclient.MediaRecovery{RequestID: strings.TrimPrefix(r.URL.Path, "/internal/relay/media-requests/"), Status: "FAILURE", NoExecution: true}})
+				return
+			}
 			w.WriteHeader(404)
 		default:
 			t.Errorf("unexpected request before dispatch: %s", r.URL.Path)
@@ -119,6 +141,17 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 		t.Fatal("unquoted media approved")
 	}
 	quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval)
+	if strings.HasPrefix(scenario, "missing_preview_") {
+		if appErr, ok := err.(*AppError); !ok || appErr.Status != 409 {
+			t.Fatalf("incomplete preview not rejected: %v", err)
+		}
+		run, _ = s.repo.CloudAgent("user", view.ID)
+		state, _ = cloudAgentDecode(run)
+		if state.Approval.StudioQuote != nil || state.Approval.StudioPreparedEncrypted != "" || submits != 0 || quotes != 1 || issues != 1 {
+			t.Fatal("incomplete preview created approval/execution")
+		}
+		return
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,10 +170,29 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", "old-quote", nil); err == nil {
 		t.Fatal("stale quote approved")
 	}
-	if scenario != "approve" && scenario != "image_parameters" {
+	if scenario == "expired" || scenario == "changed_canvas" || scenario == "reject" || scenario == "stopped" || strings.HasPrefix(scenario, "missing_prepared_") {
 		run, _ = s.repo.CloudAgent("user", view.ID)
 		state, _ = cloudAgentDecode(run)
 		switch scenario {
+		case "missing_prepared_capability", "missing_prepared_connection":
+			var prepared studioAgentMediaPrepared
+			if err := s.decryptStudioValue(state.Approval.StudioPreparedEncrypted, &prepared); err != nil {
+				t.Fatal(err)
+			}
+			if scenario == "missing_prepared_capability" {
+				prepared.Envelope.Consumption.ExpectedCapabilityRevision = ""
+			} else {
+				prepared.Envelope.Consumption.ExpectedConnectionRevision = 0
+			}
+			state.Approval.StudioPreparedEncrypted, err = s.encryptStudioValue(prepared)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := s.repo.MutateCloudAgent("user", run.ID, run.Revision, func(current *model.CloudAgentExecution, _ *repository.Repository) error {
+				return cloudAgentSave(current, &state)
+			}); err != nil {
+				t.Fatal(err)
+			}
 		case "expired":
 			state.Approval.StudioQuote.ExpiresAt = time.Now().Add(-time.Minute)
 			if err := s.repo.MutateCloudAgent("user", run.ID, run.Revision, func(current *model.CloudAgentExecution, _ *repository.Repository) error {
@@ -197,6 +249,9 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if err := s.decryptStudioValue(execution.EnvelopeEncrypted, &frozen); err != nil {
 		t.Fatal(err)
 	}
+	if frozen.Consumption == nil || frozen.Consumption.ExpectedCapabilityRevision != strings.Repeat("a", 64) || frozen.Consumption.ExpectedConnectionRevision != 7 {
+		t.Fatal("Pi encrypted envelope lost confirmed capability/connection")
+	}
 	grant, _ := s.decryptSettingSecret(execution.AuthorizationEncrypted)
 	if grant != "exa_media_run" || !execution.Released || frozen.Consumption.WalletMaxPoints != quote.WalletMaxPoints || !strings.Contains(string(frozen.Body), "a green square") {
 		t.Fatal("frozen request or shared authority changed")
@@ -204,11 +259,55 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if quotes != 1 || issues != 1 {
 		t.Fatalf("unexpected quote/grant count %d/%d", quotes, issues)
 	}
+	if scenario == "changed_capability" {
+		currentCapability = strings.Repeat("b", 64)
+	}
+	if scenario == "changed_connection" {
+		currentConnection = 8
+	}
+	if strings.HasPrefix(scenario, "missing_queued_") || scenario == "submitted_legacy" {
+		if scenario == "submitted_legacy" {
+			if err := s.ProcessNextTask(); err != nil {
+				t.Fatal(err)
+			}
+			frozen.Consumption = nil
+		} else if scenario == "missing_queued_capability" {
+			frozen.Consumption.ExpectedCapabilityRevision = ""
+		} else {
+			frozen.Consumption.ExpectedConnectionRevision = 0
+		}
+		encrypted, err := s.encryptStudioValue(frozen)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Model(&model.StudioExecution{}).Where("task_id = ?", state.MediaTaskID).Update("envelope_encrypted", encrypted).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
 	for i := 0; i < 3; i++ {
 		db.Model(&model.Task{}).Where("id = ?", state.MediaTaskID).Update("next_poll_at", time.Now().Add(-time.Second))
 		if err := s.ProcessNextTask(); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if strings.HasPrefix(scenario, "missing_queued_") || strings.HasPrefix(scenario, "changed_") || scenario == "submitted_legacy" {
+		task, err := s.repo.Task(state.MediaTaskID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		wantSubmits, wantRecovers := 1, 1
+		if strings.HasPrefix(scenario, "missing_queued_") {
+			wantSubmits, wantRecovers = 0, 0
+		}
+		if scenario == "submitted_legacy" {
+			wantRecovers = 3
+		} else if task.Status != model.TaskStatusFailed {
+			t.Fatalf("invalid frozen media not failed: %s", task.Status)
+		}
+		if quotes != 1 || issues != 1 || submits != wantSubmits || recoveries != wantRecovers {
+			t.Fatalf("invalid/legacy consumption retried/requoted: %d/%d/%d/%d", quotes, issues, submits, recoveries)
+		}
+		return
 	}
 	if submits != 1 || recoveries != 2 {
 		t.Fatalf("ambiguous media resubmitted: submits=%d recovery=%d", submits, recoveries)

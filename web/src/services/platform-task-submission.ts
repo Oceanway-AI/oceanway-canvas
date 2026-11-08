@@ -2,7 +2,7 @@ import { createClientUUID } from "@/lib/client-id";
 import type { CreateTaskInput, GenerationTask } from "@/services/api/task-center";
 
 type SubmissionDependencies = {
-    preview?(input: CreateTaskInput): Promise<{ price_version: string; wallet_points: string; allowed: boolean; combination_supported: boolean }>;
+    preview?(input: CreateTaskInput): Promise<{ capability_revision?: string; connection_revision?: number; price_version: string; wallet_points: string; allowed: boolean; combination_supported: boolean }>;
     create(input: CreateTaskInput): Promise<GenerationTask>;
     recover(commandId: string): Promise<GenerationTask>;
     scope(): string;
@@ -29,8 +29,17 @@ export async function submitPlatformTask(input: CreateTaskInput, deps: Submissio
             if (!deps.preview) throw new Error("平台报价暂不可用");
             const quote = await deps.preview(prepared);
             assertScope();
-            if (!quote.allowed || !quote.combination_supported || quote.price_version !== input.platform.expectedPriceVersion || !/^(0|[1-9]\d*)(\.\d+)?$/.test(quote.wallet_points)) throw new Error("平台未批准当前参数或额度，请刷新报价");
-            prepared = { ...prepared, platform: { ...input.platform, walletMaxPoints: input.platform.walletMaxPoints ?? quote.wallet_points } };
+            if (
+                !quote.allowed ||
+                !quote.combination_supported ||
+                quote.price_version !== input.platform.expectedPriceVersion ||
+                !/^(0|[1-9]\d*)(\.\d+)?$/.test(quote.wallet_points) ||
+                !/^[a-f0-9]{64}$/.test(quote.capability_revision || "") ||
+                !Number.isSafeInteger(quote.connection_revision) ||
+                (quote.connection_revision ?? 0) <= 0
+            )
+                throw new Error("平台未批准当前参数或额度，请刷新报价");
+            prepared = { ...prepared, platform: { ...input.platform, expectedCapabilityRevision: quote.capability_revision, expectedConnectionRevision: quote.connection_revision, walletMaxPoints: input.platform.walletMaxPoints ?? quote.wallet_points } };
         }
         preparedRequests.set(input, prepared);
     }

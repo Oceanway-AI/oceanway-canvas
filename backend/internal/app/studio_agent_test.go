@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -157,9 +158,14 @@ func testStudioPiRuntimeToolRoundTrip(t *testing.T, media bool) {
 			w.WriteHeader(204)
 		case strings.HasSuffix(r.URL.Path, "/media/consumption-preview"):
 			quotes++
-			_, _ = w.Write([]byte(`{"success":true,"data":{"model":"image-model","model_type":"image","price_version":"price-1","combination_supported":true,"allowed":true,"wallet_points":"0.123456789"}}`))
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": platformclient.ConsumptionPreview{CapabilityRevision: strings.Repeat("a", 64), ConnectionRevision: 7, Model: "image-model", ModelType: "image", PriceVersion: "price-1", CombinationSupported: true, Allowed: true, WalletPoints: "0.123456789"}})
 		case r.URL.Path == "/internal/relay/images/generations":
 			mediaSubmits++
+			raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get("X-Platform-Media-Consumption"))
+			var cap platformclient.MediaConsumptionConstraints
+			if json.Unmarshal(raw, &cap) != nil || cap.ExpectedCapabilityRevision != strings.Repeat("a", 64) || cap.ExpectedConnectionRevision != 7 || cap.ExpectedPriceVersion != "price-1" || cap.WalletMaxPoints != "0.123456789" {
+				t.Errorf("native Pi lost frozen consumption: %s", raw)
+			}
 			w.WriteHeader(503)
 		case strings.HasPrefix(r.URL.Path, "/internal/relay/media-requests/"):
 			mediaRecovers++

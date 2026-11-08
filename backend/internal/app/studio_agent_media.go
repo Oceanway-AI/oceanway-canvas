@@ -216,7 +216,7 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 		return nil, response, err
 	}
 	quote := StudioAgentMediaQuote{ID: newID(), WalletMaxPoints: preview.WalletPoints, PriceVersion: preview.PriceVersion, ExpiresAt: time.Now().Add(cloudAgentMediaQuoteLifetime), Parameters: parameters}
-	prepared := studioAgentMediaPrepared{Envelope: studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, AgentRunID: runID, ContentType: "application/json", Body: body, Consumption: &platformclient.MediaConsumptionConstraints{ExpectedPriceVersion: preview.PriceVersion, WalletMaxPoints: preview.WalletPoints}}, Request: req, Plan: *plan, DependencyHash: dependency, Quote: quote}
+	prepared := studioAgentMediaPrepared{Envelope: studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, AgentRunID: runID, ContentType: "application/json", Body: body, Consumption: studioMediaConsumption(preview, req.Platform)}, Request: req, Plan: *plan, DependencyHash: dependency, Quote: quote}
 	encrypted, err := s.encryptStudioValue(prepared)
 	if err != nil {
 		return nil, response, err
@@ -289,6 +289,9 @@ func (s *Service) DecideStudioAgentMedia(userID, runID, approvalID, decision, re
 	}
 	if prepared.Quote.ID != quoteID {
 		return creationConflict("审批报价身份不匹配")
+	}
+	if !studioMediaConsumptionValid(prepared.Envelope.Consumption) {
+		return creationConflict("原媒体消费版本未冻结，请重新确认报价")
 	}
 	body, err := s.studioMediaBody(context.Background(), userID, prepared.Request, prepared.Envelope.Selection)
 	if err != nil {
