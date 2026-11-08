@@ -1,0 +1,56 @@
+{
+  "expected_enabled": true,
+  "actual_enabled": false,
+  "reason": "disabled",
+  "models": [
+    {
+      "model": "doubao-seedance-2-0-fast-260128",
+      "model_type": "video",
+      "configured": false,
+      "reason": "disabled"
+    },
+    {
+      "model": "doubao-seedance-2-0-mini-260615",
+      "model_type": "video",
+      "configured": false,
+      "reason": "disabled"
+    },
+    {
+      "model": "doubao-seedance-2-5-260628",
+      "model_type": "video",
+      "configured": false,
+      "reason": "disabled"
+    },
+    {
+      "model": "gpt-image-2",
+      "model_type": "image",
+      "configured": false,
+      "reason": "disabled"
+    },
+    {
+      "model": "gpt-image-2.5-flare",
+      "model_type": "image",
+      "configured": false,
+      "reason": "disabled"
+    },
+    {
+      "model": "gpt-image-2.5-sunburst",
+      "model_type": "image",
+      "configured": false,
+      "reason": "disabled"
+    },
+    {
+      "model": "gpt-image-2.6-flare",
+      "model_type": "image",
+      "configured": false,
+      "reason": "disabled"
+    },
+    {
+      "model": "gpt-image-2.6-sunburst",
+      "model_type": "image",
+      "configured": false,
+      "reason": "disabled"
+    }
+  ],
+  "pass": false
+}
