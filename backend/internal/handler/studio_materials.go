@@ -32,6 +32,19 @@ func studioMaterialJSON(c *gin.Context, in any) bool {
 }
 
 func RegisterStudioMaterialRoutes(api *gin.RouterGroup, svc *service.Service) {
+	api.POST("/materials/access", func(c *gin.Context) {
+		c.Header("Cache-Control", "private, no-store")
+		if _, err := currentUser(c, svc); err != nil {
+			failService(c, err)
+			return
+		}
+		var in platformclient.AccessRequest
+		if !studioMaterialJSON(c, &in) {
+			return
+		}
+		data, response, err := svc.StudioMaterialBrowseAccess(c.Request.Context(), platformintegration.Session(c.Request), in)
+		studioMaterialReply(c, data, response, err)
+	})
 	api.POST("/resources/platform-uploads", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

@@ -4,7 +4,7 @@ import { studioUnavailableRoute } from "@/lib/studio-release-surface";
 // 用户端页面统一在这里声明：路由渲染和悬停/空闲预取用同一个组件实例，
 // 预取完成后切换页面同步渲染，不再闪出加载提示。
 export const workspaceRoutePages = {
-    assets: preloadableLazy(() => import("@/pages/assets/platform-assets-page")),
+    assets: preloadableLazy(() => import("@/pages/assets")),
     canvas: preloadableLazy(() => import("@/pages/canvas")),
     canvasProject: preloadableLazy(() => import("@/pages/canvas/project")),
     create: preloadableLazy(() => import("@/pages/create")),

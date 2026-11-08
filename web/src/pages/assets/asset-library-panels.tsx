@@ -44,7 +44,7 @@ export function AssetsBatchBar({
     onExport: () => void;
     onRestore?: () => void;
     onArchive?: () => void;
-    onDelete: () => void;
+    onDelete?: () => void;
 }) {
     return (
         <div className="assets-batch-bar" role="toolbar" aria-label="批量操作">
@@ -63,9 +63,11 @@ export function AssetsBatchBar({
                         <Button size="small" type="primary" disabled={!count || busy} icon={<RotateCcw className="size-3.5" />} onClick={onRestore}>
                             还原已选
                         </Button>
-                        <Button size="small" danger disabled={!count || busy} icon={<Trash2 className="size-3.5" />} onClick={onDelete}>
-                            彻底删除已选
-                        </Button>
+                        {onDelete ? (
+                            <Button size="small" danger disabled={!count || busy} icon={<Trash2 className="size-3.5" />} onClick={onDelete}>
+                                彻底删除已选
+                            </Button>
+                        ) : null}
                     </>
                 ) : (
                     <>
@@ -75,9 +77,11 @@ export function AssetsBatchBar({
                         <Button size="small" disabled={!count || busy} icon={<Trash2 className="size-3.5 text-amber-500" />} onClick={onArchive}>
                             移入回收站
                         </Button>
-                        <Button size="small" danger disabled={!count || busy} icon={<Trash2 className="size-3.5" />} onClick={onDelete}>
-                            彻底删除
-                        </Button>
+                        {onDelete ? (
+                            <Button size="small" danger disabled={!count || busy} icon={<Trash2 className="size-3.5" />} onClick={onDelete}>
+                                彻底删除
+                            </Button>
+                        ) : null}
                     </>
                 )}
             </div>
@@ -91,7 +95,7 @@ export const assetsEmptyBannerFrames = [
     { src: "/short-drama-styles/suspense-noir.jpg", caption: "ASSET.03 · 暗巷追逐" },
 ];
 
-export function AssetsEmptyState({ onNew, onImport, onGoCanvas }: { onNew: () => void; onImport: () => void; onGoCanvas: () => void }) {
+export function AssetsEmptyState({ onNew, onImport, onGoCanvas, sharedFiles = false }: { onNew: () => void; onImport: () => void; onGoCanvas: () => void; sharedFiles?: boolean }) {
     const brandName = useAppearanceStore((state) => state.appearance.brandName);
     return (
         <div className="assets-empty">
@@ -118,8 +122,8 @@ export function AssetsEmptyState({ onNew, onImport, onGoCanvas }: { onNew: () =>
                     <span className="assets-empty-card-icon">
                         <FileUp />
                     </span>
-                    <strong>导入素材包</strong>
-                    <span>从素材压缩包一键恢复旧资产，继续创作。</span>
+                    <strong>{sharedFiles ? "从共享文件库采用" : "导入素材包"}</strong>
+                    <span>{sharedFiles ? "选择已有图片、视频或音频，整理为创作素材。" : "从素材压缩包一键恢复旧资产，继续创作。"}</span>
                 </button>
                 <button type="button" className="assets-empty-card" onClick={onGoCanvas}>
                     <span className="assets-empty-card-icon">

@@ -13,10 +13,28 @@ type AssetMediaPreviewProps = {
     /** 图片或视频首帧可以显示时调用，供卡片结束加载骨架。 */
     onLoad?: () => void;
     onError?: () => void;
+    thumbnail?: boolean;
 };
 
-export function AssetMediaPreview({ asset, alt, className = "", fallback = null, loadingFallback = fallback, onLoad, onError }: AssetMediaPreviewProps) {
+export function AssetMediaPreview({ asset, alt, className = "", fallback = null, loadingFallback = fallback, onLoad, onError, thumbnail = false }: AssetMediaPreviewProps) {
     if (!asset) return fallback;
+
+    if (thumbnail && (asset.kind === "image" || asset.kind === "video") && asset.data.storageKey?.startsWith("resource:")) {
+        return (
+            <CachedResourceImage
+                storageKey={asset.data.storageKey}
+                variant={asset.kind === "video" ? "poster" : "thumbnail"}
+                alt={alt}
+                loading="lazy"
+                decoding="async"
+                className={className}
+                fallback={fallback}
+                loadingFallback={loadingFallback}
+                onLoad={onLoad}
+                onError={onError}
+            />
+        );
+    }
 
     if (asset.kind === "video" && asset.data.url) {
         const poster = asset.coverUrl && asset.coverUrl !== asset.data.url ? asset.coverUrl : undefined;

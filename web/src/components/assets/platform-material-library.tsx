@@ -4,22 +4,22 @@ import { App, Button, Checkbox, Input, Select } from "antd";
 import { FileText, Upload, RefreshCw } from "lucide-react";
 import { useUserStore } from "@/stores/use-user-store";
 import { getActiveUserScope } from "@/lib/user-scope";
-import { getPlatformMaterials, adoptPlatformMaterial, type PlatformMaterialAsset } from "@/services/api/platform-materials";
-import { getResourceAccess, resourceStorageKey, uploadResourceFile } from "@/services/api/resources";
+import { getPlatformMaterials, getPlatformMaterialAccess, type PlatformMaterialAsset } from "@/services/api/platform-materials";
+import { uploadResourceFile } from "@/services/api/resources";
 import { preparePlatformMaterialInsert } from "@/services/platform-material-selection";
 import type { InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { AppModal } from "@/components/ui/product/app-modal";
-import { downloadBrowserMedia } from "@/services/browser-download";
+import { saveAs } from "file-saver";
 
-type Props = { onInsert?: (items: InsertAssetPayload[]) => Promise<unknown> | void; multiple?: boolean; compact?: boolean };
+type Props = { onInsert?: (items: InsertAssetPayload[]) => Promise<unknown> | void; multiple?: boolean; compact?: boolean; actionLabel?: string };
 const labels: Record<string, string> = { image: "图片", video: "视频", audio: "音频", document: "文档" };
 
-export function PlatformMaterialLibrary({ onInsert, multiple = true, compact = false }: Props) {
+export function PlatformMaterialLibrary({ onInsert, multiple = true, compact = false, actionLabel }: Props) {
     const userId = useUserStore((state) => state.user?.id);
-    return <MaterialLibrary key={userId || "anonymous"} onInsert={onInsert} multiple={multiple} compact={compact} />;
+    return <MaterialLibrary key={userId || "anonymous"} onInsert={onInsert} multiple={multiple} compact={compact} actionLabel={actionLabel} />;
 }
 
-function MaterialLibrary({ onInsert, multiple, compact }: Props) {
+function MaterialLibrary({ onInsert, multiple, compact, actionLabel }: Props) {
     const { message } = App.useApp();
     const userId = useUserStore((state) => state.user?.id);
     const queryClient = useQueryClient();
@@ -71,15 +71,16 @@ function MaterialLibrary({ onInsert, multiple, compact }: Props) {
         });
     const view = (asset: PlatformMaterialAsset, download = false) =>
         operate(async (assertCurrent) => {
-            const resource = await adoptPlatformMaterial(asset.asset_id, asset.version.version_id);
+            const access = await getPlatformMaterialAccess(asset, download);
             assertCurrent();
-            const storageKey = resourceStorageKey(resource.id);
             if (download) {
-                await downloadBrowserMedia({ storageKey, fileName: asset.title });
+                const response = await fetch(access.url, { credentials: "omit", redirect: "error", referrerPolicy: "no-referrer" });
+                if (!response.ok) throw new Error("素材下载失败");
+                const blob = await response.blob();
+                assertCurrent();
+                saveAs(blob, asset.title);
                 return;
             }
-            const access = await getResourceAccess(storageKey, "display", asset.kind === "video" || asset.kind === "audio" ? "playback" : "original", "", { forceRefresh: true });
-            assertCurrent();
             setPreview({ title: asset.title, kind: asset.kind, url: access.url });
         });
     const upload = (files: File[]) =>
@@ -198,7 +199,7 @@ function MaterialLibrary({ onInsert, multiple, compact }: Props) {
                 </Button>
                 {onInsert ? (
                     <Button type="primary" disabled={!selected.length || busy} loading={busy && !uploadStatus} onClick={() => void insert()}>
-                        插入 {selected.length || ""} 项
+                        {actionLabel || "插入"} {selected.length || ""} 项
                     </Button>
                 ) : null}
             </div>

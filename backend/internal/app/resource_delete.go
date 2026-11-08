@@ -21,6 +21,9 @@ func (s *Service) deleteUserAssetWithResources(userID string, assetID string, pu
 }
 
 func (s *Service) deleteUserAssetsWithResources(userID string, ids []string, purge bool) error {
+	if s.UsesPlatformIdentity() {
+		return NewAppError(409, "共享文件引用仍需保留，请使用移入回收站或恢复")
+	}
 	if strings.TrimSpace(userID) == "" || len(ids) == 0 || len(ids) > 1000 {
 		return BadAuthRequest("每次删除须提供 1–1000 个素材 ID 和有效用户")
 	}
