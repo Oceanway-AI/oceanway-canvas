@@ -1,0 +1,78 @@
+bun test v1.3.14 (0d9b296a)
+
+test/asset-library-format.test.ts:
+(pass) asset library format > shows real media dimensions [0.65ms]
+(pass) asset library format > treats zero, missing and the legacy 1x1 placeholder as unknown [0.06ms]
+(pass) asset library format > labels drama assets by the project recorded in metadata [0.17ms]
+
+test/asset-library-selection.test.tsx:
+(pass) 素材详情通过资源标识加载原图，解析历史地址 /api/resources/detail-image/file [14.80ms]
+(pass) 素材详情通过资源标识加载原图，解析历史地址 https://old.example/expired-original.png [1.87ms]
+(pass) 素材库分页多选 > 跨页选择合并去重，取消只影响指定素材 [0.29ms]
+(pass) 素材库分页多选 > Shift 正向反向连选和连取消，保留其他页的选择 [0.03ms]
+(pass) 素材库分页多选 > 翻页后锚点不在当前页时仅切换目标 [0.01ms]
+(pass) 素材库分页多选 > 普通模式点击封面和文字仍打开预览 [3.31ms]
+(pass) 素材库分页多选 > 多选模式封面和文字直接切换选择（原选中：%s） [0.42ms]
+(pass) 素材库分页多选 > 多选模式封面和文字直接切换选择（原选中：%s） [0.25ms]
+(pass) 素材库分页多选 > Shift 或 Ctrl 点击卡片可直接开始多选 [0.37ms]
+(pass) 素材库分页多选 > 选择为空或操作中时禁用写按钮，并明确全选范围 [25.21ms]
+
+test/assets-page-batch-toolbar.test.ts:
+(pass) assets page batch toolbar > keeps card selection in the top left with badge clearance [0.84ms]
+(pass) assets page batch toolbar > keeps batch actions in document flow with space above selected cards [1.18ms]
+(pass) assets page batch toolbar > places select all before cancel selection [0.62ms]
+
+test/platform-material-selection.test.ts:
+(pass) Canvas insertion adopts the selected immutable version and stores a stable resource URL [3.44ms]
+
+test/studio-native-assets.test.tsx:
+(pass) shared file preview is a read and never adopts or uploads [0.81ms]
+(pass) adopted file becomes one native business asset; repeated adoption preserves edits [1.10ms]
+(pass) native image cards request small derived files [0.13ms]
+(pass) native video cards request small derived files
+
+test/studio-release-surface.test.ts:
+(pass) 首发未接通入口展示状态，直接访问不会挂载旧业务组件 [20.08ms]
+(pass) 平台会话不采纳历史插件启用状态或 fallback [0.22ms]
+(pass) 首发已接通的创作/画布/素材/任务/设置继续挂载 [0.44ms]
+
+test/assets-collection-layout.test.ts:
+(pass) asset library category sidebar > keeps type, business and folder filters in a left-hand nav [1.19ms]
+(pass) wallet history pagination > pins ledger pagination to the history panel footer [1.00ms]
+
+test/platform-canvas-material-sync.test.ts:
+(pass) 平台画布只校验固定资源，不写旧资产接口；文本结果直接保存在画布 [0.92ms]
+
+test/platform-material-upload.test.ts:
+(pass) Platform upload uses credential-free tickets and recovers a lost completion without a new command [9.33ms]
+(pass) Switching accounts after upload preparation cannot send ticket bytes or complete the upload [0.94ms]
+(pass) Untrusted ticket headers and expired URLs are rejected before disclosing file bytes [0.85ms]
+
+test/asset-category.test.ts:
+(pass) asset category contract > 旧服饰、武器和配饰统一迁移为道具 [0.02ms]
+(pass) asset category contract > 旧画风迁移为素材，未知值归入其他 [0.02ms]
+(pass) asset category contract > 未分类媒体默认归入素材 [0.02ms]
+
+test/asset-storage-revision.test.ts:
+(pass) asset storage revision > parses complete persisted assets without rewriting tags [0.45ms]
+(pass) asset storage revision > rejects persisted assets that are missing tags [0.42ms]
+(pass) asset storage revision > isolates malformed historical records while preserving valid assets [0.31ms]
+
+test/asset-record.test.ts:
+(pass) parseAssetRecord > accepts a complete image asset [0.06ms]
+(pass) parseAssetRecord > rejects missing or malformed tags [0.06ms]
+(pass) parseAssetRecord > rejects incomplete image data instead of filling zeros [0.09ms]
+(pass) parseAssetRecord > rejects wildcard and cross-kind MIME metadata [0.06ms]
+(pass) parseAssetRecord > parseAssetRecordList names the failing record [0.03ms]
+(pass) parseAssetRecord 视频尺寸 > 宽高未知（0）放行，视频照常入库 [0.08ms]
+(pass) parseAssetRecord 视频尺寸 > 负数与非法值仍然拒 [0.08ms]
+(pass) parseAssetRecord 视频尺寸 > 图片不受影响：零尺寸仍然拒 [0.02ms]
+
+test/asset-remote-sync.test.ts:
+(pass) asset remote sync > removes an invalid historical primary version id only from the remote payload [1.76ms]
+(pass) asset remote sync > preserves a valid backend version uuid [0.22ms]
+
+ 46 pass
+ 0 fail
+ 217 expect() calls
+Ran 46 tests across 13 files. [2.19s]

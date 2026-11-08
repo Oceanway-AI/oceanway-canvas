@@ -1,0 +1,86 @@
+{
+  "assets": [
+    {
+      "category": "prop",
+      "coverUrl": "/api/resources/6ffe9c41-2aeb-5f26-b387-8eafc6a40bd1/file",
+      "createdAt": "2026-11-08T19:00:12.007Z",
+      "data": {
+        "bytes": 1128375,
+        "durationMs": 0,
+        "height": 0,
+        "mimeType": "video/mp4",
+        "storageKey": "resource:6ffe9c41-2aeb-5f26-b387-8eafc6a40bd1",
+        "url": "/api/resources/6ffe9c41-2aeb-5f26-b387-8eafc6a40bd1/file",
+        "width": 0
+      },
+      "folderId": "76d30ebda5725663857215b095b30ca9",
+      "id": "platform-6ffe9c41-2aeb-5f26-b387-8eafc6a40bd1",
+      "kind": "video",
+      "metadata": {
+        "source": "platform-library"
+      },
+      "note": "复用原文件，标题与备注不写回共享库",
+      "status": "confirmed",
+      "tags": [
+        "验收"
+      ],
+      "title": "A1 视频参考已编辑",
+      "updatedAt": "2026-11-08T19:12:23.474Z"
+    },
+    {
+      "category": "other",
+      "coverUrl": "",
+      "createdAt": "2026-11-08T19:01:29.907Z",
+      "data": {
+        "content": "原生 Asset 保存成功，Platform 负责原件和权限。"
+      },
+      "folderId": "76d30ebda5725663857215b095b30ca9",
+      "id": "7CbvXQ6fh7ZGuCQRre095",
+      "kind": "text",
+      "metadata": {
+        "source": "manual"
+      },
+      "note": "文件夹、正文和备注重开后保持",
+      "source": "手动添加",
+      "status": "confirmed",
+      "tags": [],
+      "title": "A1 云端说明",
+      "updatedAt": "2026-11-08T19:01:29.907Z"
+    },
+    {
+      "category": "material",
+      "coverUrl": "/api/resources/17868964-8d00-5849-9566-70d05a5c9c20/file",
+      "createdAt": "2026-11-08T18:57:45.556Z",
+      "data": {
+        "bytes": 31936,
+        "dataUrl": "/api/resources/17868964-8d00-5849-9566-70d05a5c9c20/file",
+        "height": 427,
+        "mimeType": "image/jpeg",
+        "storageKey": "resource:17868964-8d00-5849-9566-70d05a5c9c20",
+        "width": 640
+      },
+      "folderId": "76d30ebda5725663857215b095b30ca9",
+      "id": "platform-17868964-8d00-5849-9566-70d05a5c9c20",
+      "kind": "image",
+      "metadata": {
+        "source": "platform-library"
+      },
+      "status": "confirmed",
+      "tags": [],
+      "title": "免费图片参考",
+      "updatedAt": "2026-11-08T18:57:45.556Z"
+    }
+  ],
+  "folders": {
+    "folders": [
+      {
+        "id": "76d30ebda5725663857215b095b30ca9",
+        "userId": "191742a6-f7c6-5d74-9abc-6bdb6b62037e",
+        "name": "A1 免费验收",
+        "position": 0,
+        "createdAt": "2026-11-08T18:56:11.478775Z",
+        "updatedAt": "2026-11-08T18:56:11.478775Z"
+      }
+    ]
+  }
+}

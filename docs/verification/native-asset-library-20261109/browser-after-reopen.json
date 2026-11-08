@@ -1,0 +1,38 @@
+{
+  "code": 0,
+  "data": {
+    "assets": [
+      {
+        "id": "platform-6ffe9c41-2aeb-5f26-b387-8eafc6a40bd1",
+        "folderId": "76d30ebda5725663857215b095b30ca9",
+        "kind": "video",
+        "category": "prop",
+        "status": "confirmed",
+        "title": "A1 视频参考已编辑",
+        "createdAt": "2026-11-08T19:00:12.007Z",
+        "updatedAt": "2026-11-08T19:12:23.474Z"
+      },
+      {
+        "id": "7CbvXQ6fh7ZGuCQRre095",
+        "folderId": "76d30ebda5725663857215b095b30ca9",
+        "kind": "text",
+        "category": "other",
+        "status": "confirmed",
+        "title": "A1 云端说明",
+        "createdAt": "2026-11-08T19:01:29.907Z",
+        "updatedAt": "2026-11-08T19:01:29.907Z"
+      },
+      {
+        "id": "platform-17868964-8d00-5849-9566-70d05a5c9c20",
+        "folderId": "76d30ebda5725663857215b095b30ca9",
+        "kind": "image",
+        "category": "material",
+        "status": "confirmed",
+        "title": "免费图片参考",
+        "createdAt": "2026-11-08T18:57:45.556Z",
+        "updatedAt": "2026-11-08T18:57:45.556Z"
+      }
+    ]
+  },
+  "msg": "ok"
+}
