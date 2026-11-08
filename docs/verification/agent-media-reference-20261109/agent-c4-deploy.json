@@ -1,0 +1,11 @@
+{
+  "source": "d04c2a6",
+  "images": {
+    "backend": "sha256:2531752e241665e9cd69ecb5bc2ad26de41c68f27e3581d6452f617671008b28",
+    "web": "sha256:55a46ea43f1284de0a922c01d4c544130f75e0bb091b8ca27c12e67735d059ab"
+  },
+  "database_backup": "/opt/oceanway-studio-preview/private/studio-before-d04c2a6.dump",
+  "public_origin": "https://test.oceanway.tech:18448",
+  "protected_container_count": 110,
+  "protected_unchanged": true
+}

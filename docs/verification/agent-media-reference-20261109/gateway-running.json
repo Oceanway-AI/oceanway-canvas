@@ -1,0 +1,1 @@
+{"task_id": "task_3iCv09iv3guRMOdU7N0oHdyFq2UjVtkY", "status": "IN_PROGRESS", "supplier_task_id": "task_zEkLP6o72utxzu9xQAY5Qf2OTCKTqTBz", "action": "image_to_video", "content": [], "execution_keys": ["request_id", "request_path", "task_plugin"], "model": "doubao-seedance-2-0-mini-260615", "resolution": "720p", "duration": 4}

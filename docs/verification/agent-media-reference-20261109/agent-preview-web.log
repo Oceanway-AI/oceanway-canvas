@@ -1,0 +1,28 @@
+bun test v1.3.14 (0d9b296a)
+
+test/platform-task-submission.test.ts:
+(pass) Platform task submission > video requires explicit maximum confirmation and freezes it on the original command [3.07ms]
+(pass) Platform task submission > video refuses canceled or insufficient maximum null before creating a task [0.25ms]
+(pass) Platform task submission > video refuses canceled or insufficient maximum "-1" before creating a task [0.05ms]
+(pass) Platform task submission > video refuses canceled or insufficient maximum "NaN" before creating a task
+(pass) Platform task submission > video refuses canceled or insufficient maximum "198.7199999999999999999" before creating a task [0.01ms]
+(pass) Platform task submission > incomplete revision preview never creates or recovers a task: {} [0.45ms]
+(pass) Platform task submission > incomplete revision preview never creates or recovers a task: {"capability_revision":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+(pass) Platform task submission > incomplete revision preview never creates or recovers a task: {"capability_revision":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","connection_revision":0}
+(pass) Platform task submission > incomplete revision preview never creates or recovers a task: {"capability_revision":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","connection_revision":1.5}
+(pass) Platform task submission > incomplete revision preview never creates or recovers a task: {"capability_revision":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","connection_revision":9007199254740992}
+(pass) Platform task submission > incomplete revision preview never creates or recovers a task: {"capability_revision":"invalid","connection_revision":7}
+(pass) Platform task submission > lost media create response retains original preview revisions and only queries its command [0.15ms]
+(pass) Platform task submission > media freezes the exact decimal quote as its ceiling before submit [0.30ms]
+(pass) Platform task submission > a stale quote never creates a paid task [0.28ms]
+(pass) Platform task submission > lost create response reads the same command without another paid request [0.08ms]
+(pass) Platform task submission > account switch never recovers or adopts a prior user's task [0.05ms]
+
+test/studio-agent-media-approval.test.ts:
+(pass) 真实平台媒体审批卡 [1542.37ms]
+(pass) 报价和批准通过不同请求，批准只携带已展示报价身份 [1.97ms]
+
+ 18 pass
+ 0 fail
+ 42 expect() calls
+Ran 18 tests across 2 files. [1.83s]

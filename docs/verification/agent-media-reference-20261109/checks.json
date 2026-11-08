@@ -1,0 +1,17 @@
+{
+  "completed_agent": "agebdddd12eb9546b86f13e02d8cab915a",
+  "media_task": "ag92cdfea00afe0b4607ebc07a22675f08",
+  "platform_task": "media_e7bc0b3194cc6eba65cfedf0d0c6117aec2e96ea93c51006061dbc893d76f097",
+  "gateway_task": "task_3iCv09iv3guRMOdU7N0oHdyFq2UjVtkY",
+  "one_new_media_request": true,
+  "shared_root_authority": true,
+  "one_archive": true,
+  "input_reference_released": true,
+  "original_nodes_unchanged": true,
+  "nodes": 4,
+  "edges": 2,
+  "close_reopen_same_nodes_edges_materials_tasks": true,
+  "explicit_maximum_points": "250",
+  "settled_quota": 1003939,
+  "settled_points": "200.7878"
+}

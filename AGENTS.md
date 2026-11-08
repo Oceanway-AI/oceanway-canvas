@@ -1,5 +1,7 @@
 # AGENTS.md
 
+2026-11-09真实Agent接续：d04c2a6/809b5e3已部署18448，未确认额度只预览，Skills原路由共享注册，原单一Agent合同v21/编译器v7及摘要使用Platform资金权威。免费RED→GREEN/race与原生浏览器取消/拒绝通过；一个新Mini参考图生视频成功，实际200.7878点≤250，原worker归档一次、输入引用释放，4节点2连线/素材/Task在进行中和完成后关页重开均恢复。原失败保留，Console/原108受保护容器/nginx不变，无push，Platform/18420/Pi保持。证据docs/verification/agent-media-reference-20261109、全局Docs PROC-02-067；C4整体未完，付费进程重启/无画布媒体/团队全链及Resource宽高时长仍待办。下一步C2两图片异步恢复与另一视频系列。
+
 2026-11-08 23:43 真实闭环：本轮用户授权测试发布，Studio ff6a3ce 已在18448运行，Platform dba921b5在18447，18420原异步发行补processing映射。新画布sQ3Xqpn5rFRjYHy6Pjigf通过原生按钮真实生成gpt-image-2与Seedance Mini（4秒720p），明确上限20/250，最终结算20/200.7878积分；原worker入库、原件摘要、CDN派生、播放和关页重开同ID通过。原Pi/Task保留，旧失败未重试，Console及受保护服务不变。证据docs/verification/native-media-actual-budget-20261108，规范/全局交接Docs PROC-02-067。本批Agent额度路径只有免费测试，付费审批/参考素材、异步图片、第二视频系列及完整故障矩阵仍待验；不宣称全部首发已完成。下文禁止部署为早期分工，未来操作仍按当前用户范围。
 
 ## OceanWay Studio 当前改造边界（2026-11-07）
