@@ -20,7 +20,7 @@ import (
 const studioAgentMediaFixtureCatalog = `{"success":true,"data":{"items":[{"model_name":"pi-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}},{"model_name":"image-model","model_type":"image","invocation_status":"available","price":{"status":"available","version":"price-1"},"media_generation_profile":{"default_variant":"generate","variants":[{"id":"generate","protocol":"openai-images","operation":"generate","method":"POST","path":"/images/generations","defaults":{"n":1,"size":"1:1"},"specifications_schema":{"type":"object","additionalProperties":false,"properties":{"n":{"type":"integer","enum":[1]},"size":{"type":"string","enum":["1:1"]}},"required":["n","size"]},"parameter_bindings":{"n":"n","size":"size"}}]}}]}}`
 
 func TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority(t *testing.T) {
-	for _, scenario := range []string{"approve", "image_parameters", "expired", "changed_canvas", "reject", "stopped", "missing_preview_capability", "missing_preview_connection", "missing_prepared_capability", "missing_prepared_connection", "changed_capability", "changed_connection", "missing_queued_capability", "missing_queued_connection", "submitted_legacy"} {
+	for _, scenario := range []string{"approve", "image_parameters", "video_const", "video_const_default", "video_const_invalid", "expired", "changed_canvas", "reject", "stopped", "missing_preview_capability", "missing_preview_connection", "missing_prepared_capability", "missing_prepared_connection", "changed_capability", "changed_connection", "missing_queued_capability", "missing_queued_connection", "submitted_legacy"} {
 		t.Run(scenario, func(t *testing.T) { studioPiMediaApprovalScenario(t, scenario) })
 	}
 }
@@ -36,6 +36,16 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	submits, recoveries := 0, 0
 	currentCapability, currentConnection := strings.Repeat("a", 64), int64(7)
 	catalog := studioAgentMediaFixtureCatalog
+	kind, submitPath := "image", "/internal/relay/images/generations"
+	if strings.HasPrefix(scenario, "video_const") {
+		kind, submitPath = "video", "/internal/relay/doubao/api/v3/contents/generations/tasks"
+		catalog = strings.Replace(catalog, `"model_type":"image"`, `"model_type":"video"`, 1)
+		catalog = strings.Replace(catalog, `"protocol":"openai-images"`, `"protocol":"doubao-video"`, 1)
+		catalog = strings.Replace(catalog, `"path":"/images/generations"`, `"path":"/doubao/api/v3/contents/generations/tasks"`, 1)
+		catalog = strings.Replace(catalog, `"defaults":{"n":1,"size":"1:1"}`, `"defaults":{}`, 1)
+		catalog = strings.Replace(catalog, `"properties":{"n":{"type":"integer","enum":[1]},"size":{"type":"string","enum":["1:1"]}},"required":["n","size"]`, `"properties":{"resolution":{"type":"string","const":"720p"},"duration":{"type":"integer","enum":[4,5]},"ratio":{"type":"string","enum":["16:9"]}},"required":["resolution","duration","ratio"]`, 1)
+		catalog = strings.Replace(catalog, `"parameter_bindings":{"n":"n","size":"size"}`, `"parameter_bindings":{"resolution":"resolution","duration":"duration","ratio":"ratio"}`, 1)
+	}
 	if scenario == "image_parameters" {
 		// Publish a parameter which has no dedicated generate_media argument.
 		catalog = strings.ReplaceAll(catalog, `"size":"1:1"`, `"size":"1:1","background":"opaque"`)
@@ -61,7 +71,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 			if r.Header.Get("Origin") != "https://studio.example.test" || r.Header.Get("Cookie") == "" {
 				t.Error("quote lost genuine browser authority")
 			}
-			quote := platformclient.ConsumptionPreview{CapabilityRevision: strings.Repeat("a", 64), ConnectionRevision: 7, Model: "image-model", ModelType: "image", PriceVersion: "price-1", CombinationSupported: true, Allowed: true, WalletPoints: "0.123456789"}
+			quote := platformclient.ConsumptionPreview{CapabilityRevision: strings.Repeat("a", 64), ConnectionRevision: 7, Model: "image-model", ModelType: kind, PriceVersion: "price-1", CombinationSupported: true, Allowed: true, WalletPoints: "0.123456789"}
 			if scenario == "missing_preview_capability" {
 				quote.CapabilityRevision = ""
 			}
@@ -69,7 +79,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 				quote.ConnectionRevision = 0
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": quote})
-		case r.URL.Path == "/internal/relay/images/generations":
+		case r.URL.Path == submitPath:
 			submits++
 			body, _ := io.ReadAll(r.Body)
 			raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get("X-Platform-Media-Consumption"))
@@ -118,6 +128,15 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	run, _ := s.repo.CloudAgent("user", view.ID)
 	state, _ := cloudAgentDecode(run)
 	args := cloudAgentMediaArgs{Mode: "image", Prompt: "a green square", ChannelID: StudioPlatformChannelID, ChannelModelKey: "image-model", Size: "1:1", NodeID: "image-node", Title: "草稿"}
+	if kind == "video" {
+		args.Mode, args.Size, args.Duration = "video", "16:9", 4
+		if scenario == "video_const" {
+			args.Quality = "720"
+		}
+		if scenario == "video_const_invalid" {
+			args.Quality = "1080"
+		}
+	}
 	if scenario == "image_parameters" {
 		args.ImageParameters = `{"background":"transparent"}`
 	}
@@ -133,6 +152,17 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	}
 	run, _ = s.repo.CloudAgent("user", view.ID)
 	state, _ = cloudAgentDecode(run)
+	if scenario == "video_const_invalid" {
+		if run.Status != "failed" || quotes != 0 || submits != 0 || state.Approval != nil {
+			t.Fatal("unsupported Agent resolution was replaced or quoted")
+		}
+		var canvas model.CanvasProject
+		db.First(&canvas, "id = ?", "media-canvas")
+		if strings.Contains(canvas.PayloadJSON, "image-node") {
+			t.Fatal("unsupported resolution created a media node")
+		}
+		return
+	}
 	if run.Status != "waiting_approval" || state.Approval == nil {
 		t.Fatalf("media draft did not reach native Pi approval: status=%s events=%+v", run.Status, state.Events)
 	}
@@ -157,6 +187,12 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	}
 	if quote.WalletMaxPoints != "0.123456789" || quote.PriceVersion != "price-1" {
 		t.Fatal("decimal quote changed")
+	}
+	if kind == "video" {
+		var body map[string]any
+		if err := json.Unmarshal(quotedBody, &body); err != nil || body["resolution"] != "720p" || body["duration"] != float64(4) || body["ratio"] != "16:9" {
+			t.Fatalf("Pi lost const resolution or native parameters: %s", quotedBody)
+		}
 	}
 	if scenario == "image_parameters" {
 		var body map[string]any
@@ -322,13 +358,19 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	}
 	// Once the original output has been adopted, native Pi writes the fixed
 	// Resource back without requiring a second local Asset.
-	if err := db.Create(&model.Resource{ID: "generated-fixed", UserID: "user", Provider: "platform", Kind: "image", Status: model.ResourceStatusReady, MimeType: "image/png"}).Error; err != nil {
+	mimeType := "image/png"
+	result := `{"images":[{"dataUrl":"/api/resources/generated-fixed/file","storageKey":"resource:generated-fixed","mimeType":"image/png"}]}`
+	if kind == "video" {
+		mimeType = "video/mp4"
+		result = `{"video":{"dataUrl":"/api/resources/generated-fixed/file","storageKey":"resource:generated-fixed","mimeType":"video/mp4"}}`
+	}
+	if err := db.Create(&model.Resource{ID: "generated-fixed", UserID: "user", Provider: "platform", Kind: kind, Status: model.ResourceStatusReady, MimeType: mimeType}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Create(&model.StudioMaterialReference{ResourceID: "generated-fixed", UserID: "user", AssetID: "output-asset", VersionID: "v1", FileID: "f1", BindingID: "b1"}).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Model(&model.Task{}).Where("id = ?", state.MediaTaskID).Updates(map[string]any{"status": model.TaskStatusSucceeded, "result_json": `{"images":[{"dataUrl":"/api/resources/generated-fixed/file","storageKey":"resource:generated-fixed","mimeType":"image/png"}]}`}).Error; err != nil {
+	if err := db.Model(&model.Task{}).Where("id = ?", state.MediaTaskID).Updates(map[string]any{"status": model.TaskStatusSucceeded, "result_json": result}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := s.settleCloudAgentMedia("user", run.ID); err != nil {

@@ -63,9 +63,15 @@ func (s *Service) resolveStudioAgentMediaOptions(userID string, a *cloudAgentMed
 	if selected.Kind != a.Mode {
 		return BadAuthRequest("模型与创作类型不匹配")
 	}
+	var schema struct {
+		Properties map[string]map[string]any `json:"properties"`
+	}
+	if json.Unmarshal(selected.Schema, &schema) != nil {
+		return NewAppError(502, "模型参数合同无效")
+	}
 	defaultValue := func(keys ...string) string {
 		for _, key := range keys {
-			if value, ok := selected.Defaults[key]; ok {
+			if value := studioPublishedDefault(selected, key, schema.Properties[key]); value != nil {
 				return fmt.Sprint(value)
 			}
 		}
@@ -108,6 +114,17 @@ func (s *Service) resolveStudioAgentMediaOptions(userID string, a *cloudAgentMed
 		}
 		if a.Quality == "" {
 			a.Quality = defaultValue("resolution")
+		}
+		profile := &VideoCapabilityConfig{}
+		for _, value := range studioPublishedValues(schema.Properties["resolution"]) {
+			if resolution, ok := value.(string); ok {
+				profile.Resolutions = append(profile.Resolutions, resolution)
+			}
+		}
+		// Agent settings can retain the UI's 720 spelling; only restore a
+		// matching published choice. Unsupported values still fail admission.
+		if resolution := videoResolutionNameRequest(profile, a.Quality); resolution != "" {
+			a.Quality = resolution
 		}
 	}
 	return nil

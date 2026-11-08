@@ -23,7 +23,7 @@ import { fitImageMaterialNodeSize, fitImageNodeSize, fitVideoNodeToSource } from
 import { getActiveUserScope } from "@/lib/user-scope";
 import { isCanvasImageActive, prepareCanvasImage, subscribeCanvasImageActivity } from "@/services/canvas-image-loader";
 import { peekCachedResourceObjectUrl } from "@/services/resource-blob-cache";
-import { getResourceAccess, refreshResource, resourceIdFromStorageKey, resolveResourceAccessURL } from "@/services/api/resources";
+import { getResourceAccess, refreshResource, resourceIdFromStorageKey, resolveResourceAccessURL, type ResourceAccessVariant } from "@/services/api/resources";
 import type { CanvasNodeContentProps } from "./canvas-node-content";
 import { ErrorContent, LoadingContent } from "./canvas-node-status-content";
 
@@ -519,7 +519,7 @@ export function ImageContent({
     const imageContainerRef = useRef<HTMLDivElement>(null);
     const nearViewport = useNearViewport(imageContainerRef, renderLOD !== "shell");
     const resourceVariant = renderLOD === "full" && (node.metadata?.imageLayer || node.metadata?.imageLayerGroup) ? "original" : "thumbnail";
-    const { url, loading, failed: accessFailed, originalWidth, originalHeight } = useNodeResourceUrl(node, nearViewport, resourceVariant);
+    const { url, loading, failed: accessFailed, originalWidth, originalHeight, sourceVariant } = useNodeResourceUrl(node, nearViewport, resourceVariant);
     const importedFromLibTV = node.metadata?.importSource?.provider === "libtv";
     const { updateMediaNode } = useCanvasNodeActions();
     const measuredSizeRef = useRef<{ width: number; height: number } | null>(null);
@@ -575,6 +575,7 @@ export function ImageContent({
                 <RetainedCanvasImage
                     identity={`${getActiveUserScope()}:${node.id}:${node.metadata?.storageKey || node.metadata?.content || "empty"}`}
                     src={url}
+                    sourceVariant={sourceVariant}
                     storageKey={node.metadata?.storageKey}
                     fallbackSrc={node.metadata?.content || ""}
                     originalSize={{ width: originalWidth, height: originalHeight }}
@@ -606,6 +607,7 @@ const IMAGE_SLOW_HINT_MS = 8000;
 export function RetainedCanvasImage({
     identity,
     src,
+    sourceVariant = "original",
     storageKey,
     fallbackSrc,
     originalSize,
@@ -618,6 +620,7 @@ export function RetainedCanvasImage({
 }: {
     identity: string;
     src: string;
+    sourceVariant?: ResourceAccessVariant;
     storageKey?: string;
     fallbackSrc: string;
     originalSize: { width?: number; height?: number };
@@ -642,8 +645,8 @@ export function RetainedCanvasImage({
     displayedRef.current = displayed;
     const originalWidth = originalSize.width;
     const originalHeight = originalSize.height;
-    const currentRef = useRef({ identity, src, storageKey, fallbackSrc, originalSize, fitToImage });
-    currentRef.current = { identity, src, storageKey, fallbackSrc, originalSize, fitToImage };
+    const currentRef = useRef({ identity, src, sourceVariant, storageKey, fallbackSrc, originalSize, fitToImage });
+    currentRef.current = { identity, src, sourceVariant, storageKey, fallbackSrc, originalSize, fitToImage };
     const currentDisplayedSrc = displayed?.identity === identity ? displayed.src : "";
     const retryCount = retry.identity === identity ? retry.count : 0;
 
@@ -663,8 +666,10 @@ export function RetainedCanvasImage({
         const slowTimer = window.setTimeout(() => setSlowIdentity(identity), IMAGE_SLOW_HINT_MS);
         const isCurrent = () => !controller.signal.aborted && currentRef.current.identity === identity && currentRef.current.src === target.src;
         const isAbort = (error: unknown) => controller.signal.aborted || (error instanceof DOMException && error.name === "AbortError");
-        const show = (image: HTMLImageElement, url: string, size: { width?: number; height?: number }) => {
-            currentRef.current.fitToImage(image, size);
+        const show = (image: HTMLImageElement, url: string, size: { width?: number; height?: number }, variant: ResourceAccessVariant) => {
+            // Derivatives cannot establish original dimensions. Keep them
+            // unknown without fetching the original just to measure it.
+            if (variant === "original" || (Number.isFinite(size.width) && Number.isFinite(size.height) && size.width! > 0 && size.height! > 0)) currentRef.current.fitToImage(image, size);
             setDisplayed({ identity, src: url });
         };
         const attempt = (url: string) => {
@@ -676,7 +681,7 @@ export function RetainedCanvasImage({
                 if (target.src && retryCount === 0) {
                     try {
                         const candidate = await attempt(target.src);
-                        if (isCurrent()) show(candidate, target.src, target.originalSize);
+                        if (isCurrent()) show(candidate, target.src, target.originalSize, target.sourceVariant);
                         return;
                     } catch (error) {
                         if (isAbort(error)) return;
@@ -685,16 +690,16 @@ export function RetainedCanvasImage({
                 }
                 if (!resourceKey) {
                     const candidate = await attempt(target.src);
-                    if (isCurrent()) show(candidate, target.src, target.originalSize);
+                    if (isCurrent()) show(candidate, target.src, target.originalSize, target.sourceVariant);
                     return;
                 }
-                // 失败最常见的原因是缓存的签名地址过期或被 CDN 拒绝：强制重新签发原图地址再试一次，
+                // 地址过期或被 CDN 拒绝时重新换取展示地址；实际返回可能是 preview。
                 // 即使新地址与旧地址相同也重试（失败的解码不会被缓存）。
                 const access = await getResourceAccess(resourceKey, "display", "original", "", { forceRefresh: true });
                 const originalURL = resolveResourceAccessURL(access.url);
                 if (!originalURL) throw new Error("资源访问地址为空");
                 const original = await attempt(originalURL);
-                if (isCurrent()) show(original, originalURL, { width: access.originalWidth, height: access.originalHeight });
+                if (isCurrent()) show(original, originalURL, { width: access.originalWidth, height: access.originalHeight }, access.actualVariant);
             } catch (error) {
                 if (isAbort(error) || !isCurrent()) return;
                 // 已显示过同一资源时保留旧画面；首次加载失败才进入可重试的失败态。
@@ -712,7 +717,7 @@ export function RetainedCanvasImage({
             window.clearTimeout(slowTimer);
             controller.abort();
         };
-    }, [identity, originalHeight, originalWidth, retryCount, src, storageKey]);
+    }, [identity, originalHeight, originalWidth, retryCount, sourceVariant, src, storageKey]);
 
     const failed = !currentDisplayedSrc && !preparing && (failedIdentity === identity || (accessFailed && !loading));
     const surfaceStyle = { "--canvas-gen-ink": theme.node.text, "--canvas-gen-surface": theme.node.fill, "--canvas-image-muted": theme.node.muted } as CSSProperties;
@@ -794,7 +799,11 @@ export function useNodeResourceUrl(node: CanvasNodeData, eager: boolean, variant
     const initialUrl = sessionBlobUrl || (eager && !isRemoteResource && isLazyVisual && isHttpUrl ? fallback : isRemoteResource || isLazyVisual ? "" : fallback);
     const scope = getActiveUserScope();
     const identity = `${scope}:${node.id}:${storageKey || fallback}`;
-    const [resolved, setResolved] = useState<{ identity: string; url: string; loading: boolean; failed?: boolean; originalWidth?: number; originalHeight?: number }>(() => ({ identity, url: initialUrl, loading: !initialUrl && isRemoteResource && eager }));
+    const [resolved, setResolved] = useState<{ identity: string; url: string; loading: boolean; failed?: boolean; originalWidth?: number; originalHeight?: number; actualVariant?: ResourceAccessVariant }>(() => ({
+        identity,
+        url: initialUrl,
+        loading: !initialUrl && isRemoteResource && eager,
+    }));
     const current = resolved.identity === identity ? resolved : { identity, url: initialUrl, loading: !initialUrl && isRemoteResource && eager };
 
     useEffect(() => {
@@ -808,14 +817,14 @@ export function useNodeResourceUrl(node: CanvasNodeData, eager: boolean, variant
         }
         const localUrl = isLazyVisual ? peekCachedResourceObjectUrl(storageKey) : "";
         if (localUrl) {
-            setResolved({ identity, url: localUrl, loading: false });
+            setResolved({ identity, url: localUrl, loading: false, actualVariant: "original" });
             return;
         }
         let cancelled = false;
         setResolved({ identity, url: "", loading: true });
         void getResourceAccess(storageKey, "display", variant)
             .then((access) => {
-                if (!cancelled) setResolved({ identity, url: resolveResourceAccessURL(access.url), loading: false, originalWidth: access.originalWidth, originalHeight: access.originalHeight });
+                if (!cancelled) setResolved({ identity, url: resolveResourceAccessURL(access.url), loading: false, originalWidth: access.originalWidth, originalHeight: access.originalHeight, actualVariant: access.actualVariant });
             })
             .catch(() => {
                 // 没有可用的回退地址时标记失败，节点显示「加载失败 + 重新加载」，而不是一块无提示的空白。
@@ -826,8 +835,14 @@ export function useNodeResourceUrl(node: CanvasNodeData, eager: boolean, variant
         };
     }, [eager, fallback, identity, isLazyVisual, isRemoteResource, storageKey, variant]);
 
-    const isThumbnail = variant === "thumbnail";
-    return { url: current.url, loading: current.loading, failed: Boolean(current.failed), originalWidth: isThumbnail ? current.originalWidth : undefined, originalHeight: isThumbnail ? current.originalHeight : undefined };
+    return {
+        url: current.url,
+        loading: current.loading,
+        failed: Boolean(current.failed),
+        originalWidth: current.originalWidth,
+        originalHeight: current.originalHeight,
+        sourceVariant: current.actualVariant || (isRemoteResource && !sessionBlobUrl ? "preview" : "original"),
+    };
 }
 
 export function useNearViewport(ref: RefObject<Element | null>, enabled = true) {

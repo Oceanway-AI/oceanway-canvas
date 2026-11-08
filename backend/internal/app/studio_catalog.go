@@ -75,6 +75,26 @@ func studioOACProtocol(s platformintegration.ModelSelection) string {
 	}
 }
 
+func studioPublishedValues(field map[string]any) []any {
+	if value, ok := field["const"]; ok {
+		return []any{value}
+	}
+	if values, ok := field["enum"].([]any); ok {
+		return values
+	}
+	return []any{}
+}
+
+func studioPublishedDefault(s platformintegration.ModelSelection, key string, field map[string]any) any {
+	if value, ok := field["const"]; ok {
+		return value
+	}
+	if value, ok := s.Defaults[key]; ok {
+		return value
+	}
+	return field["default"]
+}
+
 // The raw published schema remains in Platform. This projection serves OAC's
 // existing controls. It grants no submission authority or schema validation.
 func studioCapabilityProjection(s platformintegration.ModelSelection) map[string]any {
@@ -87,20 +107,10 @@ func studioCapabilityProjection(s platformintegration.ModelSelection) map[string
 	}
 	_ = json.Unmarshal(s.Schema, &schema)
 	values := func(name string) []any {
-		v, _ := schema.Properties[name]["enum"].([]any)
-		if v == nil {
-			v = []any{}
-		}
-		return v
+		return studioPublishedValues(schema.Properties[name])
 	}
 	defaultValue := func(name string) any {
-		if v, ok := s.Defaults[name]; ok {
-			return v
-		}
-		if v, ok := schema.Properties[name]["default"]; ok {
-			return v
-		}
-		return nil
+		return studioPublishedDefault(s, name, schema.Properties[name])
 	}
 	stringDefault := func(name string) string { v, _ := defaultValue(name).(string); return v }
 	boolDefault := func(name string) bool { v, _ := defaultValue(name).(bool); return v }
@@ -143,7 +153,10 @@ func studioCapabilityProjection(s platformintegration.ModelSelection) map[string
 					param["required"] = true
 				}
 			}
-			for from, to := range map[string]string{"enum": "values", "minimum": "min", "maximum": "max", "multipleOf": "step", "maxLength": "maxLength", "description": "description"} {
+			if choices := values(key); len(choices) > 0 {
+				param["values"] = choices
+			}
+			for from, to := range map[string]string{"minimum": "min", "maximum": "max", "multipleOf": "step", "maxLength": "maxLength", "description": "description"} {
 				if v, ok := field[from]; ok {
 					param[to] = v
 				}
