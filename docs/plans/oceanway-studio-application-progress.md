@@ -102,3 +102,18 @@ F1 首发入口：合同见 `oceanway-studio-release-surface.md`。红灯确认�
 F1 验证：`go test ./internal/handler -run 'TestStudio' -count=1` 通过；路由/插件门禁与平台生成、会话缓存、目录、素材选择共14项/150断言通过。typecheck、变更文件 ESLint/Prettier、build、diff whitespace 检查通过。未推送/部署/修改远端配置，未调用收费生成；构建仍有既有 chunk 大小/动态导入提示。
 
 E1 验证：`go test ./internal/app ./internal/repository -run 'TestStudio|TestCloudAgent(Request|RuntimeCompletes|Tools|ToolAllowed)'`、`go test ./internal/handler -run TestStudio` 通过。后补同轮幂等、变更意图冲突及跨账号读取专项通过。仓库专项验证过期租约/被接管租约无法派发，重复派发只允许一次，停止未提交与保留已提交两种路径。前端 typecheck、变更文件 ESLint/Prettier 通过。尚未进行浏览器 Pi 验收，不宣称媒体审批可用。
+
+F2 首页能力缺省修复：真实 CreatePage 与 CreationComposer 曾无条件读取同一模型的 image.references、video.ratios；Platform 目录只发布模型实际具备的能力，导致文本/视频模式 references 崩溃，图片模式也可能在视频参数处崩溃。现在按当前模式及有效目录选择模型，仅在对应能力存在时恢复参数、显示设置和提交；空目录或失效偏好显示不可用提示，禁用生成，不注入虚构能力。
+
+F2 验证：同一真实 React 页面测试在修复前 HEAD 重现 references/ratios 崩溃（6项失败），修复后6项/60断言通过，覆盖文本/图片/视频单能力、空目录、残留模型偏好、输入提示词与跨模式切换。typecheck、变更 ESLint/Prettier 通过；证据位于 `.local/verification/studio-create-capabilities-{baseline,fixed}.log`。未部署，待协调侧合入后验收 `:18448` 实际首页。协调侧正独立处理 W7 素材授权503和 PlatformUI连接类型验证，不在本分支修改服务配置。
+
+`0fdd424 fix(studio): 创作首页 - 按平台已发布能力渲染模式`：F2 已提交，未推送。
+
+F3 回归门禁修复与旧会话审计：
+
+- Worker 超时：对比上游基线 `b05d71d`，测试及租约实现没有差异；本机 Bun 1.3.14 在 Worker RPC 使用 Promise matcher 时卡住回包，独立 RPC 正常。改为先 await RPC 再断言值/错误，保留跨页竞争、续租、完成回放与禁用降级断言，并补无锁时零写入断言。3项/12断言通过，无生产租约代码变化。
+- 登录回归：删除检查旧 AuthPanel 源码字符串的 password-reset 测试，改用真实登录/注册/找回页面。验证仅在点击后调用 `/auth/login-url`、合法 HTTPS 跳转、安全回跳、失败重试及不安全 URL 拒绝；未恢复旧账号表单。`bun run pretest` 全部65项/801断言通过。
+- Agent schema：确认 `imageParameters` 是 E2 已实现合同，金样仅在 full/approval_canvas 新增该属性。新增发布背景参数覆盖默认值的审批用例，验证报价/冻结/执行保持相同原生请求、共享整轮授权、503后恢复原请求且不重发。`go test ./internal/app -run 'TestCloudAgent(ToolSchemaGolden|SupportedToolNamesGolden)|TestStudioPi' -count=1` 通过，包含真实 Node/Pi 免费 HTTP 夹具。
+- 旧登录重开：真实 AuthSessionHydrator 在已有 Cookie、空身份内存或已知身份两种情况下均先 POST `/auth/session`，完成后才开放同账号工作区并恢复原偏好。后端测试从旧 GET 身份会话且无 grant 开始，文件读取409；POST 后文件307，有效 grant 重用，过期 grant 重开补发；不同 SID、跨账号、恶意 Origin、撤销继续拒绝。该启动路径已存在，本次补回归，无需用户退出重登。必须加载新页面代码且上游 IssueMaterial 成功；尚未刷新的旧页面与 W7 503不在此成功断言范围。
+
+F3 验证：前端专项7项通过（登录/重开隔离 harness 共6项/66断言，首页另6项/60断言）；上述 Go Agent 专项和 `TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant` 通过。变更 ESLint/Prettier、gofmt、diff whitespace检查通过。证据位于 `.local/verification/studio-followup-*.log`、`studio-agent-golden-parameters.log`、`studio-old-session-materials.log`。未修改部署/hostupdate 文件、远端服务或生产配置，未实际收费生成。

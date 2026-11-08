@@ -215,6 +215,8 @@ export default function CreatePage() {
         [activeId, conversations],
     );
     const preferredModel = mode === "text" ? config.textModel : mode === "image" ? config.imageModel : config.videoModel;
+    const availableModels = useMemo(() => selectableModelsByCapability(config, mode), [config, mode]);
+    const preferredImageProfile = useMemo(() => (mode === "image" && availableModels.includes(preferredModel) ? modelCapabilityConfigFor(config, preferredModel).image : undefined), [config, mode, availableModels, preferredModel]);
     const hasPrompt = Boolean(prompt.trim());
     const modelRequirements = useMemo<ModelRequirements>(
         () => ({
@@ -230,7 +232,7 @@ export default function CreatePage() {
             imageSize: mode === "image" ? ratio : undefined,
             options:
                 mode === "image"
-                    ? (imageParameterRequest(modelCapabilityConfigFor(config, preferredModel).image!, { ...config, size: ratio, imageResolution, quality, count, imageParameters }) ?? {
+                    ? ((preferredImageProfile ? imageParameterRequest(preferredImageProfile, { ...config, size: ratio, imageResolution, quality, count, imageParameters }) : undefined) ?? {
                           size: ratio,
                           imageResolution,
                           quality,
@@ -241,12 +243,13 @@ export default function CreatePage() {
                       ? { size: ratio, videoSeconds: Number(seconds), vquality: videoQuality }
                       : {},
         }),
-        [attachments, config, preferredModel, count, hasPrompt, imageResolution, imageParameters, mode, quality, ratio, seconds, videoQuality],
+        [attachments, config, preferredImageProfile, count, hasPrompt, imageResolution, imageParameters, mode, quality, ratio, seconds, videoQuality],
     );
-    const selectedModel = resolveCompatibleModel(config, preferredModel, modelRequirements) || preferredModel;
-    const generationConfig = useMemo(() => (mode === "video" ? creationVideoConfig(config, selectedModel, { ratio, seconds, videoQuality }) : config), [config, mode, ratio, seconds, selectedModel, videoQuality]);
-    const imageProfile = useMemo(() => modelCapabilityConfigFor(config, selectedModel).image!, [config, selectedModel]);
-    const videoProfile = useMemo(() => modelCapabilityConfigFor(config, selectedModel).video!, [config, selectedModel]);
+    const candidateModel = resolveCompatibleModel(config, preferredModel, modelRequirements) || preferredModel;
+    const selectedModel = availableModels.includes(candidateModel) ? candidateModel : "";
+    const imageProfile = useMemo(() => (selectedModel ? modelCapabilityConfigFor(config, selectedModel).image : undefined), [config, selectedModel]);
+    const videoProfile = useMemo(() => (selectedModel ? modelCapabilityConfigFor(config, selectedModel).video : undefined), [config, selectedModel]);
+    const generationConfig = useMemo(() => (mode === "video" && videoProfile ? creationVideoConfig(config, selectedModel, { ratio, seconds, videoQuality }) : config), [config, mode, ratio, seconds, selectedModel, videoQuality, videoProfile]);
     const textThinkingConfig = useMemo(() => (mode === "text" ? modelCapabilityConfigFor(config, selectedModel).text?.thinking || LEGACY_TEXT_THINKING_CONFIG : undefined), [config, mode, selectedModel]);
     const textThinkingLevels = useMemo(() => thinkingLevelsFor(textThinkingConfig), [textThinkingConfig]);
     // 记住的档位已不被模型支持时按后端同一规则就近取档；没记住时用模型默认值。
@@ -263,8 +266,8 @@ export default function CreatePage() {
     };
     // 同名逻辑模型可能把文生视频、图生视频和全模态参考拆到不同路由。
     // 入口需要展示整个模型组的引用能力，添加素材后再由兼容路由选择具体模型。
-    const videoReferenceLimits = useMemo(() => (mode === "video" ? modelGroupReferenceLimits(config, preferredModel || selectedModel, "video") || { maxImages: 0, maxVideos: 0, maxAudios: 0 } : undefined), [config, mode, preferredModel, selectedModel]);
-    const maxReferences = mode === "video" ? (videoReferenceLimits?.maxImages || 0) + (videoReferenceLimits?.maxVideos || 0) + (videoReferenceLimits?.maxAudios || 0) : mode === "image" ? imageProfile.references.maxImages : 6;
+    const videoReferenceLimits = useMemo(() => (mode === "video" && videoProfile ? modelGroupReferenceLimits(config, selectedModel, "video") || { maxImages: 0, maxVideos: 0, maxAudios: 0 } : undefined), [config, mode, videoProfile, selectedModel]);
+    const maxReferences = mode === "video" ? (videoReferenceLimits?.maxImages || 0) + (videoReferenceLimits?.maxVideos || 0) + (videoReferenceLimits?.maxAudios || 0) : mode === "image" ? imageProfile?.references.maxImages || 0 : 6;
     const referenceImageSize = useMemo(() => {
         const imageAttachments = attachments.filter(isImageAttachment);
         if (imageAttachments.length !== 1) return undefined;
@@ -316,7 +319,7 @@ export default function CreatePage() {
     }, [composerPreferencesHydrated, composerPreferencesInitialized]);
 
     useEffect(() => {
-        if (!composerPreferencesHydrated || !composerPreferencesInitialized || mode !== "image") return;
+        if (!composerPreferencesHydrated || !composerPreferencesInitialized || mode !== "image" || !imageProfile) return;
         const saved = useCreationPreferencesStore.getState().preferences.image;
         // 优先恢复用户上次选择；只有当前模型不支持该值时，normalizeImageValue 才回退到模型默认值。
         const normalized = normalizeImageValue(imageProfile, {
@@ -334,7 +337,7 @@ export default function CreatePage() {
     }, [composerPreferencesHydrated, composerPreferencesInitialized, mode, selectedModel, imageProfile]);
 
     useEffect(() => {
-        if (!composerPreferencesHydrated || !composerPreferencesInitialized || mode !== "video") return;
+        if (!composerPreferencesHydrated || !composerPreferencesInitialized || mode !== "video" || !videoProfile) return;
         const saved = useCreationPreferencesStore.getState().preferences.video;
         // 优先恢复用户上次选择；只有当前模型不支持该值时，normalizeVideoValue 才回退到模型默认值。
         const normalized = normalizeVideoValue(videoProfile, {
@@ -843,13 +846,13 @@ export default function CreatePage() {
             releaseSubmitGate();
             return;
         }
-        if (!selectedModel) {
+        if (!selectedModel || (mode === "image" && !imageProfile) || (mode === "video" && !videoProfile)) {
             toast.warning(t("create.page.configureModel", { mode: modeLabels[mode] }));
             releaseRetryLock();
             releaseSubmitGate();
             return;
         }
-        if (mode === "video" && !videoDurationAllowed(videoProfile, Number(seconds))) {
+        if (mode === "video" && videoProfile && !videoDurationAllowed(videoProfile, Number(seconds))) {
             toast.error(t("create.page.durationUnsupported"));
             releaseRetryLock();
             releaseSubmitGate();
@@ -948,7 +951,7 @@ export default function CreatePage() {
         const requestLifecycle = runtime.beginGenerationConsumer(controller.signal);
         abortRef.current = controller;
         const normalizedImage =
-            mode === "image"
+            mode === "image" && imageProfile
                 ? imageProfile.parameters
                     ? { size: ratio, quality, imageResolution, imageParameters, count }
                     : normalizeImageValue(imageProfile, { size: ratio, quality, imageResolution, imageParameters, count }, resolveModelRequestConfig(config, selectedModel).interfaceType)
@@ -986,7 +989,7 @@ export default function CreatePage() {
                 );
                 if (!result.text?.trim()) throw new Error(t("create.page.noTextResult"));
                 updateOriginAssistant((item) => ({ ...item, content: result.text || "", reasoning: result.reasoning }));
-            } else if (mode === "image") {
+            } else if (mode === "image" && imageProfile) {
                 const taskCount = Math.max(1, Math.min(imageProfile.maxOutputs, Math.floor(Number(count) || 1)));
                 const settled = await runtime.runGenerationOperationOnce(retryContext?.clientOperationId, () =>
                     runtime.runBackendGenerationTaskBatch({

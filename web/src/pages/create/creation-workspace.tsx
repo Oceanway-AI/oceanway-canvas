@@ -167,8 +167,8 @@ type ComposerProps = {
     onModeChange: (mode: CreationMode) => void;
     model: string;
     modelRequirements: ModelRequirements;
-    videoProfile: VideoCapabilityConfig;
-    imageProfile: ImageCapabilityConfig;
+    videoProfile?: VideoCapabilityConfig;
+    imageProfile?: ImageCapabilityConfig;
     config: AiConfig;
     onModelChange: (value: string) => void;
     ratio: string;
@@ -216,7 +216,8 @@ export function CreationComposer(props: ComposerProps) {
     const [trackState, setTrackState] = useState({ canScrollLeft: false, canScrollRight: false, isExpanded: true, isDragging: false });
     const previousAttachmentCountRef = useRef(0);
     const interactionBusy = props.busy || props.referenceReplacementBusy;
-    const canSubmit = Boolean(props.prompt.trim()) && !interactionBusy;
+    const modelAvailable = Boolean(props.model && (props.mode === "image" ? props.imageProfile : props.mode === "video" ? props.videoProfile : true));
+    const canSubmit = modelAvailable && Boolean(props.prompt.trim()) && !interactionBusy;
     const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
     const priceChannel = resolveModelChannel(props.config, props.model);
     const quoteRequest = useMemo(() => modelQuoteRequest(props.config, props.model, props.mode, props.modelRequirements), [props.config, props.mode, props.model, props.modelRequirements]);
@@ -259,7 +260,7 @@ export function CreationComposer(props: ComposerProps) {
     const showWorkingGlow = props.generationActive && !canSubmit;
     const placeholder = props.mode === "text" ? "描述你的故事、角色或想继续讨论的创意" : props.mode === "image" ? "描述画面、人物、场景、构图与风格" : "描述镜头内容、运动、光线与节奏";
     const emptyPlaceholder = "输入你的镜头、画面或故事。也可以添加参考图开始创作";
-    const imageReferencesSupported = props.imageProfile.references.maxImages > 0;
+    const imageReferencesSupported = (props.imageProfile?.references.maxImages || 0) > 0;
     const referencesSupported = props.mode === "image" ? imageReferencesSupported : props.mode !== "video" || props.maxReferences > 0;
     const canAddMoreReferences = referencesSupported && props.attachments.length < props.maxReferences;
     const addReferenceLabel = interactionBusy ? (props.referenceReplacementBusy ? "正在替换参考图" : "生成中暂不能添加参考内容") : canAddMoreReferences ? "添加更多参考内容" : `已达到当前模型的参考内容上限（${props.maxReferences} 个）`;
@@ -276,7 +277,7 @@ export function CreationComposer(props: ComposerProps) {
         [props.attachments],
     );
     const visibleAttachments = useMemo(() => (referenceFilter === "all" ? props.attachments : props.attachments.filter((attachment) => creationAttachmentKind(attachment) === referenceFilter)), [props.attachments, referenceFilter]);
-    const imageSettingsSupported = props.imageProfile.size.parameter !== "none" || props.imageProfile.quality.supported || props.imageProfile.maxOutputs > 1;
+    const imageSettingsSupported = props.imageProfile && (props.imageProfile.size.parameter !== "none" || props.imageProfile.quality.supported || props.imageProfile.maxOutputs > 1);
     const updateTrackScrollState = useCallback(() => {
         const track = attachmentTrackRef.current;
         if (!track) return;
@@ -543,8 +544,9 @@ export function CreationComposer(props: ComposerProps) {
                         showOptionPrices
                         variant="creation"
                     />
-                    {props.mode === "video" || (props.mode === "image" && imageSettingsSupported) ? <GenerationSettingsMenu {...props} /> : null}
-                    {props.mode === "video" ? <DurationMenu profile={props.videoProfile} seconds={props.seconds} onChange={props.setSeconds} /> : null}
+                    {!modelAvailable ? <span role="status">当前模式暂无可用模型，请选择其他模式或稍后重试</span> : null}
+                    {(props.mode === "video" && props.videoProfile) || (props.mode === "image" && imageSettingsSupported) ? <GenerationSettingsMenu {...props} /> : null}
+                    {props.mode === "video" && props.videoProfile ? <DurationMenu profile={props.videoProfile} seconds={props.seconds} onChange={props.setSeconds} /> : null}
                     {props.mode === "text" ? (
                         <>
                             <Tooltip title={interactionBusy ? "生成中，此开关将在下次发送时生效" : props.textStreaming ? "流式输出已开启" : "流式输出已关闭"}>
@@ -578,7 +580,7 @@ export function CreationComposer(props: ComposerProps) {
                     }
                     onClick={interactionBusy ? undefined : props.onSubmit}
                     aria-label={actionLabel}
-                    title={!canSubmit && !interactionBusy ? "输入创作想法后即可生成" : actionLabel}
+                    title={!modelAvailable ? "请先选择当前模式的可用模型" : !canSubmit && !interactionBusy ? "输入创作想法后即可生成" : actionLabel}
                 >
                     {showWorkingGlow ? <WorkingGlow active color="var(--creation-text)" radius="var(--button-radius)" /> : null}
                     {showCost ? (
@@ -712,32 +714,32 @@ function ModePicker({ mode, onModeChange }: { mode: CreationMode; onModeChange: 
 
 function GenerationSettingsMenu(props: ComposerProps) {
     const [open, setOpen] = useState(false);
-    const activeQualityOptions = props.imageProfile.quality.values.map((value) => qualityOptions.find((item) => item.value === value) || { value, label: imageQualityLabel(value), description: "模型支持的质量/分辨率" });
+    const activeQualityOptions = (props.imageProfile?.quality.values || []).map((value) => qualityOptions.find((item) => item.value === value) || { value, label: imageQualityLabel(value), description: "模型支持的质量/分辨率" });
     const qualityLabel = activeQualityOptions.find((item) => item.value === props.quality)?.label || qualityOptions.find((item) => item.value === props.quality)?.label || props.quality || "自动";
     // 尺寸/比例/分辨率选项取同显示名分组内全部模型的并集，路由模型只决定发送参数。
-    const mergedProfile = mergedImageCapabilityConfig(props.config, props.model || props.config.imageModel);
-    const usesImageResolutionPicker = props.mode === "image" && supportsImageResolutionPresets(mergedProfile.size);
-    const imageResolutionOptions = usesImageResolutionPicker ? buildImageResolutionOptions(mergedProfile.size.values) : [];
-    const ratios = props.videoProfile.ratios;
-    const referenceImageSize = props.mode === "image" && mergedProfile.size.allowCustom ? props.referenceImageSize : undefined;
+    const mergedProfile = props.mode === "image" && props.imageProfile ? mergedImageCapabilityConfig(props.config, props.model) : undefined;
+    const usesImageResolutionPicker = mergedProfile && supportsImageResolutionPresets(mergedProfile.size);
+    const imageResolutionOptions = usesImageResolutionPicker && mergedProfile ? buildImageResolutionOptions(mergedProfile.size.values) : [];
+    const ratios = props.videoProfile?.ratios || [];
+    const referenceImageSize = mergedProfile?.size.allowCustom ? props.referenceImageSize : undefined;
     const referenceImageSizeValue = referenceImageSize ? String(referenceImageSize.width) + "x" + String(referenceImageSize.height) : "";
     const referenceImageSizeLabel = referenceImageSize ? String(referenceImageSize.width) + " × " + String(referenceImageSize.height) : "";
     const referenceImageSizeSelected = Boolean(referenceImageSizeValue && props.ratio === referenceImageSizeValue);
-    const resolutions = props.mode === "video" ? props.videoProfile.resolutions.map((value) => ({ value: value.replace(/p$/i, ""), label: videoResolutionLabel(value) })) : resolutionOptions;
+    const resolutions = props.mode === "video" ? (props.videoProfile?.resolutions || []).map((value) => ({ value: value.replace(/p$/i, ""), label: videoResolutionLabel(value) })) : resolutionOptions;
     const selectReferenceImageSize = () => {
         if (!referenceImageSizeValue) return;
         props.setRatio(referenceImageSizeValue);
     };
     const videoResolutionSupported = props.mode === "video" && resolutions.length > 0;
     const imageSummary = [
-        ...(mergedProfile.size.parameter !== "none" ? [referenceImageSizeSelected ? referenceImageSizeLabel : usesImageResolutionPicker ? formatImageResolutionSize(props.ratio, imageResolutionOptions) : props.ratio] : []),
-        ...(props.imageProfile.quality.supported ? [qualityLabel] : []),
-        ...(props.imageProfile.maxOutputs > 1 ? [props.count] : []),
+        ...(mergedProfile && mergedProfile.size.parameter !== "none" ? [referenceImageSizeSelected ? referenceImageSizeLabel : usesImageResolutionPicker ? formatImageResolutionSize(props.ratio, imageResolutionOptions) : props.ratio] : []),
+        ...(props.imageProfile?.quality.supported ? [qualityLabel] : []),
+        ...((props.imageProfile?.maxOutputs || 0) > 1 ? [props.count] : []),
     ].join(" · ");
     const videoRatioSupported = props.mode === "video" && ratios.length > 0;
     const summary = props.mode === "video" ? [...(videoRatioSupported ? [props.ratio] : []), ...(videoResolutionSupported ? [videoResolutionLabel(props.videoQuality)] : [])].join(" · ") : imageSummary;
     const panel =
-        props.mode === "image" && props.imageProfile.parameters ? (
+        props.mode === "image" && props.imageProfile?.parameters ? (
             <div className="creation-parameter-menu max-h-[65vh] overflow-y-auto">
                 <ImageParameterFields
                     profile={props.imageProfile}
@@ -757,7 +759,7 @@ function GenerationSettingsMenu(props: ComposerProps) {
             </div>
         ) : (
             <div className="creation-parameter-menu">
-                {props.mode === "image" ? (
+                {props.mode === "image" && mergedProfile ? (
                     <ImageSizePicker
                         profile={mergedProfile}
                         size={props.ratio}
@@ -802,7 +804,7 @@ function GenerationSettingsMenu(props: ComposerProps) {
                     ) : null
                 ) : (
                     <>
-                        {props.imageProfile.quality.supported && !imageResolutionUsesQuality(mergedProfile) ? (
+                        {props.imageProfile?.quality.supported && mergedProfile && !imageResolutionUsesQuality(mergedProfile) ? (
                             <SettingSection title={activeQualityOptions.some((item) => item.value === "1k" || item.value === "2k") ? "分辨率" : "图片质量"} value={qualityLabel}>
                                 <div className="creation-choice-grid is-quality">
                                     {activeQualityOptions.map((option) => (
@@ -814,12 +816,12 @@ function GenerationSettingsMenu(props: ComposerProps) {
                                 </div>
                             </SettingSection>
                         ) : null}
-                        {props.imageProfile.maxOutputs > 1 ? (
+                        {props.imageProfile && props.imageProfile.maxOutputs > 1 ? (
                             <SettingSection title="生成张数" value={`${props.count} 张`}>
                                 <div className="creation-parameter-content">
                                     <div className="creation-choice-grid is-count">
                                         {countOptions
-                                            .filter((option) => Number(option) <= props.imageProfile.maxOutputs)
+                                            .filter((option) => Number(option) <= (props.imageProfile?.maxOutputs || 0))
                                             .map((option) => (
                                                 <button key={option} type="button" aria-pressed={option === props.count} className={option === props.count ? "is-selected" : ""} onClick={() => props.setCount(option)}>
                                                     {option}
@@ -832,7 +834,7 @@ function GenerationSettingsMenu(props: ComposerProps) {
                                             inputMode="numeric"
                                             pattern="[0-9]*"
                                             value={props.count}
-                                            onChange={(event) => props.setCount(String(Math.max(1, Math.min(props.imageProfile.maxOutputs, Number(event.target.value) || 1))))}
+                                            onChange={(event) => props.setCount(String(Math.max(1, Math.min(props.imageProfile?.maxOutputs || 1, Number(event.target.value) || 1))))}
                                             aria-label={`生成张数，范围 1 到 ${props.imageProfile.maxOutputs}`}
                                         />
                                         <em>张</em>

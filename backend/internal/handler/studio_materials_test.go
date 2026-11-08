@@ -173,11 +173,11 @@ func TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant(t *testing.T
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(platformclient.AccessResponse{Protocol: platformclient.MaterialsProtocol, Results: []platformclient.AccessResult{{ItemID: item.ItemID, Status: "ready", AssetID: item.AssetID, VersionID: item.VersionID, FileID: "file_1", RequestedVariant: item.Variant, ActualVariant: item.Variant, URL: "https://cdn.example.test/video?signature=private", ExpiresAt: "2099-01-01T01:00:00Z", RefreshAt: "2099-01-01T00:30:00Z", Revision: "fixed-binding"}}})
 	}
-	f.request(t, "POST", "/api/auth/session", "platform_session=alice", `{}`, 200)
-	f.request(t, "POST", "/api/auth/session", "platform_session=alice; nonce=next", `{}`, 200)
-	var stored model.StudioMaterialAuthority
-	if err := f.db.First(&stored).Error; err != nil || len(stored.SessionHash) != 64 || stored.AuthorizationEncrypted == "" || strings.Contains(stored.AuthorizationEncrypted, "mat1.") {
-		t.Fatal("material authority must be encrypted and indexed by a session digest")
+	// A session established before the materials bootstrap still has a valid
+	// identity, but GET must not silently mint a delegated credential.
+	f.request(t, "GET", "/api/auth/session", "platform_session=alice", "", 200)
+	if issues != 0 {
+		t.Fatal("identity read issued a material grant")
 	}
 	var user model.User
 	if err := f.db.First(&user).Error; err != nil {
@@ -204,14 +204,30 @@ func TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant(t *testing.T
 			t.Fatal("missing signed redirect")
 		}
 	}
+	read("platform_session=alice", "", 409)
+	f.request(t, "POST", "/api/auth/session", "platform_session=alice", `{}`, 200)
+	var stored model.StudioMaterialAuthority
+	if err := f.db.First(&stored).Error; err != nil || len(stored.SessionHash) != 64 || stored.AuthorizationEncrypted == "" || strings.Contains(stored.AuthorizationEncrypted, "mat1.") {
+		t.Fatal("material authority must be encrypted and indexed by a session digest")
+	}
 	read("platform_session=alice", "", 307)
+	f.request(t, "POST", "/api/auth/session", "platform_session=alice; nonce=next", `{}`, 200)
 	read("platform_session=alice; nonce=next", "", 307)
+	if issues != 1 {
+		t.Fatal("reopening an initialized session reissued a valid grant")
+	}
+	if err := f.db.Model(&stored).Update("expires_at", time.Now().Add(-time.Minute)).Error; err != nil {
+		t.Fatal(err)
+	}
+	read("platform_session=alice", "", 409)
+	f.request(t, "POST", "/api/auth/session", "platform_session=alice", `{}`, 200)
+	read("platform_session=alice", "", 307)
 	read("platform_session=alice-other-session", "", 409)
 	read("platform_session=alice", "https://evil.test", 403)
 	read("platform_session=bob", "", 404)
 	f.revoked = true
 	read("platform_session=alice", "", 401)
-	if issues != 1 || accesses != 2 {
+	if issues != 2 || accesses != 3 {
 		t.Fatalf("grant/access crossed account or repeated: %d %d", issues, accesses)
 	}
 }

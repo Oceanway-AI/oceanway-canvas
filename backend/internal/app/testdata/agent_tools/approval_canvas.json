@@ -2033,6 +2033,10 @@
             "minimum": 0,
             "type": "integer"
           },
+          "imageParameters": {
+            "description": "可选图片参数 JSON 字符串，字段用 model_list 的 options.image.parameters[].name，值必须符合该发布规格",
+            "type": "string"
+          },
           "imageResolution": {
             "description": "model_list 档位；未启用时省略",
             "type": "string"

@@ -22,6 +22,7 @@ function sharedBrowserHarness(gateFirstRead = false) {
     let heldRead: (() => void) | undefined;
     let firstReadSeen = false;
     let storageReads = 0;
+    let storageWrites = 0;
     let lockRequests = 0;
     function reply(worker: Worker, id: number, value?: unknown) {
         worker.postMessage({ kind: "response", id, value });
@@ -54,6 +55,7 @@ function sharedBrowserHarness(gateFirstRead = false) {
                     heldRead = undefined;
                 }
             } else if (message.action === "set") {
+                storageWrites += 1;
                 values.set(name, value);
                 reply(worker, message.id, value);
             } else if (message.action === "lock") {
@@ -93,6 +95,9 @@ function sharedBrowserHarness(gateFirstRead = false) {
         get storageReads() {
             return storageReads;
         },
+        get storageWrites() {
+            return storageWrites;
+        },
         get lockRequests() {
             return lockRequests;
         },
@@ -114,9 +119,11 @@ describe("生成副作用跨标签租约", () => {
             expect(owner.status).toBe("claimed");
             expect(contender.status).toBe("busy");
             if (owner.status !== "claimed") throw new Error("Expected a claimed lease");
-            await expect(first.invoke("renew", "materialize:shared-task:0", "shared-task", owner.binding)).resolves.toEqual({ fence: owner.fence });
+            // Await Worker RPC before matching: Bun's promise matchers can stall
+            // Worker message dispatch (including the storage/lock reply loop).
+            expect(await first.invoke("renew", "materialize:shared-task:0", "shared-task", owner.binding)).toEqual({ fence: owner.fence });
             await first.invoke("complete", "materialize:shared-task:0", "shared-task", { materializedAssetId: "saved-asset" }, owner.binding);
-            await expect(second.invoke("claim", "materialize:shared-task:0", "shared-task")).resolves.toEqual({ status: "completed", result: { materializedAssetId: "saved-asset" } });
+            expect(await second.invoke("claim", "materialize:shared-task:0", "shared-task")).toEqual({ status: "completed", result: { materializedAssetId: "saved-asset" } });
             expect(harness.lockRequests).toBe(5);
         } finally {
             harness.dispose();
@@ -128,8 +135,14 @@ describe("生成副作用跨标签租约", () => {
         try {
             const realm = harness.createRealm();
             await realm.invoke("initialize", { browserLocks: false, required: true });
-            await expect(realm.invoke("claim", "materialize:no-lock:0", "no-lock")).rejects.toThrow("跨页面生成副作用互斥");
+            const failure = await realm.invoke("claim", "materialize:no-lock:0", "no-lock").then(
+                () => null,
+                (error: unknown) => error,
+            );
+            expect(failure).toBeInstanceOf(Error);
+            expect((failure as Error).message).toContain("跨页面生成副作用互斥");
             expect(harness.storageReads).toBe(0);
+            expect(harness.storageWrites).toBe(0);
         } finally {
             harness.dispose();
         }
@@ -144,7 +157,7 @@ describe("生成副作用跨标签租约", () => {
             expect(owner.status).toBe("claimed");
             if (owner.status !== "claimed") throw new Error("Expected a claimed lease");
             await realm.invoke("complete", "materialize:fallback:0", "fallback", {}, owner.binding);
-            await expect(realm.invoke("claim", "materialize:fallback:0", "fallback")).resolves.toEqual({ status: "completed", result: {} });
+            expect(await realm.invoke("claim", "materialize:fallback:0", "fallback")).toEqual({ status: "completed", result: {} });
             expect(harness.lockRequests).toBe(0);
         } finally {
             harness.dispose();
