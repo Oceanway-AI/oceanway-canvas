@@ -235,10 +235,10 @@ export function undoAgentCanvasRun(runId: string, input: { stepId?: string; expe
     return http.post<{ accepted: boolean; snapshotHash: string }>(`/agent/runs/${encodeURIComponent(runId)}/undo`, input, { signal });
 }
 
-export type StudioAgentMediaQuote = { id: string; walletMaxPoints: string; priceVersion: string; expiresAt: string; parameters: Record<string, unknown> };
+export type StudioAgentMediaQuote = { id: string; estimatedPoints?: string; walletMaxPoints: string; priceVersion: string; expiresAt: string; parameters: Record<string, unknown> };
 
-export function quoteAgentMedia(runId: string, approvalId: string, signal?: AbortSignal) {
-    return http.post<StudioAgentMediaQuote>(`/agent/runs/${encodeURIComponent(runId)}/approvals/${encodeURIComponent(approvalId)}/quote`, {}, { signal });
+export function quoteAgentMedia(runId: string, approvalId: string, signal?: AbortSignal, walletMaxPoints?: string) {
+    return http.post<StudioAgentMediaQuote>(`/agent/runs/${encodeURIComponent(runId)}/approvals/${encodeURIComponent(approvalId)}/quote`, { walletMaxPoints }, { signal });
 }
 
 export async function decideAgentApproval(runId: string, approvalId: string, decision: "approve" | "reject", reason?: string, signal?: AbortSignal, mediaSettings?: AgentMediaSettings, quoteId?: string) {

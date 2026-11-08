@@ -3,6 +3,7 @@ import { App } from "antd";
 import type { AppProps } from "antd";
 
 import { installMessageDedupe } from "@/lib/message-dedupe";
+import { PlatformBudgetConfirmationHost } from "./platform-budget-confirmation";
 
 /** Toast 全站统一：message 顶部居中 3 秒、最多 3 条；notification 右上 4.5 秒、最多 3 条。 */
 export const APP_MESSAGE_CONFIG: AppProps["message"] = { duration: 3, maxCount: 3, top: 16 };
@@ -19,6 +20,7 @@ function MessageDedupe({ children }: { children: ReactNode }) {
 export function AppFeedbackProvider({ children }: { children: ReactNode }) {
     return (
         <App message={APP_MESSAGE_CONFIG} notification={APP_NOTIFICATION_CONFIG}>
+            <PlatformBudgetConfirmationHost />
             <MessageDedupe>{children}</MessageDedupe>
         </App>
     );

@@ -157,3 +157,9 @@ F7 发布 schema const 与原件尺寸（2026-11-08）：协调侧报告 f6de329
 F7 验证：先保存 const 目录/Pi 与图片 DOM 失败日志，再运行 `go test ./internal/app ./internal/handler -run 'TestStudio|TestCloudAgentMedia' -count=1` 通过（含真实 Node/Pi）；platformintegration 全套通过。前端图片加载/重签、const/enum 视频、三版本提交/恢复、固定素材回填、真实首页/画布节点/审批卡共34项/143断言通过；typecheck、变更 ESLint/Prettier、gofmt及 diff whitespace 通过；Go server/Vite 构建通过。图片既有下载队列用例有 React act 提示，Vite 仍有既有动态导入/大chunk提示。未重复全量无关测试或 race，未运行真实PG/Redis/收费模型。
 
 证据位于 `.local/verification/studio-const-{red-go,green-go,green-web,regression-go,regression-web,typecheck,schema-go,build-go,build-web}.log` 和 `studio-image-dimensions-red-web.log`。仅应用侧修改，未部署、未修改远端配置、未提交收费生成。上线后由协调侧以新节点验收；历史画布已保存的320尺寸不自动批量改写。
+# 2026-11-08 真实视频验收修复
+
+真实视频用量可能略高于预估。沿用原生成按钮、Task 与 Agent 审批，在提交前明确区分预估积分和操作者确认的最高积分；上限被冻结在原命令中，取消不提交，账号切换不提交，未知响应只查询原命令。不得静默放大旧任务上限。
+
+先补失败回归，再连接原 Ant Design 确认弹窗；Agent 在原报价接口中选择上限，仍按原审批 ID / 报价 ID 执行。独立 W7 / Studio 发布与真实验收分别记录，生产 Console 不切换。
+

@@ -3,6 +3,46 @@ import { submitPlatformTask } from "../src/services/platform-task-submission";
 import type { CreateTaskInput, GenerationTask } from "../src/services/api/task-center";
 
 describe("Platform task submission", () => {
+    test("video requires explicit maximum confirmation and freezes it on the original command", async () => {
+        let confirms = 0;
+        const input: CreateTaskInput = { type: "canvas_video", prompt: "ocean", platform: { expectedPriceVersion: "p1" } };
+        await submitPlatformTask(input, {
+            scope: () => "alice",
+            preview: async () => ({ capability_revision: "a".repeat(64), connection_revision: 7, price_version: "p1", wallet_points: "198.72", allowed: true, combination_supported: true }),
+            confirmBudget: async (estimate: string) => {
+                confirms++;
+                expect(estimate).toBe("198.72");
+                return "250";
+            },
+            create: async (body) => {
+                expect(body.platform?.walletMaxPoints).toBe("250");
+                throw new Error("lost");
+            },
+            recover: async () => ({ id: "original" }) as GenerationTask,
+        });
+        expect(confirms).toBe(1);
+    });
+    test.each([null, "-1", "NaN", "198.7199999999999999999"])("video refuses canceled or insufficient maximum %j before creating a task", async (maximum) => {
+        let posted = 0;
+        await expect(
+            submitPlatformTask(
+                { type: "canvas_video", platform: { expectedPriceVersion: "p1" } },
+                {
+                    scope: () => "alice",
+                    preview: async () => ({ capability_revision: "a".repeat(64), connection_revision: 7, price_version: "p1", wallet_points: "198.72", allowed: true, combination_supported: true }),
+                    confirmBudget: async () => maximum,
+                    create: async () => {
+                        posted++;
+                        return { id: "bad" } as GenerationTask;
+                    },
+                    recover: async () => {
+                        throw new Error("must not recover");
+                    },
+                },
+            ),
+        ).rejects.toThrow();
+        expect(posted).toBe(0);
+    });
     test.each([
         {},
         { capability_revision: "a".repeat(64) },

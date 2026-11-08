@@ -84,7 +84,11 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 			body, _ := io.ReadAll(r.Body)
 			raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get("X-Platform-Media-Consumption"))
 			var constraints platformclient.MediaConsumptionConstraints
-			if json.Unmarshal(raw, &constraints) != nil || constraints.ExpectedCapabilityRevision != strings.Repeat("a", 64) || constraints.ExpectedConnectionRevision != 7 || constraints.ExpectedPriceVersion != "price-1" || constraints.WalletMaxPoints != "0.123456789" {
+			expectedMaximum := "0.123456789"
+			if scenario == "approve" {
+				expectedMaximum = "2.5"
+			}
+			if json.Unmarshal(raw, &constraints) != nil || constraints.ExpectedCapabilityRevision != strings.Repeat("a", 64) || constraints.ExpectedConnectionRevision != 7 || constraints.ExpectedPriceVersion != "price-1" || constraints.WalletMaxPoints != expectedMaximum {
 				t.Error("Pi consumption header lost confirmed versions")
 			}
 			if string(body) != string(quotedBody) || r.Header.Get("X-Platform-Execution-Authorization") != "exa_media_run" || r.Header.Get("Cookie") != "" {
@@ -167,10 +171,25 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 		t.Fatalf("media draft did not reach native Pi approval: status=%s events=%+v", run.Status, state.Events)
 	}
 	approval := state.Approval.ID
+	if scenario == "approve" {
+		for _, maximum := range []string{"-1", "0.1", "NaN"} {
+			if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, maximum); err == nil {
+				t.Fatalf("invalid maximum %q accepted", maximum)
+			}
+		}
+		custom, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, "2.5")
+		if err != nil || custom.WalletMaxPoints != "2.5" || custom.EstimatedPoints != "0.123456789" {
+			t.Fatalf("explicit maximum not frozen: %+v %v", custom, err)
+		}
+	}
 	if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", "", nil); err == nil {
 		t.Fatal("unquoted media approved")
 	}
-	quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval)
+	maximum := ""
+	if scenario == "approve" {
+		maximum = "2.5"
+	}
+	quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, maximum)
 	if strings.HasPrefix(scenario, "missing_preview_") {
 		if appErr, ok := err.(*AppError); !ok || appErr.Status != 409 {
 			t.Fatalf("incomplete preview not rejected: %v", err)
@@ -185,7 +204,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if quote.WalletMaxPoints != "0.123456789" || quote.PriceVersion != "price-1" {
+	if (quote.WalletMaxPoints != "0.123456789" && !(scenario == "approve" && quote.WalletMaxPoints == "2.5")) || quote.PriceVersion != "price-1" {
 		t.Fatal("decimal quote changed")
 	}
 	if kind == "video" {
@@ -292,7 +311,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if grant != "exa_media_run" || !execution.Released || frozen.Consumption.WalletMaxPoints != quote.WalletMaxPoints || !strings.Contains(string(frozen.Body), "a green square") {
 		t.Fatal("frozen request or shared authority changed")
 	}
-	if quotes != 1 || issues != 1 {
+	if (quotes != 1 && !(scenario == "approve" && quotes == 3)) || issues != 1 {
 		t.Fatalf("unexpected quote/grant count %d/%d", quotes, issues)
 	}
 	if scenario == "changed_capability" {
