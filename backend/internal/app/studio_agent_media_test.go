@@ -19,7 +19,7 @@ import (
 const studioAgentMediaFixtureCatalog = `{"success":true,"data":{"items":[{"model_name":"pi-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}},{"model_name":"image-model","model_type":"image","invocation_status":"available","price":{"status":"available","version":"price-1"},"media_generation_profile":{"default_variant":"generate","variants":[{"id":"generate","protocol":"openai-images","operation":"generate","method":"POST","path":"/images/generations","defaults":{"n":1,"size":"1:1"},"specifications_schema":{"type":"object","additionalProperties":false,"properties":{"n":{"type":"integer","enum":[1]},"size":{"type":"string","enum":["1:1"]}},"required":["n","size"]},"parameter_bindings":{"n":"n","size":"size"}}]}}]}}`
 
 func TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority(t *testing.T) {
-	for _, scenario := range []string{"approve", "expired", "changed_canvas", "reject", "stopped"} {
+	for _, scenario := range []string{"approve", "image_parameters", "expired", "changed_canvas", "reject", "stopped"} {
 		t.Run(scenario, func(t *testing.T) { studioPiMediaApprovalScenario(t, scenario) })
 	}
 }
@@ -33,12 +33,19 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	s.activeCancels = make(map[string]context.CancelFunc)
 	quotes, issues := 0, 0
 	submits, recoveries := 0, 0
+	catalog := studioAgentMediaFixtureCatalog
+	if scenario == "image_parameters" {
+		// Publish a parameter which has no dedicated generate_media argument.
+		catalog = strings.ReplaceAll(catalog, `"size":"1:1"`, `"size":"1:1","background":"opaque"`)
+		catalog = strings.ReplaceAll(catalog, `"size":{"type":"string"`, `"background":{"type":"string","enum":["opaque","transparent"]},"size":{"type":"string"`)
+		catalog = strings.ReplaceAll(catalog, `"size":"size"`, `"size":"size","background":"background"`)
+	}
 	var quotedBody []byte
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/models"):
-			_, _ = w.Write([]byte(studioAgentMediaFixtureCatalog))
+			_, _ = w.Write([]byte(catalog))
 		case r.URL.Path == "/api/platform/v1/execution-authorizations":
 			issues++
 			var in map[string]string
@@ -88,7 +95,11 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	}
 	run, _ := s.repo.CloudAgent("user", view.ID)
 	state, _ := cloudAgentDecode(run)
-	state.Calls = []cloudAgentCall{agentMediaCall(cloudAgentMediaArgs{Mode: "image", Prompt: "a green square", ChannelID: StudioPlatformChannelID, ChannelModelKey: "image-model", Size: "1:1", NodeID: "image-node", Title: "草稿"})}
+	args := cloudAgentMediaArgs{Mode: "image", Prompt: "a green square", ChannelID: StudioPlatformChannelID, ChannelModelKey: "image-model", Size: "1:1", NodeID: "image-node", Title: "草稿"}
+	if scenario == "image_parameters" {
+		args.ImageParameters = `{"background":"transparent"}`
+	}
+	state.Calls = []cloudAgentCall{agentMediaCall(args)}
 	if err := s.repo.MutateCloudAgent("user", run.ID, run.Revision, func(current *model.CloudAgentExecution, _ *repository.Repository) error {
 		return cloudAgentSave(current, &state)
 	}); err != nil {
@@ -114,13 +125,19 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if quote.WalletMaxPoints != "0.123456789" || quote.PriceVersion != "price-1" {
 		t.Fatal("decimal quote changed")
 	}
+	if scenario == "image_parameters" {
+		var body map[string]any
+		if err := json.Unmarshal(quotedBody, &body); err != nil || body["background"] != "transparent" {
+			t.Fatalf("published imageParameters did not override the default in the native quote: %s", quotedBody)
+		}
+	}
 	if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "other", session, run.ID, approval); err == nil {
 		t.Fatal("other account quoted run")
 	}
 	if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", "old-quote", nil); err == nil {
 		t.Fatal("stale quote approved")
 	}
-	if scenario != "approve" {
+	if scenario != "approve" && scenario != "image_parameters" {
 		run, _ = s.repo.CloudAgent("user", view.ID)
 		state, _ = cloudAgentDecode(run)
 		switch scenario {
