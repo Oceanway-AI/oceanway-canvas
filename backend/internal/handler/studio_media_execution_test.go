@@ -14,18 +14,25 @@ import (
 )
 
 func TestStudioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T) {
-	for _, kind := range []string{"image", "video"} {
+	for _, kind := range []string{"image", "video", "video_const"} {
 		t.Run(kind, func(t *testing.T) { studioMediaFreezesQuoteAndRecoversFixedOutput(t, kind) })
 	}
 }
 
 func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
+	fixedResolution := kind == "video_const"
+	if fixedResolution {
+		kind = "video"
+	}
 	f := newStudioFixture(t)
 	f.catalog = `{"success":true,"data":{"items":[{"model_name":"exact-image","model_type":"image","invocation_status":"available","price":{"status":"available","version":"price-1"},"media_generation_profile":{"default_variant":"generate","variants":[{"id":"generate","protocol":"openai-images","operation":"generate","method":"POST","path":"/images/generations","defaults":{"n":1,"size":"square"},"specifications_schema":{"type":"object","additionalProperties":false,"properties":{"n":{"type":"integer","minimum":1,"maximum":1},"size":{"enum":["square"]}},"required":["n","size"]},"parameter_bindings":{"n":"n","size":"size"}}]}}]}}`
 	name, submitPath, contentType := "exact-image", "/internal/relay/images/generations", "image/png"
 	if kind == "video" {
 		name, submitPath, contentType = "doubao-seedance-2-0-fast-260128", "/internal/relay/doubao/api/v3/contents/generations/tasks", "video/mp4"
 		f.catalog = `{"success":true,"data":{"items":[{"model_name":"doubao-seedance-2-0-fast-260128","model_type":"video","invocation_status":"available","price":{"status":"usage_dependent","version":"price-1","usage_schema":{"tokens":{"type":"number","unit":"token"},"resolution":{"enum":["480p","720p"]},"video_input":{"enum":["none","video"]}}},"media_generation_profile":{"mode":"native-doubao-video","default_variant":"generate","variants":[{"id":"generate","protocol":"doubao-video","operation":"generate","method":"POST","path":"/doubao/api/v3/contents/generations/tasks","defaults":{"resolution":"720p","ratio":"adaptive","generate_audio":true,"watermark":false},"specifications_schema":{"type":"object","additionalProperties":false,"properties":{"duration":{"type":"integer","enum":[-1,4,5,6]},"resolution":{"type":"string","enum":["480p","720p"]},"ratio":{"type":"string","enum":["16:9","adaptive"]},"generate_audio":{"type":"boolean"},"watermark":{"type":"boolean"}}},"parameter_bindings":{"duration":"duration","resolution":"resolution","ratio":"ratio","generate_audio":"generate_audio","watermark":"watermark"}}]}}]}}`
+	}
+	if fixedResolution {
+		f.catalog = strings.Replace(f.catalog, `"type":"string","enum":["480p","720p"]`, `"type":"string","const":"720p"`, 1)
 	}
 	var previewBody []byte
 	submits, previews, reads, binds := 0, 0, 0, 0

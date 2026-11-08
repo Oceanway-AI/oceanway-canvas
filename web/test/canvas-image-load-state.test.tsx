@@ -20,8 +20,8 @@ class FakeImage {
         queueMicrotask(() => {
             if (failingUrls.has(value)) return this.onerror?.();
             this.complete = true;
-            this.naturalWidth = 1824;
-            this.naturalHeight = 1024;
+            this.naturalWidth = value.includes("size-thumbnail") || value.includes("size-preview") ? 320 : 1824;
+            this.naturalHeight = value.includes("size-thumbnail") || value.includes("size-preview") ? 320 : 1024;
             this.onload?.(new Event("load"));
         });
     }
@@ -53,15 +53,22 @@ const { act } = await import("react");
 const { createRoot } = await import("react-dom/client");
 const { apiClient } = await import("../src/services/api/request");
 const { RetainedCanvasImage } = await import("../src/components/canvas/canvas-node-media-content");
+const { useNodeResourceUrl } = await import("../src/components/canvas/canvas-node-media-content");
+const { CanvasNodeImageInfo } = await import("../src/components/canvas/canvas-node-content");
+const { CanvasNodeType } = await import("../src/types/canvas");
+const { renderToStaticMarkup } = await import("react-dom/server");
+import type { CanvasNodeData } from "../src/types/canvas";
+import type { ResourceAccessVariant } from "../src/services/api/resources";
 const { canvasThemes } = await import("../src/lib/canvas-theme");
 
 const accessRequests: unknown[] = [];
 let nextAccessUrl = "https://cdn.example.com/fresh.png";
+let nextActualVariant: ResourceAccessVariant = "original";
 const previousAdapter = apiClient.defaults.adapter;
 apiClient.defaults.adapter = async (config) => {
     const payload = JSON.parse(String(config.data || "[]")) as Array<{ resourceId: string }>;
     accessRequests.push(...payload);
-    const items = payload.map((item) => ({ access: { resourceId: item.resourceId, url: nextAccessUrl, delivery: "cdn", actualVariant: "original", requestedVariant: "original", issuedAt: new Date().toISOString() } }));
+    const items = payload.map((item) => ({ access: { resourceId: item.resourceId, url: nextAccessUrl, delivery: "cdn", actualVariant: nextActualVariant, requestedVariant: "original", issuedAt: new Date().toISOString() } }));
     return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { items } } };
 };
 
@@ -78,6 +85,7 @@ beforeEach(() => {
     failingUrls.clear();
     accessRequests.length = 0;
     nextAccessUrl = "https://cdn.example.com/fresh.png";
+    nextActualVariant = "original";
 });
 
 const settle = async () => {
@@ -172,4 +180,135 @@ test("非资源图片失败时不请求访问地址，直接显示失败态", as
     expect(view.host.querySelector('.canvas-image-state[data-state="error"]')).not.toBeNull();
     expect(accessRequests).toHaveLength(0);
     await view.unmount();
+});
+
+test.each(["thumbnail", "preview"] as const)("%s 解码尺寸不能写成原件尺寸，也不为量尺寸请求原件", async (variant) => {
+    nextActualVariant = variant;
+    nextAccessUrl = `https://cdn.example.com/size-${variant}.png`;
+    const measured: unknown[] = [];
+    const node = { id: variant, type: CanvasNodeType.Image, metadata: { storageKey: `resource:dimension-${variant}`, naturalWidth: 1024, naturalHeight: 1024 } } as CanvasNodeData;
+    function View() {
+        // display/original 也可能返回 preview，应依据实际变体决定是否量尺寸。
+        const access = useNodeResourceUrl(node, true, variant === "preview" ? "original" : "thumbnail");
+        return (
+            <RetainedCanvasImage
+                identity={variant}
+                src={access.url}
+                sourceVariant={access.sourceVariant}
+                storageKey={node.metadata!.storageKey}
+                fallbackSrc=""
+                originalSize={{}}
+                fitToImage={(image, size) => measured.push(size?.width || image.naturalWidth)}
+                className=""
+                loading={access.loading}
+                theme={canvasThemes.dark}
+            />
+        );
+    }
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    try {
+        await act(async () => root.render(<View />));
+        await settle();
+        expect(host.querySelector("img")?.getAttribute("src")).toBe(nextAccessUrl);
+        expect(measured).toEqual([]);
+        expect(accessRequests).toHaveLength(1);
+        expect(accessRequests[0]).toMatchObject({ purpose: "display", variant: variant === "preview" ? "original" : "thumbnail" });
+    } finally {
+        await act(() => root.unmount());
+    }
+});
+
+test("已提供原件尺寸的缩略图使用原件尺寸，本地原图仍可解码测量", async () => {
+    const measured: unknown[] = [];
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    try {
+        await act(async () =>
+            root.render(
+                <RetainedCanvasImage
+                    identity="known-size"
+                    src="https://cdn.example.com/known-size.png"
+                    sourceVariant="thumbnail"
+                    fallbackSrc=""
+                    originalSize={{ width: 1024, height: 1024 }}
+                    fitToImage={(image, size) => measured.push([size?.width || image.naturalWidth, size?.height || image.naturalHeight])}
+                    className=""
+                    loading={false}
+                    theme={canvasThemes.dark}
+                />,
+            ),
+        );
+        await settle();
+        expect(measured).toEqual([[1024, 1024]]);
+        await act(async () =>
+            root.render(
+                <RetainedCanvasImage
+                    identity="local-original"
+                    src="blob:local-original"
+                    sourceVariant="original"
+                    fallbackSrc=""
+                    originalSize={{}}
+                    fitToImage={(image) => measured.push([image.naturalWidth, image.naturalHeight])}
+                    className=""
+                    loading={false}
+                    theme={canvasThemes.dark}
+                />,
+            ),
+        );
+        await settle();
+        expect(measured).toEqual([
+            [1024, 1024],
+            [1824, 1024],
+        ]);
+        expect(accessRequests).toHaveLength(0);
+    } finally {
+        await act(() => root.unmount());
+    }
+});
+
+test("图片重试返回preview时仍不能记录预览尺寸", async () => {
+    nextActualVariant = "preview";
+    nextAccessUrl = "https://cdn.example.com/retry-size-preview.png";
+    failingUrls.add("https://cdn.example.com/expired-size-thumbnail.png");
+    const measured: number[] = [];
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    try {
+        await act(async () =>
+            root.render(
+                <RetainedCanvasImage
+                    identity="retry-preview-size"
+                    src="https://cdn.example.com/expired-size-thumbnail.png"
+                    sourceVariant="thumbnail"
+                    storageKey="resource:retry-preview-size"
+                    fallbackSrc=""
+                    originalSize={{}}
+                    fitToImage={(image) => measured.push(image.naturalWidth)}
+                    className=""
+                    loading={false}
+                    theme={canvasThemes.dark}
+                />,
+            ),
+        );
+        await settle();
+        expect(host.querySelector("img")?.getAttribute("src")).toBe(nextAccessUrl);
+        expect(measured).toEqual([]);
+        expect(accessRequests).toHaveLength(1);
+        expect(accessRequests[0]).toMatchObject({ purpose: "display" });
+    } finally {
+        await act(() => root.unmount());
+    }
+});
+
+test("图片原件尺寸未知时信息栏不使用画布显示框尺寸", () => {
+    const node = { id: "unknown-size", type: CanvasNodeType.Image, width: 320, height: 320, metadata: { storageKey: "resource:unknown-size", bytes: 1039672 } } as CanvasNodeData;
+    const html = renderToStaticMarkup(<CanvasNodeImageInfo node={node} />);
+    expect(html).toContain("尺寸未知");
+    expect(html).not.toContain("320");
+    node.metadata!.naturalWidth = node.metadata!.naturalHeight = 1024;
+    expect(renderToStaticMarkup(<CanvasNodeImageInfo node={node} />)).toContain("1024 x 1024");
 });

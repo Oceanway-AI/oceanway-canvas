@@ -9,6 +9,8 @@ Studio 已开放 `POST /api/tasks`、`POST /api/tasks/preview`、`GET /api/tasks
 
 媒体创建还必须携带展示预览中的 `platform.expectedCapabilityRevision`（64位小写十六进制）和 `platform.expectedConnectionRevision`（正整数）。对应预览响应字段为 `capability_revision` / `connection_revision`。缺失创建版本为400，预览版本缺失/无效或创建复核与已确认版本不同为409，拒绝发生在新 Task/执行授权创建之前。两个 revision 与价格/额度、原生正文一起加密冻结，并通过 rc.6 SDK 消费头发出；恢复只读原记录，不补造版本或重新报价。
 
+模型目录按所选发布 schema 投影 enum 和 const；const 表达一个固定可选值及同类型默认值。视频界面和 Pi 的内部720仅在发布值包含720p时还原，不能把不支持的1080换成720p；未填写参数可取发布 const/default，显式冲突由完整 schema 校验返回400。价格 usage_schema 不作为生成参数。
+
 Studio 原生 Pi 已开放 `/api/agent` 的轮次、事件、审批和同链工具。媒体草稿的 `approval.studioMedia=true`；`POST /agent/runs/:id/approvals/:approvalId/quote` 以当前浏览器会话获取精确报价，返回 `id/walletMaxPoints/priceVersion/expiresAt/parameters`。`POST .../decision` 批准时必须传该 `quoteId`，不接受同时修改 `mediaSettings`；报价不存在/过期/依赖变化为409。任务、画布绑定与决定同事务写入，共享整轮授权，不生成本地账单。报价原生请求加密保存在服务端，不进入公共审批 JSON；拒绝不提交模型请求。
 
 Pi 媒体报价同时冻结能力/连接 revision 到原加密准备态，公共审批格式不变；批准不重新报价、不申请独立 EXA。缺失版本的旧准备态409拒绝，已排队且未提交的旧媒体任务标记失败；已提交的旧任务继续按原 request ID 恢复，即使旧 envelope 缺少 revision，也不得改判为未执行或补发。
@@ -29,6 +31,8 @@ Pi 媒体报价同时冻结能力/连接 revision 到原加密准备态，公共
 | `GET /api/materials/assets`、`GET /api/materials/storage` | 当前账号平台素材列表、容量（十进制字符串） |
 
 浏览器只按票据独立 PUT，不携带登录凭据、不跟随重定向。provider-input 仅供后续服务端执行流程，浏览器不可申请。列表、上传与签名访问均不代表生成调用已接通。完整状态/恢复合同见[素材实施合同](../../../plans/oceanway-studio-materials-contract.md)。
+
+图片展示依据访问回执 actualVariant：thumbnail/preview 的解码宽高不代表原件尺寸。未获得完整原件尺寸时保持未知，不用节点显示框兜底，不为尺寸显示额外下载 original；display/original 被转换为 preview、失败重签返回 preview 时同样适用。本地原图或实际 original 可使用解码尺寸，已有正确原件尺寸不被缩略图覆盖。
 
 ## OceanWay Studio 首批接口边界
 

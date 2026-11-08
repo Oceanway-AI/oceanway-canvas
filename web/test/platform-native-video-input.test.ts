@@ -35,8 +35,12 @@ const model = {
     },
 } as PublicChannelModel;
 
-test("直接生成把内部720还原为发布值720p，保留4秒、新价格版本和用量合同", async () => {
-    const channels = systemChannelModelChannels([{ id: "oceanway-platform", name: "OceanWay", displayName: "OceanWay", models: [model] }]);
+test.each([
+    ["enum", ["480p", "720p"]],
+    ["const", ["720p"]],
+] as const)("直接生成按%s目录把内部720还原为720p，保留4秒、新价格与用量合同", async (_schemaKind, resolutions) => {
+    const publishedModel = { ...model, capabilityConfig: { ...model.capabilityConfig!, video: { ...model.capabilityConfig!.video!, resolutions: [...resolutions] } } };
+    const channels = systemChannelModelChannels([{ id: "oceanway-platform", name: "OceanWay", displayName: "OceanWay", models: [publishedModel] }]);
     const selected = `oceanway-platform::${platform.model_name}`;
     const config = creationVideoConfig({ ...defaultConfig, channels }, selected, { ratio: "16:9", seconds: "4", videoQuality: "720" });
     const request = await prepareBackendGenerationTask({ mode: "video", prompt: "A quiet ocean", config, clientOperationId: "native-video-command" });

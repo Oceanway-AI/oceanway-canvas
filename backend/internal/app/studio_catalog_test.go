@@ -68,3 +68,51 @@ func TestStudioDoubaoCatalogProjectsNativeRatioAndFourSecond720p(t *testing.T) {
 		t.Fatalf("published 720p/4 seconds changed: %+v", video)
 	}
 }
+
+func TestStudioCatalogProjectsConstAsSinglePublishedChoice(t *testing.T) {
+	selected := platformintegration.ModelSelection{Kind: "video", NativeEndpoint: platformintegration.NativeEndpoint{
+		Schema: json.RawMessage(`{"type":"object","properties":{"resolution":{"type":"string","const":"720p"},"ratio":{"type":"string","const":"16:9"},"duration":{"type":"integer","const":4},"generate_audio":{"type":"boolean","const":false}}}`),
+	}}
+	video := studioCapabilityProjection(selected)["video"].(map[string]any)
+	for field, want := range map[string]string{"resolutions": "720p", "ratios": "16:9"} {
+		values := video[field].([]any)
+		if len(values) != 1 || values[0] != want {
+			t.Errorf("const disappeared from %s: %+v", field, values)
+		}
+	}
+	if video["defaultResolution"] != "720p" || video["defaultRatio"] != "16:9" || video["duration"].(map[string]any)["default"] != float64(4) {
+		t.Errorf("missing const defaults: %+v", video)
+	}
+	selected.Kind = "image"
+	image := studioCapabilityProjection(selected)["image"].(map[string]any)
+	for _, param := range image["parameters"].([]map[string]any) {
+		if param["name"] == "imageResolution" && (param["default"] != "720p" || len(param["values"].([]any)) != 1) {
+			t.Errorf("image parameter lost fixed resolution: %+v", param)
+		}
+		if param["name"] == "generate_audio" && param["default"] != false {
+			t.Errorf("lost false const: %+v", param)
+		}
+	}
+}
+
+func TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts(t *testing.T) {
+	selected := platformintegration.ModelSelection{Kind: "video", NativeEndpoint: platformintegration.NativeEndpoint{
+		Schema: json.RawMessage(`{"type":"object","additionalProperties":false,"properties":{"resolution":{"type":"string","const":"720p"},"duration":{"type":"integer","const":4},"generate_audio":{"type":"boolean","const":false}},"required":["resolution","duration","generate_audio"]}`),
+	}}
+	for _, value := range []string{"", "720p", "1080p"} {
+		t.Run(value, func(t *testing.T) {
+			input := canvasGenerationInput{}
+			input.Config.VQuality = value
+			spec, err := studioMediaSpecifications(input, selected)
+			if value == "1080p" {
+				if err == nil {
+					t.Fatal("explicit conflicting resolution was silently replaced")
+				}
+				return
+			}
+			if err != nil || spec["resolution"] != "720p" || spec["duration"] != float64(4) || spec["generate_audio"] != false {
+				t.Fatalf("published const types/values lost: %+v %v", spec, err)
+			}
+		})
+	}
+}

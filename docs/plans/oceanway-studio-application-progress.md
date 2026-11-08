@@ -148,3 +148,12 @@ F6 媒体消费版本冻结（2026-11-08）：先记录执行合同，再以直�
 F6 验证：应用/handler/platformintegration/repository 的 `TestStudio|TestCloudAgentMedia` 专项通过，包含真实 Node/Pi 媒体审批；platformintegration 全套通过；新增准入/恢复/审批与图片/视频冻结用例 `go test -race` 通过。前端提交、原生视频、结果回填、真实首页与审批卡共22项/96断言通过；typecheck、变更 ESLint/Prettier、gofmt、diff whitespace 通过；Go server 与 Vite 构建通过，Vite 仍有既有动态导入/大 chunk提示。本轮没有重复全量 Web/Go 测试，未运行真实 PG/Redis。
 
 证据：`.local/verification/studio-revisions-{red-go,red-web,admission-red,validation-red-web,regression-go,regression-web,approval-web,sdk-consumer,race,typecheck,lint,build-go,build-web}.log`。本批没有推送、部署、操作 Platform/18420/生产 Console 或提交收费生成，原失败图片节点保留。待协调侧合入后做正式 EXA 与媒体成功回填验收。
+
+F7 发布 schema const 与原件尺寸（2026-11-08）：协调侧报告 f6de329（包含2e2c2f2）在18448实际 GPT Image2 成功，Mini 视频 preview400且未建 Task/未到供应商。失败测试精确复现 `resolution={type:string,const:720p}` 的目录漏投影，以及 Pi 的720/未指定分辨率无法进入审批；图片 DOM 测试复现 thumbnail/preview 被回写为原件尺寸、信息栏把320×320显示框当原件尺寸。
+
+- const 作为单值能力与同类型默认值投影，直接视频沿用目录把720恢复为720p；Pi 基于所选冻结目录做相同匹配，缺省值取已发布 const/default，显式不支持的1080仍失败。免费 HTTP/数据库夹具覆盖直接 const 视频、Pi 审批/三版本/同字节派发/原请求恢复/固定素材回填，不修改 Platform schema。
+- 图片使用 actualVariant 识别缩略图、预览图与原件。导数图没有完整原件尺寸时不触发尺寸回写，不覆盖已有正确尺寸；信息栏缺失原件尺寸显示「尺寸未知」。未知变体按预览处理，重签返回 preview 也不测量原件；没有为量尺寸额外签发、下载原件。历史画布不批量改写，旧失败节点保留。
+
+F7 验证：先保存 const 目录/Pi 与图片 DOM 失败日志，再运行 `go test ./internal/app ./internal/handler -run 'TestStudio|TestCloudAgentMedia' -count=1` 通过（含真实 Node/Pi）；platformintegration 全套通过。前端图片加载/重签、const/enum 视频、三版本提交/恢复、固定素材回填、真实首页/画布节点/审批卡共34项/143断言通过；typecheck、变更 ESLint/Prettier、gofmt及 diff whitespace 通过；Go server/Vite 构建通过。图片既有下载队列用例有 React act 提示，Vite 仍有既有动态导入/大chunk提示。未重复全量无关测试或 race，未运行真实PG/Redis/收费模型。
+
+证据位于 `.local/verification/studio-const-{red-go,green-go,green-web,regression-go,regression-web,typecheck,schema-go,build-go,build-web}.log` 和 `studio-image-dimensions-red-web.log`。仅应用侧修改，未部署、未修改远端配置、未提交收费生成。上线后由协调侧以新节点验收；历史画布已保存的320尺寸不自动批量改写。

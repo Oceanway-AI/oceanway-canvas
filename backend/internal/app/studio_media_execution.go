@@ -167,6 +167,11 @@ func studioMediaSpecifications(input canvasGenerationInput, selected platformint
 	}
 	known := map[string]bool{}
 	for key, field := range schema.Properties {
+		if _, supplied := spec[key]; !supplied {
+			if value := studioPublishedDefault(selected, key, field); value != nil {
+				spec[key] = value
+			}
+		}
 		name := studioParameterName(key)
 		known[name] = true
 		if value, ok := input.Config.ImageParameters[name]; ok && selected.Kind == "image" {
