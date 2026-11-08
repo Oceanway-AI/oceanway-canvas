@@ -103,6 +103,7 @@ func (s *Service) StudioCurrentUser(ctx context.Context, session platformclient.
 	// Role is derived from this response and is intentionally never persisted.
 	user.Username = identity.User.Username
 	user.PlatformAuthenticated = true
+	user.PlatformSessionID = identity.Session.SID
 	for _, role := range identity.ProductRoles {
 		if role == "studio:admin" {
 			user.Role = model.UserRoleAdmin

@@ -61,7 +61,7 @@ func (s *Service) cloudAgentExecutionOutput(task *model.Task, initial cloudAgent
 	if !view.FromStart && view.SinceSeq == 0 && len(out.Events) < out.EventCount {
 		out.EventsTruncated = true
 	}
-	out.Approval = state.Approval
+	out.Approval = cloudAgentApprovalOutput(state.Approval)
 	if cloudAgentRunTerminal(run.Status) {
 		out.Approval = nil
 	}
@@ -80,6 +80,10 @@ func (s *Service) cloudAgentExecutionOutput(task *model.Task, initial cloudAgent
 		skill.Instruction = ""
 		skill.Files = nil
 		out.Skills = append(out.Skills, skill)
+	}
+	if s.UsesPlatformIdentity() {
+		out.Billing = "platform"
+		return out, nil
 	}
 	orders, err := s.repo.BillingOrdersByTaskIDs(task.UserID, state.TaskIDs)
 	if err != nil {

@@ -106,14 +106,17 @@ func (e *cloudAgentReadLoopError) Error() string {
 }
 
 type cloudAgentApproval struct {
-	Prepared  *cloudAgentPreparedMedia  `json:"prepared,omitempty"`
-	ModelName string                    `json:"modelName,omitempty"`
-	ID        string                    `json:"approvalId"`
-	Call      cloudAgentCall            `json:"call"`
-	CallHash  string                    `json:"callHash,omitempty"`
-	Preview   cloudAgentApprovalPreview `json:"preview"`
-	Decision  string                    `json:"decision,omitempty"`
-	Reason    string                    `json:"reason,omitempty"`
+	StudioMedia             bool                      `json:"studioMedia,omitempty"`
+	StudioQuote             *StudioAgentMediaQuote    `json:"studioQuote,omitempty"`
+	StudioPreparedEncrypted string                    `json:"studioPreparedEncrypted,omitempty"`
+	Prepared                *cloudAgentPreparedMedia  `json:"prepared,omitempty"`
+	ModelName               string                    `json:"modelName,omitempty"`
+	ID                      string                    `json:"approvalId"`
+	Call                    cloudAgentCall            `json:"call"`
+	CallHash                string                    `json:"callHash,omitempty"`
+	Preview                 cloudAgentApprovalPreview `json:"preview"`
+	Decision                string                    `json:"decision,omitempty"`
+	Reason                  string                    `json:"reason,omitempty"`
 }
 
 type cloudAgentRuntime struct {

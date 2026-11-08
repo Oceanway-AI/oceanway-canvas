@@ -231,6 +231,10 @@ func (s *Service) recoverCloudAgentPiRunners() {
 
 		for _, run := range runs {
 			cursor = run.ID
+			if s.UsesPlatformIdentity() && run.CleanupPending && cloudAgentRunTerminal(run.Status) {
+				_ = s.finishCloudAgentCleanup(context.Background(), &run)
+				continue
+			}
 			// 跳过等待状态
 			if run.Status == "waiting_approval" || run.Status == "waiting_user" {
 				continue

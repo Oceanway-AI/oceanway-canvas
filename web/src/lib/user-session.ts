@@ -53,6 +53,7 @@ export async function applyUserSession(payload: AuthSessionPayload) {
         ),
     );
     useUserStore.getState().setUser(payload.user);
+    useUserStore.setState({ platformIdentity: payload.provider === "platform" });
     useUserStore.getState().setRuntimeLimits(payload.runtimeLimits);
     useUserStore.getState().setDrawingEngine(payload.drawingEngine);
     useUserStore.getState().setFeatures(payload.features);

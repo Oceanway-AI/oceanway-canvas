@@ -52,6 +52,7 @@ func cloudAgentApprovalOutput(approval *cloudAgentApproval) *cloudAgentApproval 
 		return nil
 	}
 	copy := *approval
+	copy.StudioPreparedEncrypted = ""
 	copy.Prepared = approval.Prepared.publicView()
 	return &copy
 }

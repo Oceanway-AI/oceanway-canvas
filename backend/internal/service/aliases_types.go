@@ -25,6 +25,7 @@ type (
 	PaymentOrderQuery                      = app.PaymentOrderQuery
 	PaymentReconciliationQuery             = app.PaymentReconciliationQuery
 	CloudAgentRequest                      = app.CloudAgentRequest
+	CloudAgentRun                          = app.CloudAgentRun
 	CloudAgentRunViewOptions               = app.CloudAgentRunViewOptions
 	CloudAgentMediaSettings                = app.CloudAgentMediaSettings
 	CloudAgentCapabilitySet                = app.CloudAgentCapabilitySet
@@ -417,3 +418,5 @@ func CloudAgentCapabilitySetInfo() CloudAgentCapabilitySet {
 func CloudAgentSupportedToolNames() []string {
 	return app.CloudAgentSupportedToolNames()
 }
+
+func StudioAgentSupportedToolNames() []string { return app.StudioAgentSupportedToolNames() }

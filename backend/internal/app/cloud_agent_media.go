@@ -754,6 +754,11 @@ func (s *Service) prepareCloudAgentMedia(run *model.CloudAgentExecution, state *
 		}
 	}
 	// Validate materialized values as well as the original tool shape.
+	if s.UsesPlatformIdentity() {
+		if err := s.resolveStudioAgentMediaOptions(run.UserID, &a, state); err != nil {
+			return CreateTaskRequest{}, nil, err
+		}
+	}
 	if err := validateCloudAgentMediaShape(a, state); err != nil {
 		return CreateTaskRequest{}, nil, err
 	}

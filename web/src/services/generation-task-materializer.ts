@@ -1,5 +1,10 @@
 import type { GenerationTask, GenerationTaskOutput } from "@/services/api/task-center";
 
+export function generationTaskOutputReady(task: GenerationTask, output: GenerationTaskOutput | undefined): boolean {
+    if (task.provider === "platform") return Boolean(output?.materializedResourceId && output.providerArtifactRef === `resource:${output.materializedResourceId}`);
+    return Boolean(output?.materializedAssetId);
+}
+
 export type GenerationTaskEffectResult = {
     materializedAssetId?: string;
 };
@@ -163,7 +168,7 @@ export function createGenerationTaskMaterializer(dependencies: { effects: Genera
 
     function requireMaterializedOutput(task: GenerationTask, outputIndex: number): GenerationTaskOutput {
         const output = task.outputs?.find((candidate) => candidate.outputIndex === outputIndex);
-        if (!output?.materializedAssetId) {
+        if (!output || !generationTaskOutputReady(task, output)) {
             throw new Error(`Task output ${outputIndex} is not materialized`);
         }
         return output;

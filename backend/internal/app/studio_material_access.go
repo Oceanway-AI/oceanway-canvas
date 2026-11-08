@@ -8,9 +8,14 @@ import (
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
 	"yingce/backend/internal/assets"
+	"yingce/backend/internal/model"
 )
 
-func (s *Service) StudioResourceAccess(ctx context.Context, userID string, session platformclient.SessionContext, requests []ResourceAccessRequest) ([]ResourceAccessResult, *platformclient.Response, error) {
+func (s *Service) StudioResourceAccess(ctx context.Context, user *model.User, session platformclient.SessionContext, requests []ResourceAccessRequest) ([]ResourceAccessResult, *platformclient.Response, error) {
+	if user == nil || !user.PlatformAuthenticated || user.PlatformSessionID == "" {
+		return nil, nil, Unauthorized("登录状态已失效")
+	}
+	userID := user.ID
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	c := s.materialCall(ctx, userID, session)
@@ -28,7 +33,7 @@ func (s *Service) StudioResourceAccess(ctx context.Context, userID string, sessi
 			continue
 		}
 		ref, err := s.repo.WithContext(ctx).StudioMaterialReference(userID, req.ResourceID)
-		if err != nil {
+		if err != nil || ref.BindingID == "" {
 			continue
 		}
 		purpose, variant := string(req.Purpose), string(req.Variant)
@@ -59,11 +64,18 @@ func (s *Service) StudioResourceAccess(ctx context.Context, userID string, sessi
 			continue
 		}
 		id := strconv.Itoa(i)
-		items = append(items, platformclient.AccessItem{ItemID: id, AssetID: ref.AssetID, VersionID: ref.VersionID, Purpose: purpose, Variant: variant})
+		items = append(items, platformclient.AccessItem{ItemID: id, AssetID: ref.AssetID, VersionID: ref.VersionID, BindingID: ref.BindingID, Purpose: purpose, Variant: variant})
 		files[id] = ref.FileID
 	}
 	if len(items) == 0 {
 		return results, c.response, nil
+	}
+	if session.Origin == "" {
+		m, err := s.studioMaterialReadAuthority(ctx, user, session)
+		if err != nil {
+			return nil, c.response, err
+		}
+		c.m = m
 	}
 	response, err := c.m.Access(ctx, platformclient.AccessRequest{Items: items})
 	c.collect(response.Response)

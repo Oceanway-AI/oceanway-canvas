@@ -44,7 +44,7 @@ func newStudioFixture(t *testing.T) *studioFixture {
 	f := &studioFixture{}
 	platform := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.requests++
-		if f.execution != nil && (strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
+		if f.execution != nil && (strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/internal/materials/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
 			f.execution(w, r)
 			return
 		}
@@ -92,10 +92,18 @@ func newStudioFixture(t *testing.T) *studioFixture {
 			return
 		}
 		id := 0
-		switch r.Header.Get("Cookie") {
-		case "platform_session=alice":
+		sid := "reference-only"
+		cookie, _ := r.Cookie("platform_session")
+		if cookie == nil {
+			cookie = &http.Cookie{}
+		}
+		switch cookie.Value {
+		case "alice", "alice-other-session":
 			id = 101
-		case "platform_session=bob":
+			if cookie.Value == "alice-other-session" {
+				sid = "another-session"
+			}
+		case "bob":
 			id = 202
 		}
 		if id == 0 || f.revoked {
@@ -111,7 +119,7 @@ func newStudioFixture(t *testing.T) *studioFixture {
 			w.Header().Add("Set-Cookie", "platform_session=rotated; Secure; HttpOnly")
 			w.Header().Add("Set-Cookie", "nonce=next; Secure; HttpOnly")
 		}
-		_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": gin.H{"user": gin.H{"id": id, "username": "same-name", "display_name": "Platform user", "status": 1, "role": 100}, "session": gin.H{"sid": "reference-only"}, "product_roles": roles}})
+		_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": gin.H{"user": gin.H{"id": id, "username": "same-name", "display_name": "Platform user", "status": 1, "role": 100}, "session": gin.H{"sid": sid}, "product_roles": roles}})
 	}))
 	t.Cleanup(platform.Close)
 	env := map[string]string{"STUDIO_PLATFORM_ORIGIN": platform.URL, "STUDIO_PLATFORM_PRODUCT_KEY": "fixture.secret", "STUDIO_PUBLIC_ORIGIN": "https://studio.example.test", "STUDIO_PLATFORM_SESSION_HOSTS": "studio.example.test", "STUDIO_PLATFORM_ALLOWED_ORIGINS": "https://studio.example.test"}
@@ -201,6 +209,37 @@ func (f *studioFixture) request(t *testing.T, method, path, cookie, body string,
 	return w
 }
 
+func TestStudioReleaseSurfaceRejectsUnconnectedCapabilities(t *testing.T) {
+	f := newStudioFixture(t)
+	f.admin = true
+	if err := f.db.Save(&model.SystemSetting{Key: "feature_availability", ValueJSON: `{"shortDramaEnabled":true,"ecommerceEnabled":true,"ecommerceVideoEnabled":true,"imageWorkbenchEnabled":true,"videoWorkbenchEnabled":true,"pluginCenterEnabled":true,"systemPluginsVisibleToUsers":true,"inspirationSourcesVisible":true,"timelineTranscriptionEnabled":true,"creditsEnabled":true,"customChannelsEnabled":true}`}).Error; err != nil {
+		t.Fatal(err)
+	}
+	w := f.request(t, "GET", "/api/features", "platform_session=alice", "", 200)
+	var envelope struct {
+		Data struct {
+			Features map[string]json.RawMessage `json:"features"`
+		} `json:"data"`
+	}
+	if json.Unmarshal(w.Body.Bytes(), &envelope) != nil {
+		t.Fatal("invalid features response")
+	}
+	features := envelope.Data.Features
+	for _, name := range []string{"shortDramaEnabled", "ecommerceEnabled", "ecommerceVideoEnabled", "imageWorkbenchEnabled", "videoWorkbenchEnabled", "pluginCenterEnabled", "systemPluginsVisibleToUsers", "inspirationSourcesVisible", "timelineTranscriptionEnabled", "creditsEnabled", "customChannelsEnabled"} {
+		if string(features[name]) != "false" {
+			t.Errorf("unconnected feature advertised: %s=%s", name, features[name])
+		}
+	}
+	for _, endpoint := range []struct{ method, path string }{{"POST", "/api/canvas-projects/canvas-1/share"}, {"GET", "/api/canvas-projects/canvas-1/share"}, {"GET", "/api/public/canvas-shares/unknown"}, {"GET", "/api/public/canvas-shares/unknown/resources/resource-1/file"}} {
+		f.request(t, endpoint.method, endpoint.path, "platform_session=alice", "{}", 501)
+	}
+	f.request(t, "GET", "/api/public/canvas-shares/unknown/resources/resource-1/file", "", "", 501)
+	var count int64
+	if err := f.db.Model(&model.CanvasShare{}).Count(&count).Error; err != nil || count != 0 {
+		t.Fatalf("unexpected share writes: count=%d err=%v", count, err)
+	}
+}
+
 func TestStudioPlatformLoginCanvasPersistenceAndIsolation(t *testing.T) {
 	f := newStudioFixture(t)
 	f.rotate = true
@@ -228,27 +267,7 @@ func TestStudioPlatformLoginCanvasPersistenceAndIsolation(t *testing.T) {
 	}
 	f.request(t, "GET", "/api/canvas-projects/canvas-1", "platform_session=bob", "", 404)
 	f.request(t, "GET", "/api/canvas-projects/canvas-1", "", "", 401)
-	f.request(t, "POST", "/api/canvas-projects/canvas-1/share", "", `{}`, 401)
-	share := f.request(t, "POST", "/api/canvas-projects/canvas-1/share", "platform_session=alice", `{"expiresDays":1}`, 200)
-	var shared struct {
-		Data struct {
-			Share struct {
-				Token string `json:"token"`
-			} `json:"share"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(share.Body.Bytes(), &shared); err != nil || shared.Data.Share.Token == "" {
-		t.Fatal("share token missing")
-	}
-	f.request(t, "GET", "/api/canvas-projects/canvas-1/share", "platform_session=bob", "", 404)
-	publicURL := "/api/public/canvas-shares/" + shared.Data.Share.Token
-	before := f.requests
-	public := f.request(t, "GET", publicURL, "", "", 200)
-	if f.requests != before || !strings.Contains(public.Body.String(), "平台画布") {
-		t.Fatal("public share unexpectedly required a Platform session or lost its canvas")
-	}
-	f.request(t, "DELETE", "/api/canvas-projects/canvas-1/share", "platform_session=alice", "", 200)
-	f.request(t, "GET", publicURL, "", "", 404)
+	f.request(t, "POST", "/api/canvas-projects/canvas-1/share", "platform_session=alice", `{"expiresDays":1}`, 501)
 	for _, table := range []any{&model.AuthSession{}, &model.CreditAccount{}, &model.BillingOrder{}} {
 		if err := f.db.Model(table).Count(&count).Error; err != nil {
 			t.Fatal(err)

@@ -14,10 +14,10 @@
 | --- | --- | --- |
 | A 身份/画布 | 已提交 `4e64c70` | 既有 dirty 全部保留；SDK/HTTP/SQLite、前端专项、构建、浏览器夹具通过，详见 first-milestone |
 | B 模型目录 | B1 已提交 | `/api/model-catalog` 经 SDK Models，保留完整平台价格/能力；OAC 选择器使用原模型名和精确小数展示；同一模型替代变体不合并。媒体预估继续 |
-| C 素材 | C1/C2 已提交 | v93 上传意图与固定素材映射、素材工作台/画布选择/容量设置已接通；任务产物关联继续 |
-| D 普通生成 | D1 已提交，D2 完成首批专项 | 三种文本协议、精确媒体预估/上限、原请求恢复、固定产物采用；参考素材与原生图片/视频请求专项通过，真实媒体验收待协调侧 |
-| E 原生 Pi Agent | 待实施 | 模型桥/压缩/审批/工具走同一执行边界；恢复不重复收费 |
-| F 首发联调 | 待环境 | 专项验证完成后交协调侧冻结与最终全量检查 |
+| C 素材 | C1–C4 已提交，最新 `8e542a8` | v93 上传意图与固定素材映射、v95 会话素材授权、工作台/画布选择及生成结果消费已接通；项目/任务引用生命周期继续 |
+| D 普通生成 | D1/D2 已提交 | 三种文本协议、精确媒体预估/上限、原请求恢复、固定产物采用；参考素材与原生图片/视频请求专项通过，真实媒体验收待协调侧 |
+| E 原生 Pi Agent | E1 已提交 `78c37a4`；E2 已提交 `991e462` | 根轮次共享 EXA，模型桥/压缩走持久执行；Node/Pi 画布工具与媒体审批往返通过，真实浏览器媒体验收待协调侧 |
+| F 首发联调 | F1 入口门禁专项通过；真实联调待协调侧 | 专项验证完成后交协调侧冻结与最终全量检查 |
 
 ## 测试与可验收入口
 
@@ -68,3 +68,37 @@ D1 验证：`go test ./internal/handler ./internal/database -run 'TestStudio|Tes
 `2965b70 feat(studio): 文本生成 - 接通平台原请求与断线恢复`：D1 已提交，未推送。HTTP fixture 证明三协议工具结果与断线恢复，不是 Pi 验收。
 
 D2 红灯为 `/tasks/preview` 501 和缺少完整规格验证。当前媒体以 JSON Schema 校验所选变体（拒绝外部 schema 加载），原生 JSON 先 PreviewMedia，再冻结相同 JSON/价格版本/精确十进制上限。前端点击生成先读取报价，以返回 wallet_points 作为本次最高额度，不自动接受上涨或换模型。Worker 只提交一次，后续经原 EXA RecoverMedia → TaskOutputs → 固定 Asset/version/file → binding active → OAC Result。HTTP 模拟提交和绑定响应丢失后恢复，只有一次模型 POST/Bind。Gemini、OpenAI video、Doubao 参数映射与资源引用归属/数量专项通过；不保存 CDN URL、不从本地钱包扣费。前端任务专项 4 项/11 断言、typecheck、lint、format、build 通过。
+
+`b56e914 feat(studio): 媒体生成 - 固定平台报价与素材产物恢复`：D2 已提交，未推送。
+
+E1 红灯为缺少 Studio Pi 授权入口。已接通原生控制任务、冻结目录与整轮 EXA，每一步独立稳定请求 ID；子步骤不释放共享授权。未提交步骤与派发共用锁，停止后已提交请求继续恢复；禁止截断、失败与恢复后的旧自动重发。真实 Node/Pi + 免费 HTTP fixture 完成两次模型调用、canvas_get_state 工具结果回传、会话快照持久化；一次授权，整轮结束后一次释放。初次 Node 测试缺依赖，已按原 package-lock 执行 npm ci 后通过。前端改为明确 1–64 步上限，不再宣称本地积分限额/累计消费。媒体审批未开放，下一批继续接入会话报价与明确额度。
+
+协调侧发现素材访问待补：浏览器 GET 文件缺 Origin，而 SDK Access 为 POST；固定引用访问还需 BindingID。将在 E1 提交后独立补失败测试与修复，不通过改写通用 Session Origin 绕过。
+
+`78c37a4 feat(studio): Pi 对话 - 接通整轮授权与原步骤恢复`：E1 已提交，未推送。
+
+C3 素材读与画布同步修复：红灯确认 BindingID 缺失、Cookie 增加导致素材授权丢失、前端重绑为平台素材新建两份本地资产、文本节点被误要求文件身份。修复使用当前身份 SID 摘要索引加密的 material-only grant；浏览器 POST 初始化授权，无 Origin 文件 GET 使用 WorkerMaterials，未修改通用 Session 来源。数据库升至95。平台素材画布只校验同用户 ready 固定绑定，不再等待旧资产接口。后端 HTTP 采用→文件读取→跨账号拒绝、SID 隔离/撤销及画布保存/重开通过；浏览器实际播放与同步状态待协调侧部署验收。生成结果的旧本地物化、Pi 媒体审批继续审计，尚未宣称首发完成。
+
+C3 验证：`go test ./internal/app ./internal/handler ./internal/database -run 'TestStudio|TestValidateCanvasMediaAssets|TestCurrentSchemaVersionMatchesMigrationPlan' -count=1` 通过；前端素材节点、缺失资产修复、会话缓存、素材选择和画布资源同步 19 项/54 断言、typecheck、变更文件 ESLint/Prettier 通过。没有实际生成、部署或远端配置变更。协调侧另已确认5个 GPT Image 和3个 Seedance 可发现但仍 disabled；应用按发布能力处理，不另写模型分支。
+
+`4a5205b fix(studio): 素材访问 - 绑定会话授权并解除画布旧资产依赖`：C3 已提交，未推送，包含 schema95 迁移。
+
+E2：红灯为缺少平台媒体报价/审批入口，继而核对原生工具权限、Pi 必填参数与草稿运行身份。现在媒体仍由 OAC generate_media 创建草稿与独立审批；浏览器真实会话读取新目录及 PreviewMedia，精确小数和参数显示在原生审批卡，批准携 quoteId，固定请求/价格/上限与整轮 EXA 同事务入队。拒绝、停止、过期、画布依赖改变、报价不匹配均不提交；503 后只查原请求。审批公开投影剥除内部加密准备态。参数在审批卡冻结，调整需拒绝后改草稿并重新申请。
+
+E2 验证：`go test ./internal/app ./internal/handler -run 'TestStudio|TestCloudAgent(Media|Approval|Tools|ToolAllowed)' -count=1` 通过。真实 Node/Pi 免费夹具完成申请→报价→批准→媒体503→原请求失败恢复→工具回执→继续对话，模型提交一次/报价一次/整轮授权及释放各一次。成功产物固定 Resource 回写画布的 Go 专项不创建本地 Asset。前端真实 React 审批卡和普通生成提交共6项/14断言通过，typecheck、变更 ESLint/Prettier、build 通过；构建仍有既有 chunk 大小/动态导入提示。未部署，未做实际收费调用，生成结果浏览器物化路径继续修复。
+
+`991e462 feat(studio): Pi 媒体审批 - 冻结平台报价并恢复原步骤`：E2 已提交，未推送。
+
+C4 生成结果消费：先补6个失败场景，确认仍进入旧 Asset 物化和 Pi 节点准备守卫。Platform 任务现在只校验固定 Resource，直接回填多图、视频和消息，保留原生 attach effect 幂等；不新建 OAC Asset，不调用旧资产同步/外部素材源。每次恢复绕过资源元数据缓存复核归属、状态和类型；换号/取消拒绝。持久结果使用本站文件地址，移除旧 Asset ID 与过期签名 URL。原生 Pi 回填节点也可以直接准备画布保存。
+
+C4 验证：平台生成/素材、旧结果恢复、画布回填及跨页存储一致性共29项/201断言通过；新增测试包含真实画布存储写入→清空内存→重读全部图片。typecheck/变更 ESLint/Prettier/build 通过。没有实际浏览器、付费生成或部署；上游素材远端撤销仍由真实素材访问授权确认，本地校验不代替该权限检查。
+
+C4 补充：`generation-task-durability.node.test.ts` 3项通过。额外执行 `provider-neutral-generation-effects.test.ts` 时第1项通过，第2/3项 Bun Worker 在5秒超时，单独第2项仍超时并无法自行退出，已终止。该 effect store/Worker 用例未在本批修改；原因尚未定位，不能列为已通过，协调侧最终全量验证需复核。日志 `.local/verification/studio-platform-results-effects.log` 与 `studio-platform-effects-lock.log`。
+
+`8e542a8 fix(studio): 生成结果 - 直接回填平台素材并恢复画布`：C4 已提交，未推送。
+
+F1 首发入口：合同见 `oceanway-studio-release-surface.md`。红灯确认旧功能开关仍宣传短剧/插件/转写等能力，分享请求仍进入旧交付链。现强制关闭未接通标志，真实路由边界阻止工作台/后台/公开分享子页面挂载；设置只开放资料、偏好、模型、素材空间，不调用供应商素材库预查询。启动不再迁移旧插件启用状态或采纳渠道 URL，平台会话禁止旧插件 fallback。分享路由整体撤出 Studio，原 OAC 创作源码保留。身份/画布/任务路径继续回归；完整 P8 清扫与视觉、素材引用生命周期和真实服务验收仍未完成。
+
+F1 验证：`go test ./internal/handler -run 'TestStudio' -count=1` 通过；路由/插件门禁与平台生成、会话缓存、目录、素材选择共14项/150断言通过。typecheck、变更文件 ESLint/Prettier、build、diff whitespace 检查通过。未推送/部署/修改远端配置，未调用收费生成；构建仍有既有 chunk 大小/动态导入提示。
+
+E1 验证：`go test ./internal/app ./internal/repository -run 'TestStudio|TestCloudAgent(Request|RuntimeCompletes|Tools|ToolAllowed)'`、`go test ./internal/handler -run TestStudio` 通过。后补同轮幂等、变更意图冲突及跨账号读取专项通过。仓库专项验证过期租约/被接管租约无法派发，重复派发只允许一次，停止未提交与保留已提交两种路径。前端 typecheck、变更文件 ESLint/Prettier 通过。尚未进行浏览器 Pi 验收，不宣称媒体审批可用。

@@ -5,6 +5,8 @@ description: 影策后端核心持久化表与状态边界
 
 # 后端数据库
 
+Studio schema 95 新增 `studio_material_authorities`：用户 ID、用户/Host/平台 SID 的 SHA256 摘要主键、加密的素材委托授权、到期时间和更新时间。不保存 Cookie 或原始 SID，不返回公共 JSON；授权只允许素材访问，由 Platform 校验原会话撤销。每次刷新授权清理到期记录，缺失或不足一分钟有效期需重新初始化素材会话。`User.PlatformSessionID` 为请求内字段，不写数据库。
+
 Studio schema 94 新增 `studio_executions`：任务 ID、用户/command 唯一键、不可变意图摘要、加密的原生请求/执行授权/响应、派发状态和授权释放状态。Cookie 不持久化；原请求字节与授权不进入公共 Task JSON。与 OAC Task 事务入队，发送前以租约和状态 CAS 保证只有一次模型 POST；未知结果只恢复原请求。运行与恢复必须保留数据目录的 `.settings-key`。
 
 ## OceanWay Studio 素材引用（Schema 93）

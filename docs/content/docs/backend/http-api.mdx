@@ -7,6 +7,8 @@ description: 信封、错误码与 OpenAPI
 
 Studio 已开放 `POST /api/tasks`、`POST /api/tasks/preview`、`GET /api/tasks`、`GET /api/tasks/:id`、`GET /api/tasks/by-command/:command` 与只读日志/文本回放/SSE。创建必须提供账号内唯一的 `commandId`；同命令同意图返回原任务，改变意图为 409。支持已发布文本、图片及视频协议；媒体要求 `platform.expectedPriceVersion` 与十进制字符串 `platform.walletMaxPoints`（包括明确的 `"0"`），可选 variantId/billingPreference。预估入口使用同一 OAC 创作意图，返回平台原始精确预估，不能视为预留或执行事实。未知提交不自动重试；旧 `/retry`、供应商取消、浏览器自写文本结果未注册。执行授权只在服务端加密保存。
 
+Studio 原生 Pi 已开放 `/api/agent` 的轮次、事件、审批和同链工具。媒体草稿的 `approval.studioMedia=true`；`POST /agent/runs/:id/approvals/:approvalId/quote` 以当前浏览器会话获取精确报价，返回 `id/walletMaxPoints/priceVersion/expiresAt/parameters`。`POST .../decision` 批准时必须传该 `quoteId`，不接受同时修改 `mediaSettings`；报价不存在/过期/依赖变化为409。任务、画布绑定与决定同事务写入，共享整轮授权，不生成本地账单。报价原生请求加密保存在服务端，不进入公共审批 JSON；拒绝不提交模型请求。
+
 ## OceanWay Studio 素材 v2
 
 所有以下接口要求当前 Platform 登录、已登记 Host/Origin；写请求必须携带 Origin。成功仍使用 OAC 信封。
@@ -26,19 +28,20 @@ Studio 已开放 `POST /api/tasks`、`POST /api/tasks/preview`、`GET /api/tasks
 
 ## OceanWay Studio 首批接口边界
 
-当前可执行入口使用 `RegisterStudioAPI`；下文上游接口清单不代表都已在新 Studio 开放。已开放 Platform 身份、模型目录、素材 v2、画布持久化/编辑租约/实时连接/分享及外观/功能查询。生成、Agent、旧密码认证、支付和供应商代理等未挂载接口返回 HTTP 501，`msg` 为“此功能暂不可用”；阶段内不暴露旧 `/api/openapi.yaml`。
+当前可执行入口使用 `RegisterStudioAPI`；下文上游接口清单不代表都已在新 Studio 开放。已开放 Platform 身份、模型目录、素材 v2、文本/图片/视频任务、原生 Pi、画布持久化/编辑租约/实时连接及外观/功能查询。旧密码认证、支付和供应商代理等未挂载接口返回 HTTP 501，`msg` 为“此功能暂不可用”；阶段内不暴露旧 `/api/openapi.yaml`。首发关闭短剧、电商、独立图片/视频工作台、插件、转写、外部灵感源等尚未接通的功能标志，旧配置不能重新启用这些入口。
 
 | 接口 | 当前合同 |
 | --- | --- |
 | `GET /api/auth/settings` | `provider=platform`、`loginMode=page`、禁用本地注册，不回退密码登录 |
 | `GET /api/auth/login-url` | 返回经 Platform login-return 批准的登录 URL；固定回跳 `/platform/login/complete`，不接受外部 next 参数 |
 | `GET /api/auth/session` | SDK 验证会话；有效时返回产品用户和功能配置，平台 401 时 `user=null`；403/429 保留拒绝语义，上游不可用返回 503，不假装匿名成功 |
+| `POST /api/auth/session` | 浏览器工作区初始化：同上，并以真实 Origin 签发仅限素材的委托授权，按当前 SID 加密保存在服务端；返回 `provider: platform`，不返回授权正文 |
 | `POST /api/auth/logout` | SDK 退出，逐项透传清理 Cookie；必须带实际允许的 Origin |
 | `GET /api/auth/profile` | 平台身份只读视图：`provider=platform`、`consoleURL`，无本地密码/验证码管理能力 |
 
 所有阶段 API 校验实际 Host 和允许 Origin；写请求缺少 Origin 时拒绝。忽略 forwarded headers 对身份的声明。会话响应不缓存，Cookie 不写入 JSON；平台产品密钥只留在后端。
 
-画布 WebSocket 每 15 秒重新验证平台身份；会话失效、换号或 Cookie 轮换时关闭码为 1008、原因为 `session expired`。浏览器先 HTTP 刷新会话后再决定重连；连接升级后不尝试追加 Set-Cookie。公开分享继续按分享令牌与有效期授权，媒体资源的平台版本/下载合同在 P4 补齐。
+画布 WebSocket 每 15 秒重新验证平台身份；会话失效、换号或 Cookie 轮换时关闭码为 1008、原因为 `session expired`。浏览器先 HTTP 刷新会话后再决定重连；连接升级后不尝试追加 Set-Cookie。公开分享尚无独立 Platform 素材授权，首发不注册 `/canvas-projects/:id/share`、`/public/canvas-shares/:token` 及其资源文件路由，统一返回501。不得借用登录者素材委托或旧资源执行器提供匿名媒体。
 
 实际测试、环境限制及未验收项见[首批实施记录](../../../plans/oceanway-studio-first-milestone.md)。
 

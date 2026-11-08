@@ -65,7 +65,7 @@ export function RequireFeature({ feature, children }: { feature: FeatureKey; chi
                     kind="forbidden"
                     icon="settings"
                     title={`${featureNames[feature]}暂未开放`}
-                    description="当前功能已由平台管理员关闭。"
+                    description="当前功能尚未开放。"
                     action={
                         <Button type="primary" onClick={() => navigate(backPath, { replace: true })}>
                             {backLabel}

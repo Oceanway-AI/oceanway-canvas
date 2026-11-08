@@ -321,6 +321,10 @@ export function applyAgentEvent(
         setApproval((current) => ({ approvalId, detail: payload, reason: current?.approvalId === approvalId ? current.reason : "" }));
         return;
     }
+    if (event.type === "approval_quoted") {
+        setApproval((current) => (current && current.approvalId === payload.approvalId ? { ...current, detail: { ...current.detail, studioQuote: payload.studioQuote } } : current));
+        return;
+    }
     if (event.type === "memory_updated") {
         const revisionId = String(payload.revisionId || "");
         const changes = Array.isArray(payload.changes)

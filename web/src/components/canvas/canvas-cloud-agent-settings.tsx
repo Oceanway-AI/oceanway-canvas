@@ -44,7 +44,7 @@ type AgentSettingsProps = {
     skillSearch: string;
     skillsLoading: boolean;
     skillHasMore: boolean;
-    maxCredits: string;
+    maxSteps: string;
     maxGenerationTasks: string;
     maxVideoSeconds: string;
     onBack: () => void;
@@ -60,7 +60,7 @@ type AgentSettingsProps = {
     onSkillAgentModeChange: (skill: Skill, mode: SkillAgentMode) => Promise<void>;
     onOpenSkillRecommendations: () => void;
     onLoadMoreSkills: () => Promise<void>;
-    onMaxCreditsChange: (value: string) => void;
+    onMaxStepsChange: (value: string) => void;
     onMaxGenerationTasksChange: (value: string) => void;
     onMaxVideoSecondsChange: (value: string) => void;
 };
@@ -69,7 +69,7 @@ type AgentSettingsProps = {
 const permissionOptions: Array<{ value: AgentPermissionMode; label: string; short: string; description: string; icon: typeof ShieldCheck; color: string }> = [
     { value: "read_only", label: "只读", short: "只读", description: "只分析和建议", icon: LockKeyhole, color: "var(--status-loading)" },
     { value: "request_approval", label: "请求审批", short: "审批", description: "写入和生成前确认", icon: ShieldCheck, color: "var(--status-warning)" },
-    { value: "auto", label: "自动执行", short: "自动", description: "预算内执行已授权工具", icon: CirclePlay, color: "var(--status-success)" },
+    { value: "auto", label: "自动执行", short: "自动", description: "执行已授权画布工具，生成另行审批", icon: CirclePlay, color: "var(--status-success)" },
 ];
 
 const contextOptions: Array<{ value: AgentContextKey; label: string; description: string }> = [{ value: "canvas", label: "画布节点目录", description: "每次请求只带节点 id、类型和标题；正文按页读取，不含媒体或未同步修改" }];
@@ -172,7 +172,7 @@ function SettingsHome({ props, theme, onOpen }: { props: AgentSettingsProps; the
                     <SettingRow theme={theme} icon={<BookMarked className="size-4" />} title="个人记忆" summary="Agent 在对话中自己记住和改写，可随时撤销；只属于你" onClick={() => onOpen("memories")} />
                     <SettingRow theme={theme} icon={<Blocks className="size-4" />} title="Skills · 用户技能库" summary={skillsSummary(props.installedSkills, props.selectedSkillIds)} onClick={() => onOpen("skills")} />
                     <SettingRow theme={theme} icon={<Wrench className="size-4" />} title="工具与连接" summary="画布、技能参考文件、生成任务；第三方连接即将支持" onClick={() => onOpen("mcp")} />
-                    <SettingRow theme={theme} icon={<Gauge className="size-4" />} title="预算" summary={`每轮最多 ${props.maxCredits || "未设置"} 积分 · 固定计价模型`} onClick={() => onOpen("budget")} />
+                    <SettingRow theme={theme} icon={<Gauge className="size-4" />} title="执行上限" summary={`每轮最多 ${props.maxSteps || "未设置"} 步 · 平台按实际用量结算`} onClick={() => onOpen("budget")} />
                 </div>
             </section>
         </div>
@@ -550,10 +550,10 @@ function BudgetWorkspace({ props, theme }: { props: AgentSettingsProps; theme: C
     return (
         <div className="thin-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
             <div className="rounded-xl p-4" style={{ background: theme.node.fill }}>
-                <div className="text-sm font-semibold">本轮累计预算</div>
-                <p className="mt-2 text-xs opacity-60">积分预算用于费用保护；生成任务和视频秒数填 0 表示不设该项上限。模型循环由预算和运行状态控制，不再用固定次数截断。</p>
+                <div className="text-sm font-semibold">本轮执行上限</div>
+                <p className="mt-2 text-xs opacity-60">文本调用由平台按实际用量结算。图片、视频在审批时显示平台报价和本次最高额度；生成任务和视频秒数填 0 表示不设该项上限。</p>
             </div>
-            <BudgetInput label="积分上限" hint="必填且大于 0；所有步骤累计" value={props.maxCredits} onChange={props.onMaxCreditsChange} theme={theme} />
+            <BudgetInput label="模型调用步数" hint="1–64；到达上限后停止本轮" value={props.maxSteps} onChange={props.onMaxStepsChange} theme={theme} />
             <BudgetInput label="生成任务上限" hint="0 表示不限；只读模式不执行生成" value={props.maxGenerationTasks} onChange={props.onMaxGenerationTasksChange} theme={theme} />
             <BudgetInput label="视频秒数上限" hint="0 表示不限；按请求时长累计" value={props.maxVideoSeconds} onChange={props.onMaxVideoSecondsChange} theme={theme} />
         </div>

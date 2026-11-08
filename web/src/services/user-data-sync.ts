@@ -17,6 +17,7 @@ import { flushAssetStorePersistence, getGenerationAssetDefaults, useAssetStore }
 import type { CanvasProject } from "@/stores/canvas/use-canvas-store";
 import { flushCanvasStorePersistence, useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useSyncProgressStore } from "@/stores/use-sync-progress-store";
+import { useUserStore } from "@/stores/use-user-store";
 import { useCanvasHistoryStore } from "@/stores/canvas/use-canvas-history-store";
 import { repairMissingCanvasAssets, rebindInconsistentCanvasAssets } from "@/services/canvas-asset-repair";
 import { canvasNodeToAsset } from "@/lib/canvas/canvas-node-asset";
@@ -600,6 +601,7 @@ function acceptRemoteAssets(remoteAssets: Asset[], refresh = false) {
 }
 
 function collectAssetIds(value: unknown, ids = new Set<string>()): Set<string> {
+    if (useUserStore.getState().platformIdentity) return ids;
     if (!value || typeof value !== "object") return ids;
     for (const [key, child] of Object.entries(value)) {
         if (key === "assetId" && typeof child === "string" && child) ids.add(child);
@@ -624,6 +626,7 @@ function collectCanvasLoadAssetIds(project: unknown) {
 }
 
 async function loadReferencedAssets(ids: Iterable<string>, refresh = false) {
+    if (useUserStore.getState().platformIdentity) return [];
     const epoch = sessionEpoch;
     const loadedIds = new Set(useAssetStore.getState().assets.map((asset) => asset.id));
     const pending = [...new Set(ids)].filter((id) => refresh || !loadedIds.has(id) || !verifiedAssets.has(id));
@@ -1588,6 +1591,7 @@ async function saveRemoteUserDataBatch(uploaded: Map<string, string>, options: {
     });
     const canvasAssetIds = selectedProjectIds?.size ? new Set(currentProjects.filter((project) => selectedProjectIds.has(project.id)).flatMap((project) => [...collectAssetIds(project)])) : undefined;
     const dirtyAssets = currentAssets.filter((asset) => {
+        if (useUserStore.getState().platformIdentity) return false;
         const dirty = !sameEntitySnapshot(acknowledgedAssets.get(asset.id), asset);
         const selected = !canvasAssetIds || canvasAssetIds.has(asset.id) || (typeof asset.metadata?.canvasId === "string" && selectedProjectIds!.has(asset.metadata.canvasId));
         return selected && dirty;

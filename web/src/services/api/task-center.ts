@@ -17,6 +17,8 @@ export type GenerationTaskOutput = {
     mediaType: "image" | "video" | "audio";
     providerArtifactRef?: string;
     materializedAssetId?: string;
+    /** Platform output validated in the current session; no OAC Asset is created. */
+    materializedResourceId?: string;
     materializationErrorCode?: string;
 };
 
