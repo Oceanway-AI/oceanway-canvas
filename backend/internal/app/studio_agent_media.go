@@ -206,14 +206,14 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 	}
 	req.Platform = &StudioTaskOptions{VariantID: selected.ID, ExpectedPriceVersion: selected.Price.Version}
 	if len(maximum) > 0 {
+		if len(maximum) != 1 || !studioValidDecimal(maximum[0]) {
+			return nil, response, BadAuthRequest("请提供本次生成的平台积分上限")
+		}
 		req.Platform.WalletMaxPoints = maximum[0]
 	}
 	preview, err := s.studioPreviewMedia(ctx, session, req, selected, body, response, false)
 	if err != nil {
 		return nil, response, err
-	}
-	if req.Platform.WalletMaxPoints == "" {
-		req.Platform.WalletMaxPoints = preview.WalletPoints
 	}
 	id := cloudAgentID(userID, runID+":media:"+approvalID)
 	public, _ := json.Marshal(map[string]any{"mode": selected.Kind, "metadata": studioTaskMetadata(req.Input)})
@@ -237,6 +237,11 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 	parameters, err := studioMediaSpecifications(input, selected)
 	if err != nil {
 		return nil, response, err
+	}
+	if len(maximum) == 0 {
+		// Reading an estimate must not create approval authority. A cancelled
+		// confirmation or reconnect leaves the original approval unchanged.
+		return &StudioAgentMediaQuote{EstimatedPoints: preview.WalletPoints, PriceVersion: preview.PriceVersion, Parameters: parameters}, response, nil
 	}
 	quote := StudioAgentMediaQuote{ID: newID(), EstimatedPoints: preview.WalletPoints, WalletMaxPoints: req.Platform.WalletMaxPoints, PriceVersion: preview.PriceVersion, ExpiresAt: time.Now().Add(cloudAgentMediaQuoteLifetime), Parameters: parameters}
 	prepared := studioAgentMediaPrepared{Envelope: studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, AgentRunID: runID, ContentType: "application/json", Body: body, Consumption: studioMediaConsumption(preview, req.Platform)}, Request: req, Plan: *plan, DependencyHash: dependency, Quote: quote}

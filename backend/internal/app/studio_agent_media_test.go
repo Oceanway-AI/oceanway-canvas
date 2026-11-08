@@ -25,6 +25,10 @@ func TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority(t *testing.T) {
 	}
 }
 
+func TestStudioPiMediaPreviewDoesNotAuthorize(t *testing.T) {
+	studioPiMediaApprovalScenario(t, "preview_only")
+}
+
 func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	s, db, _, _ := creationTestService(t)
 	if err := db.AutoMigrate(&model.StudioExecution{}, &model.StudioMaterialReference{}); err != nil {
@@ -171,6 +175,42 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 		t.Fatalf("media draft did not reach native Pi approval: status=%s events=%+v", run.Status, state.Events)
 	}
 	approval := state.Approval.ID
+	if scenario == "preview_only" {
+		originalRevision := run.Revision
+		for i := 0; i < 2; i++ {
+			preview, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if preview.ID != "" || preview.WalletMaxPoints != "" || preview.EstimatedPoints != "0.123456789" {
+				t.Fatalf("unconfirmed preview became an executable quote: %+v", preview)
+			}
+			reloaded, _ := s.repo.CloudAgent("user", view.ID)
+			restored, _ := cloudAgentDecode(reloaded)
+			if reloaded.Revision != originalRevision || restored.Approval.StudioQuote != nil || restored.Approval.StudioPreparedEncrypted != "" {
+				t.Fatal("preview/cancel/reload persisted approval authority")
+			}
+			if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", preview.ID, nil); err == nil {
+				t.Fatal("preview allowed approval")
+			}
+		}
+		if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, ""); err == nil {
+			t.Fatal("explicit empty maximum accepted")
+		}
+		confirmed, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, "2.5")
+		if err != nil || confirmed.ID == "" {
+			t.Fatalf("confirmed maximum not frozen: %+v %v", confirmed, err)
+		}
+		if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval); err != nil {
+			t.Fatal(err)
+		}
+		reloaded, _ := s.repo.CloudAgent("user", view.ID)
+		restored, _ := cloudAgentDecode(reloaded)
+		if restored.Approval.StudioQuote.ID != confirmed.ID || restored.Approval.StudioQuote.WalletMaxPoints != "2.5" || submits != 0 || issues != 1 {
+			t.Fatal("preview replaced confirmed scope or submitted work")
+		}
+		return
+	}
 	if scenario == "approve" {
 		for _, maximum := range []string{"-1", "0.1", "NaN"} {
 			if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, maximum); err == nil {
@@ -185,7 +225,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", "", nil); err == nil {
 		t.Fatal("unquoted media approved")
 	}
-	maximum := ""
+	maximum := "0.123456789"
 	if scenario == "approve" {
 		maximum = "2.5"
 	}

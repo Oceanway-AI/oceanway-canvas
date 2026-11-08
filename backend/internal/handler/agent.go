@@ -347,13 +347,17 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		var input struct {
-			WalletMaxPoints string `json:"walletMaxPoints"`
+			WalletMaxPoints *string `json:"walletMaxPoints"`
 		}
 		if err := c.ShouldBindJSON(&input); err != nil {
 			failService(c, service.NewAppError(400, "消费上限格式无效"))
 			return
 		}
-		quote, response, err := svc.QuoteStudioAgentMedia(c.Request.Context(), user.ID, platformintegration.Session(c.Request), c.Param("id"), c.Param("approvalId"), input.WalletMaxPoints)
+		var maximum []string
+		if input.WalletMaxPoints != nil {
+			maximum = append(maximum, *input.WalletMaxPoints)
+		}
+		quote, response, err := svc.QuoteStudioAgentMedia(c.Request.Context(), user.ID, platformintegration.Session(c.Request), c.Param("id"), c.Param("approvalId"), maximum...)
 		if response != nil {
 			response.AppendCookies(c.Writer.Header())
 		}
