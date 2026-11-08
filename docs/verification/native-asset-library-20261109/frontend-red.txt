@@ -1,0 +1,14 @@
+bun test v1.3.14 (0d9b296a)
+
+test/studio-native-assets.test.tsx:
+
+# Unhandled error between tests
+-------------------------------
+SyntaxError: Export named 'getPlatformMaterialAccess' not found in module '/Users/wangzihao/Projects/OceanWay/.local/worktrees/studio-release-20261108/web/src/services/api/platform-materials.ts'.
+-------------------------------
+
+
+ 0 pass
+ 1 fail
+ 1 error
+Ran 1 test across 1 file. [237.00ms]
