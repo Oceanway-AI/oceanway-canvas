@@ -1,0 +1,37 @@
+bun test v1.3.14 (0d9b296a)
+
+test/studio-native-asset-sync.test.ts:
+26 |   };
+27 |   await initializeRemoteUserDataSession("a1-native-sync");
+28 |   const asset:Asset={id:"native-text",kind:"text",title:"创作说明",coverUrl:"",tags:[],folderId:"folder-1",createdAt:"2026-11-09T00:00:00Z",updatedAt:"2026-11-09T00:00:00Z",data:{content:"保存到原资产链"}};
+29 |   useAssetStore.setState({assets:[asset]});
+30 |   await saveRemoteUserDataNow([]);
+31 |   expect(saved).toEqual(asset);
+                     ^
+error: expect(received).toEqual(expected)
+
+- {
+-   "coverUrl": "",
+-   "createdAt": "2026-11-09T00:00:00Z",
+-   "data": {
+-     "content": "保存到原资产链",
+-   },
+-   "folderId": "folder-1",
+-   "id": "native-text",
+-   "kind": "text",
+-   "tags": [],
+-   "title": "创作说明",
+-   "updatedAt": "2026-11-09T00:00:00Z",
+- }
++ undefined
+
+- Expected  - 13
++ Received  + 1
+
+      at <anonymous> (/Users/wangzihao/Projects/OceanWay/.local/worktrees/studio-release-20261108/web/test/studio-native-asset-sync.test.ts:31:17)
+(fail) Platform identity still saves and reloads explicit native creative assets [8.16ms]
+
+ 0 pass
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [411.00ms]
