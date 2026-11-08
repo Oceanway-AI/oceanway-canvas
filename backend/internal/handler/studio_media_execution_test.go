@@ -14,12 +14,23 @@ import (
 )
 
 func TestStudioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T) {
+	for _, kind := range []string{"image", "video"} {
+		t.Run(kind, func(t *testing.T) { studioMediaFreezesQuoteAndRecoversFixedOutput(t, kind) })
+	}
+}
+
+func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	f := newStudioFixture(t)
 	f.catalog = `{"success":true,"data":{"items":[{"model_name":"exact-image","model_type":"image","invocation_status":"available","price":{"status":"available","version":"price-1"},"media_generation_profile":{"default_variant":"generate","variants":[{"id":"generate","protocol":"openai-images","operation":"generate","method":"POST","path":"/images/generations","defaults":{"n":1,"size":"square"},"specifications_schema":{"type":"object","additionalProperties":false,"properties":{"n":{"type":"integer","minimum":1,"maximum":1},"size":{"enum":["square"]}},"required":["n","size"]},"parameter_bindings":{"n":"n","size":"size"}}]}}]}}`
+	name, submitPath, contentType := "exact-image", "/internal/relay/images/generations", "image/png"
+	if kind == "video" {
+		name, submitPath, contentType = "doubao-seedance-2-0-fast-260128", "/internal/relay/doubao/api/v3/contents/generations/tasks", "video/mp4"
+		f.catalog = `{"success":true,"data":{"items":[{"model_name":"doubao-seedance-2-0-fast-260128","model_type":"video","invocation_status":"available","price":{"status":"usage_dependent","version":"price-1","usage_schema":{"tokens":{"type":"number","unit":"token"},"resolution":{"enum":["480p","720p"]},"video_input":{"enum":["none","video"]}}},"media_generation_profile":{"mode":"native-doubao-video","default_variant":"generate","variants":[{"id":"generate","protocol":"doubao-video","operation":"generate","method":"POST","path":"/doubao/api/v3/contents/generations/tasks","defaults":{"resolution":"720p","ratio":"adaptive","generate_audio":true,"watermark":false},"specifications_schema":{"type":"object","additionalProperties":false,"properties":{"duration":{"type":"integer","enum":[-1,4,5,6]},"resolution":{"type":"string","enum":["480p","720p"]},"ratio":{"type":"string","enum":["16:9","adaptive"]},"generate_audio":{"type":"boolean"},"watermark":{"type":"boolean"}}},"parameter_bindings":{"duration":"duration","resolution":"resolution","ratio":"ratio","generate_audio":"generate_audio","watermark":"watermark"}}]}}]}}`
+	}
 	var previewBody []byte
 	submits, previews, reads, binds := 0, 0, 0, 0
 	var binding *platformclient.Binding
-	asset := platformclient.Asset{AssetID: "asset_output", Owner: platformclient.MaterialOwner{Kind: "account", ID: "101"}, Kind: "image", State: "ready", Version: platformclient.AssetVersion{AssetID: "asset_output", VersionID: "version_original", FileID: "file_original"}, File: platformclient.AssetFile{FileID: "file_original", SHA256: strings.Repeat("b", 64), ByteLength: "12", ContentType: "image/png", State: "ready"}}
+	asset := platformclient.Asset{AssetID: "asset_output", Owner: platformclient.MaterialOwner{Kind: "account", ID: "101"}, Kind: kind, State: "ready", Version: platformclient.AssetVersion{AssetID: "asset_output", VersionID: "version_original", FileID: "file_original"}, File: platformclient.AssetFile{FileID: "file_original", SHA256: strings.Repeat("b", 64), ByteLength: "12", ContentType: contentType, State: "ready"}}
 	f.execution = func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		respond := func(v any) { _ = json.NewEncoder(w).Encode(v) }
@@ -32,7 +43,14 @@ func TestStudioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T) {
 				t.Error("preview lost native authority")
 			}
 			previewBody = append([]byte(nil), in.Request.NativeRequest...)
-			respond(map[string]any{"success": true, "data": platformclient.ConsumptionPreview{Model: "exact-image", ModelType: "image", PriceVersion: "price-1", WalletPoints: "1.23456789", WalletMaxPoints: "1.23456789", Allowed: true, CombinationSupported: true}})
+			if kind == "video" {
+				var native map[string]any
+				_ = json.Unmarshal(previewBody, &native)
+				if native["duration"] != float64(4) || native["resolution"] != "720p" || native["ratio"] != "16:9" || native["generate_audio"] != false || native["watermark"] != false || native["tokens"] != nil || native["video_input"] != nil {
+					t.Fatalf("native video parameters/usage boundary changed: %s", previewBody)
+				}
+			}
+			respond(map[string]any{"success": true, "data": platformclient.ConsumptionPreview{Model: name, ModelType: kind, PriceVersion: "price-1", WalletPoints: "1.23456789", WalletMaxPoints: "1.23456789", Allowed: true, CombinationSupported: true}})
 		case r.URL.Path == "/api/platform/v1/execution-authorizations":
 			var in map[string]string
 			_ = json.NewDecoder(r.Body).Decode(&in)
@@ -44,7 +62,7 @@ func TestStudioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T) {
 				t.Error("media worker mixed authority")
 			}
 			switch {
-			case r.URL.Path == "/internal/relay/images/generations":
+			case r.URL.Path == submitPath:
 				submits++
 				body, _ := io.ReadAll(r.Body)
 				if string(body) != string(previewBody) {
@@ -89,6 +107,9 @@ func TestStudioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T) {
 		}
 	}
 	body := `{"commandId":"image-intent","type":"canvas_image","operation":"image","prompt":"cat","model":"exact-image","platform":{"expectedPriceVersion":"price-1","walletMaxPoints":"1.23456789"},"input":{"mode":"image","config":{"channelId":"oceanway-platform","model":"exact-image","imageParameters":{"count":1,"size":"square"}}}}`
+	if kind == "video" {
+		body = `{"commandId":"video-intent","type":"canvas_video","operation":"text_to_video","prompt":"cat","model":"doubao-seedance-2-0-fast-260128","platform":{"expectedPriceVersion":"price-1","walletMaxPoints":"1.23456789"},"input":{"mode":"video","config":{"channelId":"oceanway-platform","model":"doubao-seedance-2-0-fast-260128","videoSeconds":"4","vquality":"720p","size":"16:9","videoGenerateAudio":"false","videoWatermark":"false"}}}`
+	}
 	f.request(t, "POST", "/api/tasks/preview", "platform_session=alice", body, 200)
 	w := f.request(t, "POST", "/api/tasks", "platform_session=alice", body, 200)
 	var created struct {
@@ -108,6 +129,20 @@ func TestStudioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T) {
 	if submits != 1 || previews != 2 || reads < 1 || binds != 1 {
 		t.Fatalf("duplicate lifecycle: submit=%d preview=%d read=%d binds=%d", submits, previews, reads, binds)
 	}
-	f.request(t, "POST", "/api/tasks", "platform_session=alice", strings.Replace(strings.Replace(body, "image-intent", "invalid-size", 1), "square", "unsupported", 1), 400)
-	f.request(t, "POST", "/api/tasks", "platform_session=alice", strings.Replace(strings.Replace(body, "image-intent", "stale-price", 1), "price-1", "old-price", 1), 409)
+	invalid := strings.Replace(body, kind+"-intent", "invalid-size", 1)
+	if kind == "image" {
+		invalid = strings.Replace(invalid, "square", "unsupported", 1)
+	} else {
+		invalid = strings.Replace(invalid, "720p", "720", 1)
+	}
+	f.request(t, "POST", "/api/tasks", "platform_session=alice", invalid, 400)
+	f.request(t, "POST", "/api/tasks", "platform_session=alice", strings.Replace(strings.Replace(body, kind+"-intent", "stale-price", 1), "price-1", "old-price", 1), 409)
+	// Neither invalid parameters nor a new catalog version may re-dispatch the
+	// original request, whose fixed Resource remains readable.
+	f.catalog = strings.ReplaceAll(f.catalog, "price-1", "price-2")
+	f.request(t, "POST", "/api/tasks/preview", "platform_session=alice", body, 409)
+	f.request(t, "GET", "/api/tasks/"+created.Data.ID, "platform_session=alice", "", 200)
+	if submits != 1 || previews != 2 {
+		t.Fatal("invalid/stale request reached the upstream")
+	}
 }

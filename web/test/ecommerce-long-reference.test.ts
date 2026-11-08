@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
+import { createHash } from "node:crypto";
 import { setActiveUserScope } from "@/lib/user-scope";
 import { apiClient } from "@/services/api/request";
 import { emptyEcommerceDraft, projectDraft, projectPlan, saveEcommerceProject, type EcommerceDraft, type EcommercePlan, type EcommercePlanImage, type EcommerceProject } from "@/services/api/ecommerce";
@@ -314,14 +315,17 @@ describe("ecommerce long reference media", () => {
                     })),
                 });
             }
-            if (config.method === "post" && url === "/resources") {
-                const key = String(config.headers.get("X-Idempotency-Key"));
+            if (config.method === "post" && url === "/resources/platform-uploads") {
+                const input = JSON.parse(config.data as string);
+                const key = input.commandId;
+                expect(key).toMatch(/^[a-f0-9]{64}$/);
+                expect(input).toMatchObject({ contentType: "image/png", byteLength: "14" });
                 uploadKeys.push(key);
                 if (uploadKeys.length === failUploadAt) return respond(null, 503, "第2屏上传失败");
                 if (!savedResources.has(key)) savedResources.set(key, `crop-${savedResources.size + 1}`);
                 if (uploadKeys.length === lostUploadAt) throw new Error("上传回执丢失");
                 if (switchAt === "upload") setActiveUserScope("another-account");
-                return respond({ resource: { ...resource(savedResources.get(key)!), ...uploadOverrides } });
+                return respond({ id: key, upload: { protocol: "oceanway.materials.v2", upload_id: key, state: "ready" }, resource: { ...resource(savedResources.get(key)!), provider: "platform", ...uploadOverrides } });
             }
             throw new Error("Unexpected request " + url);
         };
@@ -396,8 +400,8 @@ describe("ecommerce long reference media", () => {
             [0, 0, 800, 3600],
             [0, 0, 400, 1600],
         ]);
-        expect(uploadKeys[0]).toContain(":long-reference:");
-        expect(uploadKeys[1]).toContain(":second-reference:");
+        expect(uploadKeys[0]).toBe(createHash("sha256").update("commerce-ref-v1:long-reference-owner:long-reference:0:3600").digest("hex"));
+        expect(uploadKeys[1]).toBe(createHash("sha256").update("commerce-ref-v1:long-reference-owner:second-reference:0:1600").digest("hex"));
         expect(bitmaps.every((bitmap) => bitmap.closed)).toBe(true);
     });
 
@@ -511,7 +515,7 @@ describe("ecommerce long reference media", () => {
                     saved++;
                 },
             }),
-        ).rejects.toThrow("账号已切换");
+        ).rejects.toThrow(stage === "upload" ? "资源请求已因账号切换失效" : "账号已切换");
         expect(saved).toBe(0);
         expect(uploadKeys.length).toBe(stage === "upload" ? 1 : 0);
         expect(bitmaps.every((bitmap) => bitmap.closed)).toBe(true);

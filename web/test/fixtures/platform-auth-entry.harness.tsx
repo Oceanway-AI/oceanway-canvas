@@ -22,11 +22,12 @@ for (const [key, value] of Object.entries({
 
 const { act } = await import("react");
 const { createRoot } = await import("react-dom/client");
-const { MemoryRouter, Routes, Route } = await import("react-router");
+const { MemoryRouter, Routes, Route, useSearchParams } = await import("react-router");
 const { App } = await import("antd");
 const { default: LoginPage } = await import("@/pages/auth/login");
 const { default: RegisterPage } = await import("@/pages/auth/register");
 const { default: ForgotPasswordPage } = await import("@/pages/auth/forgot-password");
+const { AuthPanel } = await import("@/components/auth/auth-panel");
 const { apiClient } = await import("@/services/api/request");
 const { consumePlatformLoginNext } = await import("@/lib/platform-login");
 const { useUserStore } = await import("@/stores/use-user-store");
@@ -41,6 +42,23 @@ afterEach(() => {
 });
 afterAll(() => dom.happyDOM.abort());
 
+function RegistrationDialog() {
+    const [params] = useSearchParams();
+    return (
+        <AuthPanel
+            variant="dialog"
+            view="register"
+            next={params.get("next") || "/"}
+            onViewChange={() => {
+                throw new Error("Unexpected local auth view");
+            }}
+            onAuthenticated={() => {
+                throw new Error("Unexpected local authentication");
+            }}
+        />
+    );
+}
+
 async function mount(path: string) {
     useUserStore.setState({ user: null, hydrated: true });
     const host = document.createElement("div");
@@ -54,6 +72,7 @@ async function mount(path: string) {
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/register" element={<RegisterPage />} />
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                        <Route path="/dialog" element={<RegistrationDialog />} />
                     </Routes>
                 </MemoryRouter>
             </App>,
@@ -69,7 +88,7 @@ async function mount(path: string) {
     };
 }
 
-for (const path of ["/login", "/register", "/forgot-password"]) {
+for (const path of ["/login", "/register", "/forgot-password", "/dialog"]) {
     test(`${path} 真实页面只有平台登录，点击后保留安全回跳`, async () => {
         const requests: string[] = [];
         apiClient.defaults.adapter = async (config) => {
@@ -82,6 +101,8 @@ for (const path of ["/login", "/register", "/forgot-password"]) {
         try {
             expect(page.host.textContent).toContain("使用 OceanWay 账号登录 Studio");
             expect(page.host.querySelectorAll("input").length).toBe(0);
+            expect(page.host.querySelector('[role="checkbox"]')).toBeNull();
+            expect(page.host.textContent).not.toContain("服务协议内容待补充");
             expect(requests).toEqual([]);
             await act(async () => page.button().click());
             expect(requests).toEqual(["get /auth/login-url"]);
@@ -94,30 +115,34 @@ for (const path of ["/login", "/register", "/forgot-password"]) {
     });
 }
 
-test("平台失败或不安全登录地址不跳转、不调用旧找回密码接口，允许重试", async () => {
-    const requests: string[] = [];
-    let loginURL = "http://platform.example.test/login";
-    let code = 503;
-    apiClient.defaults.adapter = async (config) => {
-        requests.push(`${config.method} ${config.url}`);
-        return { config, headers: {}, status: 200, statusText: "OK", data: { code, msg: "fixture unavailable", data: { url: loginURL } } };
-    };
-    const page = await mount("/forgot-password?next=https://external.example.test");
-    try {
-        for (const unsafe of ["", "http://platform.example.test/login", "https://user:pass@platform.example.test/login", "javascript:alert(1)"]) {
-            loginURL = unsafe;
+for (const path of ["/forgot-password", "/register", "/dialog"]) {
+    test(`${path} 平台失败或不安全登录地址不跳转、不调用旧认证接口，允许重试`, async () => {
+        const requests: string[] = [];
+        let loginURL = "http://platform.example.test/login";
+        let code = 503;
+        apiClient.defaults.adapter = async (config) => {
+            requests.push(`${config.method} ${config.url}`);
+            return { config, headers: {}, status: 200, statusText: "OK", data: { code, msg: "fixture unavailable", data: { url: loginURL } } };
+        };
+        const page = await mount(`${path}?next=https://external.example.test`);
+        try {
+            for (const unsafe of ["", "http://platform.example.test/login", "https://user:pass@platform.example.test/login", "javascript:alert(1)"]) {
+                loginURL = unsafe;
+                await act(async () => page.button().click());
+                expect(page.host.querySelector('[role="alert"]')?.textContent).toContain("暂时无法登录");
+                expect(redirects).toEqual([]);
+                expect(dom.sessionStorage.length).toBe(0);
+                expect(page.host.querySelectorAll("input").length).toBe(0);
+                expect(page.button().disabled).toBe(false);
+                code = 0;
+            }
+            loginURL = "https://platform.example.test/login";
             await act(async () => page.button().click());
-            expect(page.host.querySelector('[role="alert"]')?.textContent).toContain("暂时无法登录");
-            expect(redirects).toEqual([]);
-            expect(dom.sessionStorage.length).toBe(0);
-            code = 0;
+            expect(redirects).toEqual([loginURL]);
+            expect(consumePlatformLoginNext()).toBe("/");
+            expect(requests).toEqual(Array(5).fill("get /auth/login-url"));
+        } finally {
+            await page.close();
         }
-        loginURL = "https://platform.example.test/login";
-        await act(async () => page.button().click());
-        expect(redirects).toEqual([loginURL]);
-        expect(consumePlatformLoginNext()).toBe("/");
-        expect(requests).toEqual(Array(5).fill("get /auth/login-url"));
-    } finally {
-        await page.close();
-    }
-});
+    });
+}

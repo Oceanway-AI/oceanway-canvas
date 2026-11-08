@@ -54,3 +54,17 @@ func TestStudioCatalogProjectionKeepsTypedDefaultsAndMissingLimits(t *testing.T)
 		t.Fatal("non-numeric duration default")
 	}
 }
+
+func TestStudioDoubaoCatalogProjectsNativeRatioAndFourSecond720p(t *testing.T) {
+	selected := platformintegration.ModelSelection{Kind: "video", MediaRoute: platformclient.DoubaoVideoGeneration, NativeEndpoint: platformintegration.NativeEndpoint{
+		Schema:   json.RawMessage(`{"properties":{"ratio":{"type":"string","enum":["16:9","1:1","adaptive"]},"resolution":{"type":"string","enum":["480p","720p"]},"duration":{"type":"integer","enum":[-1,4,5,6,7,8,9,10,11,12,13,14,15]}}}`),
+		Defaults: map[string]any{"ratio": "adaptive", "resolution": "720p"},
+	}}
+	video := studioCapabilityProjection(selected)["video"].(map[string]any)
+	if video["defaultRatio"] != "adaptive" || len(video["ratios"].([]any)) != 3 {
+		t.Fatalf("native ratio disappeared from the controls: %+v", video)
+	}
+	if video["defaultResolution"] != "720p" || video["duration"].(map[string]any)["values"].([]any)[1] != float64(4) {
+		t.Fatalf("published 720p/4 seconds changed: %+v", video)
+	}
+}

@@ -130,7 +130,8 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
     }
 
     if (capability === "image") {
-        const image = modelCapabilityConfigFor(config, model).image!;
+        const image = modelCapabilityConfigFor(config, model).image;
+        if (!image) return "当前模型未发布图片生成能力";
         // 尺寸兼容不依赖输入摘要：无输入时（如画布重试/工具链）也要按尺寸过滤组内模型。
         if (requirements.imageSize && !image.size.allowCustom && !image.size.values.includes(requirements.imageSize)) return "不支持当前尺寸";
         if (!input) return "";
@@ -141,7 +142,8 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
     }
 
     if (capability === "video") {
-        const profile = modelCapabilityConfigFor(config, model).video!;
+        const profile = modelCapabilityConfigFor(config, model).video;
+        if (!profile) return "当前模型未发布视频生成能力";
         if (requirements.videoSeconds && !videoDurationAllowed(profile, Number(requirements.videoSeconds))) return "不支持当前视频时长";
         if (!input) return "";
         if (visualInputCount > profile.references.maxImages) return `最多支持 ${profile.references.maxImages} 张参考图`;
@@ -187,9 +189,11 @@ export function modelPromptLengthError(config: AiConfig, model: string, capabili
 
 export function modelRequestOptions(config: AiConfig, capability: ModelCapability): Record<string, unknown> {
     switch (capability) {
-        case "image":
+        case "image": {
+            const profile = modelCapabilityConfigFor(config, config.model || config.imageModel).image;
+            if (!profile) return {};
             return (
-                imageParameterRequest(modelCapabilityConfigFor(config, config.model || config.imageModel).image!, config) ?? {
+                imageParameterRequest(profile, config) ?? {
                     size: config.size,
                     imageResolution: config.imageResolution,
                     quality: config.quality,
@@ -197,6 +201,7 @@ export function modelRequestOptions(config: AiConfig, capability: ModelCapabilit
                     count: Number(config.count),
                 }
             );
+        }
         case "video":
             return { size: config.size, videoSeconds: Number(config.videoSeconds), vquality: config.vquality, videoGenerateAudio: config.videoGenerateAudio === "true", videoWatermark: config.videoWatermark === "true" };
         case "audio":

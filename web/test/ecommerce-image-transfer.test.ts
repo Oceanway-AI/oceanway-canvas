@@ -127,7 +127,15 @@ test("successful files survive a later failure and the remaining capacity stops 
     let calls = 0;
     apiClient.defaults.adapter = async (config) => {
         calls++;
-        return { data: { code: 0, data: { resource: resource(`res-${calls}`) } }, status: 200, statusText: "OK", headers: {}, config };
+        expect(config.method).toBe("post");
+        expect(config.url).toBe("/resources/platform-uploads");
+        return {
+            data: { code: 0, data: { id: `upload-${calls}`, upload: { protocol: "oceanway.materials.v2", upload_id: `original-${calls}`, state: "ready" }, resource: resource(`res-${calls}`, { provider: "platform" }) } },
+            status: 200,
+            statusText: "OK",
+            headers: {},
+            config,
+        };
     };
     const result = await importCommerceImageTransfer({ files: [new File(["image"], "one.png"), new File(["text"], "note.txt"), new File(["image"], "two.png"), new File(["image"], "three.png")] }, "detail", { maxReferences: 2 });
     expect(result.references.map((entry) => entry.resourceId)).toEqual(["res-1", "res-2"]);

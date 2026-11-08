@@ -29,3 +29,17 @@ Pi 媒体审批分为草稿、报价、批准三步。后台只按冻结目录�
 ## 验证顺序
 
 先写 HTTP/数据库红灯：三种文本协议、响应丢失后进程恢复、同 command 幂等与冲突、授权丢失恢复、跨账号隔离、租约竞争、密文/日志泄漏、未知请求不重发。再验证精确媒体报价、固定素材引用、产物恢复和 Pi 工具调用。只用隔离免费夹具；真实登录/付费验收交由协调侧。
+
+## W7 直接图片/视频验收合同（2026-11-08）
+
+本批仅核对 Studio 应用，不改 Platform/18420，不部署、不提交真实生成。协调侧负责五个 GPT 图片模型人民币0.2元/张与视频官方标准 Token 费的登记和最终验收；Studio 不写死人民币金额、汇率或 Token 公式。
+
+已只读核对协调侧保存的 Seedance 插件能力声明及 W7 定价快照：原生视频协议为 `doubao-video`，执行路径 `/doubao/api/v3/contents/generations/tasks`，profile mode 为 `native-doubao-video`。默认变体以 `ratio` 表示比例，`resolution` 是 `480p/720p`（部分模型另含1080p），`duration` 枚举含4秒。价格 `usage_schema` 的 `tokens`、`resolution`、`video_input` 是计量事实；请求参数来自 `media_generation_profile` 的所选变体，不把用量字段作为用户请求参数。Platform 根据原生请求计算预估和终态用量。
+
+先红后绿修复两处：目录投影只读 `aspect_ratio` 导致原生 `ratio` 遗失；前端内部保存 `720`，提交时未恢复发布值 `720p`，违反后端所选变体 JSON Schema。现在投影优先使用声明的 `aspect_ratio`，否则读取 `ratio`；Platform 提交边界仅转换能匹配发布枚举的分辨率，未知值仍交准入拒绝。现有历史快照中的启用状态和价格不作为协调侧本轮新发布成功的证明。
+
+验收入口：`GET /api/model-catalog` → 真实首页生成按钮 → `POST /api/tasks/preview` → `POST /api/tasks` → `GET /api/tasks/:id`。目录保留原始 `platform.price`（含 usage_schema/version）；提交 `platform.expectedPriceVersion`，报价返回 `price_version` 与精确字符串 `wallet_points` 后固定 `walletMaxPoints`。版本变化或报价超限须拒绝；提交响应丢失只查 `/api/tasks/by-command/:commandId`。后台以原 EXA/原 request ID 恢复 Platform task，再通过 TaskOutputs 的固定 asset/version/file、Binding 确认得到 `resource:`，回填消息及画布，不走旧 Asset 物化、不重新生成。
+
+免费验收已覆盖：真实首页视频按钮将 `input.config.channelId=oceanway-platform`、原始模型名、`size=16:9`、`videoSeconds="4"`、`vquality=720p` 送至任务预览，版本变化时零任务创建；服务链保留 usage_schema、新价格版本和精确小数上限，创建回执丢失只查询原 command。图片和原生 Doubao 视频的 HTTP 测试验证预览/执行原生正文逐字节相同，媒体503后原请求恢复，绑定回执丢失后恢复同一绑定，最终固定 asset/version/file；目录更新后旧价预览409且原任务仍可读。原生视频不提交 `tokens` / `video_input` 计量事实。前端结果测试继续覆盖图片/视频的消息与画布回填、重复消费、跨账号拒绝及刷新重读。
+
+画布节点补充：全局默认可能是只有文本能力的模型。节点参数预检不得读取缺失的图片 `parameters`；缺失能力返回空参数，不补造默认能力。真实图片/视频节点在当前目录没有对应模型时显示提示、隐藏参数设置并拒绝提交；有已发布模型时按节点模式解析，恢复旧模型偏好不崩溃。组件夹具不等于线上浏览器验收，实际图片生成与720p/4秒视频验收仍由协调侧执行。

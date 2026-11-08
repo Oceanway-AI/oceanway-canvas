@@ -117,3 +117,22 @@ F3 回归门禁修复与旧会话审计：
 - 旧登录重开：真实 AuthSessionHydrator 在已有 Cookie、空身份内存或已知身份两种情况下均先 POST `/auth/session`，完成后才开放同账号工作区并恢复原偏好。后端测试从旧 GET 身份会话且无 grant 开始，文件读取409；POST 后文件307，有效 grant 重用，过期 grant 重开补发；不同 SID、跨账号、恶意 Origin、撤销继续拒绝。该启动路径已存在，本次补回归，无需用户退出重登。必须加载新页面代码且上游 IssueMaterial 成功；尚未刷新的旧页面与 W7 503不在此成功断言范围。
 
 F3 验证：前端专项7项通过（登录/重开隔离 harness 共6项/66断言，首页另6项/60断言）；上述 Go Agent 专项和 `TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant` 通过。变更 ESLint/Prettier、gofmt、diff whitespace检查通过。证据位于 `.local/verification/studio-followup-*.log`、`studio-agent-golden-parameters.log`、`studio-old-session-materials.log`。未修改部署/hostupdate 文件、远端服务或生产配置，未实际收费生成。
+
+`d770e49 test(studio): 发布回归 - 修复异步断言并覆盖旧会话授权`：F3 已提交，未推送。
+
+F4 直接媒体与画布节点：
+
+- 协调侧浏览器报告添加图片节点时 `parameters` 崩溃。新 HEAD 也能重现：`CanvasNodePromptPanel` 的初始参数预检使用全局文本模型，`modelRequestOptions` 强行读取不存在的图片能力。现在缺失能力返回空参数，兼容性检查明确拒绝缺失能力；节点生成只接受当前目录中有对应能力的模型，没有时显示提示、隐藏参数设置并禁用提交。真实 React 节点先红6项/绿8项，覆盖图片/视频、新建/旧偏好与对应能力缺失；没有通过补造能力规避错误。
+- 只读核对 W7 原生 Doubao 声明后，先红后绿修复 `ratio` 目录投影及内部 `720` 到发布 `720p` 的提交边界映射。原生视频真实首页按钮提交4秒/720p/16:9及新价格版本，报价版本变化时零任务创建。服务链保留 usage_schema 和精确小数上限；创建响应丢失只查询原 command。
+- 图片和原生视频 HTTP 生命周期覆盖同字节报价/执行、媒体503与绑定响应丢失后的原请求恢复、固定 asset/version/file、目录版本变化后旧任务读取和旧价拒绝。前端图片/视频消费继续验证固定 Resource、幂等消息/画布回填、跨账号拒绝及清空内存后重读。未提交 tokens/video_input 计量事实，不在 Studio 固定五个 GPT 图片价格。
+- 同名逻辑路由参考能力合并与 Platform 独立 SKU 隔离改用真实首页行为验证，移除依赖变量拼写的断言。
+
+F5 发布门禁夹具修复：
+
+- ecommerce 长图裁片/拖入上传夹具仍模拟旧 `/resources`，更新为 `/resources/platform-uploads` 与 v2 ready 回执。保留精确内容长度、来源对应 SHA256 命令、回执丢失重试、归属、换号拒绝、失败传播和资源释放断言。画布同步复制夹具补齐 platform-materials 导入和 useUserStore，意外调用仍报错。
+- 注册协议用例原来检查已撤出的本地 AuthPanel 接线；保留未挂载旧表单的协议保护断言，实际入口改测 Platform 注册页与 dialog，包括无本地表单/协议 fallback、只在点击后取登录地址、安全回跳、失败及不安全地址拒绝/重试。
+- `TestCloudAgentMissingCanvasStillCheckpointsMediaFailure` 在上游基线已有相同实现。100次运行复现人工推进与后台媒体等待器争写检查点，依照相邻测试关闭该夹具的后台等待器，保留缺失画布仍写终态失败且无幽灵节点的全部断言。修复后100次通过；生产并发实现未改。
+
+F4/F5 验证：`bun run test` 的 pretest65项及主套件3290项/77460断言全部通过（481文件）；typecheck、全量Web lint、Vite build、变更Web Prettier、gofmt及diff whitespace通过。构建仅有已有动态导入/大chunk提示。`go test ./internal/app ./internal/handler -run 'TestStudio|TestCloudAgentMissingCanvasStillCheckpointsMediaFailure' -count=1` 通过，包含真实 Node/Pi 免费HTTP夹具；后端本轮未重复完整套件，PG/Redis与线上付费验收仍由协调侧完成。
+
+证据位于 `.local/verification/studio-{native-doubao-*,canvas-capabilities-red,direct-media-web,direct-media-go,release-fixtures-complete,missing-canvas-*,release-full-web,release-typecheck,release-lint,release-build}.log`。未推送、部署或修改远端配置；待协调侧将本批合入后构建，复验真实画布添加图片节点及媒体执行。具体端点/字段见执行合同的 W7 直接图片/视频验收节。
