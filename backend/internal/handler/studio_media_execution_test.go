@@ -39,7 +39,7 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 			previews++
 			var in platformclient.PreviewRequest
 			_ = json.NewDecoder(r.Body).Decode(&in)
-			if in.Request.ExpectedPriceVersion != "price-1" || len(in.Request.Specifications) != 0 {
+			if in.Request.ExpectedPriceVersion != "price-1" || len(in.Request.NativeRequest) == 0 {
 				t.Error("preview lost native authority")
 			}
 			previewBody = append([]byte(nil), in.Request.NativeRequest...)
@@ -50,7 +50,7 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 					t.Fatalf("native video parameters/usage boundary changed: %s", previewBody)
 				}
 			}
-			respond(map[string]any{"success": true, "data": platformclient.ConsumptionPreview{Model: name, ModelType: kind, PriceVersion: "price-1", WalletPoints: "1.23456789", WalletMaxPoints: "1.23456789", Allowed: true, CombinationSupported: true}})
+			respond(map[string]any{"success": true, "data": platformclient.ConsumptionPreview{CapabilityRevision: strings.Repeat("a", 64), ConnectionRevision: 7, Model: name, ModelType: kind, PriceVersion: "price-1", WalletPoints: "1.23456789", WalletMaxPoints: "1.23456789", Allowed: true, CombinationSupported: true}})
 		case r.URL.Path == "/api/platform/v1/execution-authorizations":
 			var in map[string]string
 			_ = json.NewDecoder(r.Body).Decode(&in)
@@ -71,8 +71,8 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 				raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get("X-Platform-Media-Consumption"))
 				var cap platformclient.MediaConsumptionConstraints
 				_ = json.Unmarshal(raw, &cap)
-				if cap.WalletMaxPoints != "1.23456789" || cap.ExpectedPriceVersion != "price-1" {
-					t.Error("exact quote/ceiling lost")
+				if cap.WalletMaxPoints != "1.23456789" || cap.ExpectedPriceVersion != "price-1" || cap.ExpectedCapabilityRevision != strings.Repeat("a", 64) || cap.ExpectedConnectionRevision != 7 {
+					t.Error("exact quote/ceiling/capability/connection lost")
 				}
 				w.WriteHeader(503)
 			case strings.HasPrefix(r.URL.Path, "/internal/relay/media-requests/"):
@@ -110,6 +110,7 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	if kind == "video" {
 		body = `{"commandId":"video-intent","type":"canvas_video","operation":"text_to_video","prompt":"cat","model":"doubao-seedance-2-0-fast-260128","platform":{"expectedPriceVersion":"price-1","walletMaxPoints":"1.23456789"},"input":{"mode":"video","config":{"channelId":"oceanway-platform","model":"doubao-seedance-2-0-fast-260128","videoSeconds":"4","vquality":"720p","size":"16:9","videoGenerateAudio":"false","videoWatermark":"false"}}}`
 	}
+	body = strings.Replace(body, `"walletMaxPoints":`, `"expectedCapabilityRevision":"`+strings.Repeat("a", 64)+`","expectedConnectionRevision":7,"walletMaxPoints":`, 1)
 	f.request(t, "POST", "/api/tasks/preview", "platform_session=alice", body, 200)
 	w := f.request(t, "POST", "/api/tasks", "platform_session=alice", body, 200)
 	var created struct {

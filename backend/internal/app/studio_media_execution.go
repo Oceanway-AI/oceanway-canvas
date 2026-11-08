@@ -16,10 +16,12 @@ import (
 )
 
 type StudioTaskOptions struct {
-	VariantID            string `json:"variantId,omitempty"`
-	ExpectedPriceVersion string `json:"expectedPriceVersion"`
-	WalletMaxPoints      string `json:"walletMaxPoints,omitempty"`
-	BillingPreference    string `json:"billingPreference,omitempty"`
+	VariantID                  string `json:"variantId,omitempty"`
+	ExpectedCapabilityRevision string `json:"expectedCapabilityRevision,omitempty"`
+	ExpectedConnectionRevision int64  `json:"expectedConnectionRevision,omitempty"`
+	ExpectedPriceVersion       string `json:"expectedPriceVersion"`
+	WalletMaxPoints            string `json:"walletMaxPoints,omitempty"`
+	BillingPreference          string `json:"billingPreference,omitempty"`
 }
 
 var studioDecimal = regexp.MustCompile(`^(0|[1-9][0-9]*)(\.[0-9]+)?$`)
@@ -80,6 +82,9 @@ func (s *Service) studioPreviewMedia(ctx context.Context, session platformclient
 		return nil, NewAppError(409, "模型价格已更新，请刷新报价后再生成")
 	}
 	options := req.Platform
+	if requireCap && (!studioSHA256.MatchString(options.ExpectedCapabilityRevision) || options.ExpectedConnectionRevision <= 0) {
+		return nil, BadAuthRequest("请提供已确认的平台能力与连接版本")
+	}
 	if options.BillingPreference != "" && options.BillingPreference != "wallet-fallback" && options.BillingPreference != "only-benefits" {
 		return nil, BadAuthRequest("资金使用方式无效")
 	}
@@ -92,8 +97,11 @@ func (s *Service) studioPreviewMedia(ctx context.Context, session platformclient
 		return nil, WrapAppError(503, "平台报价暂不可用，未提交生成请求", err)
 	}
 	q := quote.Data
-	if q.Model != selected.Name || q.ModelType != selected.Kind || q.PriceVersion != options.ExpectedPriceVersion || !q.CombinationSupported || !q.Allowed || !studioValidDecimal(q.WalletPoints) {
+	if q.Model != selected.Name || q.ModelType != selected.Kind || q.PriceVersion != options.ExpectedPriceVersion || !q.CombinationSupported || !q.Allowed || !studioValidDecimal(q.WalletPoints) || !studioSHA256.MatchString(q.CapabilityRevision) || q.ConnectionRevision <= 0 {
 		return nil, NewAppError(409, "平台未批准当前参数或额度，请刷新报价")
+	}
+	if requireCap && (q.CapabilityRevision != options.ExpectedCapabilityRevision || q.ConnectionRevision != options.ExpectedConnectionRevision) {
+		return nil, NewAppError(409, "平台能力或连接版本已变化，请重新确认报价")
 	}
 	if options.WalletMaxPoints != "" {
 		cost, _ := new(big.Rat).SetString(q.WalletPoints)
@@ -103,6 +111,22 @@ func (s *Service) studioPreviewMedia(ctx context.Context, session platformclient
 		}
 	}
 	return &q, nil
+}
+
+// Preview is the authority for all versions; the caller supplies only the
+// confirmed wallet ceiling and billing preference. Persist this unchanged.
+func studioMediaConsumption(preview *platformclient.ConsumptionPreview, options *StudioTaskOptions) *platformclient.MediaConsumptionConstraints {
+	return &platformclient.MediaConsumptionConstraints{
+		ExpectedCapabilityRevision: preview.CapabilityRevision,
+		ExpectedConnectionRevision: preview.ConnectionRevision,
+		ExpectedPriceVersion:       preview.PriceVersion,
+		WalletMaxPoints:            options.WalletMaxPoints,
+		BillingPreference:          options.BillingPreference,
+	}
+}
+
+func studioMediaConsumptionValid(c *platformclient.MediaConsumptionConstraints) bool {
+	return c != nil && studioSHA256.MatchString(c.ExpectedCapabilityRevision) && c.ExpectedConnectionRevision > 0 && c.ExpectedPriceVersion != "" && studioValidDecimal(c.WalletMaxPoints)
 }
 
 func studioDecodeInput(req CreateTaskRequest) (canvasGenerationInput, error) {

@@ -136,3 +136,15 @@ F5 发布门禁夹具修复：
 F4/F5 验证：`bun run test` 的 pretest65项及主套件3290项/77460断言全部通过（481文件）；typecheck、全量Web lint、Vite build、变更Web Prettier、gofmt及diff whitespace通过。构建仅有已有动态导入/大chunk提示。`go test ./internal/app ./internal/handler -run 'TestStudio|TestCloudAgentMissingCanvasStillCheckpointsMediaFailure' -count=1` 通过，包含真实 Node/Pi 免费HTTP夹具；后端本轮未重复完整套件，PG/Redis与线上付费验收仍由协调侧完成。
 
 证据位于 `.local/verification/studio-{native-doubao-*,canvas-capabilities-red,direct-media-web,direct-media-go,release-fixtures-complete,missing-canvas-*,release-full-web,release-typecheck,release-lint,release-build}.log`。未推送、部署或修改远端配置；待协调侧将本批合入后构建，复验真实画布添加图片节点及媒体执行。具体端点/字段见执行合同的 W7 直接图片/视频验收节。
+
+`abf4d5e fix(studio): 发布回归 - 修复画布节点与原生视频能力边界`：F4/F5 已提交；协调侧已合入并部署其发布分支。
+
+F6 媒体消费版本冻结（2026-11-08）：先记录执行合同，再以直接图片/视频消费头、Pi 加密 envelope、缺失/变化准入及浏览器提交测试重现 revision 丢失。核对发现已发布 rc.5 实际没有 revision 字段；协调侧发布 rc.6 后，应用从远端下载并固定 `v0.1.0-rc.6` / commit `889e4c75`，校验和 `h1:Kb7Xwb71a3IkjHr49sPivruTNhWuNYwMkJjwBRQYdsQ=`，go.mod/go.sum 没有 SDK replace。
+
+- 直接生成：展示预览的 `capability_revision`、`connection_revision` 经浏览器传为 `platform.expectedCapabilityRevision/expectedConnectionRevision`；创建前既有预览复核必须与之相同。缺失/无效请求版本400，预览缺失/无效或版本变化409；新 Task/EXA 尚未创建。原生正文、三个版本、精确额度与资金偏好统一冻结到原 envelope。
+- Pi：报价阶段保存两个 revision，批准读取原加密准备态，子任务复用整轮 EXA，不重新预览。缺失版本的旧审批准备态409；批准后平台能力/连接变化按原冻结消费头被拒绝，Studio 查询同 request ID 的明确 NoExecution 失败，不改用新版本或重发。公共审批 JSON/quoteId 合同未变化。
+- 恢复：直接任务授权回执丢失后恢复同 task_reference，测试证明一次预览、同原授权、一次模型 POST和原请求查询；缺少版本的旧 authorizing/prepared 意图在新派发前拒绝，原密文不补写。已经 submitted 的旧任务即使缺少消费版本也继续原查询。图片/视频503与绑定回执丢失的固定产物恢复、精确上限、同字节原生正文继续通过。
+
+F6 验证：应用/handler/platformintegration/repository 的 `TestStudio|TestCloudAgentMedia` 专项通过，包含真实 Node/Pi 媒体审批；platformintegration 全套通过；新增准入/恢复/审批与图片/视频冻结用例 `go test -race` 通过。前端提交、原生视频、结果回填、真实首页与审批卡共22项/96断言通过；typecheck、变更 ESLint/Prettier、gofmt、diff whitespace 通过；Go server 与 Vite 构建通过，Vite 仍有既有动态导入/大 chunk提示。本轮没有重复全量 Web/Go 测试，未运行真实 PG/Redis。
+
+证据：`.local/verification/studio-revisions-{red-go,red-web,admission-red,validation-red-web,regression-go,regression-web,approval-web,sdk-consumer,race,typecheck,lint,build-go,build-web}.log`。本批没有推送、部署、操作 Platform/18420/生产 Console 或提交收费生成，原失败图片节点保留。待协调侧合入后做正式 EXA 与媒体成功回填验收。

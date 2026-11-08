@@ -52,11 +52,11 @@ test("直接生成把内部720还原为发布值720p，保留4秒、新价格版
         preview: async (input) => {
             previews++;
             expect(input.input).toEqual(request.input);
-            return { price_version: "new-token-price", wallet_points: "0.123456789", allowed: true, combination_supported: true };
+            return { capability_revision: "a".repeat(64), connection_revision: 7, price_version: "new-token-price", wallet_points: "0.123456789", allowed: true, combination_supported: true };
         },
         create: async (input) => {
             submits++;
-            expect(input.platform).toEqual({ expectedPriceVersion: "new-token-price", walletMaxPoints: "0.123456789" });
+            expect(input.platform).toEqual({ expectedCapabilityRevision: "a".repeat(64), expectedConnectionRevision: 7, expectedPriceVersion: "new-token-price", walletMaxPoints: "0.123456789" });
             expect(input.input).toEqual(request.input);
             throw new Error("lost original response");
         },

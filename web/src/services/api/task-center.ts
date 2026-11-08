@@ -132,7 +132,7 @@ export type TaskLog = {
 
 export type CreateTaskInput = {
     commandId?: string;
-    platform?: { variantId?: string; expectedPriceVersion: string; walletMaxPoints?: string; billingPreference?: "wallet-fallback" | "only-benefits" };
+    platform?: { variantId?: string; expectedPriceVersion: string; expectedCapabilityRevision?: string; expectedConnectionRevision?: number; walletMaxPoints?: string; billingPreference?: "wallet-fallback" | "only-benefits" };
     projectId?: string;
     type?: string;
     operation?: string;

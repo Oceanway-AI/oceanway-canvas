@@ -86,10 +86,11 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 		} else {
 			body, e = s.studioMediaBody(ctx, userID, req, selected)
 			if e == nil {
-				_, e = s.studioPreviewMedia(ctx, session, req, selected, body, response, true)
-			}
-			if e == nil {
-				consumption = &platformclient.MediaConsumptionConstraints{ExpectedPriceVersion: req.Platform.ExpectedPriceVersion, WalletMaxPoints: req.Platform.WalletMaxPoints, BillingPreference: req.Platform.BillingPreference}
+				var preview *platformclient.ConsumptionPreview
+				preview, e = s.studioPreviewMedia(ctx, session, req, selected, body, response, true)
+				if e == nil {
+					consumption = studioMediaConsumption(preview, req.Platform)
+				}
 			}
 		}
 		if e != nil {
@@ -113,6 +114,9 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 	var envelope studioExecutionEnvelope
 	if err := s.decryptStudioValue(existing.EnvelopeEncrypted, &envelope); err != nil {
 		return nil, response, err
+	}
+	if envelope.Selection.Kind != "text" && !studioMediaConsumptionValid(envelope.Consumption) {
+		return nil, response, NewAppError(409, "原媒体消费版本未冻结，请重新确认报价")
 	}
 	grant, err := s.studioPlatform.Client.IssueExecution(ctx, session, id)
 	grant.Response.AppendCookies(response.Header)
