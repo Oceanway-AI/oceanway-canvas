@@ -7,7 +7,11 @@ import (
 	"testing"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"github.com/gin-gonic/gin"
 	"yingce/backend/internal/model"
+	"yingce/backend/internal/platformintegration"
+	"yingce/backend/internal/repository"
+	"yingce/backend/internal/service"
 )
 
 func studioLibraryResource(t *testing.T, f *studioFixture, id string) model.User {
@@ -75,7 +79,22 @@ func TestStudioNativeAssetLibraryOrganizeAndRecover(t *testing.T) {
 		body, _ := json.Marshal(map[string]any{"asset": asset})
 		f.request(t, "PUT", "/api/assets/library-image-asset", "platform_session=alice", string(body), 200)
 	}
-	// Reopen uses persisted native snapshot, not a browser-only asset.
+	// Recreate the service/router against the same database. No in-memory
+	// service or browser store may be required to recover native metadata.
+	env := map[string]string{"STUDIO_PLATFORM_ORIGIN": f.svc.StudioConsoleURL(), "STUDIO_PLATFORM_PRODUCT_KEY": "fixture.secret", "STUDIO_PUBLIC_ORIGIN": "https://studio.example.test", "STUDIO_PLATFORM_SESSION_HOSTS": "studio.example.test", "STUDIO_PLATFORM_ALLOWED_ORIGINS": "https://studio.example.test"}
+	gateway, err := platformintegration.NewGatewayFromEnv(func(k string) string { return env[k] })
+	if err != nil {
+		t.Fatal(err)
+	}
+	recovered, err := service.NewStudio(repository.New(f.db), t.TempDir(), gateway)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = recovered.Close() })
+	f.router = gin.New()
+	if err := RegisterStudioAPI(f.router.Group("/api"), recovered); err != nil {
+		t.Fatal(err)
+	}
 	w = f.request(t, "GET", "/api/user-data/snapshot", "platform_session=alice", "", 200)
 	if !strings.Contains(w.Body.String(), "更新后的标题") || !strings.Contains(w.Body.String(), "保留文件") {
 		t.Fatal(w.Body.String())

@@ -1,0 +1,28 @@
+bun test v1.3.14 (0d9b296a)
+
+test/studio-native-assets.test.tsx:
+(pass) shared file preview is a read and never adopts or uploads [3.83ms]
+(pass) adopted file becomes one native business asset; repeated adoption preserves edits [2.57ms]
+(pass) native image cards request small derived files [0.61ms]
+(pass) native video cards request small derived files [0.05ms]
+49 |     let writes = 0;
+50 |     apiClient.defaults.adapter = async (config) => {
+51 |         if (config.method === "put") writes++;
+52 |         return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { asset: { id: "platform-r1", kind: "video", data: { storageKey: "resource:another" } } } } };
+53 |     };
+54 |     await expect(saveAdoptedLibraryAsset({ kind: "image", storageKey: "resource:r1", dataUrl: "", width: 32, height: 24 })).rejects.toThrow("引用不匹配");
+                                                                                                                                         ^
+error: 
+
+Expected promise that rejects
+Received promise that resolved: Promise { <resolved> }
+
+      at <anonymous> (/Users/wangzihao/Projects/OceanWay/.local/worktrees/studio-release-20261108/web/test/studio-native-assets.test.tsx:54:133)
+(fail) repeated adoption rejects a conflicting native asset identity [0.49ms]
+(pass) missing image dimensions read the authorized original (load failure: %s) [18.96ms]
+(pass) missing image dimensions read the authorized original (load failure: %s) [19.35ms]
+
+ 6 pass
+ 1 fail
+ 25 expect() calls
+Ran 7 tests across 1 file. [161.00ms]
