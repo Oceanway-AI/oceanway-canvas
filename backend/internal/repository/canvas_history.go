@@ -162,6 +162,12 @@ func (r *Repository) SaveCanvasWithSnapshot(project *model.CanvasProject, snapsh
 
 func (r *Repository) CanvasHistoryReferencesObject(resource *model.Resource) (bool, error) {
 	var count int64
+	// Platform Resources use fixed remote file identities, not local object
+	// coordinates. Empty coordinates must not alias every adopted file.
+	if resource.Provider == "platform" || resource.ObjectKey == "" {
+		err := r.db.Model(&model.CanvasSnapshotResource{}).Where("resource_id = ?", resource.ID).Count(&count).Error
+		return count > 0, err
+	}
 	aliases := r.db.Model(&model.Resource{}).Select("id").Where("endpoint = ? AND bucket = ? AND object_key = ?", resource.Endpoint, resource.Bucket, resource.ObjectKey)
 	err := r.db.Model(&model.CanvasSnapshotResource{}).
 		Where("resource_id = ? OR resource_id IN (?)", resource.ID, aliases).

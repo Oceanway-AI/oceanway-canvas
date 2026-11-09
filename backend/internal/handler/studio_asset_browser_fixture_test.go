@@ -117,11 +117,37 @@ func TestStudioAssetBrowserFixture(t *testing.T) {
 			w.WriteHeader(503)
 		}
 	}
+	var seed map[string]any
+	if os.Getenv("STUDIO_ASSET_FIXTURE_HISTORY") == "1" {
+		messages := []any{}
+		for _, entry := range []struct{ id, kind string }{{"fixture-image", "image"}, {"fixture-video", "video"}} {
+			body, _ := json.Marshal(map[string]any{"assetId": entry.id, "versionId": "v-" + entry.id, "width": 640, "height": 427})
+			w := f.request(t, "POST", "/api/resources/adopt", "platform_session=alice", string(body), 200)
+			var adopted struct {
+				Data struct {
+					Resource model.Resource `json:"resource"`
+				} `json:"data"`
+			}
+			if err := json.Unmarshal(w.Body.Bytes(), &adopted); err != nil || adopted.Data.Resource.ID == "" {
+				t.Fatalf("fixture adoption failed: %v", err)
+			}
+			messages = append(messages, map[string]any{"id": "a2-" + entry.kind, "role": "assistant", "mode": entry.kind, "content": "A2 已有" + entry.kind + "结果", "createdAt": "2026-11-09T00:00:00Z", "status": "done", "resultStorageKeys": []string{"resource:" + adopted.Data.Resource.ID}})
+		}
+		var owner model.User
+		if err := f.db.First(&owner).Error; err != nil {
+			t.Fatal(err)
+		}
+		seed = map[string]any{"scope": owner.ID, "conversations": []any{map[string]any{"id": "a2-history", "title": "A2 免费既有结果", "updatedAt": "2026-11-09T00:00:00Z", "messages": messages}}}
+	}
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		t.Fatal(err)
 	}
 	server := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/__fixture/history" && seed != nil {
+			_ = json.NewEncoder(w).Encode(seed)
+			return
+		}
 		if r.URL.Path == "/__fixture/state" {
 			var assets, resources, refs, deletions int64
 			f.db.Model(&model.Asset{}).Count(&assets)
@@ -130,7 +156,11 @@ func TestStudioAssetBrowserFixture(t *testing.T) {
 			f.db.Model(&model.ResourceDeletionJob{}).Count(&deletions)
 			mu.Lock()
 			defer mu.Unlock()
-			_ = json.NewEncoder(w).Encode(map[string]any{"assets": assets, "resources": resources, "references": refs, "bindings_created": creates, "accesses": accesses, "deletion_jobs": deletions})
+			var canvases []model.CanvasProject
+			var nativeAssets []model.Asset
+			f.db.Find(&canvases)
+			f.db.Find(&nativeAssets)
+			_ = json.NewEncoder(w).Encode(map[string]any{"assets": assets, "resources": resources, "references": refs, "bindings_created": creates, "accesses": accesses, "deletion_jobs": deletions, "canvases": canvases, "native_assets": nativeAssets})
 			return
 		}
 		r.Host = "studio.example.test"

@@ -10,8 +10,7 @@ import { translate } from "@/i18n";
 import { ASSET_CATEGORY_LABELS, normalizeAssetCategory } from "@/lib/asset-category";
 import type { ExternalAssetPickerReference } from "@/lib/plugins/plugin-types";
 import { useAssetStore, type Asset } from "@/stores/use-asset-store";
-import { PlatformMaterialLibrary } from "@/components/assets/platform-material-library";
-import { AppModal } from "@/components/ui/product/app-modal";
+import { useUserStore } from "@/stores/use-user-store";
 
 type InsertableAsset = Extract<Asset, { kind: "text" | "image" | "video" | "audio" }>;
 
@@ -44,23 +43,10 @@ type Props = {
 };
 
 export function AssetPickerModal({ open, multiple = true, onInsert, onClose }: Props) {
-    return (
-        <AppModal title="选择素材" open={open} onCancel={onClose} footer={null} width={800}>
-            <PlatformMaterialLibrary
-                multiple={multiple}
-                onInsert={async (items) => {
-                    await onInsert(items);
-                    onClose();
-                }}
-            />
-        </AppModal>
-    );
-}
-
-export function OACAssetPickerModal({ open, multiple = true, onInsert, onClose }: Props) {
     const { t } = useTranslation();
     const assets = useAssetStore((state) => state.assets);
-    const externalAssetSources = useExternalAssetSources(open);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const externalAssetSources = useExternalAssetSources(open && !platformIdentity);
     const insertableAssets = useMemo(() => assets.filter((asset): asset is InsertableAsset => asset.kind === "text" || asset.kind === "image" || asset.kind === "video" || asset.kind === "audio"), [assets]);
     const items = useMemo<AssetLibraryPickerItem[]>(
         () => [
@@ -84,7 +70,7 @@ export function OACAssetPickerModal({ open, multiple = true, onInsert, onClose }
     return (
         <AssetLibraryPickerModal
             remoteLibrary
-            allowCharacters
+            allowCharacters={!platformIdentity}
             acceptRemoteItems
             open={open}
             mediaKinds={["image", "video", "audio", "text"]}

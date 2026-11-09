@@ -51,7 +51,7 @@ export function CreationMessageView({
     refreshingResult?: boolean;
     onCreateVariant: () => void;
     onEditUserMessage: (text: string) => void;
-    onContinueCanvas: (ids?: string[]) => void;
+    onContinueCanvas: (ids?: string[], messageId?: string) => void;
     openingCanvas: boolean;
 }) {
     const brandName = useAppearanceStore((state) => state.appearance.brandName);
@@ -277,7 +277,7 @@ export function MediaResult({
     onRecoverMedia: () => void;
     refreshingResult?: boolean;
     onCreateVariant: () => void;
-    onContinueCanvas: (ids?: string[]) => void;
+    onContinueCanvas: (ids?: string[], messageId?: string) => void;
     openingCanvas: boolean;
 }) {
     const [previewUrl, setPreviewUrl] = useState("");
@@ -357,7 +357,9 @@ export function MediaResult({
     const displayResultUrls = resultEntries.map((entry) => entry.url);
     const resultAssetIds = alignedResultUrls.length || resultStorageKeys.length ? creationResultAssetIds(assets, { messageId: item.id, taskIds: item.taskIds || [], resultUrls: alignedResultUrls, resultStorageKeys }) : [];
     const expectedResultCount = resultStorageKeys.length || alignedResultUrls.length;
-    const canContinueWithResults = expectedResultCount > 0 && resultAssetIds.length === expectedResultCount;
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const platformResults = platformIdentity && expectedResultCount > 0 && resultStorageKeys.length === expectedResultCount && resultStorageKeys.every((key) => /^resource:([^\s/:?#]+)$/.test(key));
+    const canContinueWithResults = platformResults || (expectedResultCount > 0 && resultAssetIds.length === expectedResultCount);
     if (item.status === "pending") return <CreationMediaPending item={item} refreshing={refreshingResult} onRefresh={onRefreshResult} onRetry={onRetryFailure} />;
     if ((item.status === "error" || item.status === "cancelled") && !expectedResultCount) return <CreationMediaFailure item={item} refreshing={refreshingResult} onRefresh={onRefreshResult} onRecoverMedia={onRecoverMedia} onRetry={onRetryFailure} />;
     // 远端结果首次解析中不显示空态，避免先闪「没有返回可预览结果」再出现结果。
@@ -457,7 +459,14 @@ export function MediaResult({
             )}
             <div className="creation-media-actions">
                 <span>{isVideo ? "视频结果" : `${displayResultUrls.length} 张图片`}</span>
-                <Button type="link" size="small" loading={openingCanvas} disabled={!canContinueWithResults} title={canContinueWithResults ? undefined : "素材保存完成后才能转入画布"} onClick={() => onContinueCanvas(resultAssetIds)}>
+                <Button
+                    type="link"
+                    size="small"
+                    loading={openingCanvas}
+                    disabled={!canContinueWithResults}
+                    title={canContinueWithResults ? undefined : "素材保存完成后才能转入画布"}
+                    onClick={() => onContinueCanvas(platformResults ? undefined : resultAssetIds, item.id)}
+                >
                     添加到画布
                 </Button>
                 {displayResultUrls.map((url, index) => (

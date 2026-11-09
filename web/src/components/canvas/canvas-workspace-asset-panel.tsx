@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { App, Button } from "antd";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { FileText, Images, Plus, RefreshCw } from "lucide-react";
-import { CachedResourceImage } from "@/components/cached-resource-image";
+import { Images, Plus, RefreshCw } from "lucide-react";
+import { AssetMediaPreview } from "@/components/asset-media-preview";
 import { WorkspaceState } from "@/components/layout/workspace-state";
 import { ASSET_CATEGORY_LABELS, type AssetCategory } from "@/lib/asset-category";
 import { resourceStorageLabel } from "@/lib/canvas/resource-storage-status";
@@ -11,32 +11,9 @@ import { useUserStore } from "@/stores/use-user-store";
 import type { Asset } from "@/stores/use-asset-store";
 import { assetPickerItemsToInsertPayloads, type InsertAssetPayload } from "./asset-picker-modal";
 import { Select } from "@/components/ui/base/select";
-import { PlatformMaterialLibrary } from "@/components/assets/platform-material-library";
 
 const categories: AssetCategory[] = ["material", "character", "environment", "prop", "other"];
 export function CanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAssets }: { onInsert: (payloads: InsertAssetPayload[]) => Promise<unknown>; onManage: () => void; onProjectAssets?: () => void }) {
-    return (
-        <>
-            <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
-                <Images className="size-4" />
-                <strong className="text-sm">素材库</strong>
-            </header>
-            <PlatformMaterialLibrary compact onInsert={onInsert} />
-            <footer className="flex gap-2 border-t border-border p-2">
-                <Button size="small" onClick={onManage}>
-                    管理素材
-                </Button>
-                {onProjectAssets ? (
-                    <Button size="small" onClick={onProjectAssets}>
-                        项目素材
-                    </Button>
-                ) : null}
-            </footer>
-        </>
-    );
-}
-
-export function OACCanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAssets }: { onInsert: (payloads: InsertAssetPayload[]) => Promise<unknown>; onManage: () => void; onProjectAssets?: () => void }) {
     const { message } = App.useApp();
     const userId = useUserStore((state) => state.user?.id);
     const hydrated = useUserStore((state) => state.hydrated);
@@ -116,11 +93,10 @@ export function OACCanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAsse
                 ) : null}
                 {assets.map((asset) => {
                     const insertable = ["image", "video", "audio", "text"].includes(asset.kind);
-                    const cover = asset.coverUrl || (asset.kind === "image" ? asset.data.dataUrl : "");
                     return (
                         <div key={asset.id} className="group flex items-center gap-2 rounded-md p-2 hover:bg-surface-hover">
                             <div className="grid h-11 w-14 shrink-0 place-items-center overflow-hidden rounded-md border border-border">
-                                <CachedResourceImage src={cover} storageKey={asset.kind === "image" ? asset.data.storageKey : undefined} alt="" className="h-full w-full object-cover" fallback={<FileText className="size-4 text-muted-foreground" />} />
+                                <AssetMediaPreview asset={asset} alt="" thumbnail className="h-full w-full object-cover" />
                             </div>
                             <div className="min-w-0 flex-1">
                                 <div className="truncate text-sm" title={asset.title}>

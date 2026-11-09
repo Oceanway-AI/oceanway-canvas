@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <title>A2 免费历史准备</title>
+    </head>
+    <body>
+        <button id="seed">准备免费历史并打开原生创作页</button>
+        <pre id="status"></pre>
+        <script type="module">
+            import { setActiveUserScope } from "/src/lib/user-scope.ts";
+            import { saveCreationConversations } from "/src/services/creation-conversation-store.ts";
+            document.querySelector("#seed").addEventListener("click", async () => {
+                try {
+                    const response = await fetch("/api/__fixture/history");
+                    if (!response.ok) throw new Error("免费夹具未启动");
+                    const seed = await response.json();
+                    setActiveUserScope(seed.scope);
+                    await saveCreationConversations(seed.conversations);
+                    location.href = "/create";
+                } catch (error) {
+                    document.querySelector("#status").textContent = String(error);
+                }
+            });
+        </script>
+    </body>
+</html>

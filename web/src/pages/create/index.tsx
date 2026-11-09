@@ -11,6 +11,7 @@ import { generationErrorCode, generationErrorMessage } from "@/lib/generation-er
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
 import { creationResultAssetIds } from "@/lib/canvas/canvas-asset-handoff";
+import { preparePlatformCreationAssets } from "@/services/creation-platform-handoff";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { continueCreationConversationOnCanvas } from "@/services/creation-canvas-conversation";
 import { useAuthEntry } from "@/hooks/use-auth-entry";
@@ -1162,13 +1163,20 @@ export default function CreatePage() {
         setHistoryOpen(false);
     };
 
-    const continueOnCanvas = async (selectedAssetIds?: string[]) => {
+    const continueOnCanvas = async (selectedAssetIds?: string[], messageId?: string) => {
         if (!activeConversation || openingCanvasRef.current) return;
         openingCanvasRef.current = true;
         setOpeningCanvas(true);
         const scope = getActiveUserScope();
         const source = activeConversation;
         try {
+            if (useUserStore.getState().platformIdentity && !selectedAssetIds) {
+                const messages = messageId ? source.messages.filter((message) => message.id === messageId) : source.messages;
+                selectedAssetIds = await preparePlatformCreationAssets(messages);
+                if (scope !== getActiveUserScope()) return;
+                await loadAssetsForUse(selectedAssetIds, { refresh: true });
+                if (scope !== getActiveUserScope()) return;
+            }
             const assets = useAssetStore.getState().assets;
             const generatedAssetIds =
                 selectedAssetIds ||
@@ -1184,6 +1192,7 @@ export default function CreatePage() {
             const referenceAssetIds = assets.filter((asset) => (asset.kind === "image" || asset.kind === "video") && asset.data.storageKey && referenceKeys.has(asset.data.storageKey)).map((asset) => asset.id);
             const assetIds = [...generatedAssetIds, ...referenceAssetIds];
             if (assetIds.length) await saveRemoteUserDataNow([]);
+            if (scope !== getActiveUserScope()) return;
             const result = await continueCreationConversationOnCanvas(source);
             if (scope !== getActiveUserScope()) return;
             const next = updateCreationConversationSnapshot(conversationsRef.current, source.id, (item) => ({ ...item, canvasId: result.id }));
@@ -1586,7 +1595,7 @@ export default function CreatePage() {
                                                 onRecoverMedia={() => void recoverMessageMedia(item)}
                                                 refreshingResult={resultRefreshIds.has(item.id)}
                                                 onCreateVariant={() => createVariant(item, index)}
-                                                onContinueCanvas={(ids) => void continueOnCanvas(ids)}
+                                                onContinueCanvas={(ids, messageId) => void continueOnCanvas(ids, messageId)}
                                                 openingCanvas={openingCanvas}
                                                 onEditUserMessage={(text) => {
                                                     setPrompt(text);
