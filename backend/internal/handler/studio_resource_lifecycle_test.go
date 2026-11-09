@@ -33,6 +33,39 @@ func TestStudioTransferredConversationProtectsHistoricalResults(t *testing.T) {
 	}
 }
 
+func TestStudioPreexistingHistoryWithoutIndexRemainsProtected(t *testing.T) {
+	f := newStudioFixture(t)
+	user := studioLibraryResource(t, f, "preexisting-output")
+	for _, snapshot := range []model.CanvasSnapshot{
+		{ID: "unindexed", CanvasID: "old-canvas", UserID: user.ID, Revision: 1, PayloadJSON: `{"chatMessages":[{"detail":{"resultStorageKeys":["resource:preexisting-output"]}}]}`},
+		{ID: "foreign-unindexed", CanvasID: "foreign-canvas", UserID: "other", Revision: 1, PayloadJSON: `{"resourceId":"preexisting-output"}`},
+	} {
+		if err := f.db.Create(&snapshot).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	repo := repository.New(f.db)
+	refs, err := repo.CanvasHistoryResourceReferences([]string{"preexisting-output"})
+	if err != nil || len(refs) != 1 || refs[0].ID != "old-canvas" || refs[0].ResourceID != "preexisting-output" {
+		t.Errorf("preexisting history references=%+v %v", refs, err)
+	}
+	resource, err := repo.ResourceForUser(user.ID, "preexisting-output")
+	if err != nil {
+		t.Fatal(err)
+	}
+	protected, err := repo.CanvasHistoryReferencesObject(resource)
+	if err != nil || !protected {
+		t.Errorf("preexisting history unprotected: %v %v", protected, err)
+	}
+	if err := f.db.Delete(&model.CanvasSnapshot{}, "id = ?", "unindexed").Error; err != nil {
+		t.Fatal(err)
+	}
+	protected, err = repo.CanvasHistoryReferencesObject(resource)
+	if err != nil || protected {
+		t.Errorf("removed own history still protected by foreign payload: %v %v", protected, err)
+	}
+}
+
 func TestStudioNativeDeletionCannotRemovePlatformResources(t *testing.T) {
 	for _, action := range []string{"candidate", "detached", "asset-purge", "admin", "direct", "announcement-draft", "announcement-replace"} {
 		t.Run(action, func(t *testing.T) {
