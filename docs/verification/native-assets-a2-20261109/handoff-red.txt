@@ -1,0 +1,72 @@
+bun test v1.3.14 (0d9b296a)
+
+test/studio-create-handoff.test.ts:
+3 | import type { Asset } from "@/stores/use-asset-store";
+4 | 
+5 | const adopted = { id: "platform-r1", kind: "image", title: "用户已编辑", tags: [], metadata: { source: "platform-library" }, data: { storageKey: "resource:r1", dataUrl: "/api/resources/r1/file", width: 640, height: 427, bytes: 128, mimeType: "image/png" } } as unknown as Asset;
+6 | 
+7 | test("explicit native adoption matches a generated result by fixed Resource without rewriting metadata", () => {
+8 |     expect(creationResultAssetIds([adopted], { messageId: "m1", taskIds: ["t1"], resultUrls: [], resultStorageKeys: ["resource:r1"] })).toEqual(["platform-r1"]);
+                                                                                                                                            ^
+error: expect(received).toEqual(expected)
+
+- [
+-   "platform-r1",
+- ]
++ []
+
+- Expected  - 3
++ Received  + 1
+
+      at <anonymous> (/Users/wangzihao/.codex/worktrees/studio-assets-a2/studio-release-20261108/web/test/studio-create-handoff.test.ts:8:137)
+(fail) explicit native adoption matches a generated result by fixed Resource without rewriting metadata [4.99ms]
+ 8 |     expect(creationResultAssetIds([adopted], { messageId: "m1", taskIds: ["t1"], resultUrls: [], resultStorageKeys: ["resource:r1"] })).toEqual(["platform-r1"]);
+ 9 | });
+10 | 
+11 | test("a fixed Resource result never falls back to another output or an empty URL", () => {
+12 |     const unrelated = { ...adopted, metadata: { source: "generation-task", taskId: "t1" }, coverUrl: "" };
+13 |     expect(creationResultAssetIds([unrelated], { messageId: "m1", taskIds: ["t1"], resultUrls: [], resultStorageKeys: ["resource:r2"] })).toEqual([]);
+                                                                                                                                               ^
+error: expect(received).toEqual(expected)
+
+- []
++ [
++   "platform-r1",
++ ]
+
+- Expected  - 1
++ Received  + 3
+
+      at <anonymous> (/Users/wangzihao/.codex/worktrees/studio-assets-a2/studio-release-20261108/web/test/studio-create-handoff.test.ts:13:139)
+(fail) a fixed Resource result never falls back to another output or an empty URL [0.29ms]
+12 |     const unrelated = { ...adopted, metadata: { source: "generation-task", taskId: "t1" }, coverUrl: "" };
+13 |     expect(creationResultAssetIds([unrelated], { messageId: "m1", taskIds: ["t1"], resultUrls: [], resultStorageKeys: ["resource:r2"] })).toEqual([]);
+14 | });
+15 | 
+16 | test("handoff retains the original image dimensions and stable identity", () => {
+17 |     expect(canvasAssetHandoffPayloads([adopted], [adopted.id]).payloads[0]).toMatchObject({ assetId: "platform-r1", storageKey: "resource:r1", width: 640, height: 427, bytes: 128, mimeType: "image/png" });
+                                                                                 ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "assetId": "platform-r1",
+-   "bytes": 128,
+-   "height": 427,
+-   "mimeType": "image/png",
++   "dataUrl": "/api/resources/r1/file",
++   "kind": "image",
+    "storageKey": "resource:r1",
+-   "width": 640,
++   "title": "用户已编辑",
+  }
+
+- Expected  - 4
++ Received  + 3
+
+      at <anonymous> (/Users/wangzihao/.codex/worktrees/studio-assets-a2/studio-release-20261108/web/test/studio-create-handoff.test.ts:17:77)
+(fail) handoff retains the original image dimensions and stable identity [1.12ms]
+
+ 0 pass
+ 3 fail
+ 3 expect() calls
+Ran 3 tests across 1 file. [151.00ms]
