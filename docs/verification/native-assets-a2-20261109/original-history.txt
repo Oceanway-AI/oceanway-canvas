@@ -1,0 +1,7 @@
+Selected result lines from the isolated SQLite test log; migration SQL omitted.
+=== RUN   TestCanvasHistoryProtectsMediaAndDeletionWorker
+--- PASS: TestCanvasHistoryProtectsMediaAndDeletionWorker (1.40s)
+=== RUN   TestArchivedAssetDeletionRemovesCanvasHistoryReference
+--- PASS: TestArchivedAssetDeletionRemovesCanvasHistoryReference (1.02s)
+PASS
+ok  	yingce/backend/internal/app	3.620s

@@ -1,5 +1,7 @@
 # AGENTS.md
 
+2026-11-09 A2本机完成：独立codex/studio-assets-a2-20261109从A1 1094b50继续，Docs计划d814895e、RED b9a0da3、实现cb0a95c。/create点击转画布时复用ready Resource建立确定性业务Asset，单卡/整会话、部分保存重入、账号切换及原生画布/Agent选择器通过；原生成Resource-only回填不改。历史空对象坐标误关联修为按Resource ID精确保护，历史保留输出固定引用。67前端（含独立React按钮夹具）、10顶层handler race＋3子例、2原生历史测试/type/lint/vet/build/格式通过。免费浏览器2Asset/2Resource/2绑定/3节点/0连线/会话引用重开一致，实际JPEG/MP4可读播放，0模型提交/旧失败重试。证据docs/verification/native-assets-a2-20261109，Docs PROC-02-068 A2节。未push/部署/改Platform SDK或云；完整解绑/永久删除、团队、媒体元数据及性能仍A3。夹具为独立SQLite＋假Platform，不称真实TOS/CDN或生产PG；手动浏览器fixture在验收取证后触发默认10分钟超时，非产品测试失败，复跑用-timeout 0，测试端口均已关闭。
+
 2026-11-09 原生资产库A1：独立分支代码855fbed，失败测试5653362/c0ab5c2/164ab6f/d0b11fc；复用OAC原资产页/CRUD/同步，修Studio路由501、Platform身份跳过显式Asset保存读取、folderId丢失；共享浏览只读Access不adopt，显式采用固定Resource生成业务Asset，卡片走thumbnail/poster。软回收可恢复，旧永久删除/物理清理暂停。50前端、Studio handler/原资产专项、3顶层race、type/lint/vet/build通过；免费浏览器3资产/2Resource/2绑定/0删除任务，关页重开同ID。证据docs/verification/native-asset-library-20261109，规范Docs PDOC-STUDIO-03-004/DEV-STUDIO-07-004，交接PROC-02-068。未部署/推送/改Platform SDK或云/付费/重试旧任务。下一步A2修/create ready Resource显式采用和原画布/Agent选择器，A3元数据/团队/完整释放与性能；不宣称本机夹具为真实TOS/CDN或全功能验收。
 
 2026-11-09真实Agent接续：d04c2a6/809b5e3已部署18448，未确认额度只预览，Skills原路由共享注册，原单一Agent合同v21/编译器v7及摘要使用Platform资金权威。免费RED→GREEN/race与原生浏览器取消/拒绝通过；一个新Mini参考图生视频成功，实际200.7878点≤250，原worker归档一次、输入引用释放，4节点2连线/素材/Task在进行中和完成后关页重开均恢复。原失败保留，Console/原108受保护容器/nginx不变，无push，Platform/18420/Pi保持。证据docs/verification/agent-media-reference-20261109、全局Docs PROC-02-067；C4整体未完，付费进程重启/无画布媒体/团队全链及Resource宽高时长仍待办。下一步C2两图片异步恢复与另一视频系列。
