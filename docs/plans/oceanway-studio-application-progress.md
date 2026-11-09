@@ -1,5 +1,13 @@
 # Studio 应用侧并行实施进度
 
+## 2026-11-09 A3 首批引用保护
+
+独立 A2 工作区继续，规范与工作包已先更新于 oceanway-docs `200623f7`。RED `faa07bc/6ade364/ee83aaf/687db0c`，实现 `f12070b`：原引用收集器补会话结果与原生工具 JSON；新普通/Agent媒体 Task 保存安全固定输入 ID；原持久 Agent/Pi 文档及旧漏索引 Platform 画布历史参与保护；本地清理、资产强删、管理员和公告等原删除事务拒绝 Platform Resource。共享文件回收后原绑定仍可读取，新采用明确409。
+
+35顶层路由/引用专项与27子例通过；app race最终37顶层/32子例、handler race8顶层/7子例通过。首轮两项真实Node/Pi测试因缺依赖失败，按原锁安装后定向复验通过；不隐去首次失败。vet/build/格式/Docs检查通过，完整证据及命令见 `docs/verification/native-assets-a3-20261109/README.md`，全局Docs PROC-02-068。
+
+本批仅本机代码及免费夹具，不push、不部署、不调用模型、不改线上。A3整体仍在进行：完整release/outbox/project snapshot及旧加密执行引用投影、团队、权威元数据和规模性能待办。SDK rc.6无文件宽高/时长字段，提供方契约要求已写入DEV-STUDIO-07-004；不以客户端猜测补齐。不开放永久删除，不把SQLite/假Platform/Node夹具当作实际云或PG多进程验收。
+
 ## 2026-11-09 协调侧真实 Agent 接续
 
 发布分支 `codex/studio-release-20261108`：`d04c2a6`、`809b5e3` 已部署18448后端，原web/Pi/schema95保持。本轮先文档和失败测试，再修复未确认额度被保存为可执行报价、Studio缺Skills原生路由，以及原Agent合同/摘要错误投影本地零预算。Skills使用共享原handler，预算仍由Platform控制，没有新增任务或授权框架。

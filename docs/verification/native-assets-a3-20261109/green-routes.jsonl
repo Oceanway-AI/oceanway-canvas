@@ -1,0 +1,130 @@
+{"Time": "2026-11-09T16:34:48.637432+08:00", "Action": "start", "Package": "yingce/backend/internal/assets"}
+{"Time": "2026-11-09T16:34:49.001548+08:00", "Action": "run", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesIncludesBatchInputSnapshot"}
+{"Time": "2026-11-09T16:34:49.002075+08:00", "Action": "pass", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesIncludesBatchInputSnapshot", "Elapsed": 0}
+{"Time": "2026-11-09T16:34:49.002084+08:00", "Action": "run", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesIncludesNestedVideoPreview"}
+{"Time": "2026-11-09T16:34:49.002103+08:00", "Action": "pass", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesIncludesNestedVideoPreview", "Elapsed": 0}
+{"Time": "2026-11-09T16:34:49.002105+08:00", "Action": "run", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesUsesExplicitFieldsOnly"}
+{"Time": "2026-11-09T16:34:49.002126+08:00", "Action": "pass", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesUsesExplicitFieldsOnly", "Elapsed": 0}
+{"Time": "2026-11-09T16:34:49.002133+08:00", "Action": "run", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesReportsInvalidJSON"}
+{"Time": "2026-11-09T16:34:49.002141+08:00", "Action": "pass", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesReportsInvalidJSON", "Elapsed": 0}
+{"Time": "2026-11-09T16:34:49.002143+08:00", "Action": "run", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesRetainsCreationResults"}
+{"Time": "2026-11-09T16:34:49.002175+08:00", "Action": "pass", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesRetainsCreationResults", "Elapsed": 0}
+{"Time": "2026-11-09T16:34:49.002178+08:00", "Action": "run", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesFromStructuredToolMessages"}
+{"Time": "2026-11-09T16:34:49.002186+08:00", "Action": "pass", "Package": "yingce/backend/internal/assets", "Test": "TestCollectDocumentResourceReferencesFromStructuredToolMessages", "Elapsed": 0}
+{"Time": "2026-11-09T16:34:49.002193+08:00", "Action": "run", "Package": "yingce/backend/internal/assets", "Test": "TestResourceID"}
+{"Time": "2026-11-09T16:34:49.002208+08:00", "Action": "pass", "Package": "yingce/backend/internal/assets", "Test": "TestResourceID", "Elapsed": 0}
+{"Time": "2026-11-09T16:34:49.002866+08:00", "Action": "pass", "Package": "yingce/backend/internal/assets", "Elapsed": 0.365}
+{"Time": "2026-11-09T16:34:50.956076+08:00", "Action": "start", "Package": "yingce/backend/internal/repository"}
+{"Time": "2026-11-09T16:34:52.171829+08:00", "Action": "run", "Package": "yingce/backend/internal/repository", "Test": "TestStudioExecutionFencesDispatchAndStop"}
+{"Time": "2026-11-09T16:34:52.172152+08:00", "Action": "run", "Package": "yingce/backend/internal/repository", "Test": "TestStudioExecutionFencesDispatchAndStop/stop-before-send"}
+{"Time": "2026-11-09T16:34:52.178213+08:00", "Action": "pass", "Package": "yingce/backend/internal/repository", "Test": "TestStudioExecutionFencesDispatchAndStop/stop-before-send", "Elapsed": 0}
+{"Time": "2026-11-09T16:34:52.178639+08:00", "Action": "run", "Package": "yingce/backend/internal/repository", "Test": "TestStudioExecutionFencesDispatchAndStop/recover-after-send"}
+{"Time": "2026-11-09T16:34:52.17873+08:00", "Action": "pass", "Package": "yingce/backend/internal/repository", "Test": "TestStudioExecutionFencesDispatchAndStop/recover-after-send", "Elapsed": 0}
+{"Time": "2026-11-09T16:34:52.17876+08:00", "Action": "pass", "Package": "yingce/backend/internal/repository", "Test": "TestStudioExecutionFencesDispatchAndStop", "Elapsed": 0.01}
+{"Time": "2026-11-09T16:34:52.184145+08:00", "Action": "pass", "Package": "yingce/backend/internal/repository", "Elapsed": 1.228}
+{"Time": "2026-11-09T16:34:56.67791+08:00", "Action": "start", "Package": "yingce/backend/internal/handler"}
+{"Time": "2026-11-09T16:34:58.352645+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioAgentSkillsUseNativeCatalogAndAccountIsolation"}
+{"Time": "2026-11-09T16:34:59.857318+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioAgentSkillsUseNativeCatalogAndAccountIsolation", "Elapsed": 1.5}
+{"Time": "2026-11-09T16:34:59.85735+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioCatalogUsesPlatformAndNeverLocalChannels"}
+{"Time": "2026-11-09T16:35:00.68986+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioCatalogUsesPlatformAndNeverLocalChannels", "Elapsed": 0.83}
+{"Time": "2026-11-09T16:35:00.689868+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioReleaseSurfaceRejectsUnconnectedCapabilities"}
+{"Time": "2026-11-09T16:35:01.426197+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioReleaseSurfaceRejectsUnconnectedCapabilities", "Elapsed": 0.74}
+{"Time": "2026-11-09T16:35:01.426205+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPlatformLoginCanvasPersistenceAndIsolation"}
+{"Time": "2026-11-09T16:35:02.14839+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPlatformLoginCanvasPersistenceAndIsolation", "Elapsed": 0.72}
+{"Time": "2026-11-09T16:35:02.1484+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPlatformFailureAndLegacyRoutesStayClosed"}
+{"Time": "2026-11-09T16:35:02.871589+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPlatformFailureAndLegacyRoutesStayClosed", "Elapsed": 0.72}
+{"Time": "2026-11-09T16:35:02.87162+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioRoleRevocationAndRealtimeRevalidation"}
+{"Time": "2026-11-09T16:35:03.602829+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioRoleRevocationAndRealtimeRevalidation", "Elapsed": 0.73}
+{"Time": "2026-11-09T16:35:03.602856+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioIdentityPreservesCancellation"}
+{"Time": "2026-11-09T16:35:04.358037+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioIdentityPreservesCancellation", "Elapsed": 0.76}
+{"Time": "2026-11-09T16:35:04.358046+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioCanvasRemovalKeepsOtherCanvasTaskAndHistory"}
+{"Time": "2026-11-09T16:35:05.435316+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioCanvasRemovalKeepsOtherCanvasTaskAndHistory", "Elapsed": 1.07}
+{"Time": "2026-11-09T16:35:05.435398+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioHistoryProtectsOnlyTheReferencedPlatformResource"}
+{"Time": "2026-11-09T16:35:06.68377+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioHistoryProtectsOnlyTheReferencedPlatformResource", "Elapsed": 1.25}
+{"Time": "2026-11-09T16:35:06.683793+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeAssetLibraryOrganizeAndRecover"}
+{"Time": "2026-11-09T16:35:08.695094+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeAssetLibraryOrganizeAndRecover", "Elapsed": 2.01}
+{"Time": "2026-11-09T16:35:08.695168+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge"}
+{"Time": "2026-11-09T16:35:09.531937+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/foreign"}
+{"Time": "2026-11-09T16:35:09.535676+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/foreign", "Elapsed": 0}
+{"Time": "2026-11-09T16:35:09.535692+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/missing"}
+{"Time": "2026-11-09T16:35:09.535702+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/missing", "Elapsed": 0}
+{"Time": "2026-11-09T16:35:09.535705+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/external"}
+{"Time": "2026-11-09T16:35:09.535713+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/external", "Elapsed": 0}
+{"Time": "2026-11-09T16:35:09.545755+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge", "Elapsed": 0.85}
+{"Time": "2026-11-09T16:35:09.545763+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMaterialBrowseDoesNotAdopt"}
+{"Time": "2026-11-09T16:35:10.353239+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMaterialBrowseDoesNotAdopt", "Elapsed": 0.81}
+{"Time": "2026-11-09T16:35:10.35325+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioTextExecutionRecoversOriginalWithoutResubmission"}
+{"Time": "2026-11-09T16:35:10.353258+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioTextExecutionRecoversOriginalWithoutResubmission/chat/completions"}
+{"Time": "2026-11-09T16:35:11.334716+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioTextExecutionRecoversOriginalWithoutResubmission/chat/completions", "Elapsed": 0.98}
+{"Time": "2026-11-09T16:35:11.334743+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioTextExecutionRecoversOriginalWithoutResubmission/responses"}
+{"Time": "2026-11-09T16:35:12.279769+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioTextExecutionRecoversOriginalWithoutResubmission/responses", "Elapsed": 0.94}
+{"Time": "2026-11-09T16:35:12.279786+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioTextExecutionRecoversOriginalWithoutResubmission/messages"}
+{"Time": "2026-11-09T16:35:13.63906+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioTextExecutionRecoversOriginalWithoutResubmission/messages", "Elapsed": 1.36}
+{"Time": "2026-11-09T16:35:13.639079+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioTextExecutionRecoversOriginalWithoutResubmission", "Elapsed": 3.29}
+{"Time": "2026-11-09T16:35:13.639083+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioUnknownOriginalIsNeverResentAndAuthorizationCanResume"}
+{"Time": "2026-11-09T16:35:14.866226+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioUnknownOriginalIsNeverResentAndAuthorizationCanResume", "Elapsed": 1.23}
+{"Time": "2026-11-09T16:35:14.866244+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioRetainedBindingReadsRecycledFile"}
+{"Time": "2026-11-09T16:35:15.700706+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioRetainedBindingReadsRecycledFile", "Elapsed": 0.83}
+{"Time": "2026-11-09T16:35:15.700734+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMaterialsUploadAdoptRecoverAndAccess"}
+{"Time": "2026-11-09T16:35:16.727184+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMaterialsUploadAdoptRecoverAndAccess", "Elapsed": 1.03}
+{"Time": "2026-11-09T16:35:16.727713+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant"}
+{"Time": "2026-11-09T16:35:17.593154+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant", "Elapsed": 0.87}
+{"Time": "2026-11-09T16:35:17.593199+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioCanvasAcceptsOnlyOwnedBoundPlatformResources"}
+{"Time": "2026-11-09T16:35:18.637702+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioCanvasAcceptsOnlyOwnedBoundPlatformResources", "Elapsed": 1.04}
+{"Time": "2026-11-09T16:35:18.637722+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMaterialBindingRecoveryAndImmutableVersion"}
+{"Time": "2026-11-09T16:35:19.4915+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMaterialBindingRecoveryAndImmutableVersion", "Elapsed": 0.85}
+{"Time": "2026-11-09T16:35:19.491515+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput"}
+{"Time": "2026-11-09T16:35:19.491775+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput/image"}
+{"Time": "2026-11-09T16:35:20.386534+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput/image", "Elapsed": 0.89}
+{"Time": "2026-11-09T16:35:20.386554+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput/video"}
+{"Time": "2026-11-09T16:35:21.97374+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput/video", "Elapsed": 1.59}
+{"Time": "2026-11-09T16:35:21.973779+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput/video_const"}
+{"Time": "2026-11-09T16:35:23.000707+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput/video_const", "Elapsed": 1.03}
+{"Time": "2026-11-09T16:35:23.000768+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput", "Elapsed": 3.51}
+{"Time": "2026-11-09T16:35:23.000782+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaTaskRetainsReferenceInputs"}
+{"Time": "2026-11-09T16:35:23.917215+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaTaskRetainsReferenceInputs", "Elapsed": 0.92}
+{"Time": "2026-11-09T16:35:23.917268+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization"}
+{"Time": "2026-11-09T16:35:23.91732+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/request_capability"}
+{"Time": "2026-11-09T16:35:24.746741+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/request_capability", "Elapsed": 0.83}
+{"Time": "2026-11-09T16:35:24.746752+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/request_connection"}
+{"Time": "2026-11-09T16:35:26.022019+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/request_connection", "Elapsed": 1.27}
+{"Time": "2026-11-09T16:35:26.022054+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/preview_capability"}
+{"Time": "2026-11-09T16:35:27.684535+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/preview_capability", "Elapsed": 1.66}
+{"Time": "2026-11-09T16:35:27.684618+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/preview_connection"}
+{"Time": "2026-11-09T16:35:33.683283+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/preview_connection", "Elapsed": 6}
+{"Time": "2026-11-09T16:35:33.683309+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/preview_malformed"}
+{"Time": "2026-11-09T16:35:39.906288+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/preview_malformed", "Elapsed": 6.22}
+{"Time": "2026-11-09T16:35:39.906327+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/changed_capability"}
+{"Time": "2026-11-09T16:35:49.646786+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/changed_capability", "Elapsed": 9.74}
+{"Time": "2026-11-09T16:35:49.646824+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/changed_connection"}
+{"Time": "2026-11-09T16:35:53.720407+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/changed_connection", "Elapsed": 4.08}
+{"Time": "2026-11-09T16:35:53.720451+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization", "Elapsed": 29.8}
+{"Time": "2026-11-09T16:35:53.720488+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions"}
+{"Time": "2026-11-09T16:35:53.720515+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions/capability"}
+{"Time": "2026-11-09T16:35:55.111287+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions/capability", "Elapsed": 1.39}
+{"Time": "2026-11-09T16:35:55.111319+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions/connection"}
+{"Time": "2026-11-09T16:35:56.724158+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions/connection", "Elapsed": 1.61}
+{"Time": "2026-11-09T16:35:56.724538+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions", "Elapsed": 3}
+{"Time": "2026-11-09T16:35:56.724571+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioTransferredConversationProtectsHistoricalResults"}
+{"Time": "2026-11-09T16:35:58.328655+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioTransferredConversationProtectsHistoricalResults", "Elapsed": 1.61}
+{"Time": "2026-11-09T16:35:58.328673+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPreexistingHistoryWithoutIndexRemainsProtected"}
+{"Time": "2026-11-09T16:36:01.08756+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPreexistingHistoryWithoutIndexRemainsProtected", "Elapsed": 2.76}
+{"Time": "2026-11-09T16:36:01.087596+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources"}
+{"Time": "2026-11-09T16:36:01.087608+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/candidate"}
+{"Time": "2026-11-09T16:36:02.750859+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/candidate", "Elapsed": 1.65}
+{"Time": "2026-11-09T16:36:02.750881+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/detached"}
+{"Time": "2026-11-09T16:36:05.071581+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/detached", "Elapsed": 2.33}
+{"Time": "2026-11-09T16:36:05.071589+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/asset-purge"}
+{"Time": "2026-11-09T16:36:06.813019+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/asset-purge", "Elapsed": 1.74}
+{"Time": "2026-11-09T16:36:06.813064+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/admin"}
+{"Time": "2026-11-09T16:36:08.372966+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/admin", "Elapsed": 1.56}
+{"Time": "2026-11-09T16:36:08.372985+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/direct"}
+{"Time": "2026-11-09T16:36:09.738215+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/direct", "Elapsed": 1.36}
+{"Time": "2026-11-09T16:36:09.738238+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/announcement-draft"}
+{"Time": "2026-11-09T16:36:11.218905+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/announcement-draft", "Elapsed": 1.48}
+{"Time": "2026-11-09T16:36:11.218962+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/announcement-replace"}
+{"Time": "2026-11-09T16:36:12.842602+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources/announcement-replace", "Elapsed": 1.62}
+{"Time": "2026-11-09T16:36:12.84263+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioNativeDeletionCannotRemovePlatformResources", "Elapsed": 11.75}
+{"Time": "2026-11-09T16:36:12.842633+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioDurableAgentReferencesSurviveLeaseExpiry"}
+{"Time": "2026-11-09T16:36:14.172336+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Test": "TestStudioDurableAgentReferencesSurviveLeaseExpiry", "Elapsed": 1.33}
+{"Time": "2026-11-09T16:36:14.195331+08:00", "Action": "pass", "Package": "yingce/backend/internal/handler", "Elapsed": 77.517}

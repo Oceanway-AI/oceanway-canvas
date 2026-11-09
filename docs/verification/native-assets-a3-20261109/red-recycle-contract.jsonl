@@ -1,0 +1,8 @@
+{"Time": "2026-11-09T16:30:58.449419+08:00", "Action": "start", "Package": "yingce/backend/internal/handler"}
+{"Time": "2026-11-09T16:30:59.866152+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioRetainedBindingReadsRecycledFile"}
+{"Time": "2026-11-09T16:30:59.866242+08:00", "Action": "output", "Package": "yingce/backend/internal/handler", "Test": "TestStudioRetainedBindingReadsRecycledFile", "Output": "=== RUN   TestStudioRetainedBindingReadsRecycledFile\n"}
+{"Time": "2026-11-09T16:31:00.763439+08:00", "Action": "output", "Package": "yingce/backend/internal/handler", "Test": "TestStudioRetainedBindingReadsRecycledFile", "Output": "2026/11/09 16:31:00 handler request failed: method=POST route=/api/resources/adopt status=502 error_type=*kernel.AppError\n"}
+{"Time": "2026-11-09T16:31:00.76351+08:00", "Action": "output", "Package": "yingce/backend/internal/handler", "Test": "TestStudioRetainedBindingReadsRecycledFile", "Output": "    studio_materials_test.go:54: POST /api/resources/adopt status=502 want=409 body={\"code\":502,\"data\":null,\"msg\":\"素材文件身份无效\",\"reason\":\"bad_gateway\"}\n"}
+{"Time": "2026-11-09T16:31:00.773815+08:00", "Action": "output", "Package": "yingce/backend/internal/handler", "Test": "TestStudioRetainedBindingReadsRecycledFile", "Output": "--- FAIL: TestStudioRetainedBindingReadsRecycledFile (0.91s)\n"}
+{"Time": "2026-11-09T16:31:00.773841+08:00", "Action": "fail", "Package": "yingce/backend/internal/handler", "Test": "TestStudioRetainedBindingReadsRecycledFile", "Elapsed": 0.91}
+{"Time": "2026-11-09T16:31:00.782292+08:00", "Action": "fail", "Package": "yingce/backend/internal/handler", "Elapsed": 2.333}

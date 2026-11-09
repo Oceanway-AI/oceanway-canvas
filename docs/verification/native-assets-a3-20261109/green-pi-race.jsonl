@@ -1,0 +1,6 @@
+{"Time": "2026-11-09T16:41:15.409212+08:00", "Action": "start", "Package": "yingce/backend/internal/app"}
+{"Time": "2026-11-09T16:41:18.822009+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip"}
+{"Time": "2026-11-09T16:41:27.564857+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Elapsed": 8.74}
+{"Time": "2026-11-09T16:41:27.56504+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip"}
+{"Time": "2026-11-09T16:41:36.794606+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Elapsed": 9.23}
+{"Time": "2026-11-09T16:41:37.897445+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Elapsed": 22.488}

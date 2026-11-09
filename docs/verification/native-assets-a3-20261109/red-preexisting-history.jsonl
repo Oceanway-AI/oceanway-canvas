@@ -1,0 +1,8 @@
+{"Time": "2026-11-09T16:34:18.073224+08:00", "Action": "start", "Package": "yingce/backend/internal/handler"}
+{"Time": "2026-11-09T16:34:20.289636+08:00", "Action": "run", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPreexistingHistoryWithoutIndexRemainsProtected"}
+{"Time": "2026-11-09T16:34:20.289778+08:00", "Action": "output", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPreexistingHistoryWithoutIndexRemainsProtected", "Output": "=== RUN   TestStudioPreexistingHistoryWithoutIndexRemainsProtected\n"}
+{"Time": "2026-11-09T16:34:21.162478+08:00", "Action": "output", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPreexistingHistoryWithoutIndexRemainsProtected", "Output": "    studio_resource_lifecycle_test.go:50: preexisting history references=[] <nil>\n"}
+{"Time": "2026-11-09T16:34:21.165852+08:00", "Action": "output", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPreexistingHistoryWithoutIndexRemainsProtected", "Output": "    studio_resource_lifecycle_test.go:58: preexisting history unprotected: false <nil>\n"}
+{"Time": "2026-11-09T16:34:21.172439+08:00", "Action": "output", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPreexistingHistoryWithoutIndexRemainsProtected", "Output": "--- FAIL: TestStudioPreexistingHistoryWithoutIndexRemainsProtected (0.88s)\n"}
+{"Time": "2026-11-09T16:34:21.172457+08:00", "Action": "fail", "Package": "yingce/backend/internal/handler", "Test": "TestStudioPreexistingHistoryWithoutIndexRemainsProtected", "Elapsed": 0.88}
+{"Time": "2026-11-09T16:34:21.182979+08:00", "Action": "fail", "Package": "yingce/backend/internal/handler", "Elapsed": 3.11}
