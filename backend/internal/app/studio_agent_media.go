@@ -216,8 +216,11 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 		return nil, response, err
 	}
 	id := cloudAgentID(userID, runID+":media:"+approvalID)
-	public, _ := json.Marshal(map[string]any{"mode": selected.Kind, "metadata": studioTaskMetadata(req.Input)})
-	task := model.Task{ID: id, UserID: userID, ProjectID: state.Request.CanvasID, AgentRunID: runID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: string(public), Status: model.TaskStatusQueued, Stage: "等待已批准的平台媒体任务"}
+	public, err := studioPublicTaskInput(selected.Kind, req)
+	if err != nil {
+		return nil, response, err
+	}
+	task := model.Task{ID: id, UserID: userID, ProjectID: state.Request.CanvasID, AgentRunID: runID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: public, Status: model.TaskStatusQueued, Stage: "等待已批准的平台媒体任务"}
 	canvas, err := s.repo.CanvasProjectForUser(userID, state.Request.CanvasID)
 	if err != nil {
 		return nil, response, err

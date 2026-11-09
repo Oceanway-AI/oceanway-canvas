@@ -211,6 +211,9 @@ func (c *studioMaterialCall) adopt(a platformclient.Asset, meta StudioResourceMe
 	if err != nil || owner <= 0 || strconv.FormatInt(owner, 10) != a.Owner.ID || a.Owner.Kind != "account" || uuid.NewSHA1(uuid.NameSpaceURL, []byte(c.s.studioPlatform.Origin()+"\n"+a.Owner.ID)).String() != c.userID {
 		return nil, NotFound("素材不存在或不可访问")
 	}
+	if a.State == "trashed" {
+		return nil, NewAppError(409, "素材已回收，已有引用可继续读取；请恢复后再采用")
+	}
 	size, err := strconv.ParseInt(a.File.ByteLength, 10, 64)
 	if err != nil || size <= 0 || a.State != "ready" || a.File.State != "ready" || !studioMaterialID.MatchString(a.AssetID) || !studioMaterialID.MatchString(a.Version.VersionID) || !studioMaterialID.MatchString(a.File.FileID) || a.Version.AssetID != a.AssetID || a.Version.FileID != a.File.FileID || !studioSHA256.MatchString(a.File.SHA256) {
 		return nil, NewAppError(502, "素材文件身份无效")

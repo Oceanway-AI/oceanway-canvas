@@ -63,6 +63,9 @@ func (r *Repository) DeleteAdminResources(resources []model.Resource, deletionJo
 		if len(current) != len(resources) {
 			return ErrAdminResourceDeleteChanged
 		}
+		if err := requireLocalResourceDeletion(current); err != nil {
+			return err
+		}
 		for _, check := range []struct {
 			model any
 			query string

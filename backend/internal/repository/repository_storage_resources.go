@@ -178,7 +178,12 @@ func (r *Repository) ClaimFailedResourceUpload(userID string, id string) (bool, 
 }
 
 func (r *Repository) DeleteResource(userID string, id string) error {
-	return r.db.Delete(&model.Resource{}, "id = ? AND user_id = ?", id, userID).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := New(tx.Where("user_id = ?", userID)).requireLocalResourceDeletionIDs([]string{id}); err != nil {
+			return err
+		}
+		return tx.Delete(&model.Resource{}, "id = ? AND user_id = ?", id, userID).Error
+	})
 }
 
 func (r *Repository) Resource(id string) (*model.Resource, error) {
@@ -259,7 +264,7 @@ func (r *Repository) ResourceCleanupCandidates(incompleteBefore time.Time, ready
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
-	err := r.db.Where(
+	err := r.db.Where("LOWER(TRIM(COALESCE(provider, ''))) <> ?", "platform").Where(
 		"(status IN ? AND updated_at <= ?) OR (status = ? AND created_at <= ?)",
 		[]model.ResourceStatus{model.ResourceStatusPending, model.ResourceStatusFailed}, incompleteBefore,
 		model.ResourceStatusReady, readyBefore,
