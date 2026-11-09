@@ -34,7 +34,7 @@ func TestStudioTransferredConversationProtectsHistoricalResults(t *testing.T) {
 }
 
 func TestStudioNativeDeletionCannotRemovePlatformResources(t *testing.T) {
-	for _, action := range []string{"candidate", "detached", "asset-purge", "admin", "direct"} {
+	for _, action := range []string{"candidate", "detached", "asset-purge", "admin", "direct", "announcement-draft", "announcement-replace"} {
 		t.Run(action, func(t *testing.T) {
 			f := newStudioFixture(t)
 			user := studioLibraryResource(t, f, "managed-file")
@@ -80,6 +80,23 @@ func TestStudioNativeDeletionCannotRemovePlatformResources(t *testing.T) {
 				err = repo.DeleteAdminResources(rows, jobs, []model.AdminAuditEvent{{ID: "audit-1"}, {ID: "audit-2"}})
 			case "direct":
 				err = repo.DeleteResource(user.ID, "managed-file")
+			case "announcement-draft":
+				if e := f.db.Create(&model.AnnouncementImageDraft{ResourceID: "managed-file", UserID: user.ID}).Error; e != nil {
+					t.Fatal(e)
+				}
+				err = repo.DiscardAnnouncementImageDraft(user.ID, &rows[1], &jobs[0])
+			case "announcement-replace":
+				announcement := model.Announcement{ID: "announcement", ImageResourceID: "managed-file", Title: "before"}
+				if e := f.db.Create(&announcement).Error; e != nil {
+					t.Fatal(e)
+				}
+				announcement.ImageResourceID = ""
+				announcement.Title = "after"
+				err = repo.UpdateAnnouncementWithImage(&announcement, user.ID, "", &rows[1], &jobs[0])
+				var saved model.Announcement
+				if e := f.db.First(&saved, "id = ?", announcement.ID).Error; e != nil || saved.Title != "before" || saved.ImageResourceID != "managed-file" {
+					t.Errorf("rejected update changed announcement: %+v %v", saved, e)
+				}
 			}
 			if err == nil {
 				t.Errorf("%s deleted a Platform Resource without releasing its binding", action)

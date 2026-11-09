@@ -21,7 +21,7 @@ func TestStudioRetainedBindingReadsRecycledFile(t *testing.T) {
 	studioLibraryResource(t, f, "retained-recycled")
 	accesses, lookups, writes := 0, 0, 0
 	asset := studioMaterialFixtureAsset()
-	asset.State = "recycled"
+	asset.State = "trashed"
 	f.materials = func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.Method + " " + r.URL.Path {
