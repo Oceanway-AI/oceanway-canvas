@@ -29,6 +29,10 @@ func TestStudioPiMediaPreviewDoesNotAuthorize(t *testing.T) {
 	studioPiMediaApprovalScenario(t, "preview_only")
 }
 
+func TestStudioPiMediaRetainsApprovedReferenceInput(t *testing.T) {
+	studioPiMediaApprovalScenario(t, "reference_input")
+}
+
 func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	s, db, _, _ := creationTestService(t)
 	if err := db.AutoMigrate(&model.StudioExecution{}, &model.StudioMaterialReference{}); err != nil {
@@ -55,6 +59,9 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 		catalog = strings.ReplaceAll(catalog, `"size":"1:1"`, `"size":"1:1","background":"opaque"`)
 		catalog = strings.ReplaceAll(catalog, `"size":{"type":"string"`, `"background":{"type":"string","enum":["opaque","transparent"]},"size":{"type":"string"`)
 		catalog = strings.ReplaceAll(catalog, `"size":"size"`, `"size":"size","background":"background"`)
+	}
+	if scenario == "reference_input" {
+		catalog = strings.Replace(catalog, `"parameter_bindings":`, `"native_reference_inputs":[{"field":"images","transport":"image-reference-array","roles":["reference_image"],"max_items":1}],"parameter_bindings":`, 1)
 	}
 	var quotedBody []byte
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -125,6 +132,19 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if err := db.Create(&model.CanvasProject{ID: "media-canvas", UserID: "user", PayloadJSON: `{"nodes":[],"connections":[]}`}).Error; err != nil {
 		t.Fatal(err)
 	}
+	if scenario == "reference_input" {
+		for _, row := range []any{
+			&model.Resource{ID: "agent-input", UserID: "user", Provider: "platform", Kind: "image", MimeType: "image/png", Size: 12, Status: model.ResourceStatusReady},
+			&model.StudioMaterialReference{ResourceID: "agent-input", UserID: "user", AssetID: "input-asset", VersionID: "input-version", FileID: "input-file", BindingID: "input-binding"},
+		} {
+			if err := db.Create(row).Error; err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := db.Model(&model.CanvasProject{}).Where("id = ?", "media-canvas").Update("payload_json", `{"nodes":[{"id":"input-node","type":"image","width":320,"height":180,"position":{"x":0,"y":0},"metadata":{"storageKey":"resource:agent-input","content":"/api/resources/agent-input/file"}}],"connections":[]}`).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
 	session := platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "session=fixture"}
 	req := CloudAgentRequest{Prompt: "draw", CanvasID: "media-canvas", Model: "pi-model", ChannelID: StudioPlatformChannelID, ChannelModelKey: "pi-model", IdempotencyKey: "pi-media", PermissionMode: "request_approval"}
 	req.Budget.MaxSteps = 4
@@ -136,6 +156,9 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	run, _ := s.repo.CloudAgent("user", view.ID)
 	state, _ := cloudAgentDecode(run)
 	args := cloudAgentMediaArgs{Mode: "image", Prompt: "a green square", ChannelID: StudioPlatformChannelID, ChannelModelKey: "image-model", Size: "1:1", NodeID: "image-node", Title: "草稿"}
+	if scenario == "reference_input" {
+		args.ReferenceNodeIDs = []string{"input-node"}
+	}
 	if kind == "video" {
 		args.Mode, args.Size, args.Duration = "video", "16:9", 4
 		if scenario == "video_const" {
@@ -346,6 +369,21 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	}
 	if frozen.Consumption == nil || frozen.Consumption.ExpectedCapabilityRevision != strings.Repeat("a", 64) || frozen.Consumption.ExpectedConnectionRevision != 7 {
 		t.Fatal("Pi encrypted envelope lost confirmed capability/connection")
+	}
+	if scenario == "reference_input" {
+		task, err := s.repo.Task(state.MediaTaskID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := documentReferencedResourceIDs(task.InputJSON, map[string]struct{}{"agent-input": {}})["agent-input"]; !ok {
+			t.Errorf("approved media Task lost reference after native approval: %s", task.InputJSON)
+		}
+		if strings.Contains(task.InputJSON, "material://") || strings.Contains(task.InputJSON, "exa_") {
+			t.Fatal("public Task exposes native authority")
+		}
+		if !strings.Contains(string(frozen.Body), "material://input-asset/input-version") {
+			t.Fatal("native request changed fixed version")
+		}
 	}
 	grant, _ := s.decryptSettingSecret(execution.AuthorizationEncrypted)
 	if grant != "exa_media_run" || !execution.Released || frozen.Consumption.WalletMaxPoints != quote.WalletMaxPoints || !strings.Contains(string(frozen.Body), "a green square") {

@@ -36,3 +36,19 @@ func TestCollectDocumentResourceReferencesReportsInvalidJSON(t *testing.T) {
 		t.Fatal("expected malformed document to be rejected")
 	}
 }
+
+func TestCollectDocumentResourceReferencesRetainsCreationResults(t *testing.T) {
+	raw := `{"chatMessages":[{"detail":{"resultStorageKeys":["resource:result-image","resource:result-video"],"resultUrls":["/api/resources/old-result/file","https://cdn.test/external"]}}],"prompt":"resource:ignored","log":"/api/resources/ignored/file"}`
+	got := map[string]struct{}{}
+	if err := CollectOwnedDocumentReferences(raw, got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("result references = %v", got)
+	}
+	for _, id := range []string{"result-image", "result-video", "old-result"} {
+		if _, ok := got[id]; !ok {
+			t.Errorf("lost creation result %s", id)
+		}
+	}
+}
