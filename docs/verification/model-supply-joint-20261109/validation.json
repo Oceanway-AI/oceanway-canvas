@@ -1,0 +1,460 @@
+{
+  "implementation_commit": "f210dfa",
+  "sdk": "v0.1.0-rc.6",
+  "scope": "Local SQLite/HTTP fixtures and native Node/Pi regression; no vendor calls, deployment, push or old task retries",
+  "go_race": {
+    "counts": {
+      "pass:test": 24,
+      "pass:package": 3,
+      "pass:subtest": 40
+    },
+    "results": [
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/platformintegration",
+        "Test": "TestPublishedMediaVariantDoesNotUnionAlternativeParameters",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/platformintegration",
+        "Test": "TestPublishedTextRequiresDeclaredProtocolAndPriceVersion",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/platformintegration",
+        "Test": "TestPublishedSpecificationsValidateFullSelectedSchema",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/platformintegration",
+        "Elapsed": 4.035
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/approve",
+        "Elapsed": 0.86
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/image_parameters",
+        "Elapsed": 0.44
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/video_const",
+        "Elapsed": 0.47
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/video_const_default",
+        "Elapsed": 0.44
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/video_const_invalid",
+        "Elapsed": 0.28
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/expired",
+        "Elapsed": 0.35
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/changed_canvas",
+        "Elapsed": 0.37
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/reject",
+        "Elapsed": 0.37
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/stopped",
+        "Elapsed": 0.34
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_preview_capability",
+        "Elapsed": 0.3
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_preview_connection",
+        "Elapsed": 0.32
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_prepared_capability",
+        "Elapsed": 0.34
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_prepared_connection",
+        "Elapsed": 0.34
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/changed_capability",
+        "Elapsed": 0.34
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/changed_connection",
+        "Elapsed": 0.37
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_queued_capability",
+        "Elapsed": 0.36
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_queued_connection",
+        "Elapsed": 0.39
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/submitted_legacy",
+        "Elapsed": 0.41
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority",
+        "Elapsed": 7.11
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaPreviewDoesNotAuthorize",
+        "Elapsed": 0.4
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiMediaRetainsApprovedReferenceInput",
+        "Elapsed": 0.44
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiModelStepUsesOriginalRunAuthority",
+        "Elapsed": 0.28
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioCatalogUsesPlatformAndNeverLocalChannels",
+        "Elapsed": 8.26
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiRuntimeToolRoundTrip",
+        "Elapsed": 10.4
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput/image",
+        "Elapsed": 9.08
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput/video",
+        "Elapsed": 16.31
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip",
+        "Elapsed": 20.03
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPublishedParameterMultipleOfIsNotRelativeStep",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPublishedAudioAliasControlsMatchNativeBody/audio",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPublishedAudioAliasControlsMatchNativeBody/generate_audio",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPublishedAudioAliasControlsMatchNativeBody",
+        "Elapsed": 0.01
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioCatalogUsesInstalledOACProtocols",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioCatalogProjectionKeepsTypedDefaultsAndMissingLimits",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioDoubaoCatalogProjectsNativeRatioAndFourSecond720p",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioCatalogProjectsConstAsSinglePublishedChoice",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts/#00",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts/720p",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts/1080p",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioNativeMediaBodyUsesPublishedBindings/gemini",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioNativeMediaBodyUsesPublishedBindings/videos",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioNativeMediaBodyUsesPublishedBindings/doubao/api/v3/contents/generations/tasks",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioNativeMediaBodyUsesPublishedBindings",
+        "Elapsed": 0
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioMediaReferencesPinOwnedVersions",
+        "Elapsed": 0.38
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPlatformPublishedFixtureConsumption/image",
+        "Elapsed": 0.01
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPlatformPublishedFixtureConsumption/video",
+        "Elapsed": 0.01
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Test": "TestStudioPlatformPublishedFixtureConsumption",
+        "Elapsed": 0.02
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/app",
+        "Elapsed": 43.664
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput/video_const",
+        "Elapsed": 12.35
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaFreezesQuoteAndRecoversFixedOutput",
+        "Elapsed": 37.75
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaTaskRetainsReferenceInputs",
+        "Elapsed": 8.11
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/request_capability",
+        "Elapsed": 7.24
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/request_connection",
+        "Elapsed": 7.18
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/preview_capability",
+        "Elapsed": 7.19
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/preview_connection",
+        "Elapsed": 7.41
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/preview_malformed",
+        "Elapsed": 7.3
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/changed_capability",
+        "Elapsed": 7.4
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization/changed_connection",
+        "Elapsed": 7.53
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization",
+        "Elapsed": 51.26
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions/capability",
+        "Elapsed": 7.6
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions/connection",
+        "Elapsed": 7.24
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Test": "TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions",
+        "Elapsed": 14.84
+      },
+      {
+        "Action": "pass",
+        "Package": "yingce/backend/internal/handler",
+        "Elapsed": 126.296
+      }
+    ]
+  },
+  "web": {
+    "tests": 99,
+    "assertions": 431,
+    "failures": 0,
+    "files": 14
+  },
+  "checks": {
+    "typecheck": "pass",
+    "lint": "pass",
+    "web_build": "pass; existing chunk/dynamic-import warnings",
+    "go_vet": "pass",
+    "go_build": "pass; ignored output path",
+    "prettier": "pass",
+    "gofmt": "pass",
+    "docs_tests": 8,
+    "docs_check": "475 pages/2500 links; four existing length warnings"
+  },
+  "earlier_failures": {
+    "red_go": "multipleOf projection and audio alias absent",
+    "red_web": "3 failures: image multiple, duration grid, native slider",
+    "initial_regression": "97 pass/2 fail: old video test lacked explicit budget confirmation; fixture updated, product gate unchanged"
+  },
+  "logs_sha256": {
+    "provider-consumer-go.log": "0c55649389b096e0a7887a06995fecf13e69443809924016fe3a05da6739c4e8",
+    "provider-consumer-web.log": "fb45247ac42db71e5fbec4edfd6d1cd848e05f20dc9ac9c9ca606519b843a914",
+    "vet.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build-web.log": "268b838d67fbf0075bec98d0328a218e92c8c305d134487c59774dfb5a1ceca7",
+    "build-go.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lint.log": "dd2f8b13f95897cba80165837cfd1d41c856d3574e86608251f7be20c3597065",
+    "regression-race.jsonl": "20921414f6ab2d50eee4e4f33967b67cae1b625d89c8ad72d8bb659ac3a6d734",
+    "green-go.log": "0fba0ec4e6354e59912558008e9f8b094001109a0ffbfac6bb38f7d76c8c852e",
+    "typecheck.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+    "red-controls.log": "c221a4942589f7b3e87d97d8c3664bc88d20935f9118a60cafb47b354373025d",
+    "red-web.log": "cbaa835b7ec4188ab4d720a34877367224b1abf84aea12436a8b0debf9c24c34",
+    "regression-web-final.log": "d0aebbb00317db969ecc18099f91b0bbb29a800c390a745821b157d500d62715",
+    "green-web.log": "da62761be9bd740d12f5f9893537dd0a0e5cc420c2da00f3e24531febb86b0be",
+    "regression-web.log": "ede2a7a2030c08744d18aad99899b17f2699f96dc36eef36f018117ef476b7a6",
+    "red-go.log": "3c6b0865b394c01f2d301bc20fddfa63da9883adbee0809d33dc08ae3e8f7657"
+  },
+  "not_verified": [
+    "Production catalog or vendor capability",
+    "Real TOS/CDN",
+    "New browser session with real backend",
+    "Live Platform HTTP/PG in this Studio run (provider evidence separate)",
+    "Paid Agent generation or process restart",
+    "Full repository/CI suite"
+  ]
+}

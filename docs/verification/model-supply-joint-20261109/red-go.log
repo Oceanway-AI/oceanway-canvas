@@ -1,0 +1,9 @@
+--- FAIL: TestStudioPublishedParameterMultipleOfIsNotRelativeStep (0.00s)
+    studio_catalog_parameter_contract_test.go:19: lost published multipleOf/default: map[binding: default:0.4 enabled:true label:strength max:0.9 min:0.3 name:strength step:0.2 type:number]
+    studio_catalog_parameter_contract_test.go:25: video range lost schema semantics: map[default:4 max:9 min:3 selection:range step:2]
+--- FAIL: TestStudioPublishedAudioAliasControlsMatchNativeBody (0.00s)
+    --- FAIL: TestStudioPublishedAudioAliasControlsMatchNativeBody/audio (0.00s)
+        studio_catalog_parameter_contract_test.go:37: published audio absent from controls: map[default:false supported:false]
+FAIL
+FAIL	yingce/backend/internal/app	2.110s
+FAIL

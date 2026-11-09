@@ -1,0 +1,60 @@
+bun test v1.3.14 (0d9b296a)
+
+test/platform-parameter-ranges.test.tsx:
+ 6 | import { canvasThemes } from "../src/lib/canvas-theme";
+ 7 | import { defaultConfig, createModelChannel, encodeChannelModel } from "../src/stores/use-config-store";
+ 8 | 
+ 9 | test("published image multipleOf is zero based, while native OAC step remains minimum based", () => {
+10 |     const field = { name: "strength", label: "强度", type: "number", min: 0.3, max: 0.9, step: 0.2, multipleOf: 0.2, default: 0.4 } as ImageParameter;
+11 |     expect(imageParameterAccepts(field, 0.4)).toBe(true);
+                                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/wangzihao/.codex/worktrees/studio-assets-a2/studio-release-20261108/web/test/platform-parameter-ranges.test.tsx:11:47)
+(fail) published image multipleOf is zero based, while native OAC step remains minimum based [3.22ms]
+23 |     return { ...defaultModelCapabilityConfig().video!, duration };
+24 | }
+25 | 
+26 | test("published duration ranges align to multiples and preserve fractional defaults", () => {
+27 |     const profile = video({ selection: "range", min: 3, max: 9, step: 2, multipleOf: 2, default: 4 } as VideoCapabilityConfig["duration"]);
+28 |     expect(videoDurationOptions(profile)).toEqual([4, 6, 8]);
+                                               ^
+error: expect(received).toEqual(expected)
+
+  [
+-   4,
+-   6,
+-   8,
++   3,
++   5,
++   7,
++   9,
+  ]
+
+- Expected  - 3
++ Received  + 4
+
+      at <anonymous> (/Users/wangzihao/.codex/worktrees/studio-assets-a2/studio-release-20261108/web/test/platform-parameter-ranges.test.tsx:28:43)
+(fail) published duration ranges align to multiples and preserve fractional defaults [9.72ms]
+43 |     const profile = video({ selection: "range", min: 3, max: 9, step: 2, multipleOf: 2, default: 4 } as VideoCapabilityConfig["duration"]);
+44 |     const channel = createModelChannel({ id: "oceanway-platform", models: ["range-video"], modelCosts: [{ model: "range-video", protocol: "newapi", platform: {}, capabilityConfig: { version: 1, video: profile } }] });
+45 |     const config = { ...defaultConfig, channels: [channel], model: encodeChannelModel(channel.id, "range-video"), videoSeconds: "6" };
+46 |     const html = renderToStaticMarkup(<VideoSettingsPanel config={config} theme={canvasThemes.dark} onConfigChange={() => {}} />);
+47 |     const slider = html.match(/<input[^>]+type="range"[^>]*>/)?.[0];
+48 |     expect(slider).toContain('min="4"');
+                        ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "min=\"4\""
+Received: "<input type=\"range\" min=\"3\" max=\"9\" step=\"2\" aria-label=\"视频时长（秒）\" class=\"video-duration-range h-8 min-w-0 flex-1\" style=\"accent-color:#f5f5f5\" value=\"7\"/>"
+
+      at <anonymous> (/Users/wangzihao/.codex/worktrees/studio-assets-a2/studio-release-20261108/web/test/platform-parameter-ranges.test.tsx:48:20)
+(fail) native video settings render the published range instead of a different slider grid [12.77ms]
+
+ 0 pass
+ 3 fail
+ 3 expect() calls
+Ran 3 tests across 1 file. [1.60s]

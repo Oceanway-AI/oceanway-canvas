@@ -1,5 +1,11 @@
 # Studio 应用侧并行实施进度
 
+## 2026-11-09 Platform 模型设置联合消费首批
+
+已与模型供给会话建立分工，先Docs `f1fa61d0`、Studio合同 `13ab270` 与RED `2b25b89`，再实现 `f210dfa`。修正 `multipleOf` 相对零而非最小值的范围语义、音频 `audio` 别名及原生控件；采用提供方真实隔离HTTP发布/PG预览的合成图片和视频样例，经SDK→Studio投影→原控件/提交/同command恢复联验。图片样例明确输出映射未验证，作为拒绝用例保留，不称生成成功。
+
+99前端/431断言，Go race24顶层＋40子例/3包、type/lint/build/vet/格式及Docs检查通过；前端首轮2个旧视频夹具遗漏预算确认，补模拟后通过，产品门禁未放宽。详见 `docs/verification/model-supply-joint-20261109/README.md`，规范PLAT-04-029 §0、全局事实PROC-02-067。无push/部署/收费/旧失败重试。Platform候选仍未提交（HEAD7401e5cf＋源码集合摘要），尺寸预设/扩展限制、参考依赖/总数/首尾帧、非默认变体UI及Agent扩展参数留下一批；A3余项状态不变。
+
 ## 2026-11-09 A3 首批引用保护
 
 独立 A2 工作区继续，规范与工作包已先更新于 oceanway-docs `200623f7`。RED `faa07bc/6ade364/ee83aaf/687db0c`，实现 `f12070b`：原引用收集器补会话结果与原生工具 JSON；新普通/Agent媒体 Task 保存安全固定输入 ID；原持久 Agent/Pi 文档及旧漏索引 Platform 画布历史参与保护；本地清理、资产强删、管理员和公告等原删除事务拒绝 Platform Resource。共享文件回收后原绑定仍可读取，新采用明确409。
