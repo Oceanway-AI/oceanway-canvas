@@ -1,5 +1,7 @@
 # AGENTS.md
 
+2026-11-09 模型供给交接续记：提供方会话已完成，模型设置本地提交b20e4715b999df4ee1cedb9704f3f4f33e650347，固定验收树与提交仅差验收JSON；207前端/28顶层后端专项通过。原冻结样例未重新导出，7/8抽查契约源码相同、media_configuration有差异，不能改标最终双仓已联验。共享Platform仍有其他会话dirty，须独立检出；未push/合并/部署/收费。本轮仅文档与证据，交接docs/verification/model-supply-joint-20261109/README.md及Docs PROC-02-067已补当前版本和接手顺序；后续固定版本复验→尺寸→参考→变体/Agent，A3未完。下方未提交表述为历史。
+
 2026-11-09 模型供给联合首批：与会话01a1bbad-1640-7ac3-8c82-ae59a56fae48协作；Docs计划f1fa61d0、Studio合同13ab270/RED2b25b89/实现f210dfa。修multipleOf零起点范围、audio别名和原控件；提供方隔离HTTP发布/PG预览合成样例经正式rc.6→Studio→前端同源golden验收。图片output_mapping_unverified保留为拒绝用例，视频只代表免费预览就绪。99前端431断言、Go race24顶层＋40子例/3包、type/lint/build/vet/格式/Docs通过；旧视频2测试补显式预算确认，产品门禁不变。证据docs/verification/model-supply-joint-20261109、全局PROC-02-067；Platform候选仍未提交，以源码集合摘要追踪，不能只用HEAD7401e5cf重现。无push/部署/付费/旧任务重试。size_presets/x-size-constraints、参考依赖/总数/首尾帧、变体UI/Agent扩展参数及A3余项未完；非浏览器/真实云或生产供给验收。
 
 2026-11-09 A3首批本机修正：沿独立A2工作区，Docs计划200623f7，RED faa07bc/6ade364/ee83aaf/687db0c，实现f12070b。补resultStorageKeys及原生工具结构化结果、旧漏索引Platform历史、普通/Agent新媒体Task输入ID、持久Agent/Pi/事件/撤销引用；原本地清理与六类删除事务禁止删除Platform Resource；trashed新采用409、原binding读取及账号拒绝通过。35顶层路由/引用专项＋27子例，37顶层app race＋32子例（首轮2项缺Pi依赖，按原锁安装后定向通过），8顶层handler race＋7子例；vet/build/gofmt/Docs通过。证据docs/verification/native-assets-a3-20261109、Docs PROC-02-068 A3。未push/部署/付费/旧任务重试/修改SDK或云。永久删除、完整release/outbox/project snapshot、旧加密执行输入投影、团队和权威元数据仍待办，rc.6没有宽高时长；不称A3整体或上线完成。仅SQLite/假Platform/真实Node Pi免费夹具，未验PG多进程、浏览器或实际TOS/CDN。
