@@ -119,6 +119,8 @@ export type VideoCapabilityConfig = {
         min?: number;
         max?: number;
         step?: number;
+        /** JSON Schema multipleOf has a zero origin; native OAC step uses min. */
+        multipleOf?: number;
         values?: number[];
         default: number;
     };
@@ -724,27 +726,39 @@ export function videoResolutionRequest(profile: VideoCapabilityConfig, value: st
 }
 
 function normalizeRangeDuration(profile: VideoCapabilityConfig, value: number) {
-    const min = profile.duration.min || 1;
-    const max = profile.duration.max || min;
-    const step = profile.duration.step || 1;
-    const candidate = Number.isFinite(value) ? Math.floor(value) : profile.duration.default;
+    const { min, max, step } = videoDurationRange(profile);
+    const candidate = Number.isFinite(value) ? value : profile.duration.default;
     const clamped = Math.min(max, Math.max(min, candidate));
-    const maxStep = Math.max(0, Math.floor((max - min) / step));
-    return min + Math.min(maxStep, Math.max(0, Math.round((clamped - min) / step))) * step;
+    const maxStep = Math.max(0, Math.floor((max - min) / step + 1e-8));
+    return durationPrecision(min + Math.min(maxStep, Math.max(0, Math.round((clamped - min) / step))) * step);
+}
+
+function durationPrecision(value: number) {
+    return Number(value.toPrecision(12));
+}
+
+// HTML range inputs count steps from min; align that origin with the published
+// JSON Schema multiples before using the existing OAC controls.
+export function videoDurationRange(profile: VideoCapabilityConfig) {
+    const step = profile.duration.multipleOf ?? profile.duration.step ?? 1;
+    let min = profile.duration.min ?? 1;
+    let max = profile.duration.max ?? min;
+    if (profile.duration.multipleOf !== undefined) {
+        min = durationPrecision(Math.ceil(min / step - 1e-8) * step);
+        max = durationPrecision(Math.floor(max / step + 1e-8) * step);
+    }
+    return { min, max, step };
 }
 
 export function videoDurationOptions(profile: VideoCapabilityConfig) {
     if (profile.duration.selection === "enum") return profile.duration.values || [];
-    const min = profile.duration.min || 1;
-    const max = profile.duration.max || min;
-    const step = profile.duration.step || 1;
-    return Array.from({ length: Math.floor((max - min) / step) + 1 }, (_, index) => min + index * step);
+    const { min, max, step } = videoDurationRange(profile);
+    return Array.from({ length: Math.max(0, Math.floor((max - min) / step + 1e-8) + 1) }, (_, index) => durationPrecision(min + index * step));
 }
 
 export function videoDurationAllowed(profile: VideoCapabilityConfig, value: number) {
     if (profile.duration.selection === "enum") return (profile.duration.values || []).includes(value);
-    const min = profile.duration.min || 1;
-    const max = profile.duration.max || min;
-    const step = profile.duration.step || 1;
-    return value >= min && value <= max && (value - min) % step === 0;
+    const { min, max, step } = videoDurationRange(profile);
+    const steps = (value - min) / step;
+    return value >= min && value <= max && Math.abs(steps - Math.round(steps)) < 1e-8;
 }

@@ -12,6 +12,8 @@ export type ImageParameter = {
     min?: number;
     max?: number;
     step?: number;
+    /** Published JSON Schema multiple, measured from zero rather than min. */
+    multipleOf?: number;
     maxLength?: number;
     default?: ImageParameterValue;
     required?: boolean;
@@ -28,8 +30,9 @@ export function imageParameterAccepts(field: ImageParameter, value: unknown): va
     if (field.type === "number" || field.type === "integer") {
         if (typeof value !== "number" || !Number.isFinite(value) || (field.type === "integer" && !Number.isInteger(value))) return false;
         if ((field.min !== undefined && value < field.min) || (field.max !== undefined && value > field.max)) return false;
-        if (field.step) {
-            const steps = (value - (field.min ?? 0)) / field.step;
+        const step = field.multipleOf ?? field.step;
+        if (step) {
+            const steps = (value - (field.multipleOf !== undefined ? 0 : (field.min ?? 0))) / step;
             if (Math.abs(steps - Math.round(steps)) > 1e-8) return false;
         }
     }

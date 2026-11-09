@@ -1,0 +1,831 @@
+[
+  {
+    "platform": {
+      "id": 3,
+      "model_name": "gpt-image-2",
+      "model_type": "image",
+      "display_vendor": "",
+      "display_icon": "",
+      "invocation_status": "available",
+      "description": "",
+      "vendor": "",
+      "supported_protocols": [
+        "oceanway-media-v1"
+      ],
+      "price": {
+        "display_items": [
+          {
+            "id": "specification-0",
+            "specification": {},
+            "amount": "0.00005",
+            "rate_unit": "count",
+            "dimension": "images",
+            "basis": "unit"
+          }
+        ],
+        "reference_discount": {
+          "reference_cny_per_usd": "6.75",
+          "ratio": "0.148148148148148148",
+          "fold": "1.48148148148148148",
+          "status": "available"
+        },
+        "price_source": {
+          "kind": "unknown",
+          "label": "Unverified standard price source"
+        },
+        "sales_multiplier": "1",
+        "usage_schema": {
+          "images": {
+            "type": "number",
+            "unit": "count"
+          }
+        },
+        "rate_units": {
+          "images": "count"
+        },
+        "status": "usage_dependent",
+        "mode": "tiered_expr",
+        "version": "bd0e9e67b0e5b2a9c3856b89bd97ae3c913bdc96e235ae0c26028798cc3f2219",
+        "unit": "积分",
+        "rates": {
+          "images": "0.00005"
+        },
+        "rate_unit": "count"
+      },
+      "content": {
+        "material_limits": {
+          "max_output_bytes": "1048576",
+          "max_output_count": 1,
+          "latest_input_seconds": 3600
+        },
+        "model_type": "image",
+        "price_listed": true,
+        "display_name": "",
+        "tagline": "",
+        "vendor": "",
+        "tags": [],
+        "capabilities": [],
+        "cover_url": "",
+        "video_url": "",
+        "source_url": "",
+        "examples": [],
+        "use_cases": [],
+        "featured": false,
+        "featured_order": 0
+      },
+      "media_generation_profile": {
+        "connection_revision": 1,
+        "price_version": "bd0e9e67b0e5b2a9c3856b89bd97ae3c913bdc96e235ae0c26028798cc3f2219",
+        "default_variant": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "contract_version": "media-generation.v1",
+        "revision": "8f2118f766bf7c63d8ba5bd90992a804ce89fd27aa60b5900558f0319551fadd",
+        "variants": [
+          {
+            "protocol": "openai-images",
+            "operation": "generate",
+            "method": "POST",
+            "path": "/images/generations",
+            "id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "defaults": {
+              "count": 1,
+              "format": "png",
+              "size": "1024x1024"
+            },
+            "specifications_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "maximum": 1,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "format": {
+                  "const": "png",
+                  "type": "string"
+                },
+                "size": {
+                  "enum": [
+                    "1024x1024"
+                  ],
+                  "type": "string",
+                  "x-size-constraints": {
+                    "allow_auto": false,
+                    "max_aspect_ratio": 3,
+                    "max_edge": 3840,
+                    "max_pixels": 8294400,
+                    "min_pixels": 655360,
+                    "multiple_of": 16
+                  }
+                }
+              },
+              "required": [
+                "size"
+              ],
+              "type": "object"
+            },
+            "parameter_bindings": {
+              "count": "n",
+              "format": "output_format",
+              "size": "size"
+            },
+            "size_presets": [
+              {
+                "resolution": "1K",
+                "aspect_ratio": "1:1",
+                "width": 1024,
+                "height": 1024,
+                "parameters": {
+                  "size": "1024x1024"
+                }
+              }
+            ],
+            "native_reference_inputs": []
+          },
+          {
+            "protocol": "openai-images",
+            "operation": "generate",
+            "method": "POST",
+            "path": "/images/generations",
+            "id": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "defaults": {
+              "count": 1,
+              "format": "png",
+              "size": "2048x2048"
+            },
+            "specifications_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "maximum": 1,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "format": {
+                  "const": "png",
+                  "type": "string"
+                },
+                "size": {
+                  "enum": [
+                    "2048x2048"
+                  ],
+                  "type": "string",
+                  "x-size-constraints": {
+                    "allow_auto": false,
+                    "max_aspect_ratio": 3,
+                    "max_edge": 3840,
+                    "max_pixels": 8294400,
+                    "min_pixels": 655360,
+                    "multiple_of": 16
+                  }
+                }
+              },
+              "required": [
+                "size"
+              ],
+              "type": "object"
+            },
+            "parameter_bindings": {
+              "count": "n",
+              "format": "output_format",
+              "size": "size"
+            },
+            "size_presets": [
+              {
+                "resolution": "2K",
+                "aspect_ratio": "1:1",
+                "width": 2048,
+                "height": 2048,
+                "parameters": {
+                  "size": "2048x2048"
+                }
+              }
+            ],
+            "native_reference_inputs": []
+          }
+        ],
+        "parameter_bindings": {
+          "count": "n",
+          "format": "output_format",
+          "size": "size"
+        },
+        "size_presets": [
+          {
+            "resolution": "1K",
+            "aspect_ratio": "1:1",
+            "width": 1024,
+            "height": 1024,
+            "parameters": {
+              "size": "1024x1024"
+            }
+          }
+        ],
+        "native_endpoints": [
+          {
+            "protocol": "openai-images",
+            "operation": "generate",
+            "method": "POST",
+            "path": "/images/generations"
+          }
+        ],
+        "mode": "image-openai",
+        "defaults": {
+          "count": 1,
+          "format": "png",
+          "size": "1024x1024"
+        },
+        "input_modes": [
+          "text_to_image"
+        ],
+        "specifications_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "count": {
+              "maximum": 1,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "format": {
+              "const": "png",
+              "type": "string"
+            },
+            "size": {
+              "enum": [
+                "1024x1024"
+              ],
+              "type": "string",
+              "x-size-constraints": {
+                "allow_auto": false,
+                "max_aspect_ratio": 3,
+                "max_edge": 3840,
+                "max_pixels": 8294400,
+                "min_pixels": 655360,
+                "multiple_of": 16
+              }
+            }
+          },
+          "required": [
+            "size"
+          ],
+          "type": "object"
+        },
+        "async_supported": true,
+        "prompt_min_characters": 1
+      }
+    },
+    "id": "3",
+    "modelKey": "gpt-image-2",
+    "channelLabel": "",
+    "tags": [],
+    "description": "",
+    "displayName": "gpt-image-2",
+    "sortOrder": 0,
+    "icon": "",
+    "capability": "image",
+    "protocol": "openai-image",
+    "capabilityConfig": {
+      "image": {
+        "maxOutputs": 1,
+        "outputFormat": {
+          "supported": false
+        },
+        "parameters": [
+          {
+            "binding": "n",
+            "default": 1,
+            "enabled": true,
+            "label": "count",
+            "max": 1,
+            "min": 1,
+            "name": "count",
+            "type": "integer"
+          },
+          {
+            "binding": "output_format",
+            "default": "png",
+            "enabled": true,
+            "label": "format",
+            "name": "format",
+            "type": "string",
+            "values": [
+              "png"
+            ]
+          },
+          {
+            "binding": "size",
+            "default": "1024x1024",
+            "enabled": true,
+            "label": "size",
+            "name": "size",
+            "required": true,
+            "type": "string",
+            "values": [
+              "1024x1024"
+            ]
+          }
+        ],
+        "quality": {
+          "default": "",
+          "supported": false,
+          "values": []
+        },
+        "references": {
+          "maskSupported": false,
+          "maxAudioBytes": 0,
+          "maxAudioDurationSeconds": 0,
+          "maxAudios": 0,
+          "maxImageBytes": 0,
+          "maxImages": 0,
+          "maxVideoBytes": 0,
+          "maxVideoDurationSeconds": 0,
+          "maxVideos": 0,
+          "minImages": 0,
+          "promptMaxChars": 0
+        },
+        "resolution": {
+          "default": "",
+          "supported": false,
+          "values": []
+        },
+        "responseFormat": {
+          "supported": false
+        },
+        "size": {
+          "allowCustom": false,
+          "default": "1024x1024",
+          "parameter": "size",
+          "values": [
+            "1024x1024"
+          ]
+        },
+        "transparentBackground": {
+          "default": false,
+          "supported": false
+        }
+      },
+      "version": 1
+    },
+    "defaultOptions": {
+      "count": 1,
+      "format": "png",
+      "size": "1024x1024"
+    },
+    "priceTiers": [],
+    "pricingMode": "platform",
+    "priceLabel": "以平台报价为准",
+    "available": true,
+    "referenceVideoBilling": false
+  },
+  {
+    "platform": {
+      "id": 2,
+      "model_name": "doubao-seedance-2-0-fast-260128",
+      "model_type": "video",
+      "display_vendor": "",
+      "display_icon": "",
+      "invocation_status": "available",
+      "description": "",
+      "vendor": "",
+      "supported_protocols": [
+        "oceanway-media-v1"
+      ],
+      "price": {
+        "display_items": [
+          {
+            "id": "specification-0",
+            "specification": {
+              "resolution": "480p",
+              "video_input": "none"
+            },
+            "amount": "0.005",
+            "rate_unit": "million_tokens",
+            "dimension": "tokens",
+            "basis": "unit"
+          },
+          {
+            "id": "specification-1",
+            "specification": {
+              "resolution": "480p",
+              "video_input": "video"
+            },
+            "amount": "0.005",
+            "rate_unit": "million_tokens",
+            "dimension": "tokens",
+            "basis": "unit"
+          },
+          {
+            "id": "specification-2",
+            "specification": {
+              "resolution": "720p",
+              "video_input": "none"
+            },
+            "amount": "0.005",
+            "rate_unit": "million_tokens",
+            "dimension": "tokens",
+            "basis": "unit"
+          },
+          {
+            "id": "specification-3",
+            "specification": {
+              "resolution": "720p",
+              "video_input": "video"
+            },
+            "amount": "0.005",
+            "rate_unit": "million_tokens",
+            "dimension": "tokens",
+            "basis": "unit"
+          },
+          {
+            "id": "specification-4",
+            "specification": {
+              "resolution": "1080p",
+              "video_input": "none"
+            },
+            "amount": "0.005",
+            "rate_unit": "million_tokens",
+            "dimension": "tokens",
+            "basis": "unit"
+          },
+          {
+            "id": "specification-5",
+            "specification": {
+              "resolution": "1080p",
+              "video_input": "video"
+            },
+            "amount": "0.005",
+            "rate_unit": "million_tokens",
+            "dimension": "tokens",
+            "basis": "unit"
+          }
+        ],
+        "reference_discount": {
+          "reference_cny_per_usd": "6.75",
+          "ratio": "0.148148148148148148",
+          "fold": "1.48148148148148148",
+          "status": "available"
+        },
+        "price_source": {
+          "kind": "unknown",
+          "label": "Unverified standard price source"
+        },
+        "sales_multiplier": "1",
+        "usage_schema": {
+          "resolution": {
+            "enum": [
+              "480p",
+              "720p",
+              "1080p"
+            ]
+          },
+          "tokens": {
+            "type": "number",
+            "unit": "token"
+          },
+          "video_input": {
+            "enum": [
+              "none",
+              "video"
+            ]
+          }
+        },
+        "rate_units": {
+          "tokens": "token"
+        },
+        "status": "usage_dependent",
+        "mode": "tiered_expr",
+        "version": "c131f289c0559ee290e77fecb31f223769bcb870e37ec946f2ec22319ed92b74",
+        "unit": "积分",
+        "rates": {
+          "tokens": "0.000000005"
+        },
+        "rate_unit": "token"
+      },
+      "content": {
+        "model_type": "video",
+        "price_listed": true,
+        "display_name": "",
+        "tagline": "",
+        "vendor": "",
+        "tags": [],
+        "capabilities": [],
+        "cover_url": "",
+        "video_url": "",
+        "source_url": "",
+        "examples": [],
+        "use_cases": [],
+        "featured": false,
+        "featured_order": 0
+      },
+      "media_generation_profile": {
+        "connection_revision": 1,
+        "price_version": "c131f289c0559ee290e77fecb31f223769bcb870e37ec946f2ec22319ed92b74",
+        "max_reference_items": 2,
+        "default_variant": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "contract_version": "media-generation.v1",
+        "revision": "eac3ac10d0464d2d7929c7eea5b53d4d9b0d2cbb327ee0bb151f59630b4afcad",
+        "variants": [
+          {
+            "protocol": "doubao-video",
+            "operation": "generate",
+            "method": "POST",
+            "path": "/doubao/api/v3/contents/generations/tasks",
+            "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "defaults": {
+              "audio": false,
+              "duration": 6,
+              "resolution": "720p",
+              "seed": 0
+            },
+            "specifications_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "audio": {
+                  "type": "boolean"
+                },
+                "duration": {
+                  "maximum": 15,
+                  "minimum": 5,
+                  "multipleOf": 3,
+                  "type": "integer"
+                },
+                "resolution": {
+                  "const": "720p",
+                  "type": "string"
+                },
+                "seed": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "duration",
+                "audio",
+                "seed"
+              ],
+              "type": "object"
+            },
+            "parameter_bindings": {
+              "audio": "generate_audio",
+              "duration": "duration",
+              "resolution": "resolution",
+              "seed": "seed"
+            },
+            "max_reference_items": 2,
+            "native_reference_inputs": [
+              {
+                "source_formats": [
+                  "https-url"
+                ],
+                "protocol": "doubao-video",
+                "operation": "generate",
+                "field": "content",
+                "transport": "content-array",
+                "roles": [
+                  "reference_image"
+                ],
+                "min_items": 0,
+                "max_items": 2,
+                "max_item_bytes": 1048576,
+                "max_total_bytes": 2097152,
+                "mime_types": [
+                  "image/png",
+                  "image/jpeg"
+                ]
+              }
+            ],
+            "required_any_of": [
+              [
+                "duration"
+              ]
+            ]
+          },
+          {
+            "protocol": "doubao-video",
+            "operation": "generate",
+            "method": "POST",
+            "path": "/doubao/api/v3/contents/generations/tasks",
+            "id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "defaults": {
+              "audio": false,
+              "duration": 8,
+              "resolution": "1080p",
+              "seed": 0
+            },
+            "specifications_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "audio": {
+                  "type": "boolean"
+                },
+                "duration": {
+                  "maximum": 12,
+                  "minimum": 4,
+                  "multipleOf": 2,
+                  "type": "integer"
+                },
+                "resolution": {
+                  "enum": [
+                    "1080p"
+                  ],
+                  "type": "string"
+                },
+                "seed": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "duration",
+                "audio",
+                "seed"
+              ],
+              "type": "object"
+            },
+            "parameter_bindings": {
+              "audio": "generate_audio",
+              "duration": "duration",
+              "resolution": "resolution",
+              "seed": "seed"
+            },
+            "max_reference_items": 2,
+            "native_reference_inputs": [
+              {
+                "source_formats": [
+                  "https-url"
+                ],
+                "protocol": "doubao-video",
+                "operation": "generate",
+                "field": "content",
+                "transport": "content-array",
+                "roles": [
+                  "reference_image"
+                ],
+                "min_items": 0,
+                "max_items": 2,
+                "max_item_bytes": 1048576,
+                "max_total_bytes": 2097152,
+                "mime_types": [
+                  "image/png",
+                  "image/jpeg"
+                ]
+              }
+            ],
+            "required_any_of": [
+              [
+                "duration"
+              ]
+            ]
+          }
+        ],
+        "parameter_bindings": {
+          "audio": "generate_audio",
+          "duration": "duration",
+          "resolution": "resolution",
+          "seed": "seed"
+        },
+        "required_any_of": [
+          [
+            "duration"
+          ]
+        ],
+        "native_reference_inputs": [
+          {
+            "source_formats": [
+              "https-url"
+            ],
+            "protocol": "doubao-video",
+            "operation": "generate",
+            "field": "content",
+            "transport": "content-array",
+            "roles": [
+              "reference_image"
+            ],
+            "min_items": 0,
+            "max_items": 2,
+            "max_item_bytes": 1048576,
+            "max_total_bytes": 2097152,
+            "mime_types": [
+              "image/png",
+              "image/jpeg"
+            ]
+          }
+        ],
+        "native_endpoints": [
+          {
+            "protocol": "doubao-video",
+            "operation": "generate",
+            "method": "POST",
+            "path": "/doubao/api/v3/contents/generations/tasks"
+          }
+        ],
+        "mode": "native-doubao-video",
+        "defaults": {
+          "audio": false,
+          "duration": 6,
+          "resolution": "720p",
+          "seed": 0
+        },
+        "input_modes": [
+          "text_to_video",
+          "reference_to_video"
+        ],
+        "specifications_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "audio": {
+              "type": "boolean"
+            },
+            "duration": {
+              "maximum": 15,
+              "minimum": 5,
+              "multipleOf": 3,
+              "type": "integer"
+            },
+            "resolution": {
+              "const": "720p",
+              "type": "string"
+            },
+            "seed": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "duration",
+            "audio",
+            "seed"
+          ],
+          "type": "object"
+        },
+        "async_supported": true,
+        "prompt_min_characters": 1
+      }
+    },
+    "id": "2",
+    "modelKey": "doubao-seedance-2-0-fast-260128",
+    "channelLabel": "",
+    "tags": [],
+    "description": "",
+    "displayName": "doubao-seedance-2-0-fast-260128",
+    "sortOrder": 0,
+    "icon": "",
+    "capability": "video",
+    "protocol": "volcengine-ark-video",
+    "capabilityConfig": {
+      "version": 1,
+      "video": {
+        "defaultOperation": "text_to_video",
+        "defaultRatio": "",
+        "defaultResolution": "720p",
+        "duration": {
+          "default": 6,
+          "max": 15,
+          "min": 5,
+          "multipleOf": 3,
+          "selection": "range",
+          "step": 3
+        },
+        "durationSupported": true,
+        "generateAudio": {
+          "default": false,
+          "supported": true
+        },
+        "operations": [
+          "text_to_video",
+          "reference_to_video"
+        ],
+        "ratios": [],
+        "references": {
+          "maskSupported": false,
+          "maxAudioBytes": 0,
+          "maxAudioDurationSeconds": 0,
+          "maxAudios": 0,
+          "maxImageBytes": 1048576,
+          "maxImages": 2,
+          "maxVideoBytes": 0,
+          "maxVideoDurationSeconds": 0,
+          "maxVideos": 0,
+          "minImages": 0,
+          "promptMaxChars": 0
+        },
+        "resolutions": [
+          "720p"
+        ],
+        "watermark": {
+          "default": false,
+          "supported": false
+        }
+      }
+    },
+    "defaultOptions": {
+      "audio": false,
+      "duration": 6,
+      "resolution": "720p",
+      "seed": 0
+    },
+    "priceTiers": [],
+    "pricingMode": "platform",
+    "priceLabel": "以平台报价为准",
+    "available": true,
+    "referenceVideoBilling": false
+  }
+]

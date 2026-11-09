@@ -15,7 +15,7 @@ import { createClientUUID } from "@/lib/client-id";
 import { togglePromptPhrase } from "@/lib/prompt-phrases";
 import { imageQualityLabel } from "@/lib/image-quality";
 import { imageResolutionUsesQuality } from "@/lib/image-size-presets";
-import { modelCapabilityConfigFor, normalizeImageValue, normalizeVideoValue } from "@/lib/model-capabilities";
+import { modelCapabilityConfigFor, normalizeImageValue, normalizeVideoValue, videoDurationOptions } from "@/lib/model-capabilities";
 import { modelQuoteRequest, requestCreditCost } from "@/lib/model-pricing";
 import { creationVideoConfig } from "@/pages/create/creation-generation-config";
 import { resolveBrowserMediaDownloadHref, startBrowserDownload } from "@/services/browser-download";
@@ -1347,12 +1347,7 @@ export function WorkbenchPage({ kind }: { kind: WorkbenchKind }) {
               ? `并行提交 ${requestedCount} 个任务，每条独立生成`
               : `最多 ${batchLimit} 条`;
     const limitHint = requestedCount >= batchLimit && batchLimit < (kind === "image" ? 12 : 8) ? `账号同时最多 ${activeTaskLimit} 个任务` : "";
-    const durationOptions = videoProfile
-        ? (videoProfile.duration.selection === "enum"
-              ? videoProfile.duration.values || []
-              : Array.from({ length: Math.floor(((videoProfile.duration.max || 15) - (videoProfile.duration.min || 1)) / (videoProfile.duration.step || 1)) + 1 }, (_, index) => (videoProfile.duration.min || 1) + index * (videoProfile.duration.step || 1))
-          ).map((value) => ({ value: String(value), label: `${value} 秒` }))
-        : [];
+    const durationOptions = videoProfile ? videoDurationOptions(videoProfile).map((value) => ({ value: String(value), label: `${value} 秒` })) : [];
     const bothKinds = features.imageWorkbenchEnabled && features.videoWorkbenchEnabled;
     const galleryCount = galleryBatches.reduce((sum, batch) => sum + batch.outputs.length, 0);
 

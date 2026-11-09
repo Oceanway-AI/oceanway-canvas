@@ -50,3 +50,21 @@ test("native video settings render the published range instead of a different sl
     expect(slider).toContain('step="2"');
     expect(slider).toContain('value="6"');
 });
+
+test("Platform Seedance controls use published choices rather than model-name defaults", () => {
+    const profile = video({ selection: "enum", values: [4, 8], default: 8 });
+    profile.ratios = ["1:1"];
+    profile.resolutions = ["480p"];
+    profile.defaultRatio = "1:1";
+    profile.defaultResolution = "480p";
+    const name = "doubao-seedance-2-0-mini-260615";
+    const channel = createModelChannel({ id: "oceanway-platform", models: [name], modelCosts: [{ model: name, protocol: "volcengine-ark-video", platform: {}, capabilityConfig: { version: 1, video: profile } }] });
+    const config = { ...defaultConfig, channels: [channel], model: encodeChannelModel(channel.id, name), videoSeconds: "8", size: "1:1", vquality: "480p" };
+    const html = renderToStaticMarkup(<VideoSettingsPanel config={config} theme={canvasThemes.dark} onConfigChange={() => {}} />);
+    expect(html).not.toContain("1080P");
+    expect(html).not.toContain("720P");
+    expect(html).not.toContain("9:16");
+    expect(html).not.toContain('type="range"');
+    expect(html).not.toContain("自动同步可信素材");
+    expect(html).toContain("8s");
+});

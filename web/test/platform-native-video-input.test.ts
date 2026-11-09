@@ -58,6 +58,11 @@ test.each([
             expect(input.input).toEqual(request.input);
             return { capability_revision: "a".repeat(64), connection_revision: 7, price_version: "new-token-price", wallet_points: "0.123456789", allowed: true, combination_supported: true };
         },
+        confirmBudget: async (estimate) => {
+            expect(estimate).toBe("0.123456789");
+            expect(submits).toBe(0);
+            return estimate;
+        },
         create: async (input) => {
             submits++;
             expect(input.platform).toEqual({ expectedCapabilityRevision: "a".repeat(64), expectedConnectionRevision: 7, expectedPriceVersion: "new-token-price", walletMaxPoints: "0.123456789" });
