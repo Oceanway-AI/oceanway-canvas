@@ -18,15 +18,17 @@ type PublishedPrice struct {
 }
 
 type NativeEndpoint struct {
-	ID         string            `json:"id"`
-	Protocol   string            `json:"protocol"`
-	Operation  string            `json:"operation"`
-	Method     string            `json:"method"`
-	Path       string            `json:"path"`
-	Defaults   map[string]any    `json:"defaults"`
-	Schema     json.RawMessage   `json:"specifications_schema"`
-	Bindings   map[string]string `json:"parameter_bindings"`
-	References []NativeReference `json:"native_reference_inputs"`
+	NativeRequest   *NativeRequestVariant `json:"native_request_variant,omitempty"`
+	GatewayProtocol string                `json:"gateway_protocol,omitempty"`
+	ID              string                `json:"id"`
+	Protocol        string                `json:"protocol"`
+	Operation       string                `json:"operation"`
+	Method          string                `json:"method"`
+	Path            string                `json:"path"`
+	Defaults        map[string]any        `json:"defaults"`
+	Schema          json.RawMessage       `json:"specifications_schema"`
+	Bindings        map[string]string     `json:"parameter_bindings"`
+	References      []NativeReference     `json:"native_reference_inputs"`
 }
 
 type NativeReference struct {
@@ -60,6 +62,7 @@ type ModelSelection struct {
 	Price        PublishedPrice
 	TextProtocol platformclient.TextProtocol
 	MediaRoute   platformclient.MediaRoute
+	PreferAsync  bool
 }
 
 // SelectModel is shared by display and admission. Alternatives are never
@@ -130,6 +133,13 @@ func SelectModel(m platformclient.Model, variant string) (ModelSelection, error)
 	}
 	if selected.Method != "POST" || len(selected.Schema) == 0 {
 		return selected, errors.New("模型能力合同不完整")
+	}
+	if selected.NativeRequest != nil {
+		err := selected.selectNativeRoute()
+		return selected, err
+	}
+	if selected.GatewayProtocol != "" {
+		return selected, errors.New("模型原生请求合同尚未接通")
 	}
 	switch {
 	case m.ModelType == "image" && selected.Protocol == "openai-images" && selected.Operation == "generate" && selected.Path == "/images/generations":

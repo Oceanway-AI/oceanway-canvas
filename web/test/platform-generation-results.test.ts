@@ -12,6 +12,9 @@ import { useAssetStore } from "@/stores/use-asset-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { CANVAS_STORE_KEY, flushCanvasStorePersistence, useCanvasStore, withCanvasStorePersistenceSuppressed } from "@/stores/canvas/use-canvas-store";
 import { CanvasNodeType, type CanvasNodeData } from "@/types/canvas";
+import { loadCanvasResourceHandoffPayloads } from "@/services/canvas-resource-handoff";
+import { canvasResourceHandoffIds, creationResultResourceIds, finalizeCanvasAssetHandoff, uninsertedCanvasAssetHandoffPayloads } from "@/lib/canvas/canvas-asset-handoff";
+import { canvasNodeVideoPreviewReference } from "@/lib/canvas/canvas-media-preview";
 
 const originalAdapter = apiClient.defaults.adapter;
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
@@ -233,4 +236,56 @@ test("真实画布消费先持久化固定引用，清空内存后仍能恢复�
     const restored = parseCanvasStorageDocument(await read()).state.projects.find((item) => item.id === projectId)!;
     expect(restored.nodes).toEqual(persisted.nodes);
     expect(JSON.stringify(restored)).not.toContain("expired.example.test");
+});
+
+test("创作页 Platform 结果转入画布后刷新不重复插入，不创建旧资产", async () => {
+    const assets = useAssetStore.getState().assets;
+    const ids = creationResultResourceIds(["resource:image-0", "resource:video-1", "https://expired.example.test/media"]);
+    expect(ids).toEqual(["image-0", "video-1"]);
+    const params = new URLSearchParams("mode=handoff&resource=image-0&resource=video-1&resource=image-0&conversation=creation-1");
+    const payloads = await loadCanvasResourceHandoffPayloads(canvasResourceHandoffIds(params));
+    expect(payloads).toHaveLength(2);
+    expect(payloads.map((item) => item.assetId)).toEqual([undefined, undefined]);
+    expect(payloads[0]).toMatchObject({ kind: "image", storageKey: "resource:image-0", dataUrl: "/api/resources/image-0/file", width: 640, height: 360 });
+    expect(payloads[1]).toMatchObject({ kind: "video", storageKey: "resource:video-1", url: "/api/resources/video-1/file" });
+    const nodes = payloads.map((item, index) => ({ id: String(index), metadata: { storageKey: "storageKey" in item ? item.storageKey : undefined } }));
+    let persisted = "";
+    const result = await finalizeCanvasAssetHandoff({
+        searchParams: params,
+        currentNodes: [],
+        createdNodes: nodes,
+        persist: async (value) => {
+            persisted = JSON.stringify(value);
+        },
+    });
+    expect(result.searchParams.toString()).toBe("conversation=creation-1");
+    expect(uninsertedCanvasAssetHandoffPayloads(JSON.parse(persisted), payloads)).toEqual([]);
+    expect(useAssetStore.getState().assets).toBe(assets);
+    expect(requests).toEqual(["/resources/image-0", "/resources/video-1"]);
+});
+
+test("转入画布必须重新验证资源，删除、越权及账号切换不能靠缓存通过", async () => {
+    await loadCanvasResourceHandoffPayloads(["image-0"]);
+    status = "deleted";
+    await expect(loadCanvasResourceHandoffPayloads(["image-0"])).rejects.toThrow("尚未就绪");
+    status = "ready";
+    responseCode = 404;
+    await expect(loadCanvasResourceHandoffPayloads(["image-0"])).rejects.toThrow("资源不存在");
+    responseCode = 0;
+    duringRead = () => {
+        scope = "another-user";
+    };
+    await expect(loadCanvasResourceHandoffPayloads(["image-0"])).rejects.toMatchObject({ name: "AbortError" });
+    await expect(loadCanvasResourceHandoffPayloads(["../private"])).rejects.toThrow("无效的素材引用");
+});
+
+test("Platform 视频封面使用原资源 poster，不抽帧或创建另一条图片资产", () => {
+    const video = {
+        ...node(task("video")),
+        metadata: { storageKey: "resource:video-1", content: "/api/resources/video-1/file", videoPreview: { storageKey: "image:obsolete", content: "blob:obsolete", width: 400, height: 225, bytes: 1, mimeType: "image/png" } },
+    };
+    expect(canvasNodeVideoPreviewReference(video, true)).toEqual({ src: "", storageKey: "resource:video-1", variant: "poster" });
+    expect(canvasNodeVideoPreviewReference({ ...video, type: CanvasNodeType.Image }, true)).toBeNull();
+    expect(canvasNodeVideoPreviewReference(video, false)?.storageKey).toBe("image:obsolete");
+    expect(requests).toEqual([]);
 });

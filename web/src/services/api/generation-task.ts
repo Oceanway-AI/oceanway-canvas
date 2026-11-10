@@ -2,6 +2,7 @@ import type { ThinkingRequest } from "@/lib/text-thinking";
 import { createClientUUID } from "@/lib/client-id";
 import { normalizeAudioFormatForConfig, normalizeAudioVoiceForConfig } from "@/lib/audio-generation";
 import { imageParameterRequest } from "@/lib/image-parameters";
+import { nativeMediaProfile, nativeMediaVariant, nativeParameterValues } from "@/lib/platform-native-media";
 import { getMediaBlob } from "@/services/file-storage";
 import { getImageBlob } from "@/services/image-storage";
 import { resourceIdFromStorageKey, resourceStorageKey, uploadResourceFile } from "@/services/api/resources";
@@ -412,6 +413,11 @@ function backendMediaReference<T extends ReferenceVideo | ReferenceAudio>(media:
 
 export function backendProviderConfig(config: AiConfig, mode: BackendGenerationMode = "image") {
     const requestConfig = resolveModelRequestConfig(config, config.model);
+    if ((mode === "image" || mode === "video") && requestConfig.channelId === "oceanway-platform" && nativeMediaProfile(config)) {
+        const variant = nativeMediaVariant(config);
+        if (!variant) throw new Error("所选模型参数版本已失效，请刷新模型目录");
+        return { channelId: requestConfig.channelId, model: requestConfig.model, nativeVariantId: variant.id, nativeParameters: nativeParameterValues(variant, config.nativeParameters) };
+    }
     const workflow = resolveGenerationWorkflowExecution(config, mode);
     if (workflow) return workflowProviderConfig(config, requestConfig, workflow);
     const generationOptions = {

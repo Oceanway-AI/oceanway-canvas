@@ -5,6 +5,7 @@ import { resolveImageUrl, uploadImage } from "@/services/image-storage";
 import { resolveMediaUrl, resolveVideoMediaUrl } from "@/services/file-storage";
 import { resourceIdFromStorageKey } from "@/services/api/resources";
 import { NODE_DEFAULT_SIZE } from "@/constant/canvas";
+import { nativeMediaReferenceLimits } from "@/lib/platform-native-media";
 import { normalizeVideoDuration, normalizeVideoResolution } from "@/lib/video-generation-options";
 import { modelCapabilityConfigFor, workflowFieldCurrentValue, workflowFieldHasStoredValue, workflowFieldKey, workflowFieldRandomKey, workflowFieldSubmissionValue, workflowOutputSizeValue, workflowVideoFieldsFromJson } from "@/lib/model-capabilities";
 import { modelRequestOptions, resolveCompatibleModel, resolveModelGenerationDefaults, resolveVideoOperation, type ModelGenerationDefaults, type ModelRequirements } from "@/lib/model-selection";
@@ -81,7 +82,7 @@ export async function runBackendCanvasGenerationTask(
 export function canvasImageReferenceLimitError(config: AiConfig, referenceImages: ReferenceImage[]) {
     // 工作流的参考素材上限由字段映射槽位决定，不能再套用当前普通图片模型的能力表。
     if ((config.taskWorkflowProvider || "model") !== "model") return "";
-    const maxImages = modelCapabilityConfigFor(config, config.model).image?.references.maxImages;
+    const maxImages = nativeMediaReferenceLimits(config)?.maxImages ?? modelCapabilityConfigFor(config, config.model).image?.references.maxImages;
     if (maxImages === undefined || referenceImages.length <= maxImages) return "";
     return `当前图片模型最多支持 ${maxImages} 张参考图，当前已连接 ${referenceImages.length} 张。请移除多余连线后重试`;
 }
@@ -200,6 +201,8 @@ export function buildImageGenerationMetadata(type: CanvasImageGenerationType, co
         ...generationWorkflowMetadata(config),
         generationType: type,
         model: config.model,
+        nativeParameters: config.nativeParameters,
+        nativeVariantId: config.nativeVariantId,
         producedModelCandidate: producedModelCandidateForGeneration(config),
         size: config.size,
         quality: config.quality,
@@ -443,6 +446,8 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
         quality: node?.metadata?.quality ?? workflowParameterValue("quality") ?? config.quality ?? defaultConfig.quality,
         imageResolution: node?.metadata?.imageResolution ?? workflowParameterValue("imageResolution") ?? config.imageResolution ?? defaultConfig.imageResolution,
         imageParameters: node?.metadata?.imageParameters ?? workflowParameterValue("imageParameters") ?? config.imageParameters ?? "{}",
+        nativeParameters: node?.metadata?.nativeParameters ?? config.nativeParameters,
+        nativeVariantId: node?.metadata?.nativeVariantId ?? config.nativeVariantId,
         size: workflowProvider === "model" ? (node?.metadata?.size ?? config.size ?? defaultConfig.size) : workflowOutputSize || node?.metadata?.size || config.size || defaultConfig.size,
         transparentBackground: node?.metadata?.transparentBackground ?? config.transparentBackground ?? defaultConfig.transparentBackground,
         videoSeconds:
@@ -481,6 +486,8 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
                             size: node?.metadata?.size,
                             imageResolution: node?.metadata?.imageResolution,
                             imageParameters: node?.metadata?.imageParameters,
+                            nativeParameters: node ? node.metadata?.nativeParameters : config.nativeParameters,
+                            nativeVariantId: node ? node.metadata?.nativeVariantId : config.nativeVariantId,
                             quality: node?.metadata?.quality,
                             transparentBackground: node?.metadata?.transparentBackground,
                             count: requestedConfig.count,
@@ -488,6 +495,8 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
                       : {
                             size: node?.metadata?.size,
                             videoSeconds: node?.metadata?.seconds,
+                            nativeParameters: node ? node.metadata?.nativeParameters : config.nativeParameters,
+                            nativeVariantId: node ? node.metadata?.nativeVariantId : config.nativeVariantId,
                             vquality: node?.metadata?.vquality,
                             videoGenerateAudio: node?.metadata?.generateAudio,
                             videoWatermark: node?.metadata?.watermark,
@@ -531,6 +540,8 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
         quality: generationDefaults.quality || requestedConfig.quality,
         imageResolution: generationDefaults.imageResolution || requestedConfig.imageResolution,
         imageParameters: generationDefaults.imageParameters ?? requestedConfig.imageParameters,
+        nativeParameters: generationDefaults.nativeParameters,
+        nativeVariantId: generationDefaults.nativeVariantId,
         size: generationDefaults.size ?? requestedConfig.size,
         transparentBackground: generationDefaults.transparentBackground || (requestedConfig.transparentBackground === "true" ? "true" : "false"),
         videoSeconds: generationDefaults.videoSeconds ?? requestedConfig.videoSeconds,

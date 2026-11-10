@@ -1,5 +1,21 @@
 # Studio 执行与恢复合同
 
+## rc.7 原生媒体消费（2026-11-11）
+
+当前 SDK 固定为 `platformclient/v0.1.0-rc.7`，发行提交 `9ed3fd9d6478ba04e8a55a190ce83908a395b8fa`，无本地 replace。下文 W7/rc.6 章节保留对应历史证据；新 Gateway 原生 profile 使用本节合同。
+
+模型能力只消费 Platform 采用的 Gateway 发布版本。只接受已实现的 JSON POST/create 变体：OpenAI 图片生成/编辑、Gemini 原生/Chat 图片，以及 Sora、New API、ModelArk 视频。能力必须明确声明 path、kind、request_schema、defaults、modes 和输出限制；未发布、未适配、仅 multipart 的变体不可用，不根据模型前缀补造能力。
+
+普通按钮、画布、批量设置和 Agent 共用 `nativeVariantId` 与 `nativeParameters`。前端配置中的参数是 JSON 字符串，发送给 Studio 的 `input.config.nativeParameters` 是以发布 JSON Pointer 为键的对象。表单按 schema 展示原字段/默认值/enum/const，切换变体清除旧参数；复杂对象和数组使用 JSON 输入。后台合并所选变体默认值并验证完整原生请求及条件，不拼接另一变体的参考数量或取值范围。`false`、`0`、`null` 和嵌套值保持原样，旧 size/videoSeconds 等控件不覆盖原生参数。
+
+模型 ID 与调用路径来自发布合同；ModelArk 使用 `/api/v3/contents/generations/tasks`，New API 视频使用 `/v1/video/generations`，Sora 使用 `/v1/videos`。请求时长是原生 `duration`，不生成 `requested_duration`。预览携带 `NativeProtocol`，同一原生正文/三版本/额度冻结后提交；异步偏好走 SDK `PreferAsync` 请求头，不注入正文 `async` 或 `stream`。图片 `/n` 控制单次请求输出数，不能在浏览器重复提交 n 次。
+
+参考输入只从当前用户的 ready Platform Resource 固定版本解析到 `material://asset/version`，按当前变体校验 role、数量、MIME、字节及尺寸关联；禁止参数覆盖提示词、素材容器或模型信封。Agent 草稿、报价、批准与执行保存相同原生参数；审批只读，调整须编辑草稿并重新报价。设置了本地视频时长上限时，无法确定上界的自动时长明确拒绝。
+
+`/create` 结果通过固定 Resource ID 转入画布，逐项重新核对归属/就绪/类型并在持久化成功后消费 handoff URL。重复恢复按 storageKey 幂等；不创建旧 Asset 或再次上传原件。视频静态封面通过原 Resource 的 `poster` 访问，不在浏览器抽帧上传另一份图片。画布只保存固定引用和本站资源 URL。
+
+本地免费联合验收、重现步骤与限制见 [rc.7 联调记录](../verification/studio-native-rc7-20261111/README.md)。七种协议组包测试不等于七种真实 Gateway 供给全部开放；复杂 JSON 编辑体验、商业供给、实际 Pi 浏览器链和其他产品分别验收。
+
 ## 入口与权威
 
 普通生成与原生 Pi 的模型步骤共用 OAC Task、队列、租约和文本回放。服务端重新读取 Platform 发布目录，只接受文本、图片、视频的明确协议。浏览器不能指定供应商地址、凭据、工作流或本地计费。音频及未适配协议返回暂不可用。

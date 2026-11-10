@@ -52,9 +52,13 @@ func validateCloudAgentMediaConfigurationChange(a *cloudAgentMediaArgs, state *c
 			valid = a.Mode == "video" && a.Duration > 0
 		case "videoGenerateAudio":
 			valid = a.Mode == "video" && a.VideoGenerateAudio != nil
+		case "nativeParameters":
+			valid = (a.Mode == "image" || a.Mode == "video") && a.NativeParameters != ""
+		case "nativeVariantId":
+			valid = (a.Mode == "image" || a.Mode == "video") && a.NativeVariantID != ""
 		}
 		if !valid || seen[field] {
-			return cloudAgentFieldError("configurationChange.fields", "invalid_value", "规格变更字段无效、重复或未提供值；仅支持 model、size、quality、imageResolution、durationSeconds、videoGenerateAudio，并须符合当前生成模式")
+			return cloudAgentFieldError("configurationChange.fields", "invalid_value", "规格变更字段无效、重复或未提供值；仅支持 model、size、quality、imageResolution、durationSeconds、videoGenerateAudio、nativeParameters、nativeVariantId，并须符合当前生成模式")
 		}
 		seen[field] = true
 	}

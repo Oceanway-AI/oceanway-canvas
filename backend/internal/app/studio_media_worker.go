@@ -28,7 +28,7 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		if first {
 			// Native synchronous responses can be large. Even a lost response is
 			// recovered through the original receipt; no transient URL is adopted.
-			_, _ = s.studioPlatform.Client.SubmitMedia(ctx, exec, platformclient.MediaRequest{Route: envelope.Selection.MediaRoute, RequestID: envelope.RequestID, ContentType: envelope.ContentType, ModelAction: envelope.Selection.Name + ":generateContent", Body: envelope.Body, Consumption: envelope.Consumption})
+			_, _ = s.studioPlatform.Client.SubmitMedia(ctx, exec, platformclient.MediaRequest{Route: envelope.Selection.MediaRoute, RequestID: envelope.RequestID, ContentType: envelope.ContentType, ModelAction: envelope.Selection.Name + ":generateContent", Body: envelope.Body, Consumption: envelope.Consumption, PreferAsync: envelope.Selection.PreferAsync})
 			return s.deferStudioTask(task)
 		}
 		recovered, err := s.studioPlatform.Client.RecoverMedia(ctx, exec, envelope.RequestID)

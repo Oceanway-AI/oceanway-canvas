@@ -11,6 +11,8 @@ export type AgentMediaSettings = {
     size: string;
     imageResolution?: string;
     imageParameters?: string;
+    nativeParameters?: string;
+    nativeVariantId?: string;
     quality: string;
     durationSeconds?: number;
     videoGenerateAudio?: boolean;

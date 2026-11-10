@@ -35,6 +35,8 @@ type Options struct {
 	Size                  *string `json:"size,omitempty" node:"size" task:"size" modes:"image,video"`
 	ImageResolution       *string `json:"imageResolution,omitempty" node:"imageResolution" task:"imageResolution" modes:"image"`
 	ImageParameters       *string `json:"imageParameters,omitempty" node:"imageParameters" task:"imageParameters" modes:"image"`
+	NativeParameters      *string `json:"nativeParameters,omitempty" node:"nativeParameters" task:"nativeParameters" modes:"image,video"`
+	NativeVariantID       *string `json:"nativeVariantId,omitempty" node:"nativeVariantId" task:"nativeVariantId" modes:"image,video"`
 	Quality               *string `json:"quality,omitempty" node:"quality" task:"quality" modes:"image"`
 	Count                 *int    `json:"count,omitempty" node:"count" task:"count" modes:"image"`
 	TransparentBackground *bool   `json:"transparentBackground,omitempty" node:"transparentBackground" task:"transparentBackground" modes:"image"`
@@ -139,6 +141,12 @@ func (s GenerationSpec) Validate() error {
 			}
 		}
 	}
+	if s.Options.NativeParameters != nil {
+		var parameters map[string]any
+		if len(*s.Options.NativeParameters) > 256<<10 || json.Unmarshal([]byte(*s.Options.NativeParameters), &parameters) != nil || parameters == nil {
+			return invalid("options.nativeParameters", "原生参数必须为有效对象")
+		}
+	}
 	ids := map[string]bool{}
 	orders := map[int]bool{}
 	for i, binding := range s.ReferenceBindings {
@@ -204,7 +212,7 @@ func OptionsFromTaskConfig(mode string, config map[string]any) (Options, error) 
 		switch field.Type.Elem().Kind() {
 		case reflect.String:
 			text, ok := raw.(string)
-			if !ok && field.Tag.Get("task") == "imageParameters" {
+			if !ok && (field.Tag.Get("task") == "imageParameters" || field.Tag.Get("task") == "nativeParameters") {
 				if parameters, object := raw.(map[string]any); object {
 					encoded, err := json.Marshal(parameters)
 					if err != nil {
@@ -247,6 +255,12 @@ func (o Options) TaskConfig() map[string]any {
 		var parameters map[string]any
 		if json.Unmarshal([]byte(*o.ImageParameters), &parameters) == nil && parameters != nil {
 			result["imageParameters"] = parameters
+		}
+	}
+	if o.NativeParameters != nil {
+		var parameters map[string]any
+		if json.Unmarshal([]byte(*o.NativeParameters), &parameters) == nil && parameters != nil {
+			result["nativeParameters"] = parameters
 		}
 	}
 	return result

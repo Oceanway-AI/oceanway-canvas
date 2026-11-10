@@ -7,9 +7,9 @@ description: 信封、错误码与 OpenAPI
 
 Studio 已开放 `POST /api/tasks`、`POST /api/tasks/preview`、`GET /api/tasks`、`GET /api/tasks/:id`、`GET /api/tasks/by-command/:command` 与只读日志/文本回放/SSE。创建必须提供账号内唯一的 `commandId`；同命令同意图返回原任务，改变意图为 409。支持已发布文本、图片及视频协议；媒体要求 `platform.expectedPriceVersion` 与十进制字符串 `platform.walletMaxPoints`（包括明确的 `"0"`），可选 variantId/billingPreference。预估入口使用同一 OAC 创作意图，返回平台原始精确预估，不能视为预留或执行事实。未知提交不自动重试；旧 `/retry`、供应商取消、浏览器自写文本结果未注册。执行授权只在服务端加密保存。
 
-媒体创建还必须携带展示预览中的 `platform.expectedCapabilityRevision`（64位小写十六进制）和 `platform.expectedConnectionRevision`（正整数）。对应预览响应字段为 `capability_revision` / `connection_revision`。缺失创建版本为400，预览版本缺失/无效或创建复核与已确认版本不同为409，拒绝发生在新 Task/执行授权创建之前。两个 revision 与价格/额度、原生正文一起加密冻结，并通过 rc.6 SDK 消费头发出；恢复只读原记录，不补造版本或重新报价。
+媒体创建还必须携带展示预览中的 `platform.expectedCapabilityRevision`（64位小写十六进制）和 `platform.expectedConnectionRevision`（正整数）。对应预览响应字段为 `capability_revision` / `connection_revision`。缺失创建版本为400，预览版本缺失/无效或创建复核与已确认版本不同为409，拒绝发生在新 Task/执行授权创建之前。两个 revision 与价格/额度、原生正文一起加密冻结，并通过 rc.7 SDK 消费头发出；恢复只读原记录，不补造版本或重新报价。
 
-模型目录按所选发布 schema 投影 enum 和 const；const 表达一个固定可选值及同类型默认值。视频界面和 Pi 的内部720仅在发布值包含720p时还原，不能把不支持的1080换成720p；未填写参数可取发布 const/default，显式冲突由完整 schema 校验返回400。价格 usage_schema 不作为生成参数。
+新 Gateway 原生 profile 的参数入口为 `input.config.nativeVariantId` 和对象 `input.config.nativeParameters`，对象键是发布的 JSON Pointer；按钮与 Agent 使用同一目录、原生默认值和完整 schema 校验，保留零值、false、null。预览携带明确协议，执行冻结同一正文；`duration` 不改成 `requested_duration`，异步偏好通过 SDK 请求头发出。仅支持明确发布的 JSON POST/create 变体，未适配或 multipart-only 变体不可用。非原生旧 profile 继续其既有 enum/const 投影。价格 usage_schema 不作为生成参数，详情见[执行合同](../../../plans/oceanway-studio-execution-contract.md)。
 
 Studio 原生 Pi 已开放 `/api/agent` 的轮次、事件、审批和同链工具。媒体草稿的 `approval.studioMedia=true`；`POST /agent/runs/:id/approvals/:approvalId/quote` 以当前浏览器会话获取精确报价，返回 `id/walletMaxPoints/priceVersion/expiresAt/parameters`。`POST .../decision` 批准时必须传该 `quoteId`，不接受同时修改 `mediaSettings`；报价不存在/过期/依赖变化为409。任务、画布绑定与决定同事务写入，共享整轮授权，不生成本地账单。报价原生请求加密保存在服务端，不进入公共审批 JSON；拒绝不提交模型请求。
 
@@ -33,6 +33,8 @@ Pi 媒体报价同时冻结能力/连接 revision 到原加密准备态，公共
 浏览器只按票据独立 PUT，不携带登录凭据、不跟随重定向。provider-input 仅供后续服务端执行流程，浏览器不可申请。列表、上传与签名访问均不代表生成调用已接通。完整状态/恢复合同见[素材实施合同](../../../plans/oceanway-studio-materials-contract.md)。
 
 图片展示依据访问回执 actualVariant：thumbnail/preview 的解码宽高不代表原件尺寸。未获得完整原件尺寸时保持未知，不用节点显示框兜底，不为尺寸显示额外下载 original；display/original 被转换为 preview、失败重签返回 preview 时同样适用。本地原图或实际 original 可使用解码尺寸，已有正确原件尺寸不被缩略图覆盖。
+
+创作结果进入画布时使用固定 `resource:ID`，重新核对当前用户归属、ready 状态及媒体类型，成功保存后才消费 handoff 参数。视频封面通过同一 Resource 的 `poster` 访问，不抽帧上传另一个素材；失败传播，不创建旧 Asset 兜底。
 
 ## OceanWay Studio 首批接口边界
 

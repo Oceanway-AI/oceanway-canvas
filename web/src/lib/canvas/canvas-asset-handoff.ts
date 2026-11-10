@@ -2,7 +2,17 @@ import type { InsertAssetPayload } from "@/components/canvas/asset-picker-modal"
 import type { Asset } from "@/stores/use-asset-store";
 
 const ASSET_PARAM = "asset";
+const RESOURCE_PARAM = "resource";
+export type CreationCanvasSelection = { assetIds: string[]; resourceIds: string[] };
 const unique = (values: Iterable<string>) => Array.from(new Set(Array.from(values, (value) => value.trim()).filter(Boolean)));
+
+export function creationResultResourceIds(storageKeys: string[]) {
+    return storageKeys.flatMap((key) => /^resource:([^\s/:?#]+)$/.exec(key)?.slice(1) || []);
+}
+
+export function canvasResourceHandoffIds(searchParams: URLSearchParams) {
+    return unique(searchParams.getAll(RESOURCE_PARAM));
+}
 
 export function creationCanvasHandoffPath(assetIds: Iterable<string>, expectedCount?: number) {
     const ids = unique(assetIds);
@@ -20,6 +30,7 @@ export function consumeCanvasAssetHandoff(searchParams: URLSearchParams) {
     const next = new URLSearchParams(searchParams);
     next.delete("mode");
     next.delete(ASSET_PARAM);
+    next.delete(RESOURCE_PARAM);
     return next;
 }
 
@@ -62,9 +73,11 @@ export function canvasAssetHandoffAttempt(assets: Asset[], searchParams: URLSear
     return { kind: assetIds.length && !missingAssetIds.length ? ("ready" as const) : ("retry" as const), assetIds, payloads: missingAssetIds.length ? [] : payloads, missingAssetIds };
 }
 
-export function uninsertedCanvasAssetHandoffPayloads(nodes: Iterable<{ metadata?: { assetId?: unknown } }>, payloads: InsertAssetPayload[]) {
-    const insertedAssetIds = new Set(Array.from(nodes, (node) => (typeof node.metadata?.assetId === "string" ? node.metadata.assetId : "")).filter(Boolean));
-    return payloads.filter((payload) => !payload.assetId || !insertedAssetIds.has(payload.assetId));
+export function uninsertedCanvasAssetHandoffPayloads(nodes: Iterable<{ metadata?: { assetId?: unknown; storageKey?: unknown } }>, payloads: InsertAssetPayload[]) {
+    const current = Array.from(nodes);
+    const insertedAssetIds = new Set(current.map((node) => node.metadata?.assetId));
+    const insertedResourceKeys = new Set(current.map((node) => node.metadata?.storageKey));
+    return payloads.filter((payload) => (payload.assetId ? !insertedAssetIds.has(payload.assetId) : !("storageKey" in payload && payload.storageKey && insertedResourceKeys.has(payload.storageKey))));
 }
 
 export function creationResultAssetIds(assets: Asset[], input: { messageId: string; taskIds: string[]; resultUrls: string[]; resultStorageKeys?: string[] }) {

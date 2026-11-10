@@ -10,7 +10,9 @@ import type { AssetLibraryPickerItem } from "@/components/assets/asset-library-p
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
-import { creationResultAssetIds } from "@/lib/canvas/canvas-asset-handoff";
+import { nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits } from "@/lib/platform-native-media";
+import { creationResultAssetIds, creationResultResourceIds, type CreationCanvasSelection } from "@/lib/canvas/canvas-asset-handoff";
+import { loadCanvasResourceHandoffPayloads } from "@/services/canvas-resource-handoff";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { continueCreationConversationOnCanvas } from "@/services/creation-canvas-conversation";
 import { useAuthEntry } from "@/hooks/use-auth-entry";
@@ -141,6 +143,7 @@ export default function CreatePage() {
     const rememberImageSettings = useCreationPreferencesStore((state) => state.rememberImageSettings);
     const rememberVideoSettings = useCreationPreferencesStore((state) => state.rememberVideoSettings);
     const initialComposerPreferences = useCreationPreferencesStore.getState().preferences;
+    const savedNativePreferences = useCreationPreferencesStore((state) => state.preferences);
     const promptOptimizerInstallation = usePluginStore((state) => state.installations.find((item) => item.manifest.id === PROMPT_OPTIMIZER_PLUGIN_ID));
     const promptOptimizerEnabled = usePluginStore((state) => state.pluginStates[PROMPT_OPTIMIZER_PLUGIN_ID]?.effectiveEnabled ?? Boolean(state.installations.find((item) => item.manifest.id === PROMPT_OPTIMIZER_PLUGIN_ID)?.enabled));
     const promptOptimizerProvider = useMemo<PromptOptimizerProvider | null>(() => {
@@ -249,7 +252,13 @@ export default function CreatePage() {
     const selectedModel = availableModels.includes(candidateModel) ? candidateModel : "";
     const imageProfile = useMemo(() => (selectedModel ? modelCapabilityConfigFor(config, selectedModel).image : undefined), [config, selectedModel]);
     const videoProfile = useMemo(() => (selectedModel ? modelCapabilityConfigFor(config, selectedModel).video : undefined), [config, selectedModel]);
-    const generationConfig = useMemo(() => (mode === "video" && videoProfile ? creationVideoConfig(config, selectedModel, { ratio, seconds, videoQuality }) : config), [config, mode, ratio, seconds, selectedModel, videoQuality, videoProfile]);
+    const nativeProfile = nativeMediaProfile(config, selectedModel);
+    const nativeSaved = mode === "video" ? savedNativePreferences.video : savedNativePreferences.image;
+    const nativeSettings: { nativeParameters?: string; nativeVariantId?: string } = nativeProfile ? nativeMediaDefaults(config, selectedModel, nativeSaved?.model === selectedModel ? nativeSaved : {}) : {};
+    const generationConfig = useMemo(
+        () => (nativeProfile ? { ...config, model: selectedModel, ...nativeSettings } : mode === "video" && videoProfile ? creationVideoConfig(config, selectedModel, { ratio, seconds, videoQuality }) : config),
+        [config, mode, ratio, seconds, selectedModel, videoQuality, videoProfile, nativeSettings.nativeParameters, nativeSettings.nativeVariantId, Boolean(nativeProfile)],
+    );
     const textThinkingConfig = useMemo(() => (mode === "text" ? modelCapabilityConfigFor(config, selectedModel).text?.thinking || LEGACY_TEXT_THINKING_CONFIG : undefined), [config, mode, selectedModel]);
     const textThinkingLevels = useMemo(() => thinkingLevelsFor(textThinkingConfig), [textThinkingConfig]);
     // 记住的档位已不被模型支持时按后端同一规则就近取档；没记住时用模型默认值。
@@ -266,8 +275,15 @@ export default function CreatePage() {
     };
     // 同名逻辑模型可能把文生视频、图生视频和全模态参考拆到不同路由。
     // 入口需要展示整个模型组的引用能力，添加素材后再由兼容路由选择具体模型。
-    const videoReferenceLimits = useMemo(() => (mode === "video" && videoProfile ? modelGroupReferenceLimits(config, selectedModel, "video") || { maxImages: 0, maxVideos: 0, maxAudios: 0 } : undefined), [config, mode, videoProfile, selectedModel]);
-    const maxReferences = mode === "video" ? (videoReferenceLimits?.maxImages || 0) + (videoReferenceLimits?.maxVideos || 0) + (videoReferenceLimits?.maxAudios || 0) : mode === "image" ? imageProfile?.references.maxImages || 0 : 6;
+    const nativeReferenceLimits = nativeProfile ? nativeMediaReferenceLimits(generationConfig) : undefined;
+    const videoReferenceLimits = nativeReferenceLimits || (mode === "video" && videoProfile ? modelGroupReferenceLimits(config, selectedModel, "video") || { maxImages: 0, maxVideos: 0, maxAudios: 0 } : undefined);
+    const maxReferences = nativeReferenceLimits
+        ? nativeReferenceLimits.maxImages + nativeReferenceLimits.maxVideos + nativeReferenceLimits.maxAudios
+        : mode === "video"
+          ? (videoReferenceLimits?.maxImages || 0) + (videoReferenceLimits?.maxVideos || 0) + (videoReferenceLimits?.maxAudios || 0)
+          : mode === "image"
+            ? imageProfile?.references.maxImages || 0
+            : 6;
     const referenceImageSize = useMemo(() => {
         const imageAttachments = attachments.filter(isImageAttachment);
         if (imageAttachments.length !== 1) return undefined;
@@ -852,7 +868,7 @@ export default function CreatePage() {
             releaseSubmitGate();
             return;
         }
-        if (mode === "video" && videoProfile && !videoDurationAllowed(videoProfile, Number(seconds))) {
+        if (!nativeProfile && mode === "video" && videoProfile && !videoDurationAllowed(videoProfile, Number(seconds))) {
             toast.error(t("create.page.durationUnsupported"));
             releaseRetryLock();
             releaseSubmitGate();
@@ -865,7 +881,7 @@ export default function CreatePage() {
             releaseSubmitGate();
             return;
         }
-        const settings = { ratio, seconds, quality, videoQuality, count };
+        const settings = { ratio, seconds, quality, videoQuality, count, ...nativeSettings };
         const references = selectedCreationReferences(text, mentionReferences);
         // 后端对图片和视频使用不同的参考字段；这里先拆分，避免媒体类型在写入任务时被误判。
         const { referenceImages, referenceVideos, referenceAudios } = splitCreationAttachments(attachments);
@@ -990,7 +1006,7 @@ export default function CreatePage() {
                 if (!result.text?.trim()) throw new Error(t("create.page.noTextResult"));
                 updateOriginAssistant((item) => ({ ...item, content: result.text || "", reasoning: result.reasoning }));
             } else if (mode === "image" && imageProfile) {
-                const taskCount = Math.max(1, Math.min(imageProfile.maxOutputs, Math.floor(Number(count) || 1)));
+                const taskCount = nativeProfile ? 1 : Math.max(1, Math.min(imageProfile.maxOutputs, Math.floor(Number(count) || 1)));
                 const settled = await runtime.runGenerationOperationOnce(retryContext?.clientOperationId, () =>
                     runtime.runBackendGenerationTaskBatch({
                         mode: "image",
@@ -1162,7 +1178,7 @@ export default function CreatePage() {
         setHistoryOpen(false);
     };
 
-    const continueOnCanvas = async (selectedAssetIds?: string[]) => {
+    const continueOnCanvas = async (selection?: CreationCanvasSelection) => {
         if (!activeConversation || openingCanvasRef.current) return;
         openingCanvasRef.current = true;
         setOpeningCanvas(true);
@@ -1170,19 +1186,32 @@ export default function CreatePage() {
         const source = activeConversation;
         try {
             const assets = useAssetStore.getState().assets;
+            const platformIdentity = useUserStore.getState().platformIdentity;
+            const resourceIds =
+                selection?.resourceIds ||
+                (platformIdentity
+                    ? source.messages.flatMap((item) => {
+                          const ids = creationResultResourceIds(item.resultStorageKeys || []);
+                          if (ids.length !== Math.max(item.resultStorageKeys?.length || 0, item.resultUrls?.length || 0)) throw new Error(t("create.page.handoffAssetsPending"));
+                          return ids;
+                      })
+                    : []);
+            if (resourceIds.length) await loadCanvasResourceHandoffPayloads(resourceIds);
             const generatedAssetIds =
-                selectedAssetIds ||
-                source.messages.flatMap((item) => {
-                    const resultStorageKeys = item.resultStorageKeys || [];
-                    const resultUrls = item.resultUrls || [];
-                    if (!resultStorageKeys.length && !resultUrls.length) return [];
-                    const ids = creationResultAssetIds(assets, { messageId: item.id, taskIds: item.taskIds || [], resultUrls, resultStorageKeys });
-                    if (ids.length !== Math.max(resultStorageKeys.length, resultUrls.length)) throw new Error(t("create.page.handoffAssetsPending"));
-                    return ids;
-                });
+                selection?.assetIds ||
+                (platformIdentity
+                    ? []
+                    : source.messages.flatMap((item) => {
+                          const resultStorageKeys = item.resultStorageKeys || [];
+                          const resultUrls = item.resultUrls || [];
+                          if (!resultStorageKeys.length && !resultUrls.length) return [];
+                          const ids = creationResultAssetIds(assets, { messageId: item.id, taskIds: item.taskIds || [], resultUrls, resultStorageKeys });
+                          if (ids.length !== Math.max(resultStorageKeys.length, resultUrls.length)) throw new Error(t("create.page.handoffAssetsPending"));
+                          return ids;
+                      }));
             const referenceKeys = new Set(source.messages.flatMap((item) => (item.attachments || []).map((attachment) => attachment.storageKey).filter(Boolean)));
             const referenceAssetIds = assets.filter((asset) => (asset.kind === "image" || asset.kind === "video") && asset.data.storageKey && referenceKeys.has(asset.data.storageKey)).map((asset) => asset.id);
-            const assetIds = [...generatedAssetIds, ...referenceAssetIds];
+            const assetIds = [...generatedAssetIds, ...(platformIdentity ? [] : referenceAssetIds)];
             if (assetIds.length) await saveRemoteUserDataNow([]);
             const result = await continueCreationConversationOnCanvas(source);
             if (scope !== getActiveUserScope()) return;
@@ -1193,9 +1222,10 @@ export default function CreatePage() {
             if (scope !== getActiveUserScope()) return;
             if (result.syncError) toast.warning(t("create.page.handoffSyncPending"));
             const params = new URLSearchParams({ conversation: result.sessionId });
-            if (assetIds.length) {
+            if (assetIds.length || resourceIds.length) {
                 params.set("mode", "handoff");
                 [...new Set(assetIds)].forEach((id) => params.append("asset", id));
+                [...new Set(resourceIds)].forEach((id) => params.append("resource", id));
             }
             navigate(`/canvas/${result.id}?${params.toString()}`);
         } catch (cause) {
@@ -1274,8 +1304,10 @@ export default function CreatePage() {
         setQuality(nextSettings.quality);
         setVideoQuality(nextSettings.videoQuality);
         setCount(nextSettings.count);
-        if (nextMode === "image") rememberImageSettings({ ratio: nextSettings.ratio, quality: nextSettings.quality, count: nextSettings.count });
-        if (nextMode === "video") rememberVideoSettings({ ratio: nextSettings.ratio, seconds: nextSettings.seconds, videoQuality: nextSettings.videoQuality });
+        if (nextMode === "image")
+            rememberImageSettings({ model: item.model, ratio: nextSettings.ratio, quality: nextSettings.quality, count: nextSettings.count, nativeParameters: nextSettings.nativeParameters, nativeVariantId: nextSettings.nativeVariantId });
+        if (nextMode === "video")
+            rememberVideoSettings({ model: item.model, ratio: nextSettings.ratio, seconds: nextSettings.seconds, videoQuality: nextSettings.videoQuality, nativeParameters: nextSettings.nativeParameters, nativeVariantId: nextSettings.nativeVariantId });
     };
 
     const retryFailedMessage = async (item: CreationMessage, index: number) => {
@@ -1422,6 +1454,12 @@ export default function CreatePage() {
         imageResolution,
         setImageResolution: setComposerImageResolution,
         imageParameters,
+        nativeParameters: nativeSettings.nativeParameters,
+        nativeVariantId: nativeSettings.nativeVariantId,
+        onNativeSettingsChange: (key: "nativeParameters" | "nativeVariantId", value: string) => {
+            const remember = mode === "video" ? rememberVideoSettings : rememberImageSettings;
+            remember({ model: selectedModel, [key]: value, ...(key === "nativeVariantId" ? { nativeParameters: "{}" } : {}) });
+        },
         setImageParameters: (value: string) => {
             setImageParameters(value);
             rememberImageSettings({ model: selectedModel, imageParameters: value });

@@ -172,6 +172,8 @@ export type AiConfig = {
     quality: string;
     imageResolution: string;
     imageParameters?: string;
+    nativeParameters?: string;
+    nativeVariantId?: string;
     size: string;
     transparentBackground: string;
     count: string;

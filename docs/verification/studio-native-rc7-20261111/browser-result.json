@@ -1,0 +1,66 @@
+{
+  "scope": "real Studio API + released rc.7 + isolated formal Platform/PostgreSQL + free Gateway",
+  "canvas": {
+    "id": "hUTVgc4-gFJTmKl6_aSlU",
+    "revision": 4,
+    "nodes": [
+      {
+        "type": "image",
+        "storage_key": "resource:aeb2f94a-5fff-5dcd-830b-43e6a391d2d8"
+      },
+      {
+        "type": "image",
+        "storage_key": "resource:dd06fef4-ac4c-5d80-9257-21520971a16e"
+      },
+      {
+        "type": "video",
+        "storage_key": "resource:ce37b0d2-3a42-5813-8465-62336d5d3c52"
+      }
+    ],
+    "signed_url_persisted": false,
+    "browser_generated_video_preview": false
+  },
+  "tasks": [
+    {
+      "id": "65d39666-bcc5-5339-b9a6-8774ab1fe22f",
+      "model": "fixture-gemini",
+      "status": "succeeded"
+    },
+    {
+      "id": "6b4e2b12-e7c8-5139-9bc2-9cfd157c1a34",
+      "model": "fixture-openai",
+      "status": "succeeded"
+    },
+    {
+      "id": "12fd4ea1-6398-5a14-b8e5-1c7b839bd06d",
+      "model": "doubao-seedance-2-0-fast-260128",
+      "status": "succeeded"
+    }
+  ],
+  "resources": [
+    {
+      "kind": "image",
+      "provider": "platform",
+      "status": "ready",
+      "count": 2
+    },
+    {
+      "kind": "video",
+      "provider": "platform",
+      "status": "ready",
+      "count": 1
+    }
+  ],
+  "browser": {
+    "engine": "normal Chrome extension via CUA",
+    "after_reload": "3 nodes, synced, video playback 1 second",
+    "screenshot_sha256": "ac652222f2c204441aef2fdd06ff3e99e5929e3b91d880651d23bfa1e2c851ac"
+  },
+  "not_verified": [
+    "paid providers",
+    "commercial model releases",
+    "actual Pi browser generation",
+    "other products",
+    "cross-site production SSO and CDN"
+  ]
+}

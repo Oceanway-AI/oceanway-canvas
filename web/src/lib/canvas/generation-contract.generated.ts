@@ -8,6 +8,8 @@ export type Options = {
     size?: string;
     imageResolution?: string;
     imageParameters?: string;
+    nativeParameters?: string;
+    nativeVariantId?: string;
     quality?: string;
     count?: number;
     transparentBackground?: boolean;
@@ -72,6 +74,26 @@ export const GENERATION_OPTION_FIELDS = [
         "name": "imageParameters",
         "node": "imageParameters",
         "task": "imageParameters"
+    },
+    {
+        "kind": "string",
+        "modes": [
+            "image",
+            "video"
+        ],
+        "name": "nativeParameters",
+        "node": "nativeParameters",
+        "task": "nativeParameters"
+    },
+    {
+        "kind": "string",
+        "modes": [
+            "image",
+            "video"
+        ],
+        "name": "nativeVariantId",
+        "node": "nativeVariantId",
+        "task": "nativeVariantId"
     },
     {
         "kind": "string",

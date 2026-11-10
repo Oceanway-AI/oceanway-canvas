@@ -196,7 +196,12 @@ func (s *Service) studioAgentModelList(userID string, state *cloudAgentRuntime, 
 		if err != nil || selected.Kind == "text" || args.Mode != "" && args.Mode != selected.Kind {
 			continue
 		}
-		items = append(items, map[string]any{"name": selected.Name, "capability": selected.Kind, "selection": map[string]any{"channelId": StudioPlatformChannelID, "channelModelKey": selected.Name}, "generationArguments": map[string]any{"mode": selected.Kind, "channelId": StudioPlatformChannelID, "channelModelKey": selected.Name}, "options": studioCapabilityProjection(selected), "defaults": selected.Defaults, "specificationsSchema": json.RawMessage(selected.Schema), "priceLabel": "审批时读取平台精确报价"})
+		arguments := map[string]any{"mode": selected.Kind, "channelId": StudioPlatformChannelID, "channelModelKey": selected.Name}
+		if selected.NativeRequest != nil {
+			defaults, _ := json.Marshal(selected.Defaults)
+			arguments["nativeVariantId"], arguments["nativeParameters"] = selected.ID, string(defaults)
+		}
+		items = append(items, map[string]any{"name": selected.Name, "capability": selected.Kind, "selection": map[string]any{"channelId": StudioPlatformChannelID, "channelModelKey": selected.Name}, "generationArguments": arguments, "options": studioCapabilityProjection(selected), "defaults": selected.Defaults, "specificationsSchema": json.RawMessage(selected.Schema), "nativeProfile": json.RawMessage(item.MediaGenerationProfile), "priceLabel": "审批时读取平台精确报价"})
 	}
 	return map[string]any{"source": "platform", "models": items, "generationGuidance": "此目录在本轮开始时固定；复制 generationArguments，补 prompt 与 referenceNodeIds。生成前由用户会话重新校验平台目录与报价。未列出的能力暂不可用。"}, nil
 }

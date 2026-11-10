@@ -1,0 +1,30 @@
+{
+  "events": [
+    {
+      "method": "Network.requestWillBeSent",
+      "requestId": "39389.10441",
+      "path": "/api/resources/access",
+      "body": "[{\"resourceId\":\"aeb2f94a-5fff-5dcd-830b-43e6a391d2d8\",\"purpose\":\"display\",\"variant\":\"thumbnail\"},{\"resourceId\":\"dd06fef4-ac4c-5d80-9257-21520971a16e\",\"purpose\":\"display\",\"variant\":\"thumbnail\"},{\"resourceId\":\"ce37b0d2-3a42-5813-8465-62336d5d3c52\",\"purpose\":\"display\",\"variant\":\"poster\"}]"
+    },
+    {
+      "method": "Network.responseReceived",
+      "requestId": "39389.10441",
+      "path": "/api/resources/access",
+      "status": 200
+    },
+    {
+      "method": "Network.requestWillBeSent",
+      "requestId": "39389.10450",
+      "path": "/api/__joint/edge/materials/v_0ed1f2c843612ef623f2cd88adbd2a39ca023edb4c1f52b39cb9865e9fb6/f_0ed1f2c843612ef623f2cd88adbd2a39ca023edb4c1f52b39cb9865e9fb6/poster/v1.webp"
+    },
+    {
+      "method": "Network.responseReceived",
+      "requestId": "39389.10450",
+      "path": "/api/__joint/edge/materials/v_0ed1f2c843612ef623f2cd88adbd2a39ca023edb4c1f52b39cb9865e9fb6/f_0ed1f2c843612ef623f2cd88adbd2a39ca023edb4c1f52b39cb9865e9fb6/poster/v1.webp",
+      "status": 200
+    }
+  ],
+  "hasMore": false,
+  "truncated": true,
+  "limitation": "CDP buffer reported truncated; these events prove poster access, not exhaustive request absence. Database independently contains only two images and one video."
+}

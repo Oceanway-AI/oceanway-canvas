@@ -1,4 +1,5 @@
 import { translate } from "@/i18n";
+import { nativeMediaProfile } from "@/lib/platform-native-media";
 import { nanoid } from "nanoid";
 
 import { NODE_DEFAULT_SIZE } from "@/constant/canvas";
@@ -59,7 +60,7 @@ export async function executeImageGeneration(
         showError(referenceLimitError);
         return;
     }
-    const count = getGenerationCount(generationConfig.count);
+    const count = nativeMediaProfile(generationConfig) ? 1 : getGenerationCount(generationConfig.count);
     const isConfigNode = sourceNode?.type === CanvasNodeType.Config;
     const isImageNode = sourceNode?.type === CanvasNodeType.Image;
     const isExistingImageNode = isImageNode && hasImageBatchResult(sourceNode);

@@ -19,6 +19,8 @@ export function agentMediaSettings(value: AgentMediaSettings): AgentMediaSetting
         size: value.size,
         imageResolution: value.imageResolution,
         imageParameters: value.imageParameters,
+        nativeParameters: value.nativeParameters,
+        nativeVariantId: value.nativeVariantId,
         quality: value.quality,
         durationSeconds: value.durationSeconds,
         videoGenerateAudio: value.videoGenerateAudio,
@@ -39,6 +41,8 @@ export function agentVideoApproval(detail: Record<string, unknown>): AgentVideoA
             channelId: typeof args.channelId === "string" ? args.channelId : "",
             channelModelKey: typeof args.channelModelKey === "string" ? args.channelModelKey : "",
             size: typeof args.size === "string" ? args.size : "",
+            nativeParameters: typeof args.nativeParameters === "string" ? args.nativeParameters : undefined,
+            nativeVariantId: typeof args.nativeVariantId === "string" ? args.nativeVariantId : undefined,
             quality: typeof args.quality === "string" ? args.quality : "",
             durationSeconds: typeof args.durationSeconds === "number" && args.durationSeconds > 0 ? args.durationSeconds : undefined,
             videoGenerateAudio: typeof args.videoGenerateAudio === "boolean" ? args.videoGenerateAudio : undefined,
@@ -66,6 +70,8 @@ export function agentImageApproval(detail: Record<string, unknown>): AgentImageA
             channelId: typeof args.channelId === "string" ? args.channelId : "",
             channelModelKey: typeof args.channelModelKey === "string" ? args.channelModelKey : "",
             size: args.size,
+            nativeParameters: typeof args.nativeParameters === "string" ? args.nativeParameters : undefined,
+            nativeVariantId: typeof args.nativeVariantId === "string" ? args.nativeVariantId : undefined,
             ...(typeof args.imageResolution === "string" ? { imageResolution: args.imageResolution } : {}),
             ...(typeof args.imageParameters === "string" ? { imageParameters: args.imageParameters } : {}),
             quality: typeof args.quality === "string" ? args.quality : "",
@@ -78,17 +84,19 @@ export function agentImageApproval(detail: Record<string, unknown>): AgentImageA
 }
 
 export function agentApprovalModel(config: AiConfig, settings: AgentMediaSettings, capability: "image" | "video" = "image"): string {
-    return selectableModelsByCapability(config, capability).find((model) => {
-        if (settings.logicalModelId) return logicalModelIDForConfig({ ...config, model }) === settings.logicalModelId;
-        return resolveModelChannel(config, model).id === settings.channelId && modelOptionName(model) === settings.channelModelKey;
-    }) || "";
+    return (
+        selectableModelsByCapability(config, capability).find((model) => {
+            if (settings.logicalModelId) return logicalModelIDForConfig({ ...config, model }) === settings.logicalModelId;
+            return resolveModelChannel(config, model).id === settings.channelId && modelOptionName(model) === settings.channelModelKey;
+        }) || ""
+    );
 }
 
 export function agentApprovalMatchesSettings(argumentsValue: unknown, settings: AgentMediaSettings): boolean {
     const detail = { toolName: "generate_media", arguments: argumentsValue };
     const approved = agentImageApproval(detail) || agentVideoApproval(detail);
     if (!approved) return false;
-    return (["logicalModelId", "channelId", "channelModelKey", "size", "quality", "durationSeconds", "videoGenerateAudio", "videoWatermark", "videoArkPrivateAssetUpload"] as const).every((key) => {
+    return (["logicalModelId", "channelId", "channelModelKey", "size", "quality", "imageParameters", "nativeParameters", "nativeVariantId", "durationSeconds", "videoGenerateAudio", "videoWatermark", "videoArkPrivateAssetUpload"] as const).every((key) => {
         const left = approved[key];
         const right = settings[key];
         return (left === undefined ? "" : left) === (right === undefined ? "" : right);

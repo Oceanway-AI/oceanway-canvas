@@ -23,13 +23,14 @@ import { getResourceAccess, resolveResourceAccessURL, resolveResourceUrl, resour
 import { CachedResourceImage } from "@/components/cached-resource-image";
 import { Tooltip } from "@/components/ui/base/tooltip";
 import { useAssetStore, type Asset, type ImageAsset, type VideoAsset } from "@/stores/use-asset-store";
-import { creationResultAssetIds, creationResultStorageKeys } from "@/lib/canvas/canvas-asset-handoff";
+import { creationResultAssetIds, creationResultResourceIds, creationResultStorageKeys, type CreationCanvasSelection } from "@/lib/canvas/canvas-asset-handoff";
 import { resolveMediaUrl } from "@/services/file-storage";
 import { resolveImageUrl } from "@/services/image-storage";
 import { Button } from "antd";
 import { CanvasImagePreview } from "@/components/canvas/canvas-image-preview";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { creationResultEntries } from "./creation-result-urls";
+import { nativeParameterObject, nativeParameterSummary } from "@/lib/platform-native-media";
 
 export function CreationMessageView({
     item,
@@ -51,7 +52,7 @@ export function CreationMessageView({
     refreshingResult?: boolean;
     onCreateVariant: () => void;
     onEditUserMessage: (text: string) => void;
-    onContinueCanvas: (ids?: string[]) => void;
+    onContinueCanvas: (selection?: CreationCanvasSelection) => void;
     openingCanvas: boolean;
 }) {
     const brandName = useAppearanceStore((state) => state.appearance.brandName);
@@ -277,12 +278,13 @@ export function MediaResult({
     onRecoverMedia: () => void;
     refreshingResult?: boolean;
     onCreateVariant: () => void;
-    onContinueCanvas: (ids?: string[]) => void;
+    onContinueCanvas: (selection?: CreationCanvasSelection) => void;
     openingCanvas: boolean;
 }) {
     const [previewUrl, setPreviewUrl] = useState("");
     const [previewType, setPreviewType] = useState<"image" | "video">("image");
     const assets = useAssetStore((state) => state.assets);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
     const storedResultUrls = item.resultUrls || [];
     const resultStorageKeys = item.resultStorageKeys?.length ? item.resultStorageKeys : creationResultStorageKeys(assets, { messageId: item.id, taskIds: item.taskIds || [], resultUrls: storedResultUrls });
     // 展示地址按 storageKey 保存；effect 重跑（素材库更新、续签）时不回退到历史 hint。
@@ -357,7 +359,9 @@ export function MediaResult({
     const displayResultUrls = resultEntries.map((entry) => entry.url);
     const resultAssetIds = alignedResultUrls.length || resultStorageKeys.length ? creationResultAssetIds(assets, { messageId: item.id, taskIds: item.taskIds || [], resultUrls: alignedResultUrls, resultStorageKeys }) : [];
     const expectedResultCount = resultStorageKeys.length || alignedResultUrls.length;
-    const canContinueWithResults = expectedResultCount > 0 && resultAssetIds.length === expectedResultCount;
+    const resultResourceIds = platformIdentity ? creationResultResourceIds(resultStorageKeys) : [];
+    const selection: CreationCanvasSelection = platformIdentity ? { assetIds: [], resourceIds: resultResourceIds } : { assetIds: resultAssetIds, resourceIds: [] };
+    const canContinueWithResults = item.status === "done" && expectedResultCount > 0 && selection.assetIds.length + selection.resourceIds.length === expectedResultCount;
     if (item.status === "pending") return <CreationMediaPending item={item} refreshing={refreshingResult} onRefresh={onRefreshResult} onRetry={onRetryFailure} />;
     if ((item.status === "error" || item.status === "cancelled") && !expectedResultCount) return <CreationMediaFailure item={item} refreshing={refreshingResult} onRefresh={onRefreshResult} onRecoverMedia={onRecoverMedia} onRetry={onRetryFailure} />;
     // 远端结果首次解析中不显示空态，避免先闪「没有返回可预览结果」再出现结果。
@@ -457,7 +461,7 @@ export function MediaResult({
             )}
             <div className="creation-media-actions">
                 <span>{isVideo ? "视频结果" : `${displayResultUrls.length} 张图片`}</span>
-                <Button type="link" size="small" loading={openingCanvas} disabled={!canContinueWithResults} title={canContinueWithResults ? undefined : "素材保存完成后才能转入画布"} onClick={() => onContinueCanvas(resultAssetIds)}>
+                <Button type="link" size="small" loading={openingCanvas} disabled={!canContinueWithResults} title={canContinueWithResults ? undefined : "素材保存完成后才能转入画布"} onClick={() => onContinueCanvas(selection)}>
                     添加到画布
                 </Button>
                 {displayResultUrls.map((url, index) => (
@@ -554,6 +558,13 @@ function CreationResultMediaError({ label }: { label: string }) {
 function creationPendingSpecs(item: CreationMessage) {
     const settings = item.settings;
     if (!settings) return "";
+    if (settings.nativeVariantId) {
+        try {
+            return nativeParameterSummary(nativeParameterObject(settings.nativeParameters));
+        } catch {
+            return "参数格式无效";
+        }
+    }
     const ratio = settings.ratio && settings.ratio.toLowerCase() !== "auto" ? settings.ratio : "";
     if (item.mode === "video") return [ratio, settings.seconds ? `${settings.seconds} 秒` : "", settings.videoQuality ? `${settings.videoQuality.replace(/p$/i, "")}P` : ""].filter(Boolean).join(" · ");
     const count = Number(settings.count) || 1;

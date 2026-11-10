@@ -69,6 +69,12 @@ func cloudAgentGenerationSpec(a cloudAgentMediaArgs, refs map[string]any, resolv
 
 func cloudAgentMediaOptions(a cloudAgentMediaArgs) contract.Options {
 	options := contract.Options{}
+	if a.NativeParameters != "" {
+		options.NativeParameters = &a.NativeParameters
+	}
+	if a.NativeVariantID != "" {
+		options.NativeVariantID = &a.NativeVariantID
+	}
 	// Absence stays absent until capability admission resolves model defaults.
 	if (a.Mode == "image" || a.Mode == "video") && strings.TrimSpace(a.Size) != "" {
 		options.Size = &a.Size

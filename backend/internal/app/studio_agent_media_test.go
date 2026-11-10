@@ -25,6 +25,12 @@ func TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority(t *testing.T) {
 	}
 }
 
+func TestStudioPiNativeMediaApprovalPreservesProtocolAndRequest(t *testing.T) {
+	for _, protocol := range []string{"openai.image.generate", "openai.image.edit", "gemini.image", "gemini.chat.image", "sora.video", "newapi.video", "modelark.video"} {
+		t.Run(protocol, func(t *testing.T) { studioPiMediaApprovalScenario(t, "native_"+protocol) })
+	}
+}
+
 func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	s, db, _, _ := creationTestService(t)
 	if err := db.AutoMigrate(&model.StudioExecution{}, &model.StudioMaterialReference{}); err != nil {
@@ -37,6 +43,27 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	currentCapability, currentConnection := strings.Repeat("a", 64), int64(7)
 	catalog := studioAgentMediaFixtureCatalog
 	kind, submitPath := "image", "/internal/relay/images/generations"
+	nativeProtocol := ""
+	if strings.HasPrefix(scenario, "native_") {
+		nativeProtocol = strings.TrimPrefix(scenario, "native_")
+		m := studioNativeFixtureModel(t, nativeProtocol)
+		selected, err := platformintegration.SelectModel(m, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		kind, submitPath = m.ModelType, "/internal/relay/"+string(selected.MediaRoute)
+		if selected.MediaRoute == platformclient.GeminiMedia {
+			submitPath = "/internal/relay/v1beta/models/image-model:generateContent"
+		}
+		var envelope struct {
+			Data struct {
+				Items []platformclient.Model `json:"items"`
+			} `json:"data"`
+		}
+		_ = json.Unmarshal([]byte(catalog), &envelope)
+		raw, _ := json.Marshal(map[string]any{"success": true, "data": map[string]any{"items": []platformclient.Model{envelope.Data.Items[0], m}}})
+		catalog = string(raw)
+	}
 	if strings.HasPrefix(scenario, "video_const") {
 		kind, submitPath = "video", "/internal/relay/doubao/api/v3/contents/generations/tasks"
 		catalog = strings.Replace(catalog, `"model_type":"image"`, `"model_type":"video"`, 1)
@@ -68,6 +95,9 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 			var preview platformclient.PreviewRequest
 			_ = json.NewDecoder(r.Body).Decode(&preview)
 			quotedBody = preview.Request.NativeRequest
+			if preview.Request.NativeProtocol != nativeProtocol {
+				t.Error("preview lost native protocol")
+			}
 			if r.Header.Get("Origin") != "https://studio.example.test" || r.Header.Get("Cookie") == "" {
 				t.Error("quote lost genuine browser authority")
 			}
@@ -81,6 +111,9 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": quote})
 		case r.URL.Path == submitPath:
 			submits++
+			if nativeProtocol != "" && kind == "image" && r.Header.Get("Prefer") != "respond-async" {
+				t.Error("lost async mode")
+			}
 			body, _ := io.ReadAll(r.Body)
 			raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get("X-Platform-Media-Consumption"))
 			var constraints platformclient.MediaConsumptionConstraints
@@ -139,6 +172,9 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	}
 	if scenario == "image_parameters" {
 		args.ImageParameters = `{"background":"transparent"}`
+	}
+	if nativeProtocol != "" {
+		args.NativeVariantID, args.NativeParameters = "choice", `{"/seed":0,"/metadata":null}`
 	}
 	state.Calls = []cloudAgentCall{agentMediaCall(args)}
 	if err := s.repo.MutateCloudAgent("user", run.ID, run.Revision, func(current *model.CloudAgentExecution, _ *repository.Repository) error {

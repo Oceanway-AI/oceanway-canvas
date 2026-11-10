@@ -13,7 +13,8 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { loadAssetsForUse, saveRemoteUserDataNow } from "@/services/user-data-sync";
-import { canvasAssetHandoffIds } from "@/lib/canvas/canvas-asset-handoff";
+import { canvasAssetHandoffIds, canvasResourceHandoffIds } from "@/lib/canvas/canvas-asset-handoff";
+import { loadCanvasResourceHandoffPayloads } from "@/services/canvas-resource-handoff";
 import { useEffectiveConfig } from "@/stores/use-config-store";
 import { createCanvasGenerationLiveProjectAdapter, registerCanvasGenerationLiveProject } from "@/services/canvas-generation-consumer";
 import { getActiveUserScope } from "@/lib/user-scope";
@@ -850,26 +851,28 @@ function CanvasViewportPage() {
 
     useEffect(() => {
         if (!projectLoaded || searchParams.get("mode") !== "handoff") return;
-        void loadAssetsForUse(canvasAssetHandoffIds(searchParams)).catch((error) => message.error(error instanceof Error ? error.message : "转入素材读取失败"));
+        const ids = canvasAssetHandoffIds(searchParams);
+        if (ids.length) void loadAssetsForUse(ids).catch((error) => message.error(error instanceof Error ? error.message : "转入素材读取失败"));
     }, [projectLoaded, searchParams, message]);
 
     useEffect(() => {
-        if (!projectLoaded || !assetsHydrated || searchParams.get("mode") !== "handoff") return;
+        if (!projectLoaded || searchParams.get("mode") !== "handoff") return;
         const attempt = canvasAssetHandoffAttempt(assets, searchParams);
         const { assetIds, payloads } = attempt;
-        if (!assetIds.length) return;
+        const resourceIds = canvasResourceHandoffIds(searchParams);
+        if ((!assetIds.length && !resourceIds.length) || (assetIds.length && !assetsHydrated)) return;
         const assetReadiness = assetIds
             .map((assetId) => {
                 const asset = assets.find((candidate) => candidate.id === assetId);
                 return `${assetId}:${asset?.kind || "missing"}`;
             })
             .join("|");
-        const handoffKey = `${projectId}:${assetReadiness}`;
+        const handoffKey = `${projectId}:${assetReadiness}:${resourceIds.join("|")}`;
         if (assetHandoffRef.current === handoffKey) return;
         assetHandoffRef.current = handoffKey;
 
-        if (attempt.kind === "retry") return;
-        const pendingPayloads = uninsertedCanvasAssetHandoffPayloads(nodesRef.current, payloads);
+        if (assetIds.length && attempt.kind === "retry") return;
+        const scope = getActiveUserScope();
         const persistHandoff = async (createdNodes: CanvasNodeData[]) => {
             const finalized = await finalizeCanvasAssetHandoff({
                 searchParams,
@@ -883,9 +886,16 @@ function CanvasViewportPage() {
             });
             setSearchParams(finalized.searchParams, { replace: true });
         };
-        const insertion = pendingPayloads.length ? handleProjectAssetsInsert(pendingPayloads) : Promise.resolve([] as CanvasNodeData[]);
-        void insertion.then(persistHandoff).catch(() => {
+        void (async () => {
+            const resourcePayloads = await loadCanvasResourceHandoffPayloads(resourceIds);
+            if (scope !== getActiveUserScope() || assetHandoffRef.current !== handoffKey) return;
+            const pendingPayloads = uninsertedCanvasAssetHandoffPayloads(nodesRef.current, [...payloads, ...resourcePayloads]);
+            const created = pendingPayloads.length ? await handleProjectAssetsInsert(pendingPayloads) : [];
+            if (scope !== getActiveUserScope() || assetHandoffRef.current !== handoffKey) return;
+            await persistHandoff(created);
+        })().catch((error) => {
             assetHandoffRef.current = "";
+            if (scope === getActiveUserScope()) message.error(error instanceof Error ? error.message : "转入素材读取失败");
         });
     }, [assets, assetsHydrated, handleProjectAssetsInsert, message, nodesRef, projectId, projectLoaded, searchParams, setSearchParams, updateProject]);
 

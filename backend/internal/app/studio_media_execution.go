@@ -36,9 +36,12 @@ func (s *Service) studioSelectTaskModel(ctx context.Context, session platformcli
 	}
 	config, _ := req.Input["config"].(map[string]any)
 	name := firstNonEmpty(stringValue(config["model"]), req.Model)
-	variant := ""
+	variant := stringValue(config["nativeVariantId"])
 	if req.Platform != nil {
-		variant = req.Platform.VariantID
+		if variant != "" && req.Platform.VariantID != "" && variant != req.Platform.VariantID {
+			return platformintegration.ModelSelection{}, BadAuthRequest("模型能力选择不一致")
+		}
+		variant = firstNonEmpty(req.Platform.VariantID, variant)
 	}
 	for _, m := range catalog.Data.Items {
 		if m.ModelName == name {
@@ -91,7 +94,7 @@ func (s *Service) studioPreviewMedia(ctx context.Context, session platformclient
 	if (requireCap || options.WalletMaxPoints != "") && !studioValidDecimal(options.WalletMaxPoints) {
 		return nil, BadAuthRequest("请提供本次生成的平台积分上限")
 	}
-	quote, err := s.studioPlatform.Client.PreviewMedia(ctx, session, platformclient.PreviewRequest{Request: platformclient.MediaConsumption{Model: selected.Name, ModelType: selected.Kind, NativeRequest: json.RawMessage(body), ExpectedPriceVersion: options.ExpectedPriceVersion, BillingPreference: options.BillingPreference, WalletMaxPoints: options.WalletMaxPoints}})
+	quote, err := s.studioPlatform.Client.PreviewMedia(ctx, session, platformclient.PreviewRequest{Request: platformclient.MediaConsumption{Model: selected.Name, ModelType: selected.Kind, NativeProtocol: selected.GatewayProtocol, NativeRequest: json.RawMessage(body), ExpectedPriceVersion: options.ExpectedPriceVersion, BillingPreference: options.BillingPreference, WalletMaxPoints: options.WalletMaxPoints}})
 	quote.Response.AppendCookies(response.Header)
 	if err != nil {
 		return nil, WrapAppError(503, "平台报价暂不可用，未提交生成请求", err)
@@ -155,6 +158,9 @@ func studioParameterName(key string) string {
 }
 
 func studioMediaSpecifications(input canvasGenerationInput, selected platformintegration.ModelSelection) (map[string]any, error) {
+	if selected.NativeRequest != nil {
+		return studioNativeSpecifications(input, selected)
+	}
 	var schema struct {
 		Properties map[string]map[string]any `json:"properties"`
 	}
@@ -236,6 +242,12 @@ func (s *Service) studioMediaBody(ctx context.Context, userID string, req Create
 	input, err := studioDecodeInput(req)
 	if err != nil {
 		return nil, err
+	}
+	if selected.NativeRequest != nil {
+		return s.studioNativeMediaBody(ctx, userID, req, input, selected)
+	}
+	if len(input.Config.NativeParameters) > 0 || input.Config.NativeVariantID != "" {
+		return nil, BadAuthRequest("所选模型未声明原生参数合同")
 	}
 	spec, err := studioMediaSpecifications(input, selected)
 	if err != nil {

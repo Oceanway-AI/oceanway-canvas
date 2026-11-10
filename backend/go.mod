@@ -3,7 +3,7 @@ module yingce/backend
 go 1.25.1
 
 require (
-	github.com/Oceanway-AI/oceanway-platform/platformclient v0.1.0-rc.6
+	github.com/Oceanway-AI/oceanway-platform/platformclient v0.1.0-rc.7
 	github.com/aws/aws-sdk-go v1.45.5
 	github.com/casdoor/go-sms-sender v0.25.0
 	github.com/coder/websocket v1.8.15

@@ -1,5 +1,7 @@
 # Studio 应用侧并行实施进度
 
+2026-11-11 接续：当前分支 `codex/studio-native-parameter-bindings-20261111` 从 `73c77c7` 固定正式 SDK rc.7，完成 Gateway 原生 profile、动态参数、普通生成/Agent 冻结请求、固定 Resource 转画布及 Platform poster 接入。本地免费三型号联合浏览器验收、刷新恢复与专项检查通过；本批不推送应用或部署。具体范围、失败记录和未覆盖项见 [rc.7 联调记录](../verification/studio-native-rc7-20261111/README.md)。下文为原应用批次记录，旧 SDK/运行状态不代表本次源码。
+
 更新：2026-11-08。应用分支：`codex/studio-platform-application`；基线 `b05d71d`。此文件由应用侧会话写、主协调会话读。
 
 ## 分工和首发范围

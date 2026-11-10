@@ -3,6 +3,7 @@ import type { ImgHTMLAttributes, ReactNode } from "react";
 import { CachedResourceImage } from "@/components/cached-resource-image";
 import { canvasNodeVideoPreviewReference } from "@/lib/canvas/canvas-media-preview";
 import type { CanvasNodeData } from "@/types/canvas";
+import { useUserStore } from "@/stores/use-user-store";
 
 type CanvasVideoPreviewImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, "src"> & {
     node: CanvasNodeData;
@@ -17,16 +18,8 @@ type CanvasVideoPreviewImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, "s
  * an obsolete platform proxy URL embedded in older canvas snapshots.
  */
 export function CanvasVideoPreviewImage({ node, fallback = null, loadingFallback = fallback, eager = false, ...props }: CanvasVideoPreviewImageProps) {
-    const preview = canvasNodeVideoPreviewReference(node);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const preview = canvasNodeVideoPreviewReference(node, platformIdentity);
     if (!preview) return <>{fallback}</>;
-    return (
-        <CachedResourceImage
-            {...props}
-            storageKey={preview.storageKey}
-            src={preview.src}
-            fallback={fallback}
-            loadingFallback={loadingFallback}
-            eager={eager}
-        />
-    );
+    return <CachedResourceImage {...props} storageKey={preview.storageKey} src={preview.src} variant={preview.variant} fallback={fallback} loadingFallback={loadingFallback} eager={eager} />;
 }

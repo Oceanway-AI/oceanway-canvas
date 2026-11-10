@@ -66,9 +66,9 @@ func studioOACProtocol(s platformintegration.ModelSelection) string {
 	switch s.MediaRoute {
 	case platformclient.GeminiMedia:
 		return "gemini-image"
-	case platformclient.VideoGeneration:
+	case platformclient.VideoGeneration, platformclient.NewAPIVideoGeneration:
 		return "newapi"
-	case platformclient.DoubaoVideoGeneration:
+	case platformclient.DoubaoVideoGeneration, platformclient.ModelArkVideoGeneration:
 		return "volcengine-ark-video"
 	default:
 		return "openai-image"

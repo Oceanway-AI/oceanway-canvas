@@ -4,6 +4,7 @@ import { CanvasNodeType, type CanvasNodeData } from "@/types/canvas";
 export type CanvasVideoPreviewReference = {
     src: string;
     storageKey?: string;
+    variant?: "poster";
 };
 
 /**
@@ -13,8 +14,11 @@ export type CanvasVideoPreviewReference = {
  * resolve a fresh OSS/CDN display URL instead of mounting a stale historical
  * `/api/resources/:id/file` URL stored in older canvas data.
  */
-export function canvasNodeVideoPreviewReference(node: CanvasNodeData): CanvasVideoPreviewReference | null {
+export function canvasNodeVideoPreviewReference(node: CanvasNodeData, platformIdentity = false): CanvasVideoPreviewReference | null {
     if (node.type !== CanvasNodeType.Video) return null;
+    if (platformIdentity && /^resource:[^\s/:?#]+$/.test(node.metadata?.storageKey || "")) {
+        return { src: "", storageKey: node.metadata!.storageKey, variant: "poster" };
+    }
     const content = node.metadata?.content || "";
     const generatedPreview = node.metadata?.videoPreview;
     if (generatedPreview?.storageKey || (generatedPreview?.content && generatedPreview.content !== content)) {

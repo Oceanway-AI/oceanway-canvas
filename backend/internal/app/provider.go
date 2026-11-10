@@ -80,6 +80,8 @@ type providerConfig struct {
 	Quality               string                  `json:"quality"`
 	ImageResolution       string                  `json:"imageResolution"`
 	ImageParameters       map[string]any          `json:"imageParameters,omitempty"`
+	NativeParameters      map[string]any          `json:"nativeParameters,omitempty"`
+	NativeVariantID       string                  `json:"nativeVariantId,omitempty"`
 	TransparentBackground string                  `json:"transparentBackground"`
 	Count                 string                  `json:"count"`
 	VideoSeconds          string                  `json:"videoSeconds"`

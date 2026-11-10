@@ -13,7 +13,9 @@ import type { CameraControlOptions } from "@/lib/canvas/camera-prompt-library";
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
 import type { AiConfig } from "@/stores/use-config-store";
 
-export type BatchGenerationSettings = Pick<AiConfig, "model" | "imageModel" | "imageResolution" | "imageParameters" | "quality" | "size" | "transparentBackground" | "count"> & { cameraControl?: CameraControlOptions };
+export type BatchGenerationSettings = Pick<AiConfig, "model" | "imageModel" | "imageResolution" | "imageParameters" | "quality" | "size" | "transparentBackground" | "count" | "nativeParameters" | "nativeVariantId"> & {
+    cameraControl?: CameraControlOptions;
+};
 
 type BatchGenerationSettingsDialogProps = {
     open: boolean;
@@ -37,7 +39,7 @@ export function BatchGenerationSettingsDialog({ open, config, rowCount, concurre
         }
     }, [config, open]);
 
-    const handleConfigChange = (key: "quality" | "imageResolution" | "imageParameters" | "size" | "transparentBackground" | "count", value: string) => {
+    const handleConfigChange = (key: "quality" | "imageResolution" | "imageParameters" | "size" | "transparentBackground" | "count" | "nativeParameters" | "nativeVariantId", value: string) => {
         setGenerationConfig((current) => ({ ...current, [key]: value }));
     };
 
@@ -48,15 +50,7 @@ export function BatchGenerationSettingsDialog({ open, config, rowCount, concurre
     const imageModel = generationConfig.imageModel || generationConfig.model;
 
     return (
-        <AppModal
-            open={open}
-            onCancel={onClose}
-            footer={null}
-            centered
-            destroyOnHidden
-            width={480}
-            title={t("canvasA.batchSettings.title")}
-        >
+        <AppModal open={open} onCancel={onClose} footer={null} centered destroyOnHidden width={480} title={t("canvasA.batchSettings.title")}>
             <div className="flex flex-col gap-4 py-2">
                 <div className="rounded-lg bg-black/5 px-3 py-2 text-sm dark:bg-white/[0.04]">
                     {t("canvasA.batchSettings.summary", { count: rowCount, concurrency })}
@@ -65,27 +59,11 @@ export function BatchGenerationSettingsDialog({ open, config, rowCount, concurre
 
                 <div className="space-y-2">
                     <div className="text-sm font-medium opacity-75">{t("canvasA.approval.model")}</div>
-                    <ModelPicker
-                        config={generationConfig}
-                        value={imageModel}
-                        capability="image"
-                        fullWidth
-                        showSelectedPrice={false}
-                        onChange={handleModelChange}
-                    />
+                    <ModelPicker config={generationConfig} value={imageModel} capability="image" fullWidth showSelectedPrice={false} onChange={handleModelChange} />
                 </div>
 
                 <div className="border-t pt-3" style={{ borderColor: theme.node.stroke }}>
-                    <ImageSettingsPanel
-                        config={generationConfig}
-                        onConfigChange={handleConfigChange}
-                        theme={theme}
-                        showTitle={false}
-                        showCount={false}
-                        quickCount={4}
-                        maxCount={10}
-                        className="w-full space-y-3"
-                    />
+                    <ImageSettingsPanel config={generationConfig} onConfigChange={handleConfigChange} theme={theme} showTitle={false} showCount={false} quickCount={4} maxCount={10} className="w-full space-y-3" />
                 </div>
 
                 <div className="flex items-center justify-between border-t pt-3" style={{ borderColor: theme.node.stroke }}>
@@ -97,21 +75,27 @@ export function BatchGenerationSettingsDialog({ open, config, rowCount, concurre
                 </div>
 
                 <div className="mt-2 flex justify-end gap-2">
-                    <Button icon={<X className="size-4" />} onClick={onClose}>{t("common.cancel")}</Button>
+                    <Button icon={<X className="size-4" />} onClick={onClose}>
+                        {t("common.cancel")}
+                    </Button>
                     <Button
                         type="primary"
                         icon={<Play className="size-4" />}
-                        onClick={() => onConfirm({
-                            model: generationConfig.model,
-                            imageModel: generationConfig.imageModel,
-                            imageResolution: generationConfig.imageResolution,
-                            imageParameters: generationConfig.imageParameters,
-                            quality: generationConfig.quality,
-                            size: generationConfig.size,
-                            transparentBackground: generationConfig.transparentBackground,
-                            count: "1",
-                            cameraControl,
-                        })}
+                        onClick={() =>
+                            onConfirm({
+                                model: generationConfig.model,
+                                imageModel: generationConfig.imageModel,
+                                imageResolution: generationConfig.imageResolution,
+                                imageParameters: generationConfig.imageParameters,
+                                nativeParameters: generationConfig.nativeParameters,
+                                nativeVariantId: generationConfig.nativeVariantId,
+                                quality: generationConfig.quality,
+                                size: generationConfig.size,
+                                transparentBackground: generationConfig.transparentBackground,
+                                count: "1",
+                                cameraControl,
+                            })
+                        }
                     >
                         {t("canvasA.batchSettings.start", { count: rowCount })}
                     </Button>

@@ -6,6 +6,7 @@ import type { CanvasTheme } from "@/lib/canvas-theme";
 import { agentApprovalModel, agentApprovalModelSelection, agentMediaSettings, type AgentImageApproval } from "@/lib/canvas/agent-media-approval";
 import { modelCapabilityConfigFor, normalizeImageValue } from "@/lib/model-capabilities";
 import { parseImageParameters } from "@/lib/image-parameters";
+import { nativeMediaDefaults, nativeMediaProfile } from "@/lib/platform-native-media";
 import { resolveCompatibleModel, type ModelRequirements } from "@/lib/model-selection";
 import type { AgentMediaSettings } from "@/services/api/agent";
 import { PUBLIC_MODEL_CATALOG_ID, resolveModelRequestConfig, useEffectiveConfig } from "@/stores/use-config-store";
@@ -15,7 +16,13 @@ function approvalImageParameters(value?: string) {
     return value === undefined ? undefined : JSON.stringify(Object.fromEntries(Object.entries(parseImageParameters(value)).filter(([name]) => !["size", "imageResolution", "quality"].includes(name))));
 }
 
-export function CanvasAgentImageApprovalSettings({ initial, value, onChange, theme, disabled }: {
+export function CanvasAgentImageApprovalSettings({
+    initial,
+    value,
+    onChange,
+    theme,
+    disabled,
+}: {
     initial: AgentImageApproval;
     value?: AgentMediaSettings;
     onChange: Dispatch<SetStateAction<AgentMediaSettings | undefined>>;
@@ -35,12 +42,26 @@ export function CanvasAgentImageApprovalSettings({ initial, value, onChange, the
     };
     const changeModel = (next: string) => {
         if (disabled) return;
+        if (nativeMediaProfile(config, next)) {
+            onChange({ ...agentApprovalModelSelection(config, next), ...nativeMediaDefaults(config, next), size: "", quality: "" });
+            return;
+        }
         const profile = modelCapabilityConfigFor(config, next).image;
         if (!profile) return;
         const normalized = normalizeImageValue(profile, settings, resolveModelRequestConfig(config, next).interfaceType);
-        onChange({ ...agentApprovalModelSelection(config, next), size: normalized.size, imageResolution: normalized.imageResolution, imageParameters: approvalImageParameters(normalized.imageParameters), quality: profile.quality.supported ? normalized.quality : "" });
+        onChange({
+            ...agentApprovalModelSelection(config, next),
+            size: normalized.size,
+            imageResolution: normalized.imageResolution,
+            imageParameters: approvalImageParameters(normalized.imageParameters),
+            quality: profile.quality.supported ? normalized.quality : "",
+        });
     };
-    const changeOption = (key: "quality" | "imageResolution" | "imageParameters" | "size" | "transparentBackground" | "count", next: string) => {
+    const changeOption = (key: "quality" | "imageResolution" | "imageParameters" | "size" | "transparentBackground" | "count" | "nativeParameters" | "nativeVariantId", next: string) => {
+        if (!disabled && (key === "nativeParameters" || key === "nativeVariantId")) {
+            onChange((previous) => ({ ...agentMediaSettings(previous || initial), [key]: next, ...(key === "nativeVariantId" ? { nativeParameters: "{}" } : {}) }));
+            return;
+        }
         if (disabled || (key !== "size" && key !== "quality" && key !== "imageResolution" && key !== "imageParameters")) return;
         // 尺寸选择器在同一事件中同时更新尺寸和分辨率，必须累积上一项更新。
         onChange((previous) => {
@@ -53,13 +74,57 @@ export function CanvasAgentImageApprovalSettings({ initial, value, onChange, the
             return { ...agentApprovalModelSelection(config, selected), ...options, imageParameters };
         });
     };
-    return <fieldset disabled={disabled} className="min-w-0 space-y-3 border-0 p-0" data-canvas-no-zoom data-canvas-wheel-scroll aria-label={t("canvasA.approval.imageSettings")}>
-        <div className="space-y-2">
-            <div className="text-xs" style={{ color: theme.node.muted }}>{t("canvasA.approval.model")}</div>
-            <ModelPicker config={config} capability="image" value={model} onChange={changeModel} requirements={requirements} variant="creation" fullWidth showOptionPrices placeholder={t("canvasA.approval.modelPlaceholder")} popoverClassName="agent-model-picker-popover" />
-        </div>
-        {model ? <ImageSettingsPanel config={{ ...config, model, imageModel: model, size: settings.size, imageResolution: settings.imageResolution || "auto", imageParameters: settings.imageParameters, quality: settings.quality, count: "1" }} onConfigChange={changeOption} theme={theme} showTitle={false} showCount={false} showTransparent={false} className="min-w-0 space-y-3" /> : <p className="text-xs" style={{ color: theme.node.muted }}>{t("canvasA.approval.modelUnavailable")}</p>}
-        <p className="text-xs" style={{ color: theme.node.text }}>{t("canvasA.approval.spec", { spec: [settings.size, settings.imageResolution && settings.imageResolution !== "auto" ? settings.imageResolution : "", settings.quality].filter(Boolean).join(" · ") })}</p>
-        <p className="text-xs" style={{ color: theme.node.muted }}>{t("canvasA.approval.note")}</p>
-    </fieldset>;
+    return (
+        <fieldset disabled={disabled} className="min-w-0 space-y-3 border-0 p-0" data-canvas-no-zoom data-canvas-wheel-scroll aria-label={t("canvasA.approval.imageSettings")}>
+            <div className="space-y-2">
+                <div className="text-xs" style={{ color: theme.node.muted }}>
+                    {t("canvasA.approval.model")}
+                </div>
+                <ModelPicker
+                    config={config}
+                    capability="image"
+                    value={model}
+                    onChange={changeModel}
+                    requirements={requirements}
+                    variant="creation"
+                    fullWidth
+                    showOptionPrices
+                    placeholder={t("canvasA.approval.modelPlaceholder")}
+                    popoverClassName="agent-model-picker-popover"
+                />
+            </div>
+            {model ? (
+                <ImageSettingsPanel
+                    config={{
+                        ...config,
+                        model,
+                        imageModel: model,
+                        size: settings.size,
+                        imageResolution: settings.imageResolution || "auto",
+                        imageParameters: settings.imageParameters,
+                        quality: settings.quality,
+                        count: "1",
+                        nativeParameters: settings.nativeParameters,
+                        nativeVariantId: settings.nativeVariantId,
+                    }}
+                    onConfigChange={changeOption}
+                    theme={theme}
+                    showTitle={false}
+                    showCount={false}
+                    showTransparent={false}
+                    className="min-w-0 space-y-3"
+                />
+            ) : (
+                <p className="text-xs" style={{ color: theme.node.muted }}>
+                    {t("canvasA.approval.modelUnavailable")}
+                </p>
+            )}
+            <p className="text-xs" style={{ color: theme.node.text }}>
+                {t("canvasA.approval.spec", { spec: [settings.size, settings.imageResolution && settings.imageResolution !== "auto" ? settings.imageResolution : "", settings.quality].filter(Boolean).join(" · ") })}
+            </p>
+            <p className="text-xs" style={{ color: theme.node.muted }}>
+                {t("canvasA.approval.note")}
+            </p>
+        </fieldset>
+    );
 }

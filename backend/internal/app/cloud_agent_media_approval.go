@@ -20,6 +20,8 @@ type CloudAgentMediaSettings struct {
 	Size                       string `json:"size"`
 	ImageResolution            string `json:"imageResolution,omitempty"`
 	ImageParameters            string `json:"imageParameters,omitempty"`
+	NativeParameters           string `json:"nativeParameters,omitempty"`
+	NativeVariantID            string `json:"nativeVariantId,omitempty"`
 	Quality                    string `json:"quality"`
 	DurationSeconds            *int   `json:"durationSeconds,omitempty"`
 	VideoGenerateAudio         *bool  `json:"videoGenerateAudio,omitempty"`
@@ -50,6 +52,7 @@ func (s *Service) updateCloudAgentMediaApproval(repo *repository.Repository, run
 	args.ConfigurationChange = nil
 	args.Size, args.ImageResolution, args.Quality = settings.Size, settings.ImageResolution, settings.Quality
 	args.ImageParameters = settings.ImageParameters
+	args.NativeParameters, args.NativeVariantID = settings.NativeParameters, settings.NativeVariantID
 	if args.Mode == "video" {
 		if settings.DurationSeconds != nil {
 			if *settings.DurationSeconds < 0 {

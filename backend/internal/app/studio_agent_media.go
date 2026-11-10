@@ -31,7 +31,7 @@ type studioAgentMediaPrepared struct {
 	Quote          StudioAgentMediaQuote   `json:"quote"`
 }
 
-func (s *Service) studioAgentMediaSelection(userID, runID, name string) (platformintegration.ModelSelection, error) {
+func (s *Service) studioAgentMediaSelection(userID, runID, name string, variant ...string) (platformintegration.ModelSelection, error) {
 	root, err := s.repo.StudioExecution(userID, runID)
 	if err != nil {
 		return platformintegration.ModelSelection{}, err
@@ -42,7 +42,11 @@ func (s *Service) studioAgentMediaSelection(userID, runID, name string) (platfor
 	}
 	for _, item := range frozen.Catalog {
 		if item.ModelName == name {
-			selected, err := platformintegration.SelectModel(item, "")
+			id := ""
+			if len(variant) > 0 {
+				id = variant[0]
+			}
+			selected, err := platformintegration.SelectModel(item, id)
 			if err != nil {
 				return selected, BadAuthRequest(err.Error())
 			}
@@ -56,12 +60,46 @@ func (s *Service) resolveStudioAgentMediaOptions(userID string, a *cloudAgentMed
 	if a.ChannelID != StudioPlatformChannelID || a.LogicalModelID != "" || a.Mode != "image" && a.Mode != "video" || a.VideoArkPrivateAssetUpload != nil {
 		return BadAuthRequest("请选择平台图片或视频模型；供应商素材库暂不可用")
 	}
-	selected, err := s.studioAgentMediaSelection(userID, state.RuntimeRunID, a.ChannelModelKey)
+	selected, err := s.studioAgentMediaSelection(userID, state.RuntimeRunID, a.ChannelModelKey, a.NativeVariantID)
 	if err != nil {
 		return err
 	}
 	if selected.Kind != a.Mode {
 		return BadAuthRequest("模型与创作类型不匹配")
+	}
+	if selected.NativeRequest != nil {
+		var legacy map[string]any
+		if a.ImageParameters != "" && (json.Unmarshal([]byte(a.ImageParameters), &legacy) != nil || len(legacy) > 0) {
+			return BadAuthRequest("请使用所选模型的原生参数表单")
+		}
+		var parameters map[string]any
+		if a.NativeParameters != "" && (json.Unmarshal([]byte(a.NativeParameters), &parameters) != nil || parameters == nil) {
+			return BadAuthRequest("原生参数格式无效")
+		}
+		input := canvasGenerationInput{Config: providerConfig{NativeParameters: parameters, NativeVariantID: a.NativeVariantID}}
+		values, err := studioNativeSpecifications(input, selected)
+		if err != nil {
+			return err
+		}
+		raw, _ := json.Marshal(values)
+		a.NativeParameters, a.NativeVariantID = string(raw), selected.ID
+		a.ImageParameters = ""
+		// This is only the Agent's local duration budget; the native request
+		// keeps the original /duration value and Platform owns all billing.
+		if a.Mode == "video" {
+			a.Duration = 0
+			if value, ok := values["/duration"]; ok {
+				duration, err := strconv.Atoi(fmt.Sprint(value))
+				if err != nil {
+					return BadAuthRequest("视频 duration 无法用于本轮时长预算")
+				}
+				a.Duration = max(0, duration)
+			}
+			if a.Duration == 0 && state.Request.Budget.MaxVideoSeconds > 0 {
+				return BadAuthRequest("本轮设置了视频时长上限，请选择明确的正数 duration 后重新申请")
+			}
+		}
+		return nil
 	}
 	var schema struct {
 		Properties map[string]map[string]any `json:"properties"`
@@ -135,7 +173,7 @@ func (s *Service) requestStudioAgentMediaApproval(run *model.CloudAgentExecution
 	if err != nil {
 		return s.cloudAgentMediaError(run, state, "admission", false, false, err)
 	}
-	selected, err := s.studioAgentMediaSelection(run.UserID, run.ID, req.Model)
+	selected, err := s.studioAgentMediaSelection(run.UserID, run.ID, req.Model, plan.Args.NativeVariantID)
 	if err != nil {
 		return err
 	}

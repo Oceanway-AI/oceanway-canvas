@@ -5,6 +5,7 @@ import { VideoSettingsPanel } from "@/components/video-settings-panel";
 import type { CanvasTheme } from "@/lib/canvas-theme";
 import { agentApprovalModel, agentApprovalModelSelection, agentMediaSettings, type AgentVideoApproval } from "@/lib/canvas/agent-media-approval";
 import { modelCapabilityConfigFor, normalizeVideoValue } from "@/lib/model-capabilities";
+import { nativeMediaDefaults, nativeMediaProfile } from "@/lib/platform-native-media";
 import { resolveCompatibleModel, type ModelRequirements } from "@/lib/model-selection";
 import type { AgentMediaSettings } from "@/services/api/agent";
 import { PUBLIC_MODEL_CATALOG_ID, useEffectiveConfig } from "@/stores/use-config-store";
@@ -35,6 +36,10 @@ export function CanvasAgentVideoApprovalSettings({ initial, value, theme, disabl
 
     const changeModel = (next: string) => {
         if (disabled) return;
+        if (nativeMediaProfile(config, next)) {
+            onChange({ ...agentApprovalModelSelection(config, next), ...nativeMediaDefaults(config, next), size: "", quality: "" });
+            return;
+        }
         const profile = modelCapabilityConfigFor(config, next).video;
         if (!profile) return;
         const normalized = normalizeVideoValue(profile, { seconds: duration, ratio: settings.size, resolution: settings.quality });
@@ -49,8 +54,12 @@ export function CanvasAgentVideoApprovalSettings({ initial, value, theme, disabl
         });
     };
 
-    const changeOption = (key: "vquality" | "size" | "videoSeconds" | "videoGenerateAudio" | "videoWatermark" | "videoArkPrivateAssetUpload", next: string) => {
+    const changeOption = (key: "vquality" | "size" | "videoSeconds" | "videoGenerateAudio" | "videoWatermark" | "videoArkPrivateAssetUpload" | "nativeParameters" | "nativeVariantId", next: string) => {
         if (disabled) return;
+        if (key === "nativeParameters" || key === "nativeVariantId") {
+            onChange({ ...settings, [key]: next, ...(key === "nativeVariantId" ? { nativeParameters: "{}" } : {}) });
+            return;
+        }
         const nextSettings: AgentMediaSettings = {
             ...settings,
             size: key === "size" ? next : settings.size,
@@ -98,7 +107,18 @@ export function CanvasAgentVideoApprovalSettings({ initial, value, theme, disabl
             </div>
             {model ? (
                 <VideoSettingsPanel
-                    config={{ ...config, model, size: settings.size, videoSeconds: duration, vquality: settings.quality, videoGenerateAudio: audio, videoWatermark: watermark, videoArkPrivateAssetUpload: privateAssetUpload }}
+                    config={{
+                        ...config,
+                        model,
+                        size: settings.size,
+                        videoSeconds: duration,
+                        vquality: settings.quality,
+                        videoGenerateAudio: audio,
+                        videoWatermark: watermark,
+                        videoArkPrivateAssetUpload: privateAssetUpload,
+                        nativeParameters: settings.nativeParameters,
+                        nativeVariantId: settings.nativeVariantId,
+                    }}
                     onConfigChange={changeOption}
                     theme={theme}
                     showTitle={false}

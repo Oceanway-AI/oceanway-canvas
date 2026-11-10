@@ -26,6 +26,7 @@ import { peekCachedResourceObjectUrl } from "@/services/resource-blob-cache";
 import { getResourceAccess, refreshResource, resourceIdFromStorageKey, resolveResourceAccessURL, type ResourceAccessVariant } from "@/services/api/resources";
 import type { CanvasNodeContentProps } from "./canvas-node-content";
 import { ErrorContent, LoadingContent } from "./canvas-node-status-content";
+import { useUserStore } from "@/stores/use-user-store";
 
 export function ImageNodeContent(props: CanvasNodeContentProps) {
     const hasImage = Boolean(props.node.metadata?.content || props.node.metadata?.storageKey);
@@ -228,7 +229,8 @@ export function AudioNodeContent({ node, theme }: CanvasNodeContentProps) {
 export function InactiveVideoPreview({ node, theme, onPlay }: Pick<CanvasNodeContentProps, "node" | "theme"> & { onPlay: () => void }) {
     const previewRef = useRef<HTMLDivElement>(null);
     const nearViewport = useNearViewport(previewRef);
-    const persistedPreview = canvasNodeVideoPreviewReference(node);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const persistedPreview = canvasNodeVideoPreviewReference(node, platformIdentity);
     const persistedPreviewSource = persistedPreview?.src || "";
     const persistedPreviewStorageKey = persistedPreview?.storageKey || "";
     const hasPersistedPreview = Boolean(persistedPreviewSource || persistedPreviewStorageKey);

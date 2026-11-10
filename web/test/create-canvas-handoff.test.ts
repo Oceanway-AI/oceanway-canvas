@@ -358,7 +358,7 @@ test("Create forwards owned result assets through one new canvas and the project
     const canvasIndex = readFileSync(resolve(import.meta.dir, "../src/pages/canvas/index.tsx"), "utf8");
     const canvasProject = moduleGroupSource("pages/canvas/project.tsx");
 
-    expect(workspace).toContain("onContinueCanvas(resultAssetIds)");
+    expect(workspace).toContain("onContinueCanvas(selection)");
     expect(createPage).toContain("continueCreationConversationOnCanvas(source)");
     expect(createPage).toContain("if (ids.length !== Math.max(resultStorageKeys.length, resultUrls.length)) throw new Error");
     expect(createPage).toContain("await saveCreationConversations(next)");
@@ -366,8 +366,9 @@ test("Create forwards owned result assets through one new canvas and the project
     expect(canvasIndex).toContain('const handoffMode = mode === "handoff"');
     expect(canvasIndex).toContain('mode !== "new" && mode !== "recent" && mode !== "handoff"');
     expect(canvasProject).toContain('import { canvasAssetHandoffAttempt, finalizeCanvasAssetHandoff, uninsertedCanvasAssetHandoffPayloads } from "@/lib/canvas/canvas-asset-handoff"');
-    expect(canvasProject).toContain('if (!projectLoaded || !assetsHydrated || searchParams.get("mode") !== "handoff") return');
-    expect(canvasProject).toContain("const pendingPayloads = uninsertedCanvasAssetHandoffPayloads(nodesRef.current, payloads)");
+    expect(canvasProject).toContain('if (!projectLoaded || searchParams.get("mode") !== "handoff") return');
+    expect(canvasProject).toContain("loadCanvasResourceHandoffPayloads(resourceIds)");
+    expect(canvasProject).toContain("uninsertedCanvasAssetHandoffPayloads(nodesRef.current, [...payloads, ...resourcePayloads])");
     expect(canvasProject).toContain("await flushCanvasStorePersistence()");
     expect(canvasProject.indexOf("await flushCanvasStorePersistence()")).toBeLessThan(canvasProject.indexOf("setSearchParams(finalized.searchParams"));
 });

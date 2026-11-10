@@ -2,6 +2,7 @@ import { defaultImageCapabilityConfig, modelCapabilityConfigFor, normalizeImageV
 import { videoResolutionComparisonKey } from "@/lib/video-generation-options";
 import { imageParameterRequest, imageParameterDefaults, imageParameterAccepts } from "./image-parameters";
 import { imageSizePresets } from "@/lib/image-size-presets";
+import { nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
 import { modelOptionName, PUBLIC_MODEL_CATALOG_ID, resolveModelChannel, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
 
 export type ModelInputSummary = {
@@ -118,6 +119,25 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
     const visualInputCount = input ? input.imageCount + input.characterCount : 0;
     const channel = resolveModelChannel(config, model);
     const logicalCost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
+    if (nativeMediaProfile(config, model)) {
+        const variant = nativeMediaVariant(config, model);
+        if (!variant) return "模型参数版本已失效，请重新选择";
+        if (logicalCost?.platform?.model_type !== capability) return "模型与创作类型不匹配";
+        // Native schema admission owns parameter combinations. Legacy size and
+        // duration preferences must not hide a valid native model in the picker.
+        if (!input) return "";
+        for (const [kind, count] of [
+            ["image", visualInputCount],
+            ["video", input.videoCount],
+            ["audio", input.audioCount],
+        ] as const) {
+            const refs = variant.native_request_variant.native_reference_inputs || [];
+            const matches = refs.filter((r) => r.role === `reference_${kind}` || (kind === "image" && ["first_frame", "last_frame"].includes(r.role)));
+            const max = matches.reduce((sum, r) => sum + (r.max_items ?? Number.POSITIVE_INFINITY), 0);
+            if (count > max) return `当前协议最多支持 ${max} 个 ${kind} 参考素材`;
+        }
+        return "";
+    }
     const logicalSpecs = logicalCost?.logicalCapabilityProfiles?.length ? logicalCost.logicalCapabilityProfiles : logicalCost?.logicalCapabilitySpec ? [logicalCost.logicalCapabilitySpec] : [];
     if (logicalSpecs.length) {
         const publicOptionNames = logicalCost?.logicalCapabilitySpec?.options || {};
@@ -336,7 +356,8 @@ export function mergedImageCapabilityConfig(config: AiConfig, selected: string):
 }
 
 // 切换模型后初始化图片参数为该模型能力默认值，避免旧参数在目标模型族不兼容导致无法切换。
-export function defaultImageParamsForModel(config: AiConfig, model: string): Pick<AiConfig, "size" | "imageResolution" | "quality" | "transparentBackground" | "imageParameters"> {
+export function defaultImageParamsForModel(config: AiConfig, model: string): Pick<AiConfig, "size" | "imageResolution" | "quality" | "transparentBackground" | "imageParameters" | "nativeParameters" | "nativeVariantId"> {
+    if (nativeMediaProfile(config, model)) return { size: "", imageResolution: "", quality: "", transparentBackground: "false", imageParameters: "{}", ...nativeMediaDefaults(config, model) };
     const image = modelCapabilityConfigFor(config, model).image;
     if (!image) return { size: "1:1", imageResolution: "auto", quality: "auto", transparentBackground: "false" };
     const sizeValues = image.size.values.filter((value) => value !== "*");
@@ -350,7 +371,10 @@ export function defaultImageParamsForModel(config: AiConfig, model: string): Pic
     };
 }
 
-export type ModelGenerationDefaults = Pick<AiConfig, "size" | "imageResolution" | "quality" | "transparentBackground" | "count" | "imageParameters" | "videoSeconds" | "vquality" | "videoGenerateAudio" | "videoWatermark">;
+export type ModelGenerationDefaults = Pick<
+    AiConfig,
+    "size" | "imageResolution" | "quality" | "transparentBackground" | "count" | "imageParameters" | "videoSeconds" | "vquality" | "videoGenerateAudio" | "videoWatermark" | "nativeParameters" | "nativeVariantId"
+>;
 
 type ModelVideoBooleanOptions = Pick<AiConfig, "videoGenerateAudio" | "videoWatermark">;
 
@@ -362,6 +386,7 @@ export function resolveModelGenerationDefaults(
     fallback: Partial<ModelGenerationDefaults> = {},
 ): Partial<ModelGenerationDefaults> {
     if (!capability) return {};
+    if (nativeMediaProfile(config, model)) return { ...nativeMediaDefaults(config, model, explicit), imageParameters: "{}", count: "1" };
     const channel = resolveModelChannel(config, model);
     const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
     const isManagedModel = Boolean(cost?.logicalModelId || cost?.logicalCapabilitySpec);
@@ -428,6 +453,7 @@ export function maxModelInputCapacity(config: AiConfig, capability: "image" | "v
 
 export function modelGroupReferenceLimits(config: AiConfig, selected: string, capability: ModelCapability, requirements?: ModelRequirements): ModelReferenceLimits | undefined {
     if (capability !== "image" && capability !== "video") return undefined;
+    if (nativeMediaProfile(config, selected)) return nativeMediaReferenceLimits(config, selected);
     const options = selectableModelsByCapability(config, capability);
     const selectedGroup = groupModelsByDisplayName(config, options).find((group) => group.models.includes(selected));
     const groupModels = selectedGroup?.models || (selected ? [selected] : []);

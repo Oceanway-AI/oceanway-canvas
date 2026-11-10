@@ -5,6 +5,7 @@ import { modelCapabilityConfigFor, normalizeImageValue } from "@/lib/model-capab
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
 import type { AiConfig } from "@/stores/use-config-store";
 import { CanvasSettingsPopover, type CanvasSettingsPlacement } from "./canvas-settings-popover";
+import { nativeMediaProfile, nativeMediaSummary } from "@/lib/platform-native-media";
 
 type CanvasImageSettingsPopoverProps = {
     config: AiConfig;
@@ -21,6 +22,12 @@ type CanvasImageSettingsPopoverProps = {
 export function CanvasImageSettingsPopover({ config, onConfigChange, showCount = true, onMissingConfig: _unused, ...popover }: CanvasImageSettingsPopoverProps) {
     const { t } = useTranslation();
     const theme = canvasThemes[useActiveTheme()];
+    if (nativeMediaProfile(config))
+        return (
+            <CanvasSettingsPopover {...popover} label={t("canvasB.imageSettings.label")} summary={nativeMediaSummary(config)} width={420}>
+                <ImageSettingsPanel config={config} onConfigChange={onConfigChange} theme={theme} className="space-y-3" />
+            </CanvasSettingsPopover>
+        );
     const profile = modelCapabilityConfigFor(config, config.model || config.imageModel).image;
     if (!profile) return null;
     const current = normalizeImageValue(profile, config);

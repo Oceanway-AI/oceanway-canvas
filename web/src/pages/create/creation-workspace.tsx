@@ -1,5 +1,7 @@
 import { ImageSizePicker } from "@/components/image-size-picker";
 import { ImageParameterFields } from "@/components/image-parameter-fields";
+import { PlatformNativeMediaSettings, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
+import { nativeMediaProfile, nativeMediaSummary } from "@/lib/platform-native-media";
 import { imageResolutionUsesQuality, imageSizePresets } from "@/lib/image-size-presets";
 import { createPortal } from "react-dom";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from "react";
@@ -180,6 +182,9 @@ type ComposerProps = {
     imageResolution: string;
     setImageResolution: (value: string) => void;
     imageParameters?: string;
+    nativeParameters?: string;
+    nativeVariantId?: string;
+    onNativeSettingsChange?: (key: NativeMediaSettingKey, value: string) => void;
     setImageParameters: (value: string) => void;
     setTransparentBackground: (value: string) => void;
     videoQuality: string;
@@ -545,8 +550,8 @@ export function CreationComposer(props: ComposerProps) {
                         variant="creation"
                     />
                     {!modelAvailable ? <span role="status">当前模式暂无可用模型，请选择其他模式或稍后重试</span> : null}
-                    {(props.mode === "video" && props.videoProfile) || (props.mode === "image" && imageSettingsSupported) ? <GenerationSettingsMenu {...props} /> : null}
-                    {props.mode === "video" && props.videoProfile ? <DurationMenu profile={props.videoProfile} seconds={props.seconds} onChange={props.setSeconds} /> : null}
+                    {nativeMediaProfile(props.config, props.model) || (props.mode === "video" && props.videoProfile) || (props.mode === "image" && imageSettingsSupported) ? <GenerationSettingsMenu {...props} /> : null}
+                    {props.mode === "video" && props.videoProfile && !nativeMediaProfile(props.config, props.model) ? <DurationMenu profile={props.videoProfile} seconds={props.seconds} onChange={props.setSeconds} /> : null}
                     {props.mode === "text" ? (
                         <>
                             <Tooltip title={interactionBusy ? "生成中，此开关将在下次发送时生效" : props.textStreaming ? "流式输出已开启" : "流式输出已关闭"}>
@@ -714,6 +719,8 @@ function ModePicker({ mode, onModeChange }: { mode: CreationMode; onModeChange: 
 
 function GenerationSettingsMenu(props: ComposerProps) {
     const [open, setOpen] = useState(false);
+    const nativeConfig = { ...props.config, model: props.model, nativeParameters: props.nativeParameters, nativeVariantId: props.nativeVariantId };
+    const native = nativeMediaProfile(nativeConfig);
     const activeQualityOptions = (props.imageProfile?.quality.values || []).map((value) => qualityOptions.find((item) => item.value === value) || { value, label: imageQualityLabel(value), description: "模型支持的质量/分辨率" });
     const qualityLabel = activeQualityOptions.find((item) => item.value === props.quality)?.label || qualityOptions.find((item) => item.value === props.quality)?.label || props.quality || "自动";
     // 尺寸/比例/分辨率选项取同显示名分组内全部模型的并集，路由模型只决定发送参数。
@@ -737,9 +744,13 @@ function GenerationSettingsMenu(props: ComposerProps) {
         ...((props.imageProfile?.maxOutputs || 0) > 1 ? [props.count] : []),
     ].join(" · ");
     const videoRatioSupported = props.mode === "video" && ratios.length > 0;
-    const summary = props.mode === "video" ? [...(videoRatioSupported ? [props.ratio] : []), ...(videoResolutionSupported ? [videoResolutionLabel(props.videoQuality)] : [])].join(" · ") : imageSummary;
+    const summary = native ? nativeMediaSummary(nativeConfig) : props.mode === "video" ? [...(videoRatioSupported ? [props.ratio] : []), ...(videoResolutionSupported ? [videoResolutionLabel(props.videoQuality)] : [])].join(" · ") : imageSummary;
     const panel =
-        props.mode === "image" && props.imageProfile?.parameters ? (
+        native && props.onNativeSettingsChange ? (
+            <div className="creation-parameter-menu max-h-[65vh] overflow-y-auto">
+                <PlatformNativeMediaSettings config={nativeConfig} onChange={props.onNativeSettingsChange} />
+            </div>
+        ) : props.mode === "image" && props.imageProfile?.parameters ? (
             <div className="creation-parameter-menu max-h-[65vh] overflow-y-auto">
                 <ImageParameterFields
                     profile={props.imageProfile}

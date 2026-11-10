@@ -5,6 +5,12 @@ description: 从产品功能快速定位主要代码入口
 
 # 代码功能地图
 
+## Studio 原生媒体消费
+
+- 发布规格/具名 SDK 路由：`backend/internal/platformintegration/native.go`；完整原生正文、参考角色与条件校验：`backend/internal/app/studio_native_media.go`；报价/冻结/原任务恢复复用 `studio_media_execution.go`、`studio_media_worker.go` 与 `studio_agent_media.go`。
+- 参数投影与共用表单：`web/src/lib/platform-native-media.ts`、`web/src/components/platform-native-media-settings.tsx`；创作到画布的固定资源校验：`web/src/services/canvas-resource-handoff.ts`；视频平台封面：`web/src/lib/canvas/canvas-media-preview.ts`。
+- 本机免费联合宿主：`backend/internal/handler/studio_native_gateway_joint_test.go`；验收边界见[rc.7 联调记录](../../../verification/studio-native-rc7-20261111/README.md)。
+
 ## OceanWay Studio 平台身份与阶段入口
 
 - 启动：`backend/cmd/server/main.go` → `platformintegration.NewGatewayFromEnv` → `service.NewStudio` → `handler.RegisterStudioAPI`。配置缺失拒绝启动；尚未适配的旧平台接口和生成 Worker 不开放。
