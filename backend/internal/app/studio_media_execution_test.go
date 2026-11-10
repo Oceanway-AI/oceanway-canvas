@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -18,8 +19,10 @@ func TestStudioNativeMediaBodyUsesPublishedBindings(t *testing.T) {
 		binding, path, configKey, configValue string
 	}{
 		{"image", platformclient.GeminiMedia, "generationConfig.imageConfig.aspectRatio", "generationConfig", "size", "1:1"},
+		{"image", platformclient.GeminiMedia, "/generationConfig/imageConfig/aspectRatio", "generationConfig", "size", "1:1"},
 		{"video", platformclient.VideoGeneration, "aspect_ratio", "aspect_ratio", "size", "1:1"},
 		{"video", platformclient.DoubaoVideoGeneration, "ratio", "ratio", "size", "1:1"},
+		{"video", platformclient.DoubaoVideoGeneration, "/ratio", "ratio", "size", "1:1"},
 	} {
 		t.Run(string(tc.route), func(t *testing.T) {
 			selected := platformintegration.ModelSelection{Name: "exact", Kind: tc.kind, MediaRoute: tc.route, NativeEndpoint: platformintegration.NativeEndpoint{Schema: json.RawMessage(`{"type":"object","additionalProperties":false,"properties":{"aspect_ratio":{"type":"string","enum":["1:1"]}},"required":["aspect_ratio"]}`), Bindings: map[string]string{"aspect_ratio": tc.binding}}}
@@ -38,6 +41,56 @@ func TestStudioNativeMediaBodyUsesPublishedBindings(t *testing.T) {
 				t.Fatal("Gemini binding was flattened")
 			}
 		})
+	}
+}
+
+func TestStudioNativeParameterPointersPreserveValues(t *testing.T) {
+	body := map[string]any{"model": "exact", "prompt": "cat"}
+	for _, binding := range []struct {
+		path  string
+		value any
+	}{
+		{"/generationConfig/imageConfig/aspectRatio", "1:1"},
+		{"/generationConfig/seed", 0},
+		{"/generate_audio", false},
+		{"/metadata/a~1b/~0tag", nil},
+		{"/stop", []any{"a", "b"}},
+	} {
+		if err := studioSetNativeField(body, binding.path, binding.value); err != nil {
+			t.Fatalf("%s: %v", binding.path, err)
+		}
+	}
+	want := map[string]any{
+		"model": "exact", "prompt": "cat", "generate_audio": false,
+		"generationConfig": map[string]any{"imageConfig": map[string]any{"aspectRatio": "1:1"}, "seed": 0},
+		"metadata":         map[string]any{"a/b": map[string]any{"~tag": nil}},
+		"stop":             []any{"a", "b"},
+	}
+	if !reflect.DeepEqual(body, want) {
+		t.Fatalf("published native values changed: %#v", body)
+	}
+}
+
+func TestStudioNativeParameterPathsRejectInvocationAndConflicts(t *testing.T) {
+	for _, path := range []string{"", "/", "/bad~2key", "/bad~", "/generationConfig//seed", "/model", "/prompt", "/contents/0/parts", "/content/0", "/messages/0/content", "/image", "/images", "/mask", "/input_reference", "/reference_images", "/first_frame_image", "/last_frame_image", "/generationConfig/0/value", "/a/b/c/d/e/f/g", "generationConfig..seed"} {
+		t.Run(path, func(t *testing.T) {
+			body := map[string]any{}
+			if studioSetNativeField(body, path, false) == nil {
+				t.Fatal("unsafe or unsupported path accepted")
+			}
+			if len(body) != 0 {
+				t.Fatalf("invalid path partially changed request: %#v", body)
+			}
+		})
+	}
+	for _, original := range []any{false, 0, nil, "value", []any{1}} {
+		body := map[string]any{"existing": original}
+		if studioSetNativeField(body, "/existing/child", 1) == nil || !reflect.DeepEqual(body["existing"], original) {
+			t.Fatalf("replaced existing native value %#v", original)
+		}
+		if studioSetNativeField(body, "/existing", 1) == nil || !reflect.DeepEqual(body["existing"], original) {
+			t.Fatalf("duplicate binding replaced %#v", original)
+		}
 	}
 }
 

@@ -273,13 +273,40 @@ func (s *Service) studioMediaBody(ctx context.Context, userID string, req Create
 
 func studioSetNativeField(body map[string]any, path string, value any) error {
 	parts := strings.Split(path, ".")
-	if len(parts) > 6 {
+	pointer := strings.HasPrefix(path, "/")
+	if pointer {
+		parts = strings.Split(path[1:], "/")
+	}
+	if len(path) > 512 || len(parts) > 6 {
+		return NewAppError(501, "原生参数路径尚未接通")
+	}
+	// Validate the entire binding before touching the request. Parameter
+	// bindings address objects; reference arrays belong to the material builder.
+	for i, key := range parts {
+		if pointer {
+			for n := 0; n < len(key); n++ {
+				if key[n] == '~' {
+					if n+1 >= len(key) || key[n+1] != '0' && key[n+1] != '1' {
+						return NewAppError(501, "原生参数路径尚未接通")
+					}
+					n++
+				}
+			}
+			key = strings.ReplaceAll(strings.ReplaceAll(key, "~1", "/"), "~0", "~")
+		} else if !studioMaterialID.MatchString(key) {
+			return NewAppError(501, "原生参数路径尚未接通")
+		}
+		if key == "" || key == "-" || strings.Trim(key, "0123456789") == "" || strings.ContainsAny(key, "\x00\r\n") {
+			return NewAppError(501, "原生参数路径尚未接通")
+		}
+		parts[i] = key
+	}
+	// Caller content and managed references cannot be supplied as parameters.
+	switch parts[0] {
+	case "model", "prompt", "contents", "content", "messages", "image", "images", "mask", "input_reference", "reference_images", "first_frame_image", "last_frame_image":
 		return NewAppError(501, "原生参数路径尚未接通")
 	}
 	for i, key := range parts {
-		if !studioMaterialID.MatchString(key) || key == "model" || key == "prompt" || key == "contents" || key == "content" {
-			return NewAppError(501, "原生参数路径尚未接通")
-		}
 		if i == len(parts)-1 {
 			if _, exists := body[key]; exists {
 				return NewAppError(501, "原生参数映射冲突")
@@ -287,9 +314,10 @@ func studioSetNativeField(body map[string]any, path string, value any) error {
 			body[key] = value
 			return nil
 		}
-		next, ok := body[key].(map[string]any)
-		if !ok {
-			if body[key] != nil {
+		existing, exists := body[key]
+		next, ok := existing.(map[string]any)
+		if !ok || next == nil {
+			if exists {
 				return NewAppError(501, "原生参数映射冲突")
 			}
 			next = map[string]any{}
