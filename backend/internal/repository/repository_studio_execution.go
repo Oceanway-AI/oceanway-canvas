@@ -112,6 +112,28 @@ func (r *Repository) SaveStudioExecutionResponse(task *model.Task, encrypted str
 	})
 }
 
+// Replace only the receipt read by this lease owner. A stale poll cannot erase
+// a newer original-task observation or a completed execution.
+func (r *Repository) RefreshStudioExecutionResponse(task *model.Task, previous, encrypted string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		lock := taskLeaseWriter(tx.Model(&model.Task{}), task.LeaseOwner).Where("id = ? AND status = ?", task.ID, model.TaskStatusRunning).Update("updated_at", time.Now())
+		if lock.Error != nil {
+			return lock.Error
+		}
+		if lock.RowsAffected != 1 {
+			return ErrTaskStateConflict
+		}
+		result := tx.Model(&model.StudioExecution{}).Where("task_id = ? AND state = ? AND response_encrypted = ?", task.ID, "submitted", previous).Update("response_encrypted", encrypted)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return ErrTaskStateConflict
+		}
+		return nil
+	})
+}
+
 func (r *Repository) CompleteStudioExecution(taskID string) error {
 	return r.db.Model(&model.StudioExecution{}).Where("task_id = ?", taskID).Update("state", "completed").Error
 }

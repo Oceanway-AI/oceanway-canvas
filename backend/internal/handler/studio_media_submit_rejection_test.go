@@ -100,3 +100,104 @@ func TestStudioMediaInitialRejectionRequiresOriginalNoExecutionReceipt(t *testin
 		})
 	}
 }
+
+func TestStudioMediaCachedUnknownRecoversOriginalFailure(t *testing.T) {
+	for _, mode := range []string{"no_execution", "failed", "failed_discarded", "other_task", "other_request", "wrong_version"} {
+		t.Run(mode, func(t *testing.T) {
+			f := newStudioFixture(t)
+			f.catalog = studioRevisionCatalog
+			submits, recovers, outputs := 0, 0, 0
+			requestID := ""
+			f.execution = func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				respond := func(v any) { _ = json.NewEncoder(w).Encode(v) }
+				switch {
+				case strings.HasSuffix(r.URL.Path, "/consumption-preview"):
+					respond(map[string]any{"success": true, "data": platformclient.ConsumptionPreview{Model: "image-model", ModelType: "image", PriceVersion: "price-1", CapabilityRevision: strings.Repeat("a", 64), ConnectionRevision: 7, WalletPoints: "0.123456789", Allowed: true, CombinationSupported: true}})
+				case r.URL.Path == "/api/platform/v1/execution-authorizations":
+					var b struct {
+						TaskReference string `json:"task_reference"`
+					}
+					_ = json.NewDecoder(r.Body).Decode(&b)
+					respond(platformclient.ExecutionAuthorization{AuthorizationID: "exa1.fixture", Product: "studio", TaskReference: b.TaskReference, ExpiresAt: time.Now().Add(time.Hour).Unix()})
+				case strings.HasSuffix(r.URL.Path, "/release"):
+					respond(map[string]any{"success": true})
+				case r.URL.Path == "/internal/relay/images/generations":
+					submits++
+					requestID = r.Header.Get("X-Platform-Media-Request-Id")
+					w.WriteHeader(503)
+				case r.URL.Path == "/internal/relay/media-requests/"+requestID:
+					recovers++
+					receipt := platformclient.MediaRecovery{Version: "oceanway.media-request.v1", RequestID: requestID, TaskID: "original-task", TaskAvailable: true, Status: "UNKNOWN"}
+					if recovers > 1 {
+						receipt.Status = "FAILURE"
+						switch mode {
+						case "no_execution":
+							receipt.NoExecution = true
+						case "failed_discarded":
+							receipt.TaskAvailable = false
+						case "other_task":
+							receipt.TaskID = "different-task"
+						case "other_request":
+							receipt.RequestID = "different-request"
+						case "wrong_version":
+							receipt.Version = "other"
+						}
+					}
+					respond(map[string]any{"success": true, "data": receipt})
+				case strings.HasSuffix(r.URL.Path, "/outputs"):
+					outputs++
+					w.WriteHeader(404)
+				default:
+					t.Error("unexpected request " + r.URL.Path)
+					w.WriteHeader(500)
+				}
+			}
+			raw, _ := json.Marshal(studioRevisionBody())
+			w := f.request(t, "POST", "/api/tasks", "platform_session=alice", string(raw), 200)
+			var created struct {
+				Data model.Task `json:"data"`
+			}
+			_ = json.Unmarshal(w.Body.Bytes(), &created)
+			var cached string
+			for i := 0; i < 3; i++ {
+				if err := f.svc.ProcessNextTask(); err != nil {
+					t.Fatal(err)
+				}
+				f.db.Model(&model.Task{}).Where("id = ?", created.Data.ID).Update("next_poll_at", time.Now().Add(-time.Second))
+				if i == 1 {
+					var execution model.StudioExecution
+					if err := f.db.First(&execution, "task_id = ?", created.Data.ID).Error; err != nil {
+						t.Fatal(err)
+					}
+					cached = execution.ResponseEncrypted
+					if cached == "" {
+						t.Fatal("original UNKNOWN identity was not frozen")
+					}
+					f.restart()
+				}
+			}
+			var task model.Task
+			var execution model.StudioExecution
+			if err := f.db.First(&task, "id = ?", created.Data.ID).Error; err != nil {
+				t.Fatal(err)
+			}
+			if err := f.db.First(&execution, "task_id = ?", created.Data.ID).Error; err != nil {
+				t.Fatal(err)
+			}
+			if submits != 1 || recovers != 2 || outputs != 0 {
+				t.Fatalf("original recovery changed: submit=%d recover=%d outputs=%d", submits, recovers, outputs)
+			}
+			if mode == "no_execution" || mode == "failed" || mode == "failed_discarded" {
+				if task.Status != model.TaskStatusFailed || execution.State != "completed" || execution.ResponseEncrypted == cached {
+					t.Fatalf("original terminal not persisted: %s/%s", task.Status, execution.State)
+				}
+				if (mode == "no_execution") != strings.Contains(task.Error, "未执行生成") || strings.Contains(task.Error, "退款") {
+					t.Fatalf("execution/financial fact invented: %s", task.Error)
+				}
+			} else if task.Status != model.TaskStatusRunning || execution.State != "submitted" || execution.ResponseEncrypted != cached {
+				t.Fatal("unrelated receipt replaced the frozen original task")
+			}
+		})
+	}
+}

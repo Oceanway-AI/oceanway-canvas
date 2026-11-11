@@ -22,6 +22,9 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		if err := s.decryptStudioValue(execution.ResponseEncrypted, &receipt); err != nil {
 			return err
 		}
+		if !studioMediaReceiptMatches(receipt, envelope.RequestID, "") {
+			return s.deferStudioTask(task)
+		}
 	} else {
 		first, err := s.repo.SubmitStudioExecution(task)
 		if err != nil {
@@ -50,37 +53,37 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 			}
 			return s.deferStudioTask(task)
 		}
+	}
+	// A durable task ID is only the original recovery identity. UNKNOWN and
+	// in-progress receipts must be refreshed after every poll or process restart.
+	if receipt.Status != "SUCCESS" && receipt.Status != "FAILURE" {
 		recovered, err := s.studioPlatform.Client.RecoverMedia(ctx, exec, envelope.RequestID)
 		if err != nil {
 			return s.deferStudioTask(task)
 		}
-		receipt = recovered.Data
-		if receipt.RequestID != envelope.RequestID {
+		if !studioMediaReceiptMatches(recovered.Data, envelope.RequestID, receipt.TaskID) {
 			return s.deferStudioTask(task)
 		}
-		if studioMediaRejected(receipt, envelope.RequestID) {
-			encrypted, err := s.encryptStudioValue(receipt)
-			if err != nil {
-				return err
-			}
-			if err := s.repo.SaveStudioExecutionResponse(task, encrypted); err != nil {
-				return err
-			}
-			return s.failStudioTask(task, "平台已拒绝原请求，未执行生成；请核对参数与报价")
-		}
-		if !receipt.TaskAvailable || receipt.TaskID == "" {
+		receipt = recovered.Data
+		if !studioMediaRejected(receipt, envelope.RequestID) && (receipt.TaskID == "" || !receipt.TaskAvailable && receipt.Status != "FAILURE") {
 			return s.deferStudioTask(task)
 		}
 		encrypted, err := s.encryptStudioValue(receipt)
 		if err != nil {
 			return err
 		}
-		if err := s.repo.SaveStudioExecutionResponse(task, encrypted); err != nil {
+		if err := s.repo.RefreshStudioExecutionResponse(task, execution.ResponseEncrypted, encrypted); err != nil {
 			return err
 		}
 	}
 	if studioMediaRejected(receipt, envelope.RequestID) {
 		return s.failStudioTask(task, "平台已拒绝原请求，未执行生成；请核对参数与报价")
+	}
+	if receipt.Status == "FAILURE" {
+		return s.failStudioTask(task, "平台原任务生成失败；费用状态以平台原任务记录为准")
+	}
+	if receipt.Status != "SUCCESS" || !receipt.TaskAvailable || receipt.TaskID == "" {
+		return s.deferStudioTask(task)
 	}
 	m := s.studioPlatform.Client.WorkerMaterials(platformclient.MaterialContext{ExecutionAuthorization: exec.Authorization})
 	outputs, err := m.TaskOutputs(ctx, receipt.TaskID)
@@ -132,6 +135,10 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		result["video"] = media[0]
 	}
 	return s.completeStudioTask(ctx, task, result)
+}
+
+func studioMediaReceiptMatches(receipt platformclient.MediaRecovery, requestID, taskID string) bool {
+	return receipt.Version == "oceanway.media-request.v1" && receipt.RequestID == requestID && (taskID == "" || receipt.TaskID == taskID)
 }
 
 // HTTP status does not prove that no paid request was sent. Only an explicit

@@ -75,3 +75,38 @@ func TestStudioExecutionFencesDispatchAndStop(t *testing.T) {
 		})
 	}
 }
+
+func TestStudioMediaReceiptRefreshFencesStalePolls(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.AutoMigrate(&model.Task{}, &model.StudioExecution{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.Task{ID: "media", UserID: "user", Provider: "platform", Status: model.TaskStatusQueued}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.StudioExecution{TaskID: "media", UserID: "user", State: "submitted", ResponseEncrypted: "unknown"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	repo := New(db)
+	task, err := repo.ClaimNextTask("worker", time.Minute)
+	if err != nil || task == nil {
+		t.Fatalf("claim: %v", err)
+	}
+	if err := repo.RefreshStudioExecutionResponse(task, "unknown", "success"); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.RefreshStudioExecutionResponse(task, "unknown", "stale"); !errors.Is(err, ErrTaskStateConflict) {
+		t.Fatalf("stale observation overwrote success: %v", err)
+	}
+	db.Model(&model.Task{}).Where("id = ?", task.ID).Update("lease_expires_at", time.Now().Add(-time.Second))
+	if err := repo.RefreshStudioExecutionResponse(task, "success", "expired"); !errors.Is(err, ErrTaskStateConflict) {
+		t.Fatalf("expired lease overwrote success: %v", err)
+	}
+	execution, err := repo.StudioExecution("user", task.ID)
+	if err != nil || execution.ResponseEncrypted != "success" {
+		t.Fatalf("original observation lost: %v", err)
+	}
+}

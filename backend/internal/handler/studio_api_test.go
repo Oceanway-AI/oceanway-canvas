@@ -35,6 +35,7 @@ type studioFixture struct {
 	catalogCalls int
 	materials    http.HandlerFunc
 	execution    http.HandlerFunc
+	restart      func()
 }
 
 func newStudioFixture(t *testing.T) *studioFixture {
@@ -138,7 +139,8 @@ func newStudioFixture(t *testing.T) *studioFixture {
 		t.Fatal(err)
 	}
 	f.db = db
-	f.svc, err = service.NewStudio(repository.New(db), t.TempDir(), gateway)
+	dataDir := t.TempDir()
+	f.svc, err = service.NewStudio(repository.New(db), dataDir, gateway)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,6 +151,17 @@ func newStudioFixture(t *testing.T) *studioFixture {
 		t.Fatal(err)
 	}
 	f.router.NoRoute(StudioUnavailableRoute)
+	f.restart = func() {
+		t.Helper()
+		if err := f.svc.Close(); err != nil {
+			t.Fatal(err)
+		}
+		f.svc, err = service.NewStudio(repository.New(db), dataDir, gateway)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ConfigureRuntime(f.svc)
+	}
 	return f
 }
 

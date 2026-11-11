@@ -36,6 +36,7 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	}
 	var previewBody []byte
 	submits, previews, reads, binds := 0, 0, 0, 0
+	recoveryStates := []string{"UNKNOWN", "NOT_START", "SUBMITTED", "QUEUED", "IN_PROGRESS", "SUCCESS"}
 	var binding *platformclient.Binding
 	asset := platformclient.Asset{AssetID: "asset_output", Owner: platformclient.MaterialOwner{Kind: "account", ID: "101"}, Kind: kind, State: "ready", Version: platformclient.AssetVersion{AssetID: "asset_output", VersionID: "version_original", FileID: "file_original"}, File: platformclient.AssetFile{FileID: "file_original", SHA256: strings.Repeat("b", 64), ByteLength: "12", ContentType: contentType, State: "ready"}}
 	f.execution = func(w http.ResponseWriter, r *http.Request) {
@@ -84,8 +85,12 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 				w.WriteHeader(503)
 			case strings.HasPrefix(r.URL.Path, "/internal/relay/media-requests/"):
 				reads++
-				respond(map[string]any{"success": true, "data": platformclient.MediaRecovery{RequestID: strings.TrimPrefix(r.URL.Path, "/internal/relay/media-requests/"), TaskID: "platform_original", Status: "SUCCESS", TaskAvailable: true}})
+				status := recoveryStates[min(reads-1, len(recoveryStates)-1)]
+				respond(map[string]any{"success": true, "data": platformclient.MediaRecovery{Version: "oceanway.media-request.v1", RequestID: strings.TrimPrefix(r.URL.Path, "/internal/relay/media-requests/"), TaskID: "platform_original", Status: status, TaskAvailable: true}})
 			case strings.HasSuffix(r.URL.Path, "/tasks/platform_original/outputs"):
+				if reads < len(recoveryStates) {
+					t.Error("read outputs before the original task succeeded")
+				}
 				respond(platformclient.TaskMaterials{Protocol: platformclient.MaterialsProtocol, TaskID: "platform_original", ExecutionState: "succeeded", FundsState: "settled", MaterialState: "saved", Outputs: []platformclient.OutputState{{Index: 0, MaterialState: "saved", Original: &platformclient.OriginalManifest{Protocol: platformclient.MaterialsProtocol, Owner: asset.Owner, OperationID: "platform_original", Asset: platformclient.AssetReference{AssetID: asset.AssetID, VersionID: asset.Version.VersionID, FileID: asset.File.FileID, SHA256: asset.File.SHA256, ByteLength: asset.File.ByteLength, ContentType: asset.File.ContentType}}}}})
 			case strings.HasSuffix(r.URL.Path, "/assets/asset_output"):
 				if r.URL.Query().Get("version_id") != "version_original" {
@@ -124,17 +129,20 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 		Data model.Task `json:"data"`
 	}
 	_ = json.Unmarshal(w.Body.Bytes(), &created)
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 8; i++ {
 		if err := f.svc.ProcessNextTask(); err != nil {
 			t.Fatal(err)
 		}
 		f.db.Model(&model.Task{}).Where("id = ?", created.Data.ID).Update("next_poll_at", time.Now().Add(-time.Second))
+		if i == 1 {
+			f.restart()
+		}
 	}
 	w = f.request(t, "GET", "/api/tasks/"+created.Data.ID, "platform_session=alice", "", 200)
 	if !strings.Contains(w.Body.String(), "succeeded") || !strings.Contains(w.Body.String(), "resource:") {
 		t.Fatalf("output not adopted: %s", w.Body.String())
 	}
-	if submits != 1 || previews != 2 || reads < 1 || binds != 1 {
+	if submits != 1 || previews != 2 || reads != len(recoveryStates) || binds != 1 {
 		t.Fatalf("duplicate lifecycle: submit=%d preview=%d read=%d binds=%d", submits, previews, reads, binds)
 	}
 	invalid := strings.Replace(body, kind+"-intent", "invalid-size", 1)
