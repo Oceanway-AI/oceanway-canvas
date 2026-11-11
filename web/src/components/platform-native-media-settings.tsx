@@ -2,7 +2,7 @@ import { Input } from "antd";
 import { ImageParameterInput } from "./image-parameter-fields";
 import { Select } from "@/components/ui/base/select";
 import type { ImageParameter } from "@/lib/image-parameters";
-import { nativeMediaProfile, nativeMediaVariant, nativeParameterValues, type NativeSchemaField } from "@/lib/platform-native-media";
+import { nativeMediaProfile, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
 
 export type NativeMediaSettingKey = "nativeParameters" | "nativeVariantId";
@@ -31,7 +31,9 @@ export function PlatformNativeMediaSettings({ config, onChange }: { config: AiCo
                     ariaLabel="请求协议"
                     value={variant?.id}
                     placeholder="选择请求协议"
-                    options={profile.variants.map((v) => ({ value: v.id, label: v.gateway_protocol }))}
+                    options={nativeMediaVariantOptions(profile.variants)}
+                    virtual={false}
+                    optionRender={(option) => <span className="block whitespace-normal break-words">{option.label}</span>}
                     onChange={(id) => {
                         onChange("nativeParameters", "{}");
                         onChange("nativeVariantId", String(id));

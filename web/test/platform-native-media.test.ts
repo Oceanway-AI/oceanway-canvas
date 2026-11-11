@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { defaultConfig } from "@/stores/use-config-store";
 import { systemChannelModelChannels } from "@/lib/user-session";
-import { nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeParameterValues } from "@/lib/platform-native-media";
+import { nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues } from "@/lib/platform-native-media";
 import { modelCompatibilityError, resolveModelGenerationDefaults } from "@/lib/model-selection";
 import { backendProviderConfig } from "@/services/api/generation-task";
 import { buildNodeConfig } from "@/components/canvas/canvas-node-prompt-config";
@@ -30,6 +30,33 @@ const variant = {
         ],
     },
 };
+
+test("native protocol choices describe the published reference inputs without model-name inference", () => {
+    const text = { ...variant, id: "text", native_request_variant: { ...variant.native_request_variant, native_reference_inputs: [] } };
+    const frames = {
+        ...variant,
+        id: "frames",
+        native_request_variant: { ...variant.native_request_variant, native_reference_inputs: variant.native_request_variant.native_reference_inputs.map((ref) => ({ ...ref, min_items: ref.role === "first_frame" ? 1 : 0 })) },
+    };
+    const multi = {
+        ...variant,
+        id: "multi",
+        native_request_variant: {
+            ...variant.native_request_variant,
+            native_reference_inputs: [
+                { id: "images", pointer: "/content", transport: "content-array", role: "reference_image", min_items: 0, max_items: 9 },
+                { id: "video", pointer: "/content", transport: "content-array", role: "reference_video", min_items: 0, max_items: 3 },
+            ],
+        },
+    };
+    const options = nativeMediaVariantOptions([text, frames, multi]);
+    expect(options).toEqual([
+        { value: "text", label: "modelark.video · 文生视频" },
+        { value: "frames", label: "modelark.video · 首帧（必填） + 尾帧（可选）" },
+        { value: "multi", label: "modelark.video · 参考图片（可选，最多 9 个） + 参考视频（可选，最多 3 个）" },
+    ]);
+    expect(nativeMediaVariantOptions([text, { ...text, id: "other" }]).map((option) => option.label)).toEqual(["modelark.video · 文生视频 · text", "modelark.video · 文生视频 · other"]);
+});
 const model = {
     id: "native",
     modelKey: "doubao-seedance-2-0-fast-260128",

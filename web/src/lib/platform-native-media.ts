@@ -7,6 +7,7 @@ export type NativeMediaVariant = {
     defaults: Record<string, unknown>;
     specifications_schema: { properties: Record<string, NativeSchemaField>; required?: string[] };
     native_request_variant: {
+        id?: string;
         protocol: string;
         path: string;
         modes: string[];
@@ -14,6 +15,24 @@ export type NativeMediaVariant = {
         native_reference_inputs: { id: string; pointer: string; role: string; transport: string; min_items?: number; max_items?: number; mime_types?: string[] }[];
     };
 };
+
+export function nativeMediaVariantOptions(variants: NativeMediaVariant[]) {
+    const roleLabels: Record<string, string> = { first_frame: "首帧", last_frame: "尾帧", reference_image: "参考图片", reference_video: "参考视频", reference_audio: "参考音频", mask: "蒙版" };
+    const options = variants.map((variant) => {
+        const refs = (variant.native_request_variant.native_reference_inputs || []).filter((ref) => ref.max_items !== 0);
+        const references = refs
+            .map((ref) => {
+                const name = roleLabels[ref.role] || ref.role;
+                const required = (ref.min_items || 0) > 0;
+                const count = ref.max_items && ref.max_items > 1 ? `，最多 ${ref.max_items} 个` : "";
+                return `${name}（${required ? "必填" : "可选"}${count}）`;
+            })
+            .join(" + ");
+        const mode = references || (variant.gateway_protocol.endsWith(".video") ? "文生视频" : "无参考素材");
+        return { value: variant.id, label: `${variant.gateway_protocol} · ${mode}` };
+    });
+    return options.map((option, i) => (options.some((other, j) => j !== i && other.label === option.label) ? { ...option, label: `${option.label} · ${variants[i].native_request_variant.id || option.value}` } : option));
+}
 
 export function nativeMediaProfile(config: AiConfig, model = config.model) {
     const source = resolveModelChannel(config, model).modelCosts?.find((item) => item.model === modelOptionName(model))?.platform?.media_generation_profile;
