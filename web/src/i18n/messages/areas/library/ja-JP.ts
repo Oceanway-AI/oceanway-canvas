@@ -110,6 +110,8 @@ export const jaJP: DeepStringRecord<typeof zhCN> = {
             model: "モデル",
             attempts: "試行回数",
             attemptValue: "{{count}} 回目",
+            processingCount: "処理回数",
+            processingCountValue: "{{count}} 回（状態確認を含む）",
             createdAt: "作成日時",
             startedAt: "開始日時",
             completedAt: "完了日時",

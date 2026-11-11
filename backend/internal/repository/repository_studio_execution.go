@@ -14,6 +14,12 @@ func (r *Repository) StudioExecution(userID, taskID string) (*model.StudioExecut
 	return &v, err
 }
 
+func (r *Repository) StudioExecutionResponses(userID string, taskIDs []string) ([]model.StudioExecution, error) {
+	var rows []model.StudioExecution
+	err := r.db.Select("task_id", "response_encrypted").Where("user_id = ? AND task_id IN ?", userID, taskIDs).Find(&rows).Error
+	return rows, err
+}
+
 func (r *Repository) CreateStudioExecution(v model.StudioExecution) (*model.StudioExecution, error) {
 	if err := r.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&v).Error; err != nil {
 		return nil, err

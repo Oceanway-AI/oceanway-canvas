@@ -102,13 +102,17 @@ function TaskDetailContent({
     const mediaUrls = resultMediaUrls(task.resultJson);
     const title = task.prompt || t("library.tasks.row.untitled");
     const parameters = taskParameterFields(task.inputJson);
+    const platformMedia = task.provider === "platform" && (task.type === "canvas_image" || task.type === "canvas_video");
     const facts: Array<{ label: string; value: string }> = [
         { label: t("library.tasks.detail.status"), value: generationTaskStatusLabel(task) },
         ...(task.mediaStage ? [{ label: t("library.tasks.detail.delivery"), value: mediaDeliverySummary(task.status, task.mediaStage) }] : []),
         { label: t("library.tasks.detail.canvas"), value: canvasName },
         { label: t("library.tasks.detail.kind"), value: formatTaskKind(task) },
         { label: t("library.tasks.detail.model"), value: modelName },
-        { label: t("library.tasks.detail.attempts"), value: t("library.tasks.detail.attemptValue", { count: task.attempts || 1 }) },
+        {
+            label: t(platformMedia ? "library.tasks.detail.processingCount" : "library.tasks.detail.attempts"),
+            value: t(platformMedia ? "library.tasks.detail.processingCountValue" : "library.tasks.detail.attemptValue", { count: platformMedia ? task.attempts || 0 : task.attempts || 1 }),
+        },
         { label: t("library.tasks.detail.createdAt"), value: formatDate(task.createdAt) },
         { label: t("library.tasks.detail.startedAt"), value: formatDate(task.startedAt) },
         { label: t("library.tasks.detail.completedAt"), value: formatDate(task.completedAt) },

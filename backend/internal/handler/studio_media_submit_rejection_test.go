@@ -89,7 +89,7 @@ func TestStudioMediaInitialRejectionRequiresOriginalNoExecutionReceipt(t *testin
 				t.Fatal("leaked upstream diagnostic")
 			}
 			if mode == "definite" || mode == "stored_rejection" {
-				if task.Status != model.TaskStatusFailed || execution.State != "completed" || execution.ResponseEncrypted == "" || recovers != 0 || !strings.Contains(task.ExecutionDiagnosticJSON, "rejected_without_execution") {
+				if task.Status != model.TaskStatusFailed || task.Stage != "未执行生成" || execution.State != "completed" || execution.ResponseEncrypted == "" || recovers != 0 || !strings.Contains(task.ExecutionDiagnosticJSON, "rejected_without_execution") {
 					t.Fatalf("explicit reject not terminal: %s %s recovery=%d", task.Status, execution.State, recovers)
 				}
 			} else {
@@ -194,6 +194,25 @@ func TestStudioMediaCachedUnknownRecoversOriginalFailure(t *testing.T) {
 				}
 				if (mode == "no_execution") != strings.Contains(task.Error, "未执行生成") || strings.Contains(task.Error, "退款") {
 					t.Fatalf("execution/financial fact invented: %s", task.Error)
+				}
+				if mode == "no_execution" {
+					if task.Stage != "未执行生成" || !strings.Contains(task.ExecutionDiagnosticJSON, "rejected_without_execution") || strings.Contains(task.ExecutionDiagnosticJSON, "recover_original") {
+						t.Fatal("original waiting diagnostic was not replaced by the proven rejection")
+					}
+					// A list/detail read derives the current display from the persisted
+					// authenticated receipt, without rewriting task or billing records.
+					if err := f.db.Model(&model.Task{}).Where("id = ?", task.ID).Updates(map[string]any{"stage": "原任务待核对", "execution_diagnostic_json": `{"code":"media_submit_http_503","safeMessage":"正在查询原请求"}`}).Error; err != nil {
+						t.Fatal(err)
+					}
+					for _, path := range []string{"/api/tasks", "/api/tasks/" + task.ID} {
+						output := f.request(t, "GET", path, "platform_session=alice", "", 200).Body.String()
+						if !strings.Contains(output, `"stage":"未执行生成"`) || strings.Contains(output, "原任务待核对") || strings.Contains(output, `"billing":`) || strings.Contains(output, "退款") {
+							t.Fatalf("inaccurate public task outcome: %s", output)
+						}
+					}
+					if err := f.db.First(&task, "id = ?", task.ID).Error; err != nil || task.Stage != "原任务待核对" {
+						t.Fatal("read projection changed the stored task")
+					}
 				}
 			} else if task.Status != model.TaskStatusRunning || execution.State != "submitted" || execution.ResponseEncrypted != cached {
 				t.Fatal("unrelated receipt replaced the frozen original task")

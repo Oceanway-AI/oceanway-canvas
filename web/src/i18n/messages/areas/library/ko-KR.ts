@@ -110,6 +110,8 @@ export const koKR: DeepStringRecord<typeof zhCN> = {
             model: "모델",
             attempts: "시도 횟수",
             attemptValue: "{{count}}번째",
+            processingCount: "처리 횟수",
+            processingCountValue: "{{count}}회 (상태 조회 포함)",
             createdAt: "생성 시간",
             startedAt: "시작 시간",
             completedAt: "완료 시간",

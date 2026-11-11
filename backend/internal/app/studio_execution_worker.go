@@ -156,13 +156,22 @@ func (s *Service) deferStudioTask(task *model.Task) error {
 }
 
 func (s *Service) failStudioTask(task *model.Task, message string) error {
+	return s.failStudioTaskWithState(task, "原任务待核对", message, "")
+}
+
+func (s *Service) failStudioTaskWithState(task *model.Task, stage, message, diagnostic string) error {
 	return s.repo.Transaction(func(repo *repository.Repository) error {
-		changed, err := repo.UpdateTaskTerminalState(task.ID, task.LeaseOwner, model.TaskStatusRunning, model.TaskStatusFailed, "原任务待核对", message, time.Now())
+		changed, err := repo.UpdateTaskTerminalState(task.ID, task.LeaseOwner, model.TaskStatusRunning, model.TaskStatusFailed, stage, message, time.Now())
 		if err != nil {
 			return err
 		}
 		if !changed {
 			return repository.ErrTaskStateConflict
+		}
+		if diagnostic != "" {
+			if err := repo.UpdateTaskExecutionDiagnostic(task.UserID, task.ID, diagnostic); err != nil {
+				return err
+			}
 		}
 		return repo.CompleteStudioExecution(task.ID)
 	})

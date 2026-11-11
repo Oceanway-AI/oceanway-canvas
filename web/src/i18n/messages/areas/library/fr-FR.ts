@@ -110,6 +110,8 @@ export const frFR: DeepStringRecord<typeof zhCN> = {
             model: "Modèle",
             attempts: "Tentatives",
             attemptValue: "Tentative {{count}}",
+            processingCount: "Cycles de traitement",
+            processingCountValue: "{{count}} (vérifications d’état comprises)",
             createdAt: "Créée le",
             startedAt: "Démarrée le",
             completedAt: "Terminée le",

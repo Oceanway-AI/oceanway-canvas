@@ -109,6 +109,8 @@ export const zhCN = {
             model: "模型",
             attempts: "尝试次数",
             attemptValue: "第 {{count}} 次",
+            processingCount: "处理次数",
+            processingCountValue: "{{count}} 次（含状态查询）",
             createdAt: "创建时间",
             startedAt: "开始时间",
             completedAt: "完成时间",

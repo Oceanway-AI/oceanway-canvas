@@ -49,7 +49,7 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 				if err := s.repo.SaveStudioExecutionResponse(task, encrypted); err != nil {
 					return err
 				}
-				return s.failStudioTask(task, "平台已拒绝原请求，未执行生成；请核对参数与报价")
+				return s.failStudioMediaRejected(task)
 			}
 			return s.deferStudioTask(task)
 		}
@@ -77,7 +77,7 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		}
 	}
 	if studioMediaRejected(receipt, envelope.RequestID) {
-		return s.failStudioTask(task, "平台已拒绝原请求，未执行生成；请核对参数与报价")
+		return s.failStudioMediaRejected(task)
 	}
 	if receipt.Status == "FAILURE" {
 		return s.failStudioTask(task, "平台原任务生成失败；费用状态以平台原任务记录为准")
@@ -141,6 +141,13 @@ func studioMediaReceiptMatches(receipt platformclient.MediaRecovery, requestID, 
 	return receipt.Version == "oceanway.media-request.v1" && receipt.RequestID == requestID && (taskID == "" || receipt.TaskID == taskID)
 }
 
+const studioMediaRejectedStage = "未执行生成"
+const studioMediaRejectedMessage = "平台已拒绝原请求，未执行生成；请核对参数与报价"
+
+func (s *Service) failStudioMediaRejected(task *model.Task) error {
+	return s.failStudioTaskWithState(task, studioMediaRejectedStage, studioMediaRejectedMessage, studioMediaSubmissionDiagnostic(nil, true, task.ID))
+}
+
 // HTTP status does not prove that no paid request was sent. Only an explicit
 // Platform receipt for this exact frozen request may end recovery as rejected.
 func studioMediaRejected(receipt platformclient.MediaRecovery, requestID string) bool {
@@ -166,7 +173,7 @@ func studioMediaSubmissionDiagnostic(response *platformclient.Response, rejected
 	}
 	if rejected {
 		code, outcome, retry = "media_rejected_without_execution", "rejected", "review_request"
-		message = "平台已拒绝原请求，未执行生成；请核对参数与报价"
+		message = studioMediaRejectedMessage
 	}
 	value, _ := json.Marshal(model.TaskExecutionDiagnostic{Code: code, Phase: "submission", SubmissionOutcome: outcome, RetryClass: retry, SafeMessage: message, DiagnosticID: taskID})
 	return string(value)

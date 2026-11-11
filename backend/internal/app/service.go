@@ -288,6 +288,9 @@ func (s *Service) TasksWithOptions(userID string, options TaskListOptions) ([]Ta
 		return nil, err
 	}
 	if s.UsesPlatformIdentity() {
+		if err := s.projectStudioMediaFailures(userID, tasks); err != nil {
+			return nil, err
+		}
 		return taskSummariesForOutput(tasks), nil
 	}
 	orders, err := s.repo.BillingOrdersByTaskIDs(userID, taskBillingTaskIDs(tasks))
@@ -323,6 +326,13 @@ func (s *Service) Task(userID string, id string) (*model.Task, error) {
 	task, err := s.repo.TaskForUser(userID, id)
 	if err != nil {
 		return nil, err
+	}
+	if s.UsesPlatformIdentity() {
+		items := []model.Task{*task}
+		if err := s.projectStudioMediaFailures(userID, items); err != nil {
+			return nil, err
+		}
+		*task = items[0]
 	}
 	s.hydrateTaskProviderRequestID(task)
 	return taskForOutput(*task), nil
