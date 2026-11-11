@@ -33,7 +33,7 @@ func (s *Service) StudioConsoleURL() string {
 	if s.studioPlatform == nil {
 		return ""
 	}
-	return s.studioPlatform.Origin()
+	return s.studioPlatform.BrowserOrigin()
 }
 
 func (s *Service) ValidateStudioRequest(r *http.Request) error {

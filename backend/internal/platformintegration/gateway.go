@@ -16,12 +16,13 @@ import (
 // Gateway keeps the published SDK and anonymous login-return contract together.
 // Login preparation never carries a product key or browser cookies.
 type Gateway struct {
-	Client       *platformclient.Client
-	origin       string
-	publicOrigin string
-	hosts        []string
-	origins      []string
-	http         *http.Client
+	Client        *platformclient.Client
+	origin        string
+	browserOrigin string
+	publicOrigin  string
+	hosts         []string
+	origins       []string
+	http          *http.Client
 }
 
 func NewGatewayFromEnv(getenv func(string) string) (*Gateway, error) {
@@ -39,11 +40,22 @@ func NewGatewayFromEnv(getenv func(string) string) (*Gateway, error) {
 	if !contains(hosts, u.Host) || !contains(origins, publicOrigin) {
 		return nil, errors.New("Studio public origin must match its registered session host and origin")
 	}
-	return &Gateway{Client: client, origin: strings.TrimRight(strings.TrimSpace(getenv("STUDIO_PLATFORM_ORIGIN")), "/"), publicOrigin: publicOrigin,
+	origin := strings.TrimSpace(getenv("STUDIO_PLATFORM_ORIGIN"))
+	browserOrigin := strings.TrimSpace(getenv("STUDIO_PLATFORM_BROWSER_ORIGIN"))
+	if browserOrigin == "" {
+		browserOrigin = origin
+	} else {
+		target, err := url.Parse(browserOrigin)
+		if err != nil || target.Scheme != "https" || target.Hostname() == "" || target.User != nil || target.Path != "" || strings.ContainsAny(browserOrigin, "?#") {
+			return nil, errors.New("STUDIO_PLATFORM_BROWSER_ORIGIN must be an exact HTTPS origin")
+		}
+	}
+	return &Gateway{Client: client, origin: origin, browserOrigin: browserOrigin, publicOrigin: publicOrigin,
 		hosts: hosts, origins: origins, http: &http.Client{Timeout: 15 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 
-func (g *Gateway) Origin() string { return g.origin }
+func (g *Gateway) Origin() string        { return g.origin }
+func (g *Gateway) BrowserOrigin() string { return g.browserOrigin }
 
 func (g *Gateway) ValidateInbound(r *http.Request) error {
 	if !contains(g.hosts, r.Host) {
@@ -116,5 +128,5 @@ func (g *Gateway) LoginURL(ctx context.Context) (string, error) {
 	if err != nil || len(query) != 1 || len(query["return"]) != 1 || query.Get("return") != callback {
 		return "", errors.New("invalid Platform login query")
 	}
-	return g.origin + "/login?" + url.Values{"return": {callback}}.Encode(), nil
+	return g.BrowserOrigin() + "/login?" + url.Values{"return": {callback}}.Encode(), nil
 }

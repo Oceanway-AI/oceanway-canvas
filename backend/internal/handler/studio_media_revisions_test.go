@@ -118,7 +118,7 @@ func TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions(t *testing.T) {
 					if !strings.HasSuffix(r.URL.Path, "/"+requestID) {
 						t.Error("recovered a new request")
 					}
-					respond(map[string]any{"success": true, "data": platformclient.MediaRecovery{RequestID: requestID, Status: "FAILURE", NoExecution: true}})
+					respond(map[string]any{"success": true, "data": platformclient.MediaRecovery{Version: "oceanway.media-request.v1", RequestID: requestID, Status: "FAILURE", NoExecution: true}})
 				case strings.HasSuffix(r.URL.Path, "/release"):
 					w.WriteHeader(204)
 				default:

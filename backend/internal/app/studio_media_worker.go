@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
 
@@ -28,7 +30,24 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		if first {
 			// Native synchronous responses can be large. Even a lost response is
 			// recovered through the original receipt; no transient URL is adopted.
-			_, _ = s.studioPlatform.Client.SubmitMedia(ctx, exec, platformclient.MediaRequest{Route: envelope.Selection.MediaRoute, RequestID: envelope.RequestID, ContentType: envelope.ContentType, ModelAction: envelope.Selection.Name + ":generateContent", Body: envelope.Body, Consumption: envelope.Consumption, PreferAsync: envelope.Selection.PreferAsync})
+			submitted, submitErr := s.studioPlatform.Client.SubmitMedia(ctx, exec, platformclient.MediaRequest{Route: envelope.Selection.MediaRoute, RequestID: envelope.RequestID, ContentType: envelope.ContentType, ModelAction: envelope.Selection.Name + ":generateContent", Body: envelope.Body, Consumption: envelope.Consumption, PreferAsync: envelope.Selection.PreferAsync})
+			rejection, rejected := studioMediaSubmissionRejection(submitted, envelope.RequestID)
+			if submitErr != nil || rejected {
+				diagnostic := studioMediaSubmissionDiagnostic(submitted, rejected, task.ID)
+				if err := s.repo.UpdateTaskExecutionDiagnostic(task.UserID, task.ID, diagnostic); err != nil {
+					return err
+				}
+			}
+			if rejected {
+				encrypted, err := s.encryptStudioValue(rejection)
+				if err != nil {
+					return err
+				}
+				if err := s.repo.SaveStudioExecutionResponse(task, encrypted); err != nil {
+					return err
+				}
+				return s.failStudioTask(task, "平台已拒绝原请求，未执行生成；请核对参数与报价")
+			}
 			return s.deferStudioTask(task)
 		}
 		recovered, err := s.studioPlatform.Client.RecoverMedia(ctx, exec, envelope.RequestID)
@@ -39,8 +58,15 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		if receipt.RequestID != envelope.RequestID {
 			return s.deferStudioTask(task)
 		}
-		if receipt.Status == "FAILURE" && receipt.NoExecution {
-			return s.failStudioTask(task, "平台拒绝了原生成请求，请刷新参数与报价")
+		if studioMediaRejected(receipt, envelope.RequestID) {
+			encrypted, err := s.encryptStudioValue(receipt)
+			if err != nil {
+				return err
+			}
+			if err := s.repo.SaveStudioExecutionResponse(task, encrypted); err != nil {
+				return err
+			}
+			return s.failStudioTask(task, "平台已拒绝原请求，未执行生成；请核对参数与报价")
 		}
 		if !receipt.TaskAvailable || receipt.TaskID == "" {
 			return s.deferStudioTask(task)
@@ -52,6 +78,9 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		if err := s.repo.SaveStudioExecutionResponse(task, encrypted); err != nil {
 			return err
 		}
+	}
+	if studioMediaRejected(receipt, envelope.RequestID) {
+		return s.failStudioTask(task, "平台已拒绝原请求，未执行生成；请核对参数与报价")
 	}
 	m := s.studioPlatform.Client.WorkerMaterials(platformclient.MaterialContext{ExecutionAuthorization: exec.Authorization})
 	outputs, err := m.TaskOutputs(ctx, receipt.TaskID)
@@ -103,4 +132,35 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		result["video"] = media[0]
 	}
 	return s.completeStudioTask(ctx, task, result)
+}
+
+// HTTP status does not prove that no paid request was sent. Only an explicit
+// Platform receipt for this exact frozen request may end recovery as rejected.
+func studioMediaRejected(receipt platformclient.MediaRecovery, requestID string) bool {
+	return requestID != "" && receipt.Version == "oceanway.media-request.v1" && receipt.RequestID == requestID && receipt.Status == "FAILURE" && receipt.NoExecution
+}
+
+func studioMediaSubmissionRejection(response *platformclient.Response, requestID string) (platformclient.MediaRecovery, bool) {
+	var result struct {
+		Data platformclient.MediaRecovery `json:"data"`
+	}
+	if response == nil || json.Unmarshal(response.Body, &result) != nil || !studioMediaRejected(result.Data, requestID) {
+		return platformclient.MediaRecovery{}, false
+	}
+	return result.Data, true
+}
+
+func studioMediaSubmissionDiagnostic(response *platformclient.Response, rejected bool, taskID string) string {
+	code, outcome, retry := "media_submit_outcome_unknown", "unknown", "recover_original"
+	message := "提交结果待核对，正在查询平台原请求，请勿重复生成"
+	if response != nil && response.StatusCode >= 100 && response.StatusCode <= 599 {
+		code = fmt.Sprintf("media_submit_http_%d", response.StatusCode)
+		message = fmt.Sprintf("平台提交返回 HTTP %d，正在核对原请求，请勿重复生成", response.StatusCode)
+	}
+	if rejected {
+		code, outcome, retry = "media_rejected_without_execution", "rejected", "review_request"
+		message = "平台已拒绝原请求，未执行生成；请核对参数与报价"
+	}
+	value, _ := json.Marshal(model.TaskExecutionDiagnostic{Code: code, Phase: "submission", SubmissionOutcome: outcome, RetryClass: retry, SafeMessage: message, DiagnosticID: taskID})
+	return string(value)
 }
