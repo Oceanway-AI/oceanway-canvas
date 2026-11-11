@@ -28,7 +28,8 @@ describe("media fallback", () => {
         // 放大预览留在页面；详情弹窗的结果大图和缩略图各用一次。
         expect(page.match(/<MediaPreview/g)).toHaveLength(1);
         expect(page).toContain('fallbackClassName="task-center-preview-unavailable"');
-        expect(detail.match(/<MediaPreview/g)).toHaveLength(2);
+        expect(detail.match(/<TaskResultPreview/g)).toHaveLength(2);
+        expect(detail.match(/<MediaPreview/g)).toHaveLength(1);
         expect(detail).toContain('fallbackClassName="task-detail-stage-unavailable"');
     });
 

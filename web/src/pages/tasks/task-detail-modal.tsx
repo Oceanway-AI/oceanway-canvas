@@ -1,6 +1,6 @@
 import { App, Button } from "antd";
 import { AlertCircle, Bug, Copy, Maximize2, RefreshCw, RotateCcw, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MediaPreview } from "@/components/media-preview";
@@ -10,7 +10,10 @@ import { currentLocale, translate } from "@/i18n";
 import { generationErrorMessage } from "@/lib/generation-error";
 import { formatTaskKind, generationTaskShowsProgress, generationTaskStageLabel, generationTaskStatusLabel, mediaDeliverySummary } from "@/lib/generation-task-display";
 import { progressFillStyle } from "@/lib/progress-fill";
+import { getActiveUserScope } from "@/lib/user-scope";
+import { getResourceAccess, resolveResourceAccessURL, type ResourceAccessVariant } from "@/services/api/resources";
 import { formatTaskLog, type GenerationTask, type TaskLog } from "@/services/api/task-center";
+import { taskResultMedia, taskResultMediaAccess, type TaskResultMedia } from "./task-result-media";
 import { isTaskActive, isTaskFailed, isTaskRetryBlocked, providerCancelStatusLabel, taskAttentionReason, TaskBilling, taskKindIcon, TaskStatusPill, taskTone } from "./task-shared";
 
 type TaskDetailModalProps = {
@@ -99,7 +102,7 @@ function TaskDetailContent({
     const failed = isTaskFailed(task);
     const retryBlocked = isTaskRetryBlocked(task);
     const stageLabel = generationTaskStageLabel(task);
-    const mediaUrls = resultMediaUrls(task.resultJson);
+    const media = taskResultMedia(task);
     const title = task.prompt || t("library.tasks.row.untitled");
     const parameters = taskParameterFields(task.inputJson);
     const platformMedia = task.provider === "platform" && (task.type === "canvas_image" || task.type === "canvas_video");
@@ -165,10 +168,10 @@ function TaskDetailContent({
                         </div>
                     ) : null}
 
-                    {mediaUrls.length ? (
+                    {media.length ? (
                         <section className="task-detail-section">
                             <h3>{t("library.tasks.detail.generated")}</h3>
-                            <TaskResultGallery urls={mediaUrls} taskType={task.type} title={title} onPreview={onPreviewMedia} />
+                            <TaskResultGallery items={media} title={title} onPreview={onPreviewMedia} />
                         </section>
                     ) : task.status === "succeeded" && /image|video/.test(task.type) ? (
                         <section className="task-detail-section">
@@ -290,26 +293,36 @@ function TaskDetailContent({
 }
 
 /** 结果画廊：大图 + 缩略图切换；图片可再放大预览，视频直接带控件播放。 */
-function TaskResultGallery({ urls, taskType, title, onPreview }: { urls: string[]; taskType: string; title: string; onPreview: (media: { url: string; kind: "image" | "video"; title: string }) => void }) {
+function TaskResultGallery({ items, title, onPreview }: { items: TaskResultMedia[]; title: string; onPreview: (media: { url: string; kind: "image" | "video"; title: string }) => void }) {
     const { t } = useTranslation();
+    const { message } = App.useApp();
     const [index, setIndex] = useState(0);
-    const current = urls[Math.min(index, urls.length - 1)];
-    const currentIsVideo = isVideoResult(current, taskType);
+    const current = items[Math.min(index, items.length - 1)];
+    const currentIsVideo = current.kind === "video";
+    const openOriginal = async () => {
+        const scope = getActiveUserScope();
+        try {
+            const url = await taskResultMediaAccess(current, "original", getResourceAccess);
+            if (scope === getActiveUserScope()) onPreview({ url: resolveResourceAccessURL(url), kind: current.kind, title });
+        } catch {
+            message.error(t("library.tasks.row.previewUnavailable"));
+        }
+    };
     return (
         <div className="task-detail-gallery">
             <div className="task-detail-stage">
-                <MediaPreview key={current} src={current} kind={currentIsVideo ? "video" : "image"} alt={t("library.tasks.detail.generatedItem", { index: index + 1 })} controls={currentIsVideo} fallbackClassName="task-detail-stage-unavailable" />
+                <TaskResultPreview key={current.key} item={current} variant={currentIsVideo ? "playback" : "preview"} alt={t("library.tasks.detail.generatedItem", { index: index + 1 })} controls={currentIsVideo} />
                 {!currentIsVideo ? (
-                    <button type="button" className="task-detail-zoom" aria-label={t("library.tasks.row.previewImage")} title={t("library.tasks.row.previewImage")} onClick={() => onPreview({ url: current, kind: "image", title })}>
+                    <button type="button" className="task-detail-zoom" aria-label={t("library.tasks.row.previewImage")} title={t("library.tasks.row.previewImage")} onClick={() => void openOriginal()}>
                         <Maximize2 aria-hidden="true" />
                     </button>
                 ) : null}
             </div>
-            {urls.length > 1 ? (
+            {items.length > 1 ? (
                 <div className="task-detail-thumbs" role="group" aria-label={t("library.tasks.detail.generated")}>
-                    {urls.map((url, itemIndex) => (
-                        <button key={`${url}-${itemIndex}`} type="button" aria-pressed={itemIndex === index} aria-label={t("library.tasks.detail.generatedItem", { index: itemIndex + 1 })} onClick={() => setIndex(itemIndex)}>
-                            <MediaPreview src={url} kind={isVideoResult(url, taskType) ? "video" : "image"} loading="lazy" fallbackLabel={t("library.tasks.row.previewUnavailable")} />
+                    {items.map((item, itemIndex) => (
+                        <button key={item.key} type="button" aria-pressed={itemIndex === index} aria-label={t("library.tasks.detail.generatedItem", { index: itemIndex + 1 })} onClick={() => setIndex(itemIndex)}>
+                            <TaskResultPreview item={item} variant="thumbnail" alt={t("library.tasks.detail.generatedItem", { index: itemIndex + 1 })} />
                         </button>
                     ))}
                 </div>
@@ -318,36 +331,32 @@ function TaskResultGallery({ urls, taskType, title, onPreview }: { urls: string[
     );
 }
 
+function TaskResultPreview({ item, variant, alt, controls = false }: { item: TaskResultMedia; variant: ResourceAccessVariant; alt: string; controls?: boolean }) {
+    const { t } = useTranslation();
+    const scope = getActiveUserScope();
+    const identity = `${scope}:${item.key}:${variant}`;
+    const [resolved, setResolved] = useState<{ identity: string; url: string; failed?: boolean }>();
+    const { key, resourceId, url, kind } = item;
+    useEffect(() => {
+        let cancelled = false;
+        void taskResultMediaAccess({ key, resourceId, url, kind }, variant, getResourceAccess)
+            .then((value) => {
+                if (!cancelled && scope === getActiveUserScope()) setResolved({ identity, url: resolveResourceAccessURL(value) });
+            })
+            .catch(() => {
+                if (!cancelled && scope === getActiveUserScope()) setResolved({ identity, url: "", failed: true });
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [identity, key, resourceId, url, kind, variant, scope]);
+    if (resolved?.identity !== identity) return <div className="task-detail-empty">{t("library.tasks.detail.loading")}</div>;
+    if (resolved.failed) return <div className="task-detail-stage-unavailable">{t("library.tasks.row.previewUnavailable")}</div>;
+    return <MediaPreview src={resolved.url} kind={variant === "thumbnail" && resourceId ? "image" : kind} alt={alt} controls={controls} fallbackClassName="task-detail-stage-unavailable" />;
+}
+
 function canQueryProviderTask(task: GenerationTask) {
     return task.status === "failed" && !task.mediaStage && (task.type.startsWith("canvas_video") || task.type.startsWith("video_")) && Boolean(task.providerRequestId);
-}
-
-function resultMediaUrls(value?: string) {
-    if (!value) return [];
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(value);
-    } catch {
-        parsed = value;
-    }
-    const urls: string[] = [];
-    const visit = (item: unknown, key = "") => {
-        if (typeof item === "string") {
-            const isInlineMedia = /^(data:image\/|data:video\/)/.test(item);
-            const isMediaPath = /\.(png|jpe?g|webp|gif|avif|mp4|webm|mov)(?:$|\?)/i.test(item);
-            const isNamedMediaUrl = /^(https?:|blob:)/.test(item) && /(url|image|video|result|output|media)/i.test(key);
-            if ((isInlineMedia || isMediaPath || isNamedMediaUrl) && !urls.includes(item)) urls.push(item);
-            return;
-        }
-        if (Array.isArray(item)) return item.forEach((value) => visit(value, key));
-        if (item && typeof item === "object") Object.entries(item).forEach(([field, value]) => visit(value, field));
-    };
-    visit(parsed);
-    return urls.slice(0, 12);
-}
-
-function isVideoResult(value: string, taskType: string) {
-    return value.startsWith("data:video/") || /\.(mp4|webm|mov)(?:$|\?)/i.test(value) || taskType.includes("video");
 }
 
 function formatDate(value?: string) {
