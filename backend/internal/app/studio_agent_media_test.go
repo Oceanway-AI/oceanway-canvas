@@ -20,7 +20,7 @@ import (
 const studioAgentMediaFixtureCatalog = `{"success":true,"data":{"items":[{"model_name":"pi-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}},{"model_name":"image-model","model_type":"image","invocation_status":"available","price":{"status":"available","version":"price-1"},"media_generation_profile":{"default_variant":"generate","variants":[{"id":"generate","protocol":"openai-images","operation":"generate","method":"POST","path":"/images/generations","defaults":{"n":1,"size":"1:1"},"specifications_schema":{"type":"object","additionalProperties":false,"properties":{"n":{"type":"integer","enum":[1]},"size":{"type":"string","enum":["1:1"]}},"required":["n","size"]},"parameter_bindings":{"n":"n","size":"size"}}]}}]}}`
 
 func TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority(t *testing.T) {
-	for _, scenario := range []string{"approve", "image_parameters", "video_const", "video_const_default", "video_const_invalid", "expired", "changed_canvas", "reject", "stopped", "missing_preview_capability", "missing_preview_connection", "missing_prepared_capability", "missing_prepared_connection", "changed_capability", "changed_connection", "missing_queued_capability", "missing_queued_connection", "submitted_legacy"} {
+	for _, scenario := range []string{"approve", "image_parameters", "video_const", "video_const_default", "video_const_invalid", "expired", "changed_canvas", "reject", "stopped", "missing_preview_capability", "missing_preview_connection", "missing_prepared_capability", "missing_prepared_connection", "changed_capability", "changed_connection", "missing_recovery_version", "missing_queued_capability", "missing_queued_connection", "submitted_legacy"} {
 		t.Run(scenario, func(t *testing.T) { studioPiMediaApprovalScenario(t, scenario) })
 	}
 }
@@ -130,8 +130,12 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 			}
 		case strings.HasPrefix(r.URL.Path, "/internal/relay/media-requests/"):
 			recoveries++
-			if scenario == "changed_capability" || scenario == "changed_connection" {
-				_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": platformclient.MediaRecovery{RequestID: strings.TrimPrefix(r.URL.Path, "/internal/relay/media-requests/"), Status: "FAILURE", NoExecution: true}})
+			if scenario == "changed_capability" || scenario == "changed_connection" || scenario == "missing_recovery_version" {
+				receipt := platformclient.MediaRecovery{Version: "oceanway.media-request.v1", RequestID: strings.TrimPrefix(r.URL.Path, "/internal/relay/media-requests/"), Status: "FAILURE", NoExecution: true}
+				if scenario == "missing_recovery_version" {
+					receipt.Version = ""
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": receipt})
 				return
 			}
 			w.WriteHeader(404)
@@ -331,7 +335,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if quotes != 1 || issues != 1 {
 		t.Fatalf("unexpected quote/grant count %d/%d", quotes, issues)
 	}
-	if scenario == "changed_capability" {
+	if scenario == "changed_capability" || scenario == "missing_recovery_version" {
 		currentCapability = strings.Repeat("b", 64)
 	}
 	if scenario == "changed_connection" {
@@ -361,6 +365,16 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 		if err := s.ProcessNextTask(); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if scenario == "missing_recovery_version" {
+		task, err := s.repo.Task(state.MediaTaskID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if task.Status != model.TaskStatusRunning || quotes != 1 || issues != 1 || submits != 1 || recoveries != 2 {
+			t.Fatalf("unversioned rejection must keep querying the original request without resubmission: status=%s quote/grant/submit/recovery=%d/%d/%d/%d", task.Status, quotes, issues, submits, recoveries)
+		}
+		return
 	}
 	if strings.HasPrefix(scenario, "missing_queued_") || strings.HasPrefix(scenario, "changed_") || scenario == "submitted_legacy" {
 		task, err := s.repo.Task(state.MediaTaskID)

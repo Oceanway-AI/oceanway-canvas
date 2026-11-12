@@ -169,7 +169,7 @@ func testStudioPiRuntimeToolRoundTrip(t *testing.T, media bool) {
 			w.WriteHeader(503)
 		case strings.HasPrefix(r.URL.Path, "/internal/relay/media-requests/"):
 			mediaRecovers++
-			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": platformclient.MediaRecovery{RequestID: strings.TrimPrefix(r.URL.Path, "/internal/relay/media-requests/"), Status: "FAILURE", NoExecution: true}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": platformclient.MediaRecovery{Version: "oceanway.media-request.v1", RequestID: strings.TrimPrefix(r.URL.Path, "/internal/relay/media-requests/"), Status: "FAILURE", NoExecution: true}})
 		case r.URL.Path == "/internal/relay/chat/completions":
 			if r.Header.Get("X-Platform-Execution-Authorization") != "exa_native_pi" || r.Header.Get("Cookie") != "" {
 				t.Error("incorrect Pi worker authority")

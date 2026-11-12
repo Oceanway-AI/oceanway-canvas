@@ -2053,6 +2053,14 @@
             ],
             "type": "string"
           },
+          "nativeParameters": {
+            "description": "平台图片/视频原生参数 JSON 对象字符串，键使用目录原生规格声明的 JSON Pointer；保留原生值类型，不添加提示词、模型或素材字段",
+            "type": "string"
+          },
+          "nativeVariantId": {
+            "description": "平台目录发布的协议选项 ID；切换选项时重新使用该选项的参数和默认值",
+            "type": "string"
+          },
           "nodeId": {
             "description": "续用草稿时填真实ID；新建可省略，由执行器生成稳定ID",
             "type": "string"
