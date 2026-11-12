@@ -29,6 +29,11 @@ func (s *Service) projectStudioMediaFailures(userID string, tasks []model.Task) 
 			continue
 		}
 		task := &tasks[indexes[row.TaskID]]
+		if receipt.Error != nil {
+			task.Stage = studioMediaRejectedStage
+			task.Error, task.ExecutionDiagnosticJSON = studioMediaFailureDiagnostic(task.ID, receipt.Error, false)
+			continue
+		}
 		task.Stage, task.Error = studioMediaRejectedStage, studioMediaRejectedMessage
 		task.ExecutionDiagnosticJSON = studioMediaSubmissionDiagnostic(nil, true, task.ID)
 	}

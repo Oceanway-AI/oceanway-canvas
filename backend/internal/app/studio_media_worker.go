@@ -49,6 +49,9 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 				if err := s.repo.SaveStudioExecutionResponse(task, encrypted); err != nil {
 					return err
 				}
+				if rejection.Error != nil {
+					return s.failStudioMedia(task, rejection.Error, false)
+				}
 				return s.failStudioMediaRejected(task)
 			}
 			return s.deferStudioTask(task)
@@ -77,10 +80,13 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		}
 	}
 	if studioMediaRejected(receipt, envelope.RequestID) {
+		if receipt.Error != nil {
+			return s.failStudioMedia(task, receipt.Error, false)
+		}
 		return s.failStudioMediaRejected(task)
 	}
 	if receipt.Status == "FAILURE" {
-		return s.failStudioTask(task, "平台原任务生成失败；费用状态以平台原任务记录为准")
+		return s.failStudioMedia(task, receipt.Error, true)
 	}
 	if receipt.Status != "SUCCESS" || !receipt.TaskAvailable || receipt.TaskID == "" {
 		return s.deferStudioTask(task)
@@ -95,9 +101,17 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		return s.failStudioTask(task, "平台原任务生成失败，请核对任务记录")
 	}
 	if state.MaterialState == "output_contract_violation" || state.MaterialState == "delivery_expired" {
-		return s.failStudioTask(task, "平台原产物交付失败，请核对原任务")
+		failure := &platformclient.MediaFailure{Code: state.MaterialState, Category: "platform", Source: "platform", Stage: "result_capture", Message: "原结果已过期或完整性校验失败。"}
+		if state.Error != nil {
+			failure.Code, failure.Message, failure.Category, failure.Source, failure.Stage = state.Error.Code, state.Error.Message, state.Error.Category, state.Error.Source, state.Error.Stage
+		}
+		return s.failStudioMedia(task, failure, true)
 	}
 	if state.ExecutionState != "succeeded" || state.MaterialState != "saved" || len(state.Outputs) == 0 {
+		if state.ExecutionState == "succeeded" && state.Error != nil {
+			state.Error.Recovery = state.Recovery
+			return s.deferStudioMediaArchive(task, state.Error)
+		}
 		return s.deferStudioTask(task)
 	}
 	sort.Slice(state.Outputs, func(i, j int) bool { return state.Outputs[i].Index < state.Outputs[j].Index })
@@ -121,7 +135,7 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		}
 		resource, err := c.adopt(a, StudioResourceMeta{})
 		if err != nil {
-			return s.deferStudioTask(task)
+			return s.deferStudioMediaArchive(task, &platformclient.MaterialError{Code: "product_save_failed", Message: "原素材已保存，产品引用登记暂未完成。", Category: "platform", Source: "product", Stage: "product_save"})
 		}
 		media = append(media, map[string]any{"dataUrl": "/api/resources/" + resource.ID + "/file", "storageKey": "resource:" + resource.ID, "mimeType": resource.MimeType, "bytes": resource.Size})
 	}
@@ -134,6 +148,8 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		}
 		result["video"] = media[0]
 	}
+	// A recovered archive must not keep an active failure on a successful task.
+	task.ExecutionDiagnosticJSON = ""
 	return s.completeStudioTask(ctx, task, result)
 }
 

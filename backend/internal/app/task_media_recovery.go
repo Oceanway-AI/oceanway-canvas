@@ -353,6 +353,9 @@ func (s *Service) RecoverTaskMedia(userID, id string) (*model.Task, error) {
 	if err != nil {
 		return nil, err
 	}
+	if task.Provider == "platform" {
+		return s.recoverStudioMediaArchive(task)
+	}
 	if task.MediaRecoveryJSON == "" {
 		return nil, BadAuthRequest("该任务没有可恢复的作品，请先核对上游结果")
 	}
