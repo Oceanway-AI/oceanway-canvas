@@ -45,6 +45,8 @@ github.com/Oceanway-AI/oceanway-platform/platformclient v0.1.0-rc.7 h1:ECHq8oAig
 github.com/Oceanway-AI/oceanway-platform/platformclient v0.1.0-rc.7/go.mod h1:bNGb+1LnSL/X/hNdSFqXzKE5olaJAhYrJxsEwBSXZZQ=
 github.com/Oceanway-AI/oceanway-platform/platformclient v0.1.0 h1:all33OD7d9eMt5mn44FoVhY7U4EuhrB832B+lU/nmwc=
 github.com/Oceanway-AI/oceanway-platform/platformclient v0.1.0/go.mod h1:bNGb+1LnSL/X/hNdSFqXzKE5olaJAhYrJxsEwBSXZZQ=
+github.com/Oceanway-AI/oceanway-platform/platformclient v0.2.0-rc.1 h1:NHM+74pn14Q1WC+Yrl6m2MW4RqTk0TaIWdBIqIxM3L0=
+github.com/Oceanway-AI/oceanway-platform/platformclient v0.2.0-rc.1/go.mod h1:bNGb+1LnSL/X/hNdSFqXzKE5olaJAhYrJxsEwBSXZZQ=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/sarama v1.30.1/go.mod h1:hGgx05L/DiW8XYBXeJdKIN6V2QUy2H6JqME5VT1NLRw=
