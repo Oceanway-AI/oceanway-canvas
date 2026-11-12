@@ -1,0 +1,56 @@
+bun test v1.3.14 (0d9b296a)
+
+test/model-catalog-refresh.test.ts:
+(pass) model catalog refresh and session isolation [1492.01ms]
+
+test/model-picker-groups.test.ts:
+(pass) Platform groups text by series and media by logical identity through the host catalog projection [1.48ms]
+(pass) same model display name groups all channels and preserves their prices [2.89ms]
+(pass) grouping uses display name even when model keys differ, without merging channel options [0.16ms]
+(pass) catalog projection keeps promotional tags scoped to each channel model [0.08ms]
+(pass) selection and quote keep the chosen channel even when another channel is cheaper [0.53ms]
+(pass) same-channel system variants retain explicit model identity through selection, generation and quote [1.33ms]
+(pass) same-channel system variants do not borrow capabilities or reroute incompatible selections [0.65ms]
+(pass) different display names in one channel create distinct first-level groups [0.38ms]
+(pass) group metadata is stable across channel reorder and current selection [0.38ms]
+(pass) each channel keeps its own capability restrictions [0.62ms]
+(pass) managed logical models and personal channels never become system product routes [0.42ms]
+(pass) new models share 未分类 while explicit groups equal to model IDs remain intact [0.35ms]
+
+test/platform-model-presentation.test.ts:
+(pass) published ranges preserve exact decimal amounts and conditions without local repricing [0.26ms]
+(pass) no samples and disabled statistics never turn into zero percent or uncallable [0.85ms]
+(pass) reference counts remain scoped to the published protocol and variant [0.45ms]
+(pass) host forwards authoritative group health instead of choosing the first variant [2.07ms]
+
+test/platform-session-reopen.test.ts:
+(pass) 旧登录会话重开先完成 Platform 素材授权初始化，再开放工作区 [346.44ms]
+
+test/model-picker-style-source.test.ts:
+(pass) 模型行只保留选中高亮，价格使用独立的彩色标签 [2.77ms]
+(pass) 每次打开菜单都展开当前选中模型所属目录，无选中时直接展开首组双栏 [0.17ms]
+(pass) 选择模型保留菜单及行内焦点，仍可通过 Escape 和外部点击关闭 [0.14ms]
+(pass) ModelPicker 样式独立加载，所有入口继承可用高度约束 [4.76ms]
+(pass) 模型和渠道分别滚动，外层双栏不被长列表撑高 [0.64ms]
+
+test/model-picker-availability-runs.test.ts:
+(pass) 模型窗口渲染10个状态点的可用性指示条，区分成功、失败与未调用槽位 [0.62ms]
+
+test/model-picker-prices.test.tsx:
+(pass) candidate rows show their configured prices instead of applying the previous model's specifications [44.88ms]
+(pass) candidate rows do not disguise missing prices as zero [1.76ms]
+(pass) model rows preserve multiple promotional labels and colors without altering prices [5.15ms]
+(pass) video capability tag is derived from limits and precedes editable model tags [1.38ms]
+(pass) video capability tag omits zero limits while preserving editable model tags [0.78ms]
+(pass) the selected model and request estimate still require an exact specification match [6.35ms]
+(pass) text models show how many images and videos they can read, like video reference limits [1.05ms]
+(pass) text models without video understanding only show the image limit, and none when vision is off [1.09ms]
+
+test/platform-catalog.test.ts:
+(pass) Platform catalog keeps price decimals and never invents a local zero cost [0.49ms]
+(pass) Platform controls never inherit legacy capabilities or inferred limits [0.10ms]
+
+ 34 pass
+ 0 fail
+ 180 expect() calls
+Ran 34 tests across 8 files. [3.56s]

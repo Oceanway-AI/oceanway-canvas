@@ -1,0 +1,18 @@
+{
+  "platform": {
+    "controller/platform_model_presentation_studio_live_test.go": "d434ef24e198cbd792d8f8fc0cfe22742f0735ed371df486b237055e0e147b70",
+    "scripts/platform-commercial-test.py": "0590750c8fe1504c91317695e7459d560b88927a6d26577dd78ccab41d35adf1",
+    "service/platform_model_presentation.go": "f2458dbc6a5df466401515f58354fa98bd6860a25a404d0de33bfb039244001f",
+    "service/platform_product_models.go": "f32941ded6f27ac3406bde576b07d4b2a909199c9fb1d8c79af572c89db8721c",
+    "controller/platform_product_models.go": "9ad4e4efebf7de7e7e58e4fe875dab4a5cafec24fbf924766fd267c1dd3c1098"
+  },
+  "studio": {
+    "backend/internal/handler/studio_catalog_live_platform_test.go": "4995404556c297f53056c820318b6b807233fd1e9921df152888146245ae9e68",
+    "backend/internal/app/studio_catalog.go": "dfd78912a043c6aabcc27a890fe86952ac56126a0a8e10b1f07edf2485396177",
+    "backend/internal/app/model_catalog.go": "03bbeee815ec5d0f747039d779bb19dece090fa33be92d78374840567c4902e3",
+    "backend/internal/platformintegration/client.go": "8417306b0ca387f918b2f1223795d7e56db7f915063a06bd1aa0a6889f409952",
+    "backend/internal/platformintegration/gateway.go": "2207b9c400f2d920fb890aef07148e537cdff39ca240ce0a52fec4069e6bb040",
+    "backend/go.mod": "d6986753734469ee9bab13d5d1cfe14d1aafe476be8d118cbb17a8de5ae02e2e",
+    "backend/go.sum": "1298ad6be18e3570d6abe5bc100a02f906cae74905f309512b7587c51a6bd93e"
+  }
+}

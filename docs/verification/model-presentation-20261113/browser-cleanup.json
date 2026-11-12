@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-11-12T18:31:30.705963+00:00",
+  "owned_processes": [
+    9720,
+    9721
+  ],
+  "ports_closed": {
+    "19648": true,
+    "19649": true
+  },
+  "viewport_override_reset": true,
+  "shared_services_modified": false,
+  "generation_submitted": 0
+}

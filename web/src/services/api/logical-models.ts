@@ -174,6 +174,7 @@ export type ModelQuoteRequest = {
 export type ModelCatalogSource = "system" | "platform";
 
 export type PublicChannelCatalog = {
+    platformGroups?: import("@/lib/platform-models").PlatformModelGroup[];
     id: string;
     name: string;
     displayName: string;

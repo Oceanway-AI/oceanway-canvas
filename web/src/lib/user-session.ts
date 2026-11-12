@@ -20,6 +20,7 @@ import { clearResourceAccessCache } from "@/services/api/resources";
 import { clearResourceBlobCache } from "@/services/resource-blob-cache";
 import { withGenerationConsumersPaused } from "@/services/generation-consumer-lifecycle";
 import { recordDiagnosticEvent } from "@/services/diagnostics/client-diagnostics";
+import { useModelCatalogStore } from "@/stores/use-model-catalog-store";
 
 export async function switchUserStorageScope(userId?: string | null) {
     await withGenerationConsumersPaused(async () => {
@@ -34,9 +35,15 @@ export async function switchUserStorageScope(userId?: string | null) {
 }
 
 let sessionGeneration = 0;
+let hydratingCatalogGeneration: number | null = null;
+let catalogRequest: { generation: number; userId: string; promise: Promise<void> } | null = null;
 
 export async function applyUserSession(payload: AuthSessionPayload) {
     const generation = ++sessionGeneration;
+    hydratingCatalogGeneration = generation;
+    catalogRequest = null;
+    useModelCatalogStore.setState({ status: payload.user ? "loading" : "idle", error: null });
+    withUserScopedPersistenceSuppressed(() => useConfigStore.getState().mergeSystemChannels([]));
     const previousUserId = useUserStore.getState().user?.id || "";
     const nextUserId = payload.user?.id || "";
     useUserStore.getState().setHydrated(false);
@@ -109,34 +116,19 @@ async function hydrateUserSessionData(payload: AuthSessionPayload, generation: n
     if (!hasPersistedValue(plugins)) usePluginStore.setState({ installations: [], runtimeStatuses: {}, pluginStates: {} });
     if (!persistedCreationPreferences) useCreationPreferencesStore.setState({ preferences: {} });
 
+    // Rehydrated system rows are cached presentation, not current permission.
+    // Read the catalog independently of asset/project initialization.
+    useConfigStore.getState().mergeSystemChannels([]);
+    hydratingCatalogGeneration = null;
+    if (userId) void refreshCurrentSessionCatalog(generation, userId, !persistedConfig).catch(() => undefined);
+    else useModelCatalogStore.setState({ status: "idle", error: null });
+
     if (userId) {
         await initializeRemoteUserDataSession(userId);
     } else {
         resetRemoteUserDataSync();
     }
 
-    void (async () => {
-        try {
-            const catalog = await getModelCatalog();
-            if (!isCurrentSession(generation, userId)) return;
-            if (!persistedConfig) {
-                // 只有首次配置缺失时才生成能力推荐；已有配置中的空数组代表用户明确清空。
-                const initialSystemConfig = {
-                    ...defaultConfig,
-                    channels: modelCatalogChannels(catalog),
-                    imageModels: undefined,
-                    videoModels: undefined,
-                    textModels: undefined,
-                    audioModels: undefined,
-                };
-                useConfigStore.getState().replaceConfig(normalizeConfigSnapshot({ config: initialSystemConfig }).config);
-            } else {
-                useConfigStore.getState().mergeSystemChannels(modelCatalogChannels(catalog));
-            }
-        } catch (error) {
-            if (isCurrentSession(generation, userId)) console.warn("模型目录后台刷新失败，保留本地配置", error);
-        }
-    })();
     if (isCurrentSession(generation, userId)) {
         recordDiagnosticEvent({
             category: "navigation",
@@ -169,9 +161,55 @@ function safeScopedStorageGet(key: string) {
     }
 }
 
-export async function refreshSystemChannels() {
-    const catalog = await getModelCatalog();
-    useConfigStore.getState().mergeSystemChannels(modelCatalogChannels(catalog));
+export function refreshSystemChannels(): Promise<void> {
+    const userId = useUserStore.getState().user?.id || "";
+    if (!userId || hydratingCatalogGeneration === sessionGeneration) return Promise.resolve();
+    return refreshCurrentSessionCatalog(sessionGeneration, userId);
+}
+
+function refreshCurrentSessionCatalog(generation: number, userId: string, initializeDefaults = false): Promise<void> {
+    if (!isCurrentSession(generation, userId)) return Promise.resolve();
+    if (catalogRequest?.generation === generation && catalogRequest.userId === userId) return catalogRequest.promise;
+    const request = { generation, userId, promise: Promise.resolve() };
+    request.promise = Promise.resolve().then(async () => {
+        try {
+            if (!isCurrentSession(generation, userId)) return;
+            const catalog = await getModelCatalog();
+            if (!isCurrentSession(generation, userId)) return;
+            const channels = modelCatalogChannels(catalog);
+            if (initializeDefaults) {
+                // Only a missing initial config gets recommended selections.
+                // Preserve custom channels added while the request was pending.
+                const current = useConfigStore.getState().config;
+                useConfigStore.getState().replaceConfig(
+                    normalizeConfigSnapshot({
+                        config: {
+                            ...current,
+                            channels: [...channels, ...current.channels.filter((channel) => channel.scope !== "system")],
+                            imageModels: undefined,
+                            videoModels: undefined,
+                            textModels: undefined,
+                            audioModels: undefined,
+                        },
+                    }).config,
+                );
+            } else {
+                useConfigStore.getState().mergeSystemChannels(channels);
+            }
+            useModelCatalogStore.setState({ status: "ready", error: null });
+        } catch (error) {
+            if (!isCurrentSession(generation, userId)) return;
+            useConfigStore.getState().mergeSystemChannels([]);
+            useModelCatalogStore.setState({ status: "error", error: "模型目录读取失败，请重试。" });
+            throw error;
+        } finally {
+            if (catalogRequest === request) catalogRequest = null;
+        }
+    });
+    catalogRequest = request;
+    useConfigStore.getState().mergeSystemChannels([]);
+    useModelCatalogStore.setState({ status: "loading", error: null });
+    return request.promise;
 }
 
 // 目录仅接受系统渠道模型，避免畸形响应被当成空目录写入配置。
@@ -191,6 +229,7 @@ export function systemChannelModelChannels(channels: PublicChannelCatalog[]): Mo
             id: channel.id,
             name: channel.displayName,
             sortOrder: channel.sortOrder,
+            platformGroups: channel.platformGroups,
             // 系统渠道必须走带渠道 ID 的站内代理；/api 只是业务 API 根路径，
             // 不能作为模型请求的运行时 Base URL 传给 channelRequest。
             baseUrl: `/api/${channel.id}`,

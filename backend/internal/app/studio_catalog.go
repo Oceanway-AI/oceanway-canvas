@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strconv"
 	"time"
@@ -21,14 +22,24 @@ func (s *Service) StudioModelCatalog(ctx context.Context, session platformclient
 	if err != nil {
 		return nil, result.Response, platformIdentityError(err)
 	}
-	channel := PublicChannelCatalog{ID: StudioPlatformChannelID, Name: "OceanWay", DisplayName: "OceanWay", Models: []PublicChannelModel{}}
+	wireModels, groups, err := studioCatalogWire(result.Response, result.Data.Items)
+	if err != nil {
+		return nil, result.Response, err
+	}
+	channel := PublicChannelCatalog{ID: StudioPlatformChannelID, Name: "OceanWay", DisplayName: "OceanWay", Models: []PublicChannelModel{}, PlatformGroups: groups}
 	for _, item := range result.Data.Items {
 		selected, selectErr := platformintegration.SelectModel(item, "")
 		var content struct {
-			DisplayName string `json:"display_name"`
+			DisplayName string   `json:"display_name"`
+			Tagline     string   `json:"tagline"`
+			Tags        []string `json:"tags"`
 		}
 		_ = json.Unmarshal(item.Content, &content)
-		m := PublicChannelModel{ID: strconv.Itoa(item.ID), ModelKey: item.ModelName, DisplayName: firstNonEmpty(content.DisplayName, item.ModelName), ChannelLabel: item.DisplayVendor, Description: item.Description, Icon: item.DisplayIcon, Capability: item.ModelType, Tags: []model.ChannelModelTag{}, PriceTiers: []PublicChannelModelPriceTier{}, PricingMode: "platform", PriceLabel: "以平台报价为准", Available: selectErr == nil, Platform: &item}
+		tags := make([]model.ChannelModelTag, 0, len(content.Tags))
+		for _, tag := range content.Tags {
+			tags = append(tags, model.ChannelModelTag{Text: tag, Color: "blue"})
+		}
+		m := PublicChannelModel{ID: strconv.Itoa(item.ID), ModelKey: item.ModelName, DisplayName: firstNonEmpty(content.DisplayName, item.ModelName), ChannelLabel: item.DisplayVendor, Description: firstNonEmpty(content.Tagline, item.Description), Icon: item.DisplayIcon, Capability: item.ModelType, Tags: tags, PriceTiers: []PublicChannelModelPriceTier{}, PricingMode: "platform", PriceLabel: "以平台报价为准", Available: selectErr == nil, Platform: wireModels[item.ModelName]}
 		if selectErr != nil {
 			m.UnavailableReason = selectErr.Error()
 		} else {
@@ -40,6 +51,58 @@ func (s *Service) StudioModelCatalog(ctx context.Context, session platformclient
 		channel.Models = append(channel.Models, m)
 	}
 	return &ModelCatalogResponse{Source: "platform", Models: []PublicLogicalModel{}, Channels: []PublicChannelCatalog{channel}}, result.Response, nil
+}
+
+// Forward the authorized public wire objects intact. Re-encoding a narrow SDK
+// model discards presentation fields and native capability extensions.
+func studioCatalogWire(response *platformclient.Response, items []platformclient.Model) (map[string]json.RawMessage, json.RawMessage, error) {
+	invalid := func() (map[string]json.RawMessage, json.RawMessage, error) {
+		return nil, nil, fmt.Errorf("invalid Platform model catalog response")
+	}
+	if response == nil {
+		return invalid()
+	}
+	var envelope struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Items  []json.RawMessage `json:"items"`
+			Groups json.RawMessage   `json:"groups"`
+		} `json:"data"`
+	}
+	if json.Unmarshal(response.Body, &envelope) != nil || !envelope.Success || len(envelope.Data.Items) != len(items) {
+		return invalid()
+	}
+	models := make(map[string]json.RawMessage, len(items))
+	for _, raw := range envelope.Data.Items {
+		var identity struct {
+			ModelName string `json:"model_name"`
+		}
+		if json.Unmarshal(raw, &identity) != nil || identity.ModelName == "" || models[identity.ModelName] != nil {
+			return invalid()
+		}
+		models[identity.ModelName] = raw
+	}
+	for _, item := range items {
+		if models[item.ModelName] == nil {
+			return invalid()
+		}
+	}
+	if len(envelope.Data.Groups) != 0 {
+		var groups []struct {
+			ModelNames []string `json:"model_names"`
+		}
+		if json.Unmarshal(envelope.Data.Groups, &groups) != nil {
+			return invalid()
+		}
+		for _, group := range groups {
+			for _, name := range group.ModelNames {
+				if models[name] == nil {
+					return invalid()
+				}
+			}
+		}
+	}
+	return models, envelope.Data.Groups, nil
 }
 
 func studioTextWire(p platformclient.TextProtocol) string {

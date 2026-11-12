@@ -27,10 +27,10 @@ test("模型行只保留选中高亮，价格使用独立的彩色标签", async
     expect(styles).toContain("width: min(800px, calc(100vw - 24px))");
 });
 
-test("每次打开菜单都展开当前选中模型所属目录，无有效选中时显示一级目录", async () => {
+test("每次打开菜单都展开当前选中模型所属目录，无选中时直接展开首组双栏", async () => {
     const component = await Bun.file(new URL("../src/components/model-picker.tsx", import.meta.url)).text();
     const opening = component.match(/const setPickerOpen = \(nextOpen: boolean\) => \{([\s\S]*?)\n    \};/)?.[1] || "";
-    expect(opening).toContain("setActiveGroupKey(optionGroups.find((group) => group.models.some((item) => item.models.includes(current)))?.key ?? null)");
+    expect(opening).toContain("setActiveGroupKey(optionGroups.find((group) => group.models.some((item) => item.models.includes(current)))?.key ?? optionGroups[0]?.key ?? null)");
     expect(opening).not.toContain("setActiveGroupKey(null)");
 });
 

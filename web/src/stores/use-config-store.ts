@@ -92,6 +92,7 @@ export type ModelChannel = {
     proxyUrl?: string;
     // 仅管理端：渠道由哪个目录服务商一键接入，空表示自定义渠道。
     catalogProviderId?: string;
+    platformGroups?: import("@/lib/platform-models").PlatformModelGroup[];
     modelCosts?: Array<{
         platform?: import("@/lib/platform-models").PlatformModel;
         model: string;
@@ -531,6 +532,7 @@ export function createModelChannel(channel?: Partial<ModelChannel>): ModelChanne
         enabled: channel?.enabled !== false,
         hasApiKey: channel?.hasApiKey,
         hasSecretKey: channel?.hasSecretKey,
+        platformGroups: channel?.platformGroups,
         modelCosts: channel?.modelCosts?.map((item) => ({ ...item, protocol: normalizeModelProtocol(item.protocol) })),
     };
 }

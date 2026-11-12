@@ -1,0 +1,5 @@
+=== RUN   TestStudioCatalogPresentationLivePlatform
+    studio_catalog_live_platform_test.go:201: real Platform HTTP -> published platformclient -> real Studio HTTP: 3 callable models, 2 image variants, exact groups/presentation/price/health, hidden model excluded, anonymous 401
+--- PASS: TestStudioCatalogPresentationLivePlatform (21.10s)
+PASS
+ok  	yingce/backend/internal/handler	25.865s
