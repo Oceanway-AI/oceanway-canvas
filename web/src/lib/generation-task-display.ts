@@ -8,7 +8,13 @@ export const statusLabel: Record<TaskStatus, string> = {
     cancelled: "已取消",
 };
 
-type GenerationTaskDisplayTarget = Pick<GenerationTask, "status" | "stage" | "mediaStage" | "progress" | "providerRequestId" | "providerCancelStatus" | "provider">;
+type GenerationTaskDisplayTarget = Pick<GenerationTask, "status" | "stage" | "mediaStage" | "progress" | "providerRequestId" | "providerCancelStatus" | "provider" | "diagnostic">;
+
+export function generationTaskRecoveryAction(task: Pick<GenerationTask, "status" | "canRecoverMedia" | "mediaStage">) {
+    if (task.canRecoverMedia && task.status !== "succeeded") return "recover_original";
+    if (task.status === "queued" || task.status === "running" || task.status === "succeeded") return "query_original";
+    return task.mediaStage ? "recover_original" : "retry_generation";
+}
 
 const cancellablePreSubmissionStages = new Set(["queued", "等待队列调度", "后端接管任务", "正在准备创作"]);
 
@@ -44,6 +50,7 @@ export function isGenerationTaskSubmissionUncertain(task: GenerationTaskDisplayT
 }
 
 function generationTaskSaving(task: GenerationTaskDisplayTarget) {
+    if (task.provider === "platform" && ["archive", "product_save"].includes(task.diagnostic?.phase || "") && task.status !== "succeeded") return true;
     return Boolean(task.mediaStage && task.mediaStage !== "completed");
 }
 
@@ -73,6 +80,7 @@ export function generationTaskStatusLabel(task: GenerationTaskDisplayTarget) {
 }
 
 export function generationTaskStageLabel(task: GenerationTaskDisplayTarget) {
+    if (task.provider === "platform" && generationTaskSaving(task) && task.diagnostic?.safeMessage) return task.diagnostic.safeMessage;
     if (isGenerationTaskSubmissionUncertain(task)) return "为避免重复扣费，未自动重试";
     // 状态标签已表达“保存中”，这里补充保存的真实进展（正常保存 / 失败后自动重试 / 等待保存）。
     if (generationTaskSaving(task) && (task.status === "queued" || task.status === "running")) return savingStageLabels[generationTaskSavingState(task.stage)];

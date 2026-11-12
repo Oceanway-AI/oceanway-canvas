@@ -13,7 +13,7 @@ import { MediaPreview } from "@/components/media-preview";
 import { PageHeader, PaginationBar, WorkspacePage } from "@/components/layout/workspace-page";
 import { WorkspaceNoResultsState, WorkspaceState } from "@/components/layout/workspace-state";
 import { CONTENT_MODERATION_ERROR_CODE, isContentModerationError } from "@/lib/generation-error";
-import { formatTaskKind, operationOptions } from "@/lib/generation-task-display";
+import { formatTaskKind, operationOptions, generationTaskRecoveryAction } from "@/lib/generation-task-display";
 import { buildVideoOperationPrompt } from "@/lib/prompts";
 import { backendProviderConfig, logicalModelIDForConfig } from "@/services/api/generation-task";
 
@@ -323,8 +323,9 @@ export default function TasksPage() {
         setActingId(id);
         try {
             const currentTask = await queryGenerationTask(id);
-            const savingMedia = Boolean(currentTask.mediaStage);
-            const next = currentTask.status === "queued" || currentTask.status === "running" || currentTask.status === "succeeded" ? currentTask : savingMedia ? await recoverGenerationTaskMedia(id) : await retryGenerationTask(id);
+            const action = generationTaskRecoveryAction(currentTask);
+            const savingMedia = action === "recover_original";
+            const next = savingMedia ? await recoverGenerationTaskMedia(id) : action === "query_original" ? currentTask : await retryGenerationTask(id);
             setTasks((items) => items.map((item) => (item.id === id ? next : item)));
             setDetailTask((current) => (current?.id === id ? { ...current, ...next } : current));
             setStatusFilter("active");

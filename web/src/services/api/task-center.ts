@@ -34,6 +34,7 @@ export type GenerationTask = {
     stage?: string;
     mediaStage?: "download" | "upload" | "local_save" | "register" | "completed" | "checkpoint";
     canRecoverMedia?: boolean;
+    diagnostic?: { code: string; category?: "user" | "model" | "platform" | "unknown"; source?: string; phase: string; safeMessage: string; recoveryAction?: string; recoveryAvailability?: string };
     prompt: string;
     operation?: string;
     provider?: string;

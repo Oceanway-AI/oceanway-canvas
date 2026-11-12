@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
     canCancelGenerationTask,
+    generationTaskRecoveryAction,
     generationPhaseHint,
     generationPhaseLabel,
     generationPhaseStep,
@@ -14,6 +15,15 @@ import {
 import { resetGenerationTaskMetadata } from "@/lib/canvas/canvas-task-state";
 
 describe("作品保存阶段", () => {
+    test("Platform 保存失败保持原任务并显示归属，不显示生成进度", () => {
+        const task = { status: "running" as const, provider: "platform", canRecoverMedia: true, diagnostic: { code: "material_archive_unavailable", phase: "archive", safeMessage: "平台服务：保存失败" } };
+        expect(generationTaskStatusLabel(task)).toBe("保存中");
+        expect(generationTaskStageLabel(task)).toBe("平台服务：保存失败");
+        expect(generationTaskShowsProgress(task)).toBe(false);
+        expect(generationTaskRecoveryAction(task)).toBe("recover_original");
+        expect(generationTaskRecoveryAction({ status: "running" })).toBe("query_original");
+        expect(generationTaskRecoveryAction({ status: "succeeded", canRecoverMedia: true })).toBe("query_original");
+    });
     test("分别表达生成、下载、上传和登记，不把保存失败当成生成失败", () => {
         expect(mediaDeliverySummary("failed", "download")).toBe("生成成功 · 下载失败");
         expect(mediaDeliverySummary("failed", "upload")).toBe("生成成功 · 下载成功 · 上传 OSS失败");

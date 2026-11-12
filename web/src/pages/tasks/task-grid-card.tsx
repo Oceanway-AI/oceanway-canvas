@@ -47,7 +47,7 @@ export function TaskGridCard({ task, effectiveConfig, actingId, onOpen, onRetry 
                     </div>
                 ) : null}
                 {/* 审核失败的任务无法自动重试：卡片上不放按钮，原因写在标题下方，详情里也有说明。 */}
-                {failed && !retryBlocked ? (
+                {(failed || task.canRecoverMedia) && !retryBlocked ? (
                     <Tooltip title={task.canRecoverMedia ? t("library.tasks.row.retrySaveHint") : t("library.tasks.row.retryTask")}>
                         <Button
                             className="task-center-card-retry"

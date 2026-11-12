@@ -75,7 +75,7 @@ export function TaskListRow({
                 ) : active ? (
                     <p className="task-center-row-note">{stageLabel}</p>
                 ) : null}
-                {failed ? (
+                {failed || task.canRecoverMedia ? (
                     <p className="task-center-row-error" title={task.error ? generationErrorMessage(task.error) : undefined}>
                         {taskAttentionReason(task)}
                     </p>

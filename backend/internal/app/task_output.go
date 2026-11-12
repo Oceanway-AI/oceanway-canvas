@@ -14,35 +14,36 @@ import (
 // TaskSummary 是任务列表/会话详情的读模型，不直接复用数据库 Task，避免把
 // 渠道模型、供应线路和受保护输入泄露到普通用户接口。
 type TaskSummary struct {
-	ID                        string                     `json:"id"`
-	ProjectID                 string                     `json:"projectId,omitempty"`
-	Type                      string                     `json:"type"`
-	Status                    model.TaskStatus           `json:"status"`
-	Stage                     string                     `json:"stage"`
-	MediaStage                string                     `json:"mediaStage,omitempty"`
-	CanRecoverMedia           bool                       `json:"canRecoverMedia,omitempty"`
-	Progress                  int                        `json:"progress"`
-	Prompt                    string                     `json:"prompt"`
-	Operation                 string                     `json:"operation,omitempty"`
-	Provider                  string                     `json:"provider,omitempty"`
-	Model                     string                     `json:"model,omitempty"`
-	ProviderRequestID         string                     `json:"providerRequestId,omitempty"`
-	ProviderCancelStatus      model.ProviderCancelStatus `json:"providerCancelStatus,omitempty"`
-	ProviderCancelError       string                     `json:"providerCancelError,omitempty"`
-	ProviderCancelAttempts    int                        `json:"providerCancelAttempts,omitempty"`
-	ProviderCancelRequestedAt *time.Time                 `json:"providerCancelRequestedAt,omitempty"`
-	ProviderCancelledAt       *time.Time                 `json:"providerCancelledAt,omitempty"`
-	ErrorCode                 string                     `json:"errorCode,omitempty"`
-	PreviewURL                string                     `json:"previewUrl,omitempty"`
-	PreviewKind               string                     `json:"previewKind,omitempty"`
-	PreviewPosterURL          string                     `json:"previewPosterUrl,omitempty"`
-	Attempts                  int                        `json:"attempts"`
-	StartedAt                 *time.Time                 `json:"startedAt"`
-	CompletedAt               *time.Time                 `json:"completedAt"`
-	CreatedAt                 time.Time                  `json:"createdAt"`
-	UpdatedAt                 time.Time                  `json:"updatedAt"`
-	Billing                   *TaskBillingSummary        `json:"billing,omitempty"`
-	ClientContext             *TaskClientContext         `json:"clientContext,omitempty"`
+	Diagnostic                *model.TaskExecutionDiagnostic `json:"diagnostic,omitempty"`
+	ID                        string                         `json:"id"`
+	ProjectID                 string                         `json:"projectId,omitempty"`
+	Type                      string                         `json:"type"`
+	Status                    model.TaskStatus               `json:"status"`
+	Stage                     string                         `json:"stage"`
+	MediaStage                string                         `json:"mediaStage,omitempty"`
+	CanRecoverMedia           bool                           `json:"canRecoverMedia,omitempty"`
+	Progress                  int                            `json:"progress"`
+	Prompt                    string                         `json:"prompt"`
+	Operation                 string                         `json:"operation,omitempty"`
+	Provider                  string                         `json:"provider,omitempty"`
+	Model                     string                         `json:"model,omitempty"`
+	ProviderRequestID         string                         `json:"providerRequestId,omitempty"`
+	ProviderCancelStatus      model.ProviderCancelStatus     `json:"providerCancelStatus,omitempty"`
+	ProviderCancelError       string                         `json:"providerCancelError,omitempty"`
+	ProviderCancelAttempts    int                            `json:"providerCancelAttempts,omitempty"`
+	ProviderCancelRequestedAt *time.Time                     `json:"providerCancelRequestedAt,omitempty"`
+	ProviderCancelledAt       *time.Time                     `json:"providerCancelledAt,omitempty"`
+	ErrorCode                 string                         `json:"errorCode,omitempty"`
+	PreviewURL                string                         `json:"previewUrl,omitempty"`
+	PreviewKind               string                         `json:"previewKind,omitempty"`
+	PreviewPosterURL          string                         `json:"previewPosterUrl,omitempty"`
+	Attempts                  int                            `json:"attempts"`
+	StartedAt                 *time.Time                     `json:"startedAt"`
+	CompletedAt               *time.Time                     `json:"completedAt"`
+	CreatedAt                 time.Time                      `json:"createdAt"`
+	UpdatedAt                 time.Time                      `json:"updatedAt"`
+	Billing                   *TaskBillingSummary            `json:"billing,omitempty"`
+	ClientContext             *TaskClientContext             `json:"clientContext,omitempty"`
 }
 
 type TaskClientContext struct {
@@ -126,6 +127,7 @@ func taskSummaryForOutput(task model.Task) TaskSummary {
 	}
 	previewURL, previewKind, previewPosterURL := taskMediaPreviewWithPoster(task.ResultJSON, task.Type)
 	return TaskSummary{
+		Diagnostic:                taskExecutionDiagnostic(&task),
 		ID:                        task.ID,
 		ProjectID:                 task.ProjectID,
 		Type:                      task.Type,
