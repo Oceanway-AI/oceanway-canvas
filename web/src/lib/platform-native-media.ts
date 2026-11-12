@@ -1,6 +1,20 @@
 import { modelOptionName, resolveModelChannel, type AiConfig } from "@/stores/use-config-store";
 
 export type NativeSchemaField = Record<string, unknown> & { type?: string | string[]; enum?: unknown[]; const?: unknown; title?: string; description?: string };
+export type NativeImageSizePreset = { id: string; resolution: string; aspect_ratio: string; width?: number; height?: number; values: Record<string, unknown> };
+export type NativeImageOutputSize = {
+    allow_custom: boolean;
+    allow_auto: boolean;
+    multiple_of: number;
+    min_width: number;
+    max_width: number;
+    min_height: number;
+    max_height: number;
+    min_pixels: number;
+    max_pixels: number;
+    min_aspect_ratio: number;
+    max_aspect_ratio: number;
+};
 export type NativeMediaVariant = {
     id: string;
     gateway_protocol: string;
@@ -12,6 +26,8 @@ export type NativeMediaVariant = {
         path: string;
         modes: string[];
         request_schema: Record<string, unknown>;
+        size_presets?: NativeImageSizePreset[];
+        output_size?: NativeImageOutputSize;
         native_reference_inputs: { id: string; pointer: string; role: string; transport: string; min_items?: number; max_items?: number; mime_types?: string[] }[];
     };
 };

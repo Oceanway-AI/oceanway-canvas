@@ -7,6 +7,8 @@ description: 从产品功能快速定位主要代码入口
 
 ## Studio 原生媒体消费
 
+- 图片尺寸消费：`web/src/lib/platform-native-image-size.ts` 读取发布预设与边界，`web/src/components/platform-native-image-size.tsx` 提供比例、档位、自定义宽高；`generation-task.ts` 在提交前验证同一参数。后端 `studio_native_media.go` 在现有完整 Schema 校验后调用正式 SDK 尺寸验证，不另建预设生成器；真实 Gateway→Platform 夹具在 `backend/internal/platformintegration/testdata/image-output-size/`。
+
 - 发布规格/具名 SDK 路由：`backend/internal/platformintegration/native.go`；完整原生正文、参考角色与条件校验：`backend/internal/app/studio_native_media.go`；报价/冻结/原任务恢复复用 `studio_media_execution.go`、`studio_media_worker.go` 与 `studio_agent_media.go`。
 - 参数投影与共用表单：`web/src/lib/platform-native-media.ts`、`web/src/components/platform-native-media-settings.tsx`；创作到画布的固定资源校验：`web/src/services/canvas-resource-handoff.ts`；视频平台封面：`web/src/lib/canvas/canvas-media-preview.ts`。
 - 本机免费联合宿主：`backend/internal/handler/studio_native_gateway_joint_test.go`；验收边界见[rc.7 联调记录](../../../verification/studio-native-rc7-20261111/README.md)。

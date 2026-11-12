@@ -3,6 +3,7 @@ import { createClientUUID } from "@/lib/client-id";
 import { normalizeAudioFormatForConfig, normalizeAudioVoiceForConfig } from "@/lib/audio-generation";
 import { imageParameterRequest } from "@/lib/image-parameters";
 import { nativeMediaProfile, nativeMediaVariant, nativeParameterValues } from "@/lib/platform-native-media";
+import { nativeImageSizeIssue } from "@/lib/platform-native-image-size";
 import { getMediaBlob } from "@/services/file-storage";
 import { getImageBlob } from "@/services/image-storage";
 import { resourceIdFromStorageKey, resourceStorageKey, uploadResourceFile } from "@/services/api/resources";
@@ -416,7 +417,10 @@ export function backendProviderConfig(config: AiConfig, mode: BackendGenerationM
     if ((mode === "image" || mode === "video") && requestConfig.channelId === "oceanway-platform" && nativeMediaProfile(config)) {
         const variant = nativeMediaVariant(config);
         if (!variant) throw new Error("所选模型参数版本已失效，请刷新模型目录");
-        return { channelId: requestConfig.channelId, model: requestConfig.model, nativeVariantId: variant.id, nativeParameters: nativeParameterValues(variant, config.nativeParameters) };
+        const nativeParameters = nativeParameterValues(variant, config.nativeParameters);
+        const issue = nativeImageSizeIssue(variant, nativeParameters);
+        if (issue) throw new Error(issue);
+        return { channelId: requestConfig.channelId, model: requestConfig.model, nativeVariantId: variant.id, nativeParameters };
     }
     const workflow = resolveGenerationWorkflowExecution(config, mode);
     if (workflow) return workflowProviderConfig(config, requestConfig, workflow);

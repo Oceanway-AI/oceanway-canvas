@@ -12,18 +12,21 @@ import (
 // Consumer view of the published contract. The original catalog remains raw;
 // Studio never writes this view back as a Gateway capability definition.
 type NativeRequestVariant struct {
-	ID           string                `json:"id"`
-	Protocol     string                `json:"protocol"`
-	Operation    string                `json:"operation"`
-	Method       string                `json:"method"`
-	Path         string                `json:"path"`
-	ContentTypes []string              `json:"content_types"`
-	Schema       json.RawMessage       `json:"request_schema"`
-	Defaults     map[string]any        `json:"defaults"`
-	References   []NativeReferenceSlot `json:"native_reference_inputs"`
-	Modes        []string              `json:"modes"`
-	MaxOutputs   int                   `json:"max_outputs"`
-	Unresolved   []string              `json:"unresolved_conditions"`
+	ID                 string                           `json:"id"`
+	Protocol           string                           `json:"protocol"`
+	Operation          string                           `json:"operation"`
+	Method             string                           `json:"method"`
+	Path               string                           `json:"path"`
+	ContentTypes       []string                         `json:"content_types"`
+	Schema             json.RawMessage                  `json:"request_schema"`
+	SizePresets        []platformclient.ImageSizePreset `json:"size_presets,omitempty"`
+	OutputSize         *platformclient.ImageOutputSize  `json:"output_size,omitempty"`
+	SupplyAlternatives json.RawMessage                  `json:"supply_alternatives,omitempty"`
+	Defaults           map[string]any                   `json:"defaults"`
+	References         []NativeReferenceSlot            `json:"native_reference_inputs"`
+	Modes              []string                         `json:"modes"`
+	MaxOutputs         int                              `json:"max_outputs"`
+	Unresolved         []string                         `json:"unresolved_conditions"`
 }
 
 type NativeReferenceSlot struct {

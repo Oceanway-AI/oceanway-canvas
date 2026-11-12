@@ -1,0 +1,3089 @@
+{
+  "model_series": "free-fixture",
+  "logical_model": "gemini",
+  "display_vendor": "",
+  "display_icon": "",
+  "model_type": "image",
+  "invocation_status": "available",
+  "id": 1,
+  "model_name": "public-model",
+  "description": "",
+  "vendor": "",
+  "supported_protocols": [
+    "gemini.image"
+  ],
+  "price": {
+    "status": "available",
+    "mode": "expression",
+    "version": "fixture-price-v1",
+    "unit": "points",
+    "rates": {},
+    "rate_unit": ""
+  },
+  "media_generation_profile": {
+    "native_request_profile": {
+      "contract_version": "native-request-profile.v3",
+      "capabilities": {
+        "size_presets": [
+          {
+            "id": "1k-1-1",
+            "resolution": "1K",
+            "aspect_ratio": "1:1",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "1:1",
+                  "imageSize": "1K"
+                }
+              }
+            }
+          },
+          {
+            "id": "1k-2-3",
+            "resolution": "1K",
+            "aspect_ratio": "2:3",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "2:3",
+                  "imageSize": "1K"
+                }
+              }
+            }
+          },
+          {
+            "id": "1k-3-2",
+            "resolution": "1K",
+            "aspect_ratio": "3:2",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "3:2",
+                  "imageSize": "1K"
+                }
+              }
+            }
+          },
+          {
+            "id": "1k-3-4",
+            "resolution": "1K",
+            "aspect_ratio": "3:4",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "3:4",
+                  "imageSize": "1K"
+                }
+              }
+            }
+          },
+          {
+            "id": "1k-4-3",
+            "resolution": "1K",
+            "aspect_ratio": "4:3",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "4:3",
+                  "imageSize": "1K"
+                }
+              }
+            }
+          },
+          {
+            "id": "1k-4-5",
+            "resolution": "1K",
+            "aspect_ratio": "4:5",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "4:5",
+                  "imageSize": "1K"
+                }
+              }
+            }
+          },
+          {
+            "id": "1k-5-4",
+            "resolution": "1K",
+            "aspect_ratio": "5:4",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "5:4",
+                  "imageSize": "1K"
+                }
+              }
+            }
+          },
+          {
+            "id": "1k-9-16",
+            "resolution": "1K",
+            "aspect_ratio": "9:16",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "9:16",
+                  "imageSize": "1K"
+                }
+              }
+            }
+          },
+          {
+            "id": "1k-16-9",
+            "resolution": "1K",
+            "aspect_ratio": "16:9",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "16:9",
+                  "imageSize": "1K"
+                }
+              }
+            }
+          },
+          {
+            "id": "1k-21-9",
+            "resolution": "1K",
+            "aspect_ratio": "21:9",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "21:9",
+                  "imageSize": "1K"
+                }
+              }
+            }
+          },
+          {
+            "id": "2k-1-1",
+            "resolution": "2K",
+            "aspect_ratio": "1:1",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "1:1",
+                  "imageSize": "2K"
+                }
+              }
+            }
+          },
+          {
+            "id": "2k-2-3",
+            "resolution": "2K",
+            "aspect_ratio": "2:3",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "2:3",
+                  "imageSize": "2K"
+                }
+              }
+            }
+          },
+          {
+            "id": "2k-3-2",
+            "resolution": "2K",
+            "aspect_ratio": "3:2",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "3:2",
+                  "imageSize": "2K"
+                }
+              }
+            }
+          },
+          {
+            "id": "2k-3-4",
+            "resolution": "2K",
+            "aspect_ratio": "3:4",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "3:4",
+                  "imageSize": "2K"
+                }
+              }
+            }
+          },
+          {
+            "id": "2k-4-3",
+            "resolution": "2K",
+            "aspect_ratio": "4:3",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "4:3",
+                  "imageSize": "2K"
+                }
+              }
+            }
+          },
+          {
+            "id": "2k-4-5",
+            "resolution": "2K",
+            "aspect_ratio": "4:5",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "4:5",
+                  "imageSize": "2K"
+                }
+              }
+            }
+          },
+          {
+            "id": "2k-5-4",
+            "resolution": "2K",
+            "aspect_ratio": "5:4",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "5:4",
+                  "imageSize": "2K"
+                }
+              }
+            }
+          },
+          {
+            "id": "2k-9-16",
+            "resolution": "2K",
+            "aspect_ratio": "9:16",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "9:16",
+                  "imageSize": "2K"
+                }
+              }
+            }
+          },
+          {
+            "id": "2k-16-9",
+            "resolution": "2K",
+            "aspect_ratio": "16:9",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "16:9",
+                  "imageSize": "2K"
+                }
+              }
+            }
+          },
+          {
+            "id": "2k-21-9",
+            "resolution": "2K",
+            "aspect_ratio": "21:9",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "21:9",
+                  "imageSize": "2K"
+                }
+              }
+            }
+          },
+          {
+            "id": "4k-1-1",
+            "resolution": "4K",
+            "aspect_ratio": "1:1",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "1:1",
+                  "imageSize": "4K"
+                }
+              }
+            }
+          },
+          {
+            "id": "4k-2-3",
+            "resolution": "4K",
+            "aspect_ratio": "2:3",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "2:3",
+                  "imageSize": "4K"
+                }
+              }
+            }
+          },
+          {
+            "id": "4k-3-2",
+            "resolution": "4K",
+            "aspect_ratio": "3:2",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "3:2",
+                  "imageSize": "4K"
+                }
+              }
+            }
+          },
+          {
+            "id": "4k-3-4",
+            "resolution": "4K",
+            "aspect_ratio": "3:4",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "3:4",
+                  "imageSize": "4K"
+                }
+              }
+            }
+          },
+          {
+            "id": "4k-4-3",
+            "resolution": "4K",
+            "aspect_ratio": "4:3",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "4:3",
+                  "imageSize": "4K"
+                }
+              }
+            }
+          },
+          {
+            "id": "4k-4-5",
+            "resolution": "4K",
+            "aspect_ratio": "4:5",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "4:5",
+                  "imageSize": "4K"
+                }
+              }
+            }
+          },
+          {
+            "id": "4k-5-4",
+            "resolution": "4K",
+            "aspect_ratio": "5:4",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "5:4",
+                  "imageSize": "4K"
+                }
+              }
+            }
+          },
+          {
+            "id": "4k-9-16",
+            "resolution": "4K",
+            "aspect_ratio": "9:16",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "9:16",
+                  "imageSize": "4K"
+                }
+              }
+            }
+          },
+          {
+            "id": "4k-16-9",
+            "resolution": "4K",
+            "aspect_ratio": "16:9",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "16:9",
+                  "imageSize": "4K"
+                }
+              }
+            }
+          },
+          {
+            "id": "4k-21-9",
+            "resolution": "4K",
+            "aspect_ratio": "21:9",
+            "values": {
+              "generationConfig": {
+                "imageConfig": {
+                  "aspectRatio": "21:9",
+                  "imageSize": "4K"
+                }
+              }
+            }
+          }
+        ],
+        "template_id": "gemini-3-pro-image-preview",
+        "protocols": [
+          "gemini.image"
+        ],
+        "parameters": {
+          "ratio": {
+            "schema": {
+              "enum": [
+                "1:1",
+                "2:3",
+                "3:2",
+                "3:4",
+                "4:3",
+                "4:5",
+                "5:4",
+                "9:16",
+                "16:9",
+                "21:9"
+              ],
+              "type": "string"
+            }
+          },
+          "resolution": {
+            "schema": {
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "type": "string"
+            },
+            "default": "1K"
+          }
+        },
+        "references": {
+          "reference_image": {
+            "max_item_bytes": 12582912,
+            "max_items": 14,
+            "max_total_bytes": 125829120,
+            "mime_types": [
+              "image/png",
+              "image/jpeg"
+            ]
+          }
+        },
+        "material_constraints": {
+          "max_items": 14,
+          "max_total_bytes": 125829120
+        },
+        "allow_text_only": false
+      },
+      "template": {
+        "id": "gemini-3-pro-image-preview",
+        "revision": "manufacturer-image-defaults.v2",
+        "source_sha256": "aa7c11868ccd2539b383d4433b0999d40b2d2ab99be5facab0f18482895940e2",
+        "sources": [
+          {
+            "publisher": "Google",
+            "url": "https://aistudio.google.com/docs/image-generation",
+            "checked_at": "2026-11-09"
+          }
+        ],
+        "coverage": "documented",
+        "administrator_override": false
+      },
+      "variants": [
+        {
+          "id": "gemini-image",
+          "protocol": "gemini.image",
+          "operation": "create",
+          "method": "POST",
+          "path": "/v1beta/models/{model}:generateContent",
+          "content_types": [
+            "application/json"
+          ],
+          "request_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "contents": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "parts": {
+                      "allOf": [
+                        {
+                          "contains": {
+                            "anyOf": [
+                              {
+                                "required": [
+                                  "fileData"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "inlineData"
+                                ]
+                              }
+                            ]
+                          },
+                          "maxContains": 14,
+                          "minContains": 0
+                        }
+                      ],
+                      "contains": {
+                        "required": [
+                          "text"
+                        ]
+                      },
+                      "items": {
+                        "additionalProperties": false,
+                        "oneOf": [
+                          {
+                            "required": [
+                              "text"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "fileData"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "inlineData"
+                            ]
+                          }
+                        ],
+                        "properties": {
+                          "fileData": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "fileUri": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "mimeType": {
+                                "enum": [
+                                  "image/png",
+                                  "image/jpeg"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "mimeType",
+                              "fileUri"
+                            ],
+                            "type": "object"
+                          },
+                          "inlineData": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "data": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "mimeType": {
+                                "enum": [
+                                  "image/png",
+                                  "image/jpeg"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "mimeType",
+                              "data"
+                            ],
+                            "type": "object"
+                          },
+                          "text": {
+                            "maxLength": 10000,
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [],
+                        "type": "object"
+                      },
+                      "maxContains": 1,
+                      "maxItems": 15,
+                      "minContains": 1,
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "role": {
+                      "enum": [
+                        "user"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "parts"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 1,
+                "minItems": 1,
+                "type": "array"
+              },
+              "generationConfig": {
+                "additionalProperties": false,
+                "properties": {
+                  "candidateCount": {
+                    "const": 1,
+                    "type": "integer"
+                  },
+                  "imageConfig": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "aspectRatio": {
+                        "enum": [
+                          "1:1",
+                          "2:3",
+                          "3:2",
+                          "3:4",
+                          "4:3",
+                          "4:5",
+                          "5:4",
+                          "9:16",
+                          "16:9",
+                          "21:9"
+                        ],
+                        "type": "string"
+                      },
+                      "imageSize": {
+                        "enum": [
+                          "1K",
+                          "2K",
+                          "4K"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [],
+                    "type": "object"
+                  }
+                },
+                "required": [],
+                "type": "object"
+              }
+            },
+            "required": [
+              "contents"
+            ],
+            "type": "object"
+          },
+          "defaults": {
+            "generationConfig": {
+              "candidateCount": 1,
+              "imageConfig": {
+                "imageSize": "1K"
+              }
+            }
+          },
+          "fields": [
+            {
+              "pointer": "/contents",
+              "label": "contents",
+              "order": 0,
+              "widget": "json"
+            },
+            {
+              "pointer": "/generationConfig/imageConfig/imageSize",
+              "label": "imageSize",
+              "order": 1
+            },
+            {
+              "pointer": "/generationConfig/imageConfig/aspectRatio",
+              "label": "aspectRatio",
+              "order": 2
+            }
+          ],
+          "size_presets": [
+            {
+              "id": "1k-1-1",
+              "resolution": "1K",
+              "aspect_ratio": "1:1",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "1:1",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-2-3",
+              "resolution": "1K",
+              "aspect_ratio": "2:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "2:3",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-3-2",
+              "resolution": "1K",
+              "aspect_ratio": "3:2",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:2",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-3-4",
+              "resolution": "1K",
+              "aspect_ratio": "3:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:4",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-4-3",
+              "resolution": "1K",
+              "aspect_ratio": "4:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:3",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-4-5",
+              "resolution": "1K",
+              "aspect_ratio": "4:5",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:5",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-5-4",
+              "resolution": "1K",
+              "aspect_ratio": "5:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "5:4",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-9-16",
+              "resolution": "1K",
+              "aspect_ratio": "9:16",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "9:16",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-16-9",
+              "resolution": "1K",
+              "aspect_ratio": "16:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "16:9",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-21-9",
+              "resolution": "1K",
+              "aspect_ratio": "21:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "21:9",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-1-1",
+              "resolution": "2K",
+              "aspect_ratio": "1:1",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "1:1",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-2-3",
+              "resolution": "2K",
+              "aspect_ratio": "2:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "2:3",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-3-2",
+              "resolution": "2K",
+              "aspect_ratio": "3:2",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:2",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-3-4",
+              "resolution": "2K",
+              "aspect_ratio": "3:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:4",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-4-3",
+              "resolution": "2K",
+              "aspect_ratio": "4:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:3",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-4-5",
+              "resolution": "2K",
+              "aspect_ratio": "4:5",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:5",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-5-4",
+              "resolution": "2K",
+              "aspect_ratio": "5:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "5:4",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-9-16",
+              "resolution": "2K",
+              "aspect_ratio": "9:16",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "9:16",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-16-9",
+              "resolution": "2K",
+              "aspect_ratio": "16:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "16:9",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-21-9",
+              "resolution": "2K",
+              "aspect_ratio": "21:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "21:9",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-1-1",
+              "resolution": "4K",
+              "aspect_ratio": "1:1",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "1:1",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-2-3",
+              "resolution": "4K",
+              "aspect_ratio": "2:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "2:3",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-3-2",
+              "resolution": "4K",
+              "aspect_ratio": "3:2",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:2",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-3-4",
+              "resolution": "4K",
+              "aspect_ratio": "3:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:4",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-4-3",
+              "resolution": "4K",
+              "aspect_ratio": "4:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:3",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-4-5",
+              "resolution": "4K",
+              "aspect_ratio": "4:5",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:5",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-5-4",
+              "resolution": "4K",
+              "aspect_ratio": "5:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "5:4",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-9-16",
+              "resolution": "4K",
+              "aspect_ratio": "9:16",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "9:16",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-16-9",
+              "resolution": "4K",
+              "aspect_ratio": "16:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "16:9",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-21-9",
+              "resolution": "4K",
+              "aspect_ratio": "21:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "21:9",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            }
+          ],
+          "native_reference_inputs": [
+            {
+              "id": "reference_image",
+              "pointer": "/contents",
+              "transport": "content-array",
+              "role": "reference_image",
+              "mime_types": [
+                "image/png",
+                "image/jpeg"
+              ],
+              "min_items": 0,
+              "max_items": 14,
+              "max_item_bytes": 12582912,
+              "max_total_bytes": 125829120
+            }
+          ],
+          "material_constraints": {
+            "max_items": 14,
+            "max_total_bytes": 125829120
+          },
+          "modes": [
+            "sync",
+            "async"
+          ],
+          "max_outputs": 1
+        }
+      ]
+    },
+    "native_request_variant": {
+      "id": "gemini-image",
+      "protocol": "gemini.image",
+      "operation": "create",
+      "method": "POST",
+      "path": "/v1beta/models/{model}:generateContent",
+      "content_types": [
+        "application/json"
+      ],
+      "request_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "contents": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "parts": {
+                  "allOf": [
+                    {
+                      "contains": {
+                        "anyOf": [
+                          {
+                            "required": [
+                              "fileData"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "inlineData"
+                            ]
+                          }
+                        ]
+                      },
+                      "maxContains": 14,
+                      "minContains": 0
+                    }
+                  ],
+                  "contains": {
+                    "required": [
+                      "text"
+                    ]
+                  },
+                  "items": {
+                    "additionalProperties": false,
+                    "oneOf": [
+                      {
+                        "required": [
+                          "text"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "fileData"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "inlineData"
+                        ]
+                      }
+                    ],
+                    "properties": {
+                      "fileData": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "fileUri": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "mimeType": {
+                            "enum": [
+                              "image/png",
+                              "image/jpeg"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "mimeType",
+                          "fileUri"
+                        ],
+                        "type": "object"
+                      },
+                      "inlineData": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "data": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "mimeType": {
+                            "enum": [
+                              "image/png",
+                              "image/jpeg"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "mimeType",
+                          "data"
+                        ],
+                        "type": "object"
+                      },
+                      "text": {
+                        "maxLength": 10000,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [],
+                    "type": "object"
+                  },
+                  "maxContains": 1,
+                  "maxItems": 15,
+                  "minContains": 1,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "role": {
+                  "enum": [
+                    "user"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "parts"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1,
+            "minItems": 1,
+            "type": "array"
+          },
+          "generationConfig": {
+            "additionalProperties": false,
+            "properties": {
+              "candidateCount": {
+                "const": 1,
+                "type": "integer"
+              },
+              "imageConfig": {
+                "additionalProperties": false,
+                "properties": {
+                  "aspectRatio": {
+                    "enum": [
+                      "1:1",
+                      "2:3",
+                      "3:2",
+                      "3:4",
+                      "4:3",
+                      "4:5",
+                      "5:4",
+                      "9:16",
+                      "16:9",
+                      "21:9"
+                    ],
+                    "type": "string"
+                  },
+                  "imageSize": {
+                    "enum": [
+                      "1K",
+                      "2K",
+                      "4K"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "type": "object"
+              }
+            },
+            "required": [],
+            "type": "object"
+          }
+        },
+        "required": [
+          "contents"
+        ],
+        "type": "object"
+      },
+      "defaults": {
+        "generationConfig": {
+          "candidateCount": 1,
+          "imageConfig": {
+            "imageSize": "1K"
+          }
+        }
+      },
+      "fields": [
+        {
+          "pointer": "/contents",
+          "label": "contents",
+          "order": 0,
+          "widget": "json"
+        },
+        {
+          "pointer": "/generationConfig/imageConfig/imageSize",
+          "label": "imageSize",
+          "order": 1
+        },
+        {
+          "pointer": "/generationConfig/imageConfig/aspectRatio",
+          "label": "aspectRatio",
+          "order": 2
+        }
+      ],
+      "size_presets": [
+        {
+          "id": "1k-1-1",
+          "resolution": "1K",
+          "aspect_ratio": "1:1",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "1:1",
+                "imageSize": "1K"
+              }
+            }
+          }
+        },
+        {
+          "id": "1k-2-3",
+          "resolution": "1K",
+          "aspect_ratio": "2:3",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "2:3",
+                "imageSize": "1K"
+              }
+            }
+          }
+        },
+        {
+          "id": "1k-3-2",
+          "resolution": "1K",
+          "aspect_ratio": "3:2",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "3:2",
+                "imageSize": "1K"
+              }
+            }
+          }
+        },
+        {
+          "id": "1k-3-4",
+          "resolution": "1K",
+          "aspect_ratio": "3:4",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "3:4",
+                "imageSize": "1K"
+              }
+            }
+          }
+        },
+        {
+          "id": "1k-4-3",
+          "resolution": "1K",
+          "aspect_ratio": "4:3",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "4:3",
+                "imageSize": "1K"
+              }
+            }
+          }
+        },
+        {
+          "id": "1k-4-5",
+          "resolution": "1K",
+          "aspect_ratio": "4:5",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "4:5",
+                "imageSize": "1K"
+              }
+            }
+          }
+        },
+        {
+          "id": "1k-5-4",
+          "resolution": "1K",
+          "aspect_ratio": "5:4",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "5:4",
+                "imageSize": "1K"
+              }
+            }
+          }
+        },
+        {
+          "id": "1k-9-16",
+          "resolution": "1K",
+          "aspect_ratio": "9:16",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "9:16",
+                "imageSize": "1K"
+              }
+            }
+          }
+        },
+        {
+          "id": "1k-16-9",
+          "resolution": "1K",
+          "aspect_ratio": "16:9",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "16:9",
+                "imageSize": "1K"
+              }
+            }
+          }
+        },
+        {
+          "id": "1k-21-9",
+          "resolution": "1K",
+          "aspect_ratio": "21:9",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "21:9",
+                "imageSize": "1K"
+              }
+            }
+          }
+        },
+        {
+          "id": "2k-1-1",
+          "resolution": "2K",
+          "aspect_ratio": "1:1",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "1:1",
+                "imageSize": "2K"
+              }
+            }
+          }
+        },
+        {
+          "id": "2k-2-3",
+          "resolution": "2K",
+          "aspect_ratio": "2:3",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "2:3",
+                "imageSize": "2K"
+              }
+            }
+          }
+        },
+        {
+          "id": "2k-3-2",
+          "resolution": "2K",
+          "aspect_ratio": "3:2",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "3:2",
+                "imageSize": "2K"
+              }
+            }
+          }
+        },
+        {
+          "id": "2k-3-4",
+          "resolution": "2K",
+          "aspect_ratio": "3:4",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "3:4",
+                "imageSize": "2K"
+              }
+            }
+          }
+        },
+        {
+          "id": "2k-4-3",
+          "resolution": "2K",
+          "aspect_ratio": "4:3",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "4:3",
+                "imageSize": "2K"
+              }
+            }
+          }
+        },
+        {
+          "id": "2k-4-5",
+          "resolution": "2K",
+          "aspect_ratio": "4:5",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "4:5",
+                "imageSize": "2K"
+              }
+            }
+          }
+        },
+        {
+          "id": "2k-5-4",
+          "resolution": "2K",
+          "aspect_ratio": "5:4",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "5:4",
+                "imageSize": "2K"
+              }
+            }
+          }
+        },
+        {
+          "id": "2k-9-16",
+          "resolution": "2K",
+          "aspect_ratio": "9:16",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "9:16",
+                "imageSize": "2K"
+              }
+            }
+          }
+        },
+        {
+          "id": "2k-16-9",
+          "resolution": "2K",
+          "aspect_ratio": "16:9",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "16:9",
+                "imageSize": "2K"
+              }
+            }
+          }
+        },
+        {
+          "id": "2k-21-9",
+          "resolution": "2K",
+          "aspect_ratio": "21:9",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "21:9",
+                "imageSize": "2K"
+              }
+            }
+          }
+        },
+        {
+          "id": "4k-1-1",
+          "resolution": "4K",
+          "aspect_ratio": "1:1",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "1:1",
+                "imageSize": "4K"
+              }
+            }
+          }
+        },
+        {
+          "id": "4k-2-3",
+          "resolution": "4K",
+          "aspect_ratio": "2:3",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "2:3",
+                "imageSize": "4K"
+              }
+            }
+          }
+        },
+        {
+          "id": "4k-3-2",
+          "resolution": "4K",
+          "aspect_ratio": "3:2",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "3:2",
+                "imageSize": "4K"
+              }
+            }
+          }
+        },
+        {
+          "id": "4k-3-4",
+          "resolution": "4K",
+          "aspect_ratio": "3:4",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "3:4",
+                "imageSize": "4K"
+              }
+            }
+          }
+        },
+        {
+          "id": "4k-4-3",
+          "resolution": "4K",
+          "aspect_ratio": "4:3",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "4:3",
+                "imageSize": "4K"
+              }
+            }
+          }
+        },
+        {
+          "id": "4k-4-5",
+          "resolution": "4K",
+          "aspect_ratio": "4:5",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "4:5",
+                "imageSize": "4K"
+              }
+            }
+          }
+        },
+        {
+          "id": "4k-5-4",
+          "resolution": "4K",
+          "aspect_ratio": "5:4",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "5:4",
+                "imageSize": "4K"
+              }
+            }
+          }
+        },
+        {
+          "id": "4k-9-16",
+          "resolution": "4K",
+          "aspect_ratio": "9:16",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "9:16",
+                "imageSize": "4K"
+              }
+            }
+          }
+        },
+        {
+          "id": "4k-16-9",
+          "resolution": "4K",
+          "aspect_ratio": "16:9",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "16:9",
+                "imageSize": "4K"
+              }
+            }
+          }
+        },
+        {
+          "id": "4k-21-9",
+          "resolution": "4K",
+          "aspect_ratio": "21:9",
+          "values": {
+            "generationConfig": {
+              "imageConfig": {
+                "aspectRatio": "21:9",
+                "imageSize": "4K"
+              }
+            }
+          }
+        }
+      ],
+      "native_reference_inputs": [
+        {
+          "id": "reference_image",
+          "pointer": "/contents",
+          "transport": "content-array",
+          "role": "reference_image",
+          "mime_types": [
+            "image/png",
+            "image/jpeg"
+          ],
+          "min_items": 0,
+          "max_items": 14,
+          "max_item_bytes": 12582912,
+          "max_total_bytes": 125829120
+        }
+      ],
+      "material_constraints": {
+        "max_items": 14,
+        "max_total_bytes": 125829120
+      },
+      "modes": [
+        "sync",
+        "async"
+      ],
+      "max_outputs": 1
+    },
+    "gateway_protocol": "gemini.image",
+    "connection_revision": 1,
+    "price_version": "fixture-price-v1",
+    "default_variant": "7fad89c914b15b31c8fe7e31cf8633f9b9b4048151ba331b6fa6709743fa9533",
+    "contract_version": "media-generation.v1",
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "variants": [
+      {
+        "native_request_variant": {
+          "id": "gemini-image",
+          "protocol": "gemini.image",
+          "operation": "create",
+          "method": "POST",
+          "path": "/v1beta/models/{model}:generateContent",
+          "content_types": [
+            "application/json"
+          ],
+          "request_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "contents": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "parts": {
+                      "allOf": [
+                        {
+                          "contains": {
+                            "anyOf": [
+                              {
+                                "required": [
+                                  "fileData"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "inlineData"
+                                ]
+                              }
+                            ]
+                          },
+                          "maxContains": 14,
+                          "minContains": 0
+                        }
+                      ],
+                      "contains": {
+                        "required": [
+                          "text"
+                        ]
+                      },
+                      "items": {
+                        "additionalProperties": false,
+                        "oneOf": [
+                          {
+                            "required": [
+                              "text"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "fileData"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "inlineData"
+                            ]
+                          }
+                        ],
+                        "properties": {
+                          "fileData": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "fileUri": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "mimeType": {
+                                "enum": [
+                                  "image/png",
+                                  "image/jpeg"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "mimeType",
+                              "fileUri"
+                            ],
+                            "type": "object"
+                          },
+                          "inlineData": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "data": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "mimeType": {
+                                "enum": [
+                                  "image/png",
+                                  "image/jpeg"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "mimeType",
+                              "data"
+                            ],
+                            "type": "object"
+                          },
+                          "text": {
+                            "maxLength": 10000,
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [],
+                        "type": "object"
+                      },
+                      "maxContains": 1,
+                      "maxItems": 15,
+                      "minContains": 1,
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "role": {
+                      "enum": [
+                        "user"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "parts"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 1,
+                "minItems": 1,
+                "type": "array"
+              },
+              "generationConfig": {
+                "additionalProperties": false,
+                "properties": {
+                  "candidateCount": {
+                    "const": 1,
+                    "type": "integer"
+                  },
+                  "imageConfig": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "aspectRatio": {
+                        "enum": [
+                          "1:1",
+                          "2:3",
+                          "3:2",
+                          "3:4",
+                          "4:3",
+                          "4:5",
+                          "5:4",
+                          "9:16",
+                          "16:9",
+                          "21:9"
+                        ],
+                        "type": "string"
+                      },
+                      "imageSize": {
+                        "enum": [
+                          "1K",
+                          "2K",
+                          "4K"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [],
+                    "type": "object"
+                  }
+                },
+                "required": [],
+                "type": "object"
+              }
+            },
+            "required": [
+              "contents"
+            ],
+            "type": "object"
+          },
+          "defaults": {
+            "generationConfig": {
+              "candidateCount": 1,
+              "imageConfig": {
+                "imageSize": "1K"
+              }
+            }
+          },
+          "fields": [
+            {
+              "pointer": "/contents",
+              "label": "contents",
+              "order": 0,
+              "widget": "json"
+            },
+            {
+              "pointer": "/generationConfig/imageConfig/imageSize",
+              "label": "imageSize",
+              "order": 1
+            },
+            {
+              "pointer": "/generationConfig/imageConfig/aspectRatio",
+              "label": "aspectRatio",
+              "order": 2
+            }
+          ],
+          "size_presets": [
+            {
+              "id": "1k-1-1",
+              "resolution": "1K",
+              "aspect_ratio": "1:1",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "1:1",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-2-3",
+              "resolution": "1K",
+              "aspect_ratio": "2:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "2:3",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-3-2",
+              "resolution": "1K",
+              "aspect_ratio": "3:2",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:2",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-3-4",
+              "resolution": "1K",
+              "aspect_ratio": "3:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:4",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-4-3",
+              "resolution": "1K",
+              "aspect_ratio": "4:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:3",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-4-5",
+              "resolution": "1K",
+              "aspect_ratio": "4:5",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:5",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-5-4",
+              "resolution": "1K",
+              "aspect_ratio": "5:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "5:4",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-9-16",
+              "resolution": "1K",
+              "aspect_ratio": "9:16",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "9:16",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-16-9",
+              "resolution": "1K",
+              "aspect_ratio": "16:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "16:9",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "1k-21-9",
+              "resolution": "1K",
+              "aspect_ratio": "21:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "21:9",
+                    "imageSize": "1K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-1-1",
+              "resolution": "2K",
+              "aspect_ratio": "1:1",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "1:1",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-2-3",
+              "resolution": "2K",
+              "aspect_ratio": "2:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "2:3",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-3-2",
+              "resolution": "2K",
+              "aspect_ratio": "3:2",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:2",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-3-4",
+              "resolution": "2K",
+              "aspect_ratio": "3:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:4",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-4-3",
+              "resolution": "2K",
+              "aspect_ratio": "4:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:3",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-4-5",
+              "resolution": "2K",
+              "aspect_ratio": "4:5",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:5",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-5-4",
+              "resolution": "2K",
+              "aspect_ratio": "5:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "5:4",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-9-16",
+              "resolution": "2K",
+              "aspect_ratio": "9:16",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "9:16",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-16-9",
+              "resolution": "2K",
+              "aspect_ratio": "16:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "16:9",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "2k-21-9",
+              "resolution": "2K",
+              "aspect_ratio": "21:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "21:9",
+                    "imageSize": "2K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-1-1",
+              "resolution": "4K",
+              "aspect_ratio": "1:1",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "1:1",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-2-3",
+              "resolution": "4K",
+              "aspect_ratio": "2:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "2:3",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-3-2",
+              "resolution": "4K",
+              "aspect_ratio": "3:2",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:2",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-3-4",
+              "resolution": "4K",
+              "aspect_ratio": "3:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "3:4",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-4-3",
+              "resolution": "4K",
+              "aspect_ratio": "4:3",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:3",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-4-5",
+              "resolution": "4K",
+              "aspect_ratio": "4:5",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "4:5",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-5-4",
+              "resolution": "4K",
+              "aspect_ratio": "5:4",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "5:4",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-9-16",
+              "resolution": "4K",
+              "aspect_ratio": "9:16",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "9:16",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-16-9",
+              "resolution": "4K",
+              "aspect_ratio": "16:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "16:9",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            },
+            {
+              "id": "4k-21-9",
+              "resolution": "4K",
+              "aspect_ratio": "21:9",
+              "values": {
+                "generationConfig": {
+                  "imageConfig": {
+                    "aspectRatio": "21:9",
+                    "imageSize": "4K"
+                  }
+                }
+              }
+            }
+          ],
+          "native_reference_inputs": [
+            {
+              "id": "reference_image",
+              "pointer": "/contents",
+              "transport": "content-array",
+              "role": "reference_image",
+              "mime_types": [
+                "image/png",
+                "image/jpeg"
+              ],
+              "min_items": 0,
+              "max_items": 14,
+              "max_item_bytes": 12582912,
+              "max_total_bytes": 125829120
+            }
+          ],
+          "material_constraints": {
+            "max_items": 14,
+            "max_total_bytes": 125829120
+          },
+          "modes": [
+            "sync",
+            "async"
+          ],
+          "max_outputs": 1
+        },
+        "async_supported": true,
+        "gateway_protocol": "gemini.image",
+        "protocol": "gemini",
+        "operation": "generate",
+        "method": "POST",
+        "path": "/v1beta/models/{model}:generateContent",
+        "id": "7fad89c914b15b31c8fe7e31cf8633f9b9b4048151ba331b6fa6709743fa9533",
+        "defaults": {
+          "/generationConfig/candidateCount": 1,
+          "/generationConfig/imageConfig/imageSize": "1K"
+        },
+        "specifications_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "/generationConfig/candidateCount": {
+              "const": 1,
+              "description": "",
+              "title": "candidateCount",
+              "type": "integer",
+              "x-order": 1001,
+              "x-widget": ""
+            },
+            "/generationConfig/imageConfig/aspectRatio": {
+              "description": "",
+              "enum": [
+                "1:1",
+                "2:3",
+                "3:2",
+                "3:4",
+                "4:3",
+                "4:5",
+                "5:4",
+                "9:16",
+                "16:9",
+                "21:9"
+              ],
+              "title": "aspectRatio",
+              "type": "string",
+              "x-order": 2,
+              "x-widget": ""
+            },
+            "/generationConfig/imageConfig/imageSize": {
+              "description": "",
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "title": "imageSize",
+              "type": "string",
+              "x-order": 1,
+              "x-widget": ""
+            }
+          },
+          "required": [],
+          "type": "object"
+        },
+        "parameter_bindings": {
+          "/generationConfig/candidateCount": "/generationConfig/candidateCount",
+          "/generationConfig/imageConfig/aspectRatio": "/generationConfig/imageConfig/aspectRatio",
+          "/generationConfig/imageConfig/imageSize": "/generationConfig/imageConfig/imageSize"
+        },
+        "size_presets": [
+          {
+            "id": "1k-1-1",
+            "resolution": "1K",
+            "aspect_ratio": "1:1",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "1:1",
+              "/generationConfig/imageConfig/imageSize": "1K"
+            }
+          },
+          {
+            "id": "1k-2-3",
+            "resolution": "1K",
+            "aspect_ratio": "2:3",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "2:3",
+              "/generationConfig/imageConfig/imageSize": "1K"
+            }
+          },
+          {
+            "id": "1k-3-2",
+            "resolution": "1K",
+            "aspect_ratio": "3:2",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "3:2",
+              "/generationConfig/imageConfig/imageSize": "1K"
+            }
+          },
+          {
+            "id": "1k-3-4",
+            "resolution": "1K",
+            "aspect_ratio": "3:4",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "3:4",
+              "/generationConfig/imageConfig/imageSize": "1K"
+            }
+          },
+          {
+            "id": "1k-4-3",
+            "resolution": "1K",
+            "aspect_ratio": "4:3",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "4:3",
+              "/generationConfig/imageConfig/imageSize": "1K"
+            }
+          },
+          {
+            "id": "1k-4-5",
+            "resolution": "1K",
+            "aspect_ratio": "4:5",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "4:5",
+              "/generationConfig/imageConfig/imageSize": "1K"
+            }
+          },
+          {
+            "id": "1k-5-4",
+            "resolution": "1K",
+            "aspect_ratio": "5:4",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "5:4",
+              "/generationConfig/imageConfig/imageSize": "1K"
+            }
+          },
+          {
+            "id": "1k-9-16",
+            "resolution": "1K",
+            "aspect_ratio": "9:16",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "9:16",
+              "/generationConfig/imageConfig/imageSize": "1K"
+            }
+          },
+          {
+            "id": "1k-16-9",
+            "resolution": "1K",
+            "aspect_ratio": "16:9",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "16:9",
+              "/generationConfig/imageConfig/imageSize": "1K"
+            }
+          },
+          {
+            "id": "1k-21-9",
+            "resolution": "1K",
+            "aspect_ratio": "21:9",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "21:9",
+              "/generationConfig/imageConfig/imageSize": "1K"
+            }
+          },
+          {
+            "id": "2k-1-1",
+            "resolution": "2K",
+            "aspect_ratio": "1:1",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "1:1",
+              "/generationConfig/imageConfig/imageSize": "2K"
+            }
+          },
+          {
+            "id": "2k-2-3",
+            "resolution": "2K",
+            "aspect_ratio": "2:3",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "2:3",
+              "/generationConfig/imageConfig/imageSize": "2K"
+            }
+          },
+          {
+            "id": "2k-3-2",
+            "resolution": "2K",
+            "aspect_ratio": "3:2",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "3:2",
+              "/generationConfig/imageConfig/imageSize": "2K"
+            }
+          },
+          {
+            "id": "2k-3-4",
+            "resolution": "2K",
+            "aspect_ratio": "3:4",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "3:4",
+              "/generationConfig/imageConfig/imageSize": "2K"
+            }
+          },
+          {
+            "id": "2k-4-3",
+            "resolution": "2K",
+            "aspect_ratio": "4:3",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "4:3",
+              "/generationConfig/imageConfig/imageSize": "2K"
+            }
+          },
+          {
+            "id": "2k-4-5",
+            "resolution": "2K",
+            "aspect_ratio": "4:5",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "4:5",
+              "/generationConfig/imageConfig/imageSize": "2K"
+            }
+          },
+          {
+            "id": "2k-5-4",
+            "resolution": "2K",
+            "aspect_ratio": "5:4",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "5:4",
+              "/generationConfig/imageConfig/imageSize": "2K"
+            }
+          },
+          {
+            "id": "2k-9-16",
+            "resolution": "2K",
+            "aspect_ratio": "9:16",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "9:16",
+              "/generationConfig/imageConfig/imageSize": "2K"
+            }
+          },
+          {
+            "id": "2k-16-9",
+            "resolution": "2K",
+            "aspect_ratio": "16:9",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "16:9",
+              "/generationConfig/imageConfig/imageSize": "2K"
+            }
+          },
+          {
+            "id": "2k-21-9",
+            "resolution": "2K",
+            "aspect_ratio": "21:9",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "21:9",
+              "/generationConfig/imageConfig/imageSize": "2K"
+            }
+          },
+          {
+            "id": "4k-1-1",
+            "resolution": "4K",
+            "aspect_ratio": "1:1",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "1:1",
+              "/generationConfig/imageConfig/imageSize": "4K"
+            }
+          },
+          {
+            "id": "4k-2-3",
+            "resolution": "4K",
+            "aspect_ratio": "2:3",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "2:3",
+              "/generationConfig/imageConfig/imageSize": "4K"
+            }
+          },
+          {
+            "id": "4k-3-2",
+            "resolution": "4K",
+            "aspect_ratio": "3:2",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "3:2",
+              "/generationConfig/imageConfig/imageSize": "4K"
+            }
+          },
+          {
+            "id": "4k-3-4",
+            "resolution": "4K",
+            "aspect_ratio": "3:4",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "3:4",
+              "/generationConfig/imageConfig/imageSize": "4K"
+            }
+          },
+          {
+            "id": "4k-4-3",
+            "resolution": "4K",
+            "aspect_ratio": "4:3",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "4:3",
+              "/generationConfig/imageConfig/imageSize": "4K"
+            }
+          },
+          {
+            "id": "4k-4-5",
+            "resolution": "4K",
+            "aspect_ratio": "4:5",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "4:5",
+              "/generationConfig/imageConfig/imageSize": "4K"
+            }
+          },
+          {
+            "id": "4k-5-4",
+            "resolution": "4K",
+            "aspect_ratio": "5:4",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "5:4",
+              "/generationConfig/imageConfig/imageSize": "4K"
+            }
+          },
+          {
+            "id": "4k-9-16",
+            "resolution": "4K",
+            "aspect_ratio": "9:16",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "9:16",
+              "/generationConfig/imageConfig/imageSize": "4K"
+            }
+          },
+          {
+            "id": "4k-16-9",
+            "resolution": "4K",
+            "aspect_ratio": "16:9",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "16:9",
+              "/generationConfig/imageConfig/imageSize": "4K"
+            }
+          },
+          {
+            "id": "4k-21-9",
+            "resolution": "4K",
+            "aspect_ratio": "21:9",
+            "parameters": {
+              "/generationConfig/imageConfig/aspectRatio": "21:9",
+              "/generationConfig/imageConfig/imageSize": "4K"
+            }
+          }
+        ],
+        "native_reference_inputs": [
+          {
+            "protocol": "gemini",
+            "operation": "generate",
+            "field": "reference_image",
+            "transport": "content-array",
+            "roles": [
+              "reference_image"
+            ],
+            "min_items": 0,
+            "max_items": 14,
+            "max_item_bytes": 12582912,
+            "max_total_bytes": 125829120,
+            "mime_types": [
+              "image/png",
+              "image/jpeg"
+            ]
+          }
+        ]
+      }
+    ],
+    "parameter_bindings": {
+      "/generationConfig/candidateCount": "/generationConfig/candidateCount",
+      "/generationConfig/imageConfig/aspectRatio": "/generationConfig/imageConfig/aspectRatio",
+      "/generationConfig/imageConfig/imageSize": "/generationConfig/imageConfig/imageSize"
+    },
+    "size_presets": [
+      {
+        "id": "1k-1-1",
+        "resolution": "1K",
+        "aspect_ratio": "1:1",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "1:1",
+          "/generationConfig/imageConfig/imageSize": "1K"
+        }
+      },
+      {
+        "id": "1k-2-3",
+        "resolution": "1K",
+        "aspect_ratio": "2:3",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "2:3",
+          "/generationConfig/imageConfig/imageSize": "1K"
+        }
+      },
+      {
+        "id": "1k-3-2",
+        "resolution": "1K",
+        "aspect_ratio": "3:2",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "3:2",
+          "/generationConfig/imageConfig/imageSize": "1K"
+        }
+      },
+      {
+        "id": "1k-3-4",
+        "resolution": "1K",
+        "aspect_ratio": "3:4",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "3:4",
+          "/generationConfig/imageConfig/imageSize": "1K"
+        }
+      },
+      {
+        "id": "1k-4-3",
+        "resolution": "1K",
+        "aspect_ratio": "4:3",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "4:3",
+          "/generationConfig/imageConfig/imageSize": "1K"
+        }
+      },
+      {
+        "id": "1k-4-5",
+        "resolution": "1K",
+        "aspect_ratio": "4:5",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "4:5",
+          "/generationConfig/imageConfig/imageSize": "1K"
+        }
+      },
+      {
+        "id": "1k-5-4",
+        "resolution": "1K",
+        "aspect_ratio": "5:4",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "5:4",
+          "/generationConfig/imageConfig/imageSize": "1K"
+        }
+      },
+      {
+        "id": "1k-9-16",
+        "resolution": "1K",
+        "aspect_ratio": "9:16",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "9:16",
+          "/generationConfig/imageConfig/imageSize": "1K"
+        }
+      },
+      {
+        "id": "1k-16-9",
+        "resolution": "1K",
+        "aspect_ratio": "16:9",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "16:9",
+          "/generationConfig/imageConfig/imageSize": "1K"
+        }
+      },
+      {
+        "id": "1k-21-9",
+        "resolution": "1K",
+        "aspect_ratio": "21:9",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "21:9",
+          "/generationConfig/imageConfig/imageSize": "1K"
+        }
+      },
+      {
+        "id": "2k-1-1",
+        "resolution": "2K",
+        "aspect_ratio": "1:1",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "1:1",
+          "/generationConfig/imageConfig/imageSize": "2K"
+        }
+      },
+      {
+        "id": "2k-2-3",
+        "resolution": "2K",
+        "aspect_ratio": "2:3",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "2:3",
+          "/generationConfig/imageConfig/imageSize": "2K"
+        }
+      },
+      {
+        "id": "2k-3-2",
+        "resolution": "2K",
+        "aspect_ratio": "3:2",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "3:2",
+          "/generationConfig/imageConfig/imageSize": "2K"
+        }
+      },
+      {
+        "id": "2k-3-4",
+        "resolution": "2K",
+        "aspect_ratio": "3:4",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "3:4",
+          "/generationConfig/imageConfig/imageSize": "2K"
+        }
+      },
+      {
+        "id": "2k-4-3",
+        "resolution": "2K",
+        "aspect_ratio": "4:3",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "4:3",
+          "/generationConfig/imageConfig/imageSize": "2K"
+        }
+      },
+      {
+        "id": "2k-4-5",
+        "resolution": "2K",
+        "aspect_ratio": "4:5",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "4:5",
+          "/generationConfig/imageConfig/imageSize": "2K"
+        }
+      },
+      {
+        "id": "2k-5-4",
+        "resolution": "2K",
+        "aspect_ratio": "5:4",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "5:4",
+          "/generationConfig/imageConfig/imageSize": "2K"
+        }
+      },
+      {
+        "id": "2k-9-16",
+        "resolution": "2K",
+        "aspect_ratio": "9:16",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "9:16",
+          "/generationConfig/imageConfig/imageSize": "2K"
+        }
+      },
+      {
+        "id": "2k-16-9",
+        "resolution": "2K",
+        "aspect_ratio": "16:9",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "16:9",
+          "/generationConfig/imageConfig/imageSize": "2K"
+        }
+      },
+      {
+        "id": "2k-21-9",
+        "resolution": "2K",
+        "aspect_ratio": "21:9",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "21:9",
+          "/generationConfig/imageConfig/imageSize": "2K"
+        }
+      },
+      {
+        "id": "4k-1-1",
+        "resolution": "4K",
+        "aspect_ratio": "1:1",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "1:1",
+          "/generationConfig/imageConfig/imageSize": "4K"
+        }
+      },
+      {
+        "id": "4k-2-3",
+        "resolution": "4K",
+        "aspect_ratio": "2:3",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "2:3",
+          "/generationConfig/imageConfig/imageSize": "4K"
+        }
+      },
+      {
+        "id": "4k-3-2",
+        "resolution": "4K",
+        "aspect_ratio": "3:2",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "3:2",
+          "/generationConfig/imageConfig/imageSize": "4K"
+        }
+      },
+      {
+        "id": "4k-3-4",
+        "resolution": "4K",
+        "aspect_ratio": "3:4",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "3:4",
+          "/generationConfig/imageConfig/imageSize": "4K"
+        }
+      },
+      {
+        "id": "4k-4-3",
+        "resolution": "4K",
+        "aspect_ratio": "4:3",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "4:3",
+          "/generationConfig/imageConfig/imageSize": "4K"
+        }
+      },
+      {
+        "id": "4k-4-5",
+        "resolution": "4K",
+        "aspect_ratio": "4:5",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "4:5",
+          "/generationConfig/imageConfig/imageSize": "4K"
+        }
+      },
+      {
+        "id": "4k-5-4",
+        "resolution": "4K",
+        "aspect_ratio": "5:4",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "5:4",
+          "/generationConfig/imageConfig/imageSize": "4K"
+        }
+      },
+      {
+        "id": "4k-9-16",
+        "resolution": "4K",
+        "aspect_ratio": "9:16",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "9:16",
+          "/generationConfig/imageConfig/imageSize": "4K"
+        }
+      },
+      {
+        "id": "4k-16-9",
+        "resolution": "4K",
+        "aspect_ratio": "16:9",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "16:9",
+          "/generationConfig/imageConfig/imageSize": "4K"
+        }
+      },
+      {
+        "id": "4k-21-9",
+        "resolution": "4K",
+        "aspect_ratio": "21:9",
+        "parameters": {
+          "/generationConfig/imageConfig/aspectRatio": "21:9",
+          "/generationConfig/imageConfig/imageSize": "4K"
+        }
+      }
+    ],
+    "native_reference_inputs": [
+      {
+        "protocol": "gemini",
+        "operation": "generate",
+        "field": "reference_image",
+        "transport": "content-array",
+        "roles": [
+          "reference_image"
+        ],
+        "min_items": 0,
+        "max_items": 14,
+        "max_item_bytes": 12582912,
+        "max_total_bytes": 125829120,
+        "mime_types": [
+          "image/png",
+          "image/jpeg"
+        ]
+      }
+    ],
+    "native_endpoints": [
+      {
+        "protocol": "gemini",
+        "operation": "generate",
+        "method": "POST",
+        "path": "/v1beta/models/{model}:generateContent"
+      }
+    ],
+    "mode": "image-openai",
+    "defaults": {
+      "/generationConfig/candidateCount": 1,
+      "/generationConfig/imageConfig/imageSize": "1K"
+    },
+    "input_modes": [
+      "text_to_image"
+    ],
+    "specifications_schema": {
+      "additionalProperties": false,
+      "properties": {
+        "/generationConfig/candidateCount": {
+          "const": 1,
+          "description": "",
+          "title": "candidateCount",
+          "type": "integer",
+          "x-order": 1001,
+          "x-widget": ""
+        },
+        "/generationConfig/imageConfig/aspectRatio": {
+          "description": "",
+          "enum": [
+            "1:1",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9"
+          ],
+          "title": "aspectRatio",
+          "type": "string",
+          "x-order": 2,
+          "x-widget": ""
+        },
+        "/generationConfig/imageConfig/imageSize": {
+          "description": "",
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "title": "imageSize",
+          "type": "string",
+          "x-order": 1,
+          "x-widget": ""
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "async_supported": true,
+    "prompt_min_characters": 1
+  }
+}

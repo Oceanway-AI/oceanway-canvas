@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Oceanway-AI/oceanway-platform/platformclient"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platformintegration"
 )
@@ -112,7 +113,18 @@ func (s *Service) studioNativeMediaBody(ctx context.Context, userID string, req 
 	if err := platformintegration.ValidateSpecifications(v.Schema, body); err != nil {
 		return nil, BadAuthRequest(err.Error())
 	}
-	return json.Marshal(body)
+	prepared, err := json.Marshal(body)
+	if err != nil {
+		return nil, BadAuthRequest("模型请求参数无效")
+	}
+	variantJSON, err := json.Marshal(v)
+	if err != nil {
+		return nil, BadAuthRequest("模型能力合同无效")
+	}
+	if err := platformclient.ValidateNativeImageSize(variantJSON, prepared); err != nil {
+		return nil, BadAuthRequest("图片尺寸不符合所选型号的限制")
+	}
+	return prepared, nil
 }
 
 func studioMergeNativeObjects(base, override map[string]any) map[string]any {

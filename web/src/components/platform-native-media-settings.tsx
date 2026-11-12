@@ -1,19 +1,27 @@
 import { Input } from "antd";
+import { useState } from "react";
 import { ImageParameterInput } from "./image-parameter-fields";
 import { Select } from "@/components/ui/base/select";
 import type { ImageParameter } from "@/lib/image-parameters";
 import { nativeMediaProfile, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
+import { nativeImageSizePointers } from "@/lib/platform-native-image-size";
+import { PlatformNativeImageSize } from "./platform-native-image-size";
 
 export type NativeMediaSettingKey = "nativeParameters" | "nativeVariantId";
 
 export function PlatformNativeMediaSettings({ config, onChange }: { config: AiConfig; onChange: (key: NativeMediaSettingKey, value: string) => void }) {
+    const [sizeResetRevision, setSizeResetRevision] = useState(0);
     const profile = nativeMediaProfile(config);
     const variant = nativeMediaVariant(config);
     let values: Record<string, unknown> = {};
     let error = "";
+    let sizePointers: string[] = [];
     try {
-        if (variant) values = nativeParameterValues(variant, config.nativeParameters);
+        if (variant) {
+            values = nativeParameterValues(variant, config.nativeParameters);
+            sizePointers = nativeImageSizePointers(variant);
+        }
     } catch {
         error = "原生参数格式无效，请恢复模型默认值";
     }
@@ -45,25 +53,36 @@ export function PlatformNativeMediaSettings({ config, onChange }: { config: AiCo
             ) : error ? (
                 <p role="alert">{error}</p>
             ) : (
-                Object.entries(variant.specifications_schema.properties)
-                    .sort((a, b) => Number(a[1]["x-order"] || 0) - Number(b[1]["x-order"] || 0))
-                    .map(([pointer, field]) => (
-                        <div key={`${variant.id}:${pointer}`} className="min-w-0 space-y-1">
-                            <div className="break-all text-xs">
-                                {pointer}
-                                {variant.specifications_schema.required?.includes(pointer) ? " *" : ""}
+                <>
+                    {sizePointers.length ? <PlatformNativeImageSize key={`${config.model}:${variant.id}:${sizeResetRevision}`} variant={variant} values={values} onChange={(next) => onChange("nativeParameters", JSON.stringify(next))} /> : null}
+                    {Object.entries(variant.specifications_schema.properties)
+                        .filter(([pointer]) => !sizePointers.includes(pointer))
+                        .sort((a, b) => Number(a[1]["x-order"] || 0) - Number(b[1]["x-order"] || 0))
+                        .map(([pointer, field]) => (
+                            <div key={`${variant.id}:${pointer}`} className="min-w-0 space-y-1">
+                                <div className="break-all text-xs">
+                                    {pointer}
+                                    {variant.specifications_schema.required?.includes(pointer) ? " *" : ""}
+                                </div>
+                                <NativeParameterInput pointer={pointer} field={field} value={values[pointer]} onChange={(value) => change(pointer, value)} />
+                                {field.description ? <p className="text-xs opacity-60">{field.description}</p> : null}
                             </div>
-                            <NativeParameterInput pointer={pointer} field={field} value={values[pointer]} onChange={(value) => change(pointer, value)} />
-                            {field.description ? <p className="text-xs opacity-60">{field.description}</p> : null}
-                        </div>
-                    ))
+                        ))}
+                </>
             )}
             {variant?.native_request_variant.native_reference_inputs?.map((ref) => (
                 <p key={ref.id} className="break-words text-xs opacity-70">
                     {ref.role} · {ref.min_items ?? 0}–{ref.max_items ?? "未限制"} · {ref.mime_types?.join(", ") || "按发布规格"}
                 </p>
             ))}
-            <button type="button" className="text-xs underline" onClick={() => onChange("nativeParameters", "{}")}>
+            <button
+                type="button"
+                className="text-xs underline"
+                onClick={() => {
+                    setSizeResetRevision((revision) => revision + 1);
+                    onChange("nativeParameters", "{}");
+                }}
+            >
                 恢复模型默认值
             </button>
         </div>
