@@ -840,8 +840,7 @@ export default function CreatePage() {
             return;
         }
         if (!useUserStore.getState().user) {
-            // 未发送的提示词只保存在本页内存里，跳转登录页会丢失；两种登录模式都改用弹窗。
-            openAuth({ preferDialog: true });
+            openAuth();
             releaseRetryLock();
             releaseSubmitGate();
             return;

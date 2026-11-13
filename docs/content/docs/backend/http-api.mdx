@@ -41,7 +41,7 @@ Pi 媒体报价同时冻结能力/连接 revision 到原加密准备态，公共
 | 接口 | 当前合同 |
 | --- | --- |
 | `GET /api/auth/settings` | `provider=platform`、`loginMode=page`、禁用本地注册，不回退密码登录 |
-| `GET /api/auth/login-url` | 返回经 Platform login-return 批准的登录 URL；固定回跳 `/platform/login/complete`，不接受外部 next 参数 |
+| `GET /api/auth/login-url` | 返回经 Platform login-return 批准的登录 URL，固定回跳 `/platform/login/complete`。Studio 在此 URL 上添加 `embed=product` 加载统一表单，收到来自当前 iframe 及平台 origin 的完成通知后，再通过 `POST /api/auth/session` 确认身份。 |
 | `GET /api/auth/session` | SDK 验证会话；有效时返回产品用户和功能配置，平台 401 时 `user=null`；403/429 保留拒绝语义，上游不可用返回 503，不假装匿名成功 |
 | `POST /api/auth/session` | 浏览器工作区初始化：同上，并以真实 Origin 签发仅限素材的委托授权，按当前 SID 加密保存在服务端；返回 `provider: platform`，不返回授权正文 |
 | `POST /api/auth/logout` | SDK 退出，逐项透传清理 Cookie；必须带实际允许的 Origin |
@@ -391,7 +391,8 @@ CANVAS_BACKEND_DATA_DIR=/明确的数据目录 ./migrate-schema repair-canvas-re
 
 `PATCH /admin/settings/registration` 可选提交 `loginMode`：`modal`（默认，在当前页面弹出登录框）或 `page`（跳转 `/login` 独立页面）。与协议字段相同，不提交表示保留已保存值；其他值返回 HTTP 400。`GET /admin/settings/registration` 与公开的 `GET /auth/settings` 都返回 `loginMode`，未配置或旧记录缺少该字段时为 `modal`，尚无账号时同样下发。
 
-前端站内登录入口、受保护页面的未登录跳转与退出登录后的去向按 `loginMode` 分发。弹窗模式下直达 `/login`、`/register`、`/forgot-password`（推广链接 `?ref=`、Linux.do 回跳 `?oauth_error=`、书签）会回到可公开访问的页面并打开对应视图，登录成功后进入 `next`。读取 `/auth/settings` 失败时前端退回独立页面。首页创作输入框的未发送内容只在内存中，该入口在两种模式下都使用弹窗。
+上述设置属于上游管理接口。OceanWay Studio 的工作区入口和受保护画布直接展示平台统一表单，`/login`、`/register` 和 `/forgot-password` 也使用同一面板。找回密码入口请求平台的 `auth=forgot` 视图。
+
 ## 站点皮肤主按钮
 
 ### 画布配置、更新公告、状态动画包与 Live2D（外观合同版本 11）

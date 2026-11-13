@@ -1,7 +1,8 @@
-import { afterAll, afterEach, expect, test } from "bun:test";
+import { afterAll, afterEach, expect, mock, test } from "bun:test";
 import { Window } from "happy-dom";
+import type { AuthSessionPayload } from "@/services/api/auth";
 
-const dom = new Window({ url: "https://studio.example.test" });
+const dom = new Window({ url: "https://studio.example.test", settings: { navigation: { disableChildFrameNavigation: true } } });
 for (const [key, value] of Object.entries({
     window: dom,
     document: dom.document,
@@ -22,127 +23,143 @@ for (const [key, value] of Object.entries({
 
 const { act } = await import("react");
 const { createRoot } = await import("react-dom/client");
-const { MemoryRouter, Routes, Route, useSearchParams } = await import("react-router");
-const { App } = await import("antd");
-const { default: LoginPage } = await import("@/pages/auth/login");
-const { default: RegisterPage } = await import("@/pages/auth/register");
-const { default: ForgotPasswordPage } = await import("@/pages/auth/forgot-password");
-const { AuthPanel } = await import("@/components/auth/auth-panel");
-const { apiClient } = await import("@/services/api/request");
-const { consumePlatformLoginNext } = await import("@/lib/platform-login");
+const { MemoryRouter, Routes, Route, useLocation } = await import("react-router");
 const { useUserStore } = await import("@/stores/use-user-store");
+mock.module("@/lib/user-session", () => ({ applyUserSession: async ({ user }: AuthSessionPayload) => useUserStore.setState({ user, hydrated: true }) }));
+const { default: LoginPage } = await import("@/pages/auth/login");
+const { RequireAuth } = await import("@/components/auth/require-auth");
+const { PlatformLoginDialogHost } = await import("@/components/auth/platform-login-dialog-host");
+const { useAuthDialogStore } = await import("@/stores/use-auth-dialog-store");
+const { apiClient } = await import("@/services/api/request");
+const { getAuthSession, invalidateAuthSessionCache } = await import("@/services/api/auth");
 const originalAdapter = apiClient.defaults.adapter;
-const redirects: string[] = [];
-Object.defineProperty(dom.location, "assign", { value: (url: string) => redirects.push(url) });
+const callback = dom.location.origin + "/platform/login/complete";
+const origin = "https://platform.example.test";
+const approved = origin + "/login?return=" + encodeURIComponent(callback);
+const requests: string[] = [];
+let loginURL = approved;
+let authenticated = false;
 
-afterEach(() => {
-    apiClient.defaults.adapter = originalAdapter;
-    redirects.length = 0;
-    dom.sessionStorage.clear();
-});
-afterAll(() => dom.happyDOM.abort());
-
-function RegistrationDialog() {
-    const [params] = useSearchParams();
-    return (
-        <AuthPanel
-            variant="dialog"
-            view="register"
-            next={params.get("next") || "/"}
-            onViewChange={() => {
-                throw new Error("Unexpected local auth view");
-            }}
-            onAuthenticated={() => {
-                throw new Error("Unexpected local authentication");
-            }}
-        />
-    );
+function Location() {
+    const { pathname, search, hash } = useLocation();
+    return <output>{pathname + search + hash}</output>;
 }
 
 async function mount(path: string) {
     useUserStore.setState({ user: null, hydrated: true });
+    apiClient.defaults.adapter = async (config) => {
+        requests.push(config.url!);
+        expect(config.withCredentials).toBe(true);
+        const data = config.url === "/auth/login-url" ? { url: loginURL } : { provider: "platform", user: authenticated ? { id: "server-user" } : null };
+        return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data } };
+    };
     const host = document.createElement("div");
     document.body.append(host);
     const root = createRoot(host);
     await act(async () =>
         root.render(
-            <App>
-                <MemoryRouter initialEntries={[path]}>
-                    <Routes>
-                        <Route path="/login" element={<LoginPage />} />
-                        <Route path="/register" element={<RegisterPage />} />
-                        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                        <Route path="/dialog" element={<RegistrationDialog />} />
-                    </Routes>
-                </MemoryRouter>
-            </App>,
+            <MemoryRouter initialEntries={[path]}>
+                <Location />
+                <Routes>
+                    {["/login", "/register", "/forgot-password"].map((p) => (
+                        <Route key={p} path={p} element={<LoginPage />} />
+                    ))}
+                    <Route
+                        path="/canvas/:id"
+                        element={
+                            <RequireAuth>
+                                <span>项目画布</span>
+                            </RequireAuth>
+                        }
+                    />
+                    <Route path="/" element={<PlatformLoginDialogHost />} />
+                </Routes>
+            </MemoryRouter>,
         ),
     );
-    return {
-        host,
-        button: () => host.querySelector<HTMLButtonElement>("button")!,
-        close: async () => {
-            await act(async () => root.unmount());
-            host.remove();
-        },
+    return async () => {
+        await act(async () => root.unmount());
+        host.remove();
     };
 }
 
-for (const path of ["/login", "/register", "/forgot-password", "/dialog"]) {
-    test(`${path} 真实页面只有平台登录，点击后保留安全回跳`, async () => {
-        const requests: string[] = [];
-        apiClient.defaults.adapter = async (config) => {
-            requests.push(`${config.method} ${config.url}`);
-            expect(config.withCredentials).toBe(true);
-            expect(config.data).toBeUndefined();
-            return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { url: "https://platform.example.test/login?return=registered" } } };
-        };
-        const page = await mount(`${path}?next=${encodeURIComponent("/canvas/existing?tab=details")}`);
+function notify(type: string, options: { origin?: string; source?: Window } = {}) {
+    const frame = document.querySelector("iframe");
+    window.dispatchEvent(
+        new dom.MessageEvent("message", {
+            data: { type, user: { id: "untrusted" } },
+            origin: options.origin ?? origin,
+            source: options.source ?? frame?.contentWindow,
+        }) as unknown as MessageEvent,
+    );
+}
+
+afterEach(() => {
+    apiClient.defaults.adapter = originalAdapter;
+    invalidateAuthSessionCache();
+    requests.length = 0;
+    authenticated = false;
+    loginURL = approved;
+    useAuthDialogStore.getState().closeDialog();
+});
+afterAll(() => dom.happyDOM.abort());
+
+for (const path of ["/login", "/register", "/forgot-password", "/canvas/test?tab=1#node", "/"]) {
+    test(path + " 直接加载共用表单，只接受当前 iframe 消息并从服务端恢复身份", async () => {
+        const next = "/canvas/test?tab=1#node";
+        const isEntry = ["/login", "/register", "/forgot-password"].includes(path);
+        if (path === "/") useAuthDialogStore.getState().openDialog();
+        const close = await mount(isEntry ? path + "?next=" + encodeURIComponent(next) : path);
         try {
-            expect(page.host.textContent).toContain("使用 OceanWay 账号登录 Studio");
-            expect(page.host.querySelectorAll("input").length).toBe(0);
-            expect(page.host.querySelector('[role="checkbox"]')).toBeNull();
-            expect(page.host.textContent).not.toContain("服务协议内容待补充");
-            expect(requests).toEqual([]);
-            await act(async () => page.button().click());
-            expect(requests).toEqual(["get /auth/login-url"]);
-            expect(redirects).toEqual(["https://platform.example.test/login?return=registered"]);
-            expect(consumePlatformLoginNext()).toBe("/canvas/existing?tab=details");
-            expect(consumePlatformLoginNext()).toBe("/");
+            const frame = document.querySelector("iframe")!;
+            const url = new URL(frame.src);
+            expect(url.origin).toBe(origin);
+            expect(url.searchParams.get("embed")).toBe("product");
+            expect(url.searchParams.get("auth")).toBe(path === "/forgot-password" ? "forgot" : null);
+            expect(url.searchParams.get("return")).toBe(callback);
+            expect(requests).toEqual(["/auth/login-url"]);
+            await act(async () => {
+                notify("oceanway:login-complete", { origin: "https://elsewhere.test" });
+                notify("oceanway:login-complete", { source: window });
+                notify("oceanway:login-ready");
+            });
+            expect(frame.inert).toBe(false);
+            expect(requests).toEqual(["/auth/login-url"]);
+            await getAuthSession(); // 缓存尚未登录的会话。
+            authenticated = true;
+            await act(async () => {
+                notify("oceanway:login-complete");
+                notify("oceanway:login-complete");
+            });
+            expect(requests).toEqual(["/auth/login-url", "/auth/session", "/auth/session"]);
+            expect(useUserStore.getState().user?.id).toBe("server-user");
+            expect(document.querySelector("output")?.textContent).toBe(path === "/" ? "/" : next);
+            expect(document.querySelector("iframe")).toBeNull();
         } finally {
-            await page.close();
+            await close();
         }
     });
 }
 
-for (const path of ["/forgot-password", "/register", "/dialog"]) {
-    test(`${path} 平台失败或不安全登录地址不跳转、不调用旧认证接口，允许重试`, async () => {
-        const requests: string[] = [];
-        let loginURL = "http://platform.example.test/login";
-        let code = 503;
-        apiClient.defaults.adapter = async (config) => {
-            requests.push(`${config.method} ${config.url}`);
-            return { config, headers: {}, status: 200, statusText: "OK", data: { code, msg: "fixture unavailable", data: { url: loginURL } } };
+test("地址或会话确认失败时保持匿名，可以重试", async () => {
+    loginURL = "http://platform.example.test/login";
+    const close = await mount("/register");
+    try {
+        const retry = async () => {
+            const button = Array.from(document.querySelectorAll("button")).find((item) => item.textContent?.replace(/\s/g, "") === "重试")!;
+            await act(async () => button.click());
         };
-        const page = await mount(`${path}?next=https://external.example.test`);
-        try {
-            for (const unsafe of ["", "http://platform.example.test/login", "https://user:pass@platform.example.test/login", "javascript:alert(1)"]) {
-                loginURL = unsafe;
-                await act(async () => page.button().click());
-                expect(page.host.querySelector('[role="alert"]')?.textContent).toContain("暂时无法登录");
-                expect(redirects).toEqual([]);
-                expect(dom.sessionStorage.length).toBe(0);
-                expect(page.host.querySelectorAll("input").length).toBe(0);
-                expect(page.button().disabled).toBe(false);
-                code = 0;
-            }
-            loginURL = "https://platform.example.test/login";
-            await act(async () => page.button().click());
-            expect(redirects).toEqual([loginURL]);
-            expect(consumePlatformLoginNext()).toBe("/");
-            expect(requests).toEqual(Array(5).fill("get /auth/login-url"));
-        } finally {
-            await page.close();
-        }
-    });
-}
+        expect(document.querySelector("iframe")).toBeNull();
+        loginURL = approved;
+        await retry();
+        await act(async () => notify("oceanway:login-complete"));
+        expect(document.querySelector('[role="alert"]')?.textContent).toContain("未能确认");
+        expect(useUserStore.getState().user).toBeNull();
+        await retry();
+        expect(document.querySelector("iframe")).toBeTruthy();
+        await act(async () => notify("oceanway:login-dismiss"));
+        expect(document.querySelector("output")?.textContent).toBe("/");
+    } finally {
+        await close();
+    }
+});

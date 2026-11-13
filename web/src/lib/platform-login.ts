@@ -1,29 +1,38 @@
-import { safeAuthNext } from "@/lib/auth-entry";
-
 const nextKey = "oceanway:studio:login-next";
 
 export function platformLoginNext(value?: string | null) {
-    const next = safeAuthNext(value);
-    if (/[\\\u0000-\u0020]/.test(next)) return "/";
-    const path = next.split(/[?#]/)[0];
-    if (["/platform/login/complete", "/login", "/register", "/forgot-password"].includes(path)) return "/";
-    return next;
+    if (!value?.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u0020]/.test(value)) return "/";
+    const url = new URL(value, "https://studio.invalid");
+    const path = url.pathname.replace(/\/+$/, "").toLowerCase();
+    if (url.pathname.startsWith("//") || ["/platform/login/complete", "/login", "/register", "/forgot-password"].includes(path)) return "/";
+    return url.pathname + url.search + url.hash;
+}
+
+export function platformLoginPage(value: string) {
+    const next = platformLoginNext(value);
+    return next === "/" ? "/login" : "/login?next=" + encodeURIComponent(next);
 }
 
 export function rememberPlatformLoginNext(value: string) {
     try {
         window.sessionStorage.setItem(nextKey, platformLoginNext(value));
     } catch {
-        /* Navigation still works without browser storage. */
+        /* The fixed callback also works without storage. */
     }
 }
 
-export function consumePlatformLoginNext() {
+export function readPlatformLoginNext() {
     try {
-        const value = window.sessionStorage.getItem(nextKey);
-        window.sessionStorage.removeItem(nextKey);
-        return platformLoginNext(value);
+        return platformLoginNext(window.sessionStorage.getItem(nextKey));
     } catch {
         return "/";
+    }
+}
+
+export function clearPlatformLoginNext() {
+    try {
+        window.sessionStorage.removeItem(nextKey);
+    } catch {
+        /* Storage can be disabled. */
     }
 }
