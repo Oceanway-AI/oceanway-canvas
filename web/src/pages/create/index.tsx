@@ -737,15 +737,25 @@ export default function CreatePage() {
             attachment: creationAttachmentFromImage(file, uploaded),
         };
     };
-    const addPlatformImages = (items: InsertAssetPayload[]) => {
-        const next: CreationAttachment[] = items.flatMap((item) => item.kind === "image" && item.storageKey ? [{
-            id: item.storageKey, name: item.title, type: item.mimeType || "image/png", storageKey: item.storageKey,
-            dataUrl: item.dataUrl, previewUrl: item.dataUrl, url: item.dataUrl, width: item.width, height: item.height, bytes: item.bytes,
-        }] : []);
-        const candidates = [...attachments, ...next.filter((item) => !attachments.some((current) => current.storageKey === item.storageKey))];
-        const result = reconcileCreationAttachmentLimit(candidates, [], maxReferences);
-        if (result.attachments.length < candidates.length) toast.warning(t("create.page.referenceLimitExceeded"));
-        setAttachments(result.attachments);
+    const addPlatformReferences = (items: InsertAssetPayload[]) => {
+        const next: CreationAttachment[] = [];
+        for (const item of items) {
+            if ((item.kind !== "image" && item.kind !== "video" && item.kind !== "audio") || !item.storageKey) continue;
+            const common = { id: item.storageKey, storageKey: item.storageKey, name: item.title, bytes: item.bytes };
+            if (item.kind === "image") {
+                next.push({ ...common, type: item.mimeType || "image/png", dataUrl: item.dataUrl, url: item.dataUrl, previewUrl: item.dataUrl, width: item.width, height: item.height });
+            } else if (item.kind === "video") {
+                next.push({ ...common, type: item.mimeType || "video/mp4", url: item.url, previewUrl: item.url, width: item.width, height: item.height, durationMs: item.durationMs });
+            } else {
+                next.push({ ...common, type: item.mimeType || "audio/mpeg", url: item.url, previewUrl: item.url, durationMs: item.durationMs });
+            }
+        }
+        setAttachments((current) => {
+            const candidates = [...current, ...next.filter((item) => !current.some((existing) => existing.storageKey === item.storageKey))];
+            const result = mode === "video" && videoReferenceLimits ? reconcileCreationAttachmentLimits(candidates, [], videoReferenceLimits) : reconcileCreationAttachmentLimit(candidates, [], maxReferences);
+            if (result.attachments.length < candidates.length) toast.warning(t("create.page.referenceLimitExceeded"));
+            return result.attachments;
+        });
         setLibraryOpen(false);
     };
 
@@ -1683,8 +1693,8 @@ export default function CreatePage() {
             />
             {libraryOpen ? (
                 <Suspense fallback={null}>
-                    {platformIdentity && mode === "image" ? (
-                        <PlatformMaterialPicker open={libraryOpen} imageReferences onClose={() => setLibraryOpen(false)} onInsert={addPlatformImages} />
+                    {platformIdentity ? (
+                        <PlatformMaterialPicker open={libraryOpen} imageReferences={mode === "image"} disabledReason={(kind) => creationLibraryDisabledReason(mode, kind, videoReferenceLimits)} onClose={() => setLibraryOpen(false)} onInsert={addPlatformReferences} />
                     ) : <AssetLibraryPickerModal
                         remoteLibrary
                         acceptRemoteItems

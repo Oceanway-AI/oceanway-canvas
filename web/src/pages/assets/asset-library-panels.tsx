@@ -493,7 +493,7 @@ export function AssetImageZoom({ asset }: { asset: LibraryAsset & { kind: "image
                 className="asset-archive-preview-media asset-zoom-image"
                 style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
             />
-            <div className="asset-zoom-controls" data-canvas-no-zoom>
+            <div className="asset-zoom-controls" data-canvas-no-zoom onPointerDown={(event) => event.stopPropagation()}>
                 <button type="button" title="缩小" aria-label="缩小" onClick={() => setScale((value) => Math.max(0.25, value / 1.25))}>
                     <ZoomOut className="size-4" />
                 </button>

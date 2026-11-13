@@ -7,12 +7,19 @@ import { insertLibraryAsset } from "@/services/platform-material-selection";
 import { platformLibraryAsset, uploadLibraryMaterial } from "@/services/platform-library-assets";
 import type { InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 
-type Props = { open: boolean; multiple?: boolean; imageReferences?: boolean; onClose: () => void; onInsert: (items: InsertAssetPayload[]) => Promise<unknown> | void };
+type Props = {
+    open: boolean;
+    multiple?: boolean;
+    imageReferences?: boolean;
+    disabledReason?: (kind: string) => string | undefined;
+    onClose: () => void;
+    onInsert: (items: InsertAssetPayload[]) => Promise<unknown> | void;
+};
 export function PlatformMaterialPicker(props: Props) {
     const userId = useUserStore((state) => state.user?.id);
     return <MaterialPicker key={userId} {...props} />;
 }
-function MaterialPicker({ open, multiple = true, imageReferences = false, onClose, onInsert }: Props) {
+function MaterialPicker({ open, multiple = true, imageReferences = false, disabledReason, onClose, onInsert }: Props) {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const scope = getActiveUserScope();
@@ -25,6 +32,8 @@ function MaterialPicker({ open, multiple = true, imageReferences = false, onClos
             for (const file of Array.from(files)) {
                 assertCurrent();
                 if (!(imageReferences ? /^image\// : /^(image|video|audio)\//).test(file.type)) throw new Error(t("library.picker.notApplicable"));
+                const reason = disabledReason?.(file.type.split("/")[0]);
+                if (reason) throw new Error(reason);
                 const asset = platformLibraryAsset(await uploadLibraryMaterial(file));
                 assertCurrent();
                 if (asset.kind !== "document") uploaded.push(remoteAssetToPickerItem(asset, undefined, true));
@@ -46,6 +55,7 @@ function MaterialPicker({ open, multiple = true, imageReferences = false, onClos
             items={[]}
             categoryLabels={{}}
             remoteKind={imageReferences ? "image" : undefined}
+            remoteItemDisabledReason={disabledReason && ((asset) => disabledReason(asset.kind))}
             title={imageReferences ? t("library.assets.platform.reference") : t("library.picker.title")}
             confirmLabel={(count) => (imageReferences ? t("library.assets.platform.addReferences", { count }) : t("canvasA.assetPicker.insertSelectedCount", { count }))}
             upload={{ accept: imageReferences ? "image/*" : "image/*,video/*,audio/*", description: t("library.assets.platform.upload"), onUpload: upload }}
@@ -57,6 +67,8 @@ function MaterialPicker({ open, multiple = true, imageReferences = false, onClos
                     assertCurrent();
                     const asset = byId.get(id);
                     if (!asset || (imageReferences && asset.kind !== "image")) throw new Error(t("library.picker.notApplicable"));
+                    const reason = disabledReason?.(asset.kind);
+                    if (reason) throw new Error(reason);
                     results.push(await insertLibraryAsset(asset));
                 }
                 assertCurrent();
