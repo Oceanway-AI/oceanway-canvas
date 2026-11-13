@@ -1,6 +1,6 @@
 # Oceanway Studio UI sources
 
-The Ocean Air palette, MoltenMetal background adaptation, logo, and workspace
+The Ocean Air palette, MoltenMetal background adaptation, and workspace
 illustrations in this migration originate from:
 
 - https://github.com/Oceanway-AI/oceanway-studio
@@ -10,8 +10,12 @@ illustrations in this migration originate from:
 
 Source paths: `web/src/lib/ocean-air-theme.ts`,
 `web/src/app/styles/global-ocean-air-theme.css`,
-`web/src/components/ocean/backgrounds/molten-metal.*`, `web/public/logo.svg`,
+`web/src/components/ocean/backgrounds/molten-metal.*`,
 and `web/public/oceanway-workspace/`.
+
+The default Studio logo (`logo.svg`) is the original blue OceanWay symbol from
+`Oceanway-AI/oceanway-platform`, at
+`web/public/brand/ui-foundation-v1/logo/oceanway-ai-symbol-blue.svg`.
 
 The background source retains its pinned React Bits attribution. Canvas-specific
 components and theme adapters integrate these materials with the existing Canvas
