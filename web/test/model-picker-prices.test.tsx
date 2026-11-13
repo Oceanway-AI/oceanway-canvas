@@ -176,9 +176,25 @@ function platformMediaFixture(capability: "image" | "video" = "video") {
             health: { scope: "platform", basis: "generation_outcome", state: "no_data", window_start: 0, window_end: 0, sampled_at: 0, sample_count: 0, success_count: 0, success_rate: null, buckets: [] },
         },
     };
-    const render = (model = config.model) => renderToStaticMarkup(<ModelLabel config={config} model={model} capability={capability} theme={canvasThemes.light} creationVariant showConfiguredModelName={false} showPrice showDescription />);
+    const render = (model = config.model, requirements?: ModelRequirements) => renderToStaticMarkup(<ModelLabel config={config} model={model} requirements={requirements} capability={capability} theme={canvasThemes.light} creationVariant showConfiguredModelName={false} showPrice showDescription />);
     return { channel: config.channels[0], cost, render };
 }
+
+test("Seedance picker prices all reference video seconds and withholds an incomplete reference duration", () => {
+    const { cost, render } = platformMediaFixture();
+    const platform = cost.platform!;
+    platform.media_generation_profile = {
+        defaults: { "/metadata/resolution": "720p", "/metadata/aspect_ratio": "16:9", "/duration": 5 },
+        native_request_profile: { capabilities: { template_id: "seedance-2.5" } },
+    };
+    platform.presentation!.price_summary = [{
+        rate_unit: "million_tokens", dimension: "completion_tokens", min: "4200", max: "4200",
+        conditions: [{ model_name: platform.model_name, price_version: platform.price.version, specification: { resolution: "720p", video_input: "video" }, amount: "4200" }],
+    }];
+    const input = { videoCount: 2, textCount: 1, imageCount: 0, audioCount: 0, characterCount: 0 };
+    expect(render(undefined, { capability: "video", input: { ...input, videoDurationsMs: [1500, 2500] } })).toContain("≈ 163.296 积分/s");
+    expect(render(undefined, { capability: "video", input: { ...input, videoDurationsMs: [1500] } })).toContain("暂时无法预估费用");
+});
 
 test("platform media options show the exact display name and call ID with only curated tags", () => {
     const { cost, render } = platformMediaFixture();

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Popover } from "antd";
 import { Check, Clapperboard, Clock3, Monitor, SlidersHorizontal, Volume2, VolumeX } from "lucide-react";
 import { NativeParameterInput, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
-import { creativeParameterLabel, nativeMediaVariantOptions, nativeParameterValues, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
+import { creativeParameterLabel, nativeCreationModeOptions, nativeParameterValues, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
 
 type Group = "生成模式" | "尺寸与分辨率" | "时长" | "声音" | "更多参数";
@@ -26,9 +26,8 @@ function display(value: unknown, group: Group) {
 export function VideoParameterControls({ config, variants, onChange }: { config: AiConfig; variants: NativeMediaVariant[]; onChange: (key: NativeMediaSettingKey, value: string) => void }) {
     const [open, setOpen] = useState<Group | null>(null);
     const variant = variants.find((v) => v.id === config.nativeVariantId);
-    const modes = nativeMediaVariantOptions(variants);
-    const references = variant?.native_request_variant.native_reference_inputs?.filter((ref) => ref.max_items !== 0) ?? [];
-    const modeLabel = !variant ? "选择模式" : !references.length ? "文生视频" : references.some((ref) => ref.role === "last_frame") ? "首尾帧" : references.some((ref) => ref.role === "first_frame") ? "首帧生成" : "参考素材";
+    const modes = nativeCreationModeOptions(variants, variant, true);
+    const modeLabel = modes.find((mode) => mode.value === variant?.id)?.label ?? "选择模式";
     function menu(group: Group, label: string, icon: ReactNode, content: ReactNode) {
         return (
             <Popover
@@ -51,7 +50,7 @@ export function VideoParameterControls({ config, variants, onChange }: { config:
             </Popover>
         );
     }
-    const modeMenu = menu(
+    const modeMenu = modes.length > 0 && menu(
         "生成模式",
         modeLabel,
         <Clapperboard />,
@@ -72,16 +71,6 @@ export function VideoParameterControls({ config, variants, onChange }: { config:
                     {option.value === variant?.id && <Check size={15} />}
                 </button>
             ))}
-            <button
-                type="button"
-                className="studio-video-option"
-                onClick={() => {
-                    onChange("nativeParameters", "{}");
-                    setOpen(null);
-                }}
-            >
-                恢复当前模式默认参数
-            </button>
         </>,
     );
     if (!variant)

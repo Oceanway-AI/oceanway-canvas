@@ -33,6 +33,35 @@ export type NativeMediaVariant = {
     };
 };
 
+function creationModeLabel(variant: NativeMediaVariant) {
+    const roles = new Set((variant.native_request_variant.native_reference_inputs || []).filter((ref) => ref.max_items !== 0).map((ref) => ref.role));
+    if (!roles.size) return variant.gateway_protocol.endsWith(".video") ? "文生视频" : "文生图";
+    if (roles.has("mask") || roles.has("markup")) return "图片编辑";
+    if ([...roles].every((role) => role === "first_frame" || role === "last_frame")) {
+        if (roles.size === 2) return "首尾帧";
+        return roles.has("first_frame") ? "首帧" : "尾帧";
+    }
+    if (roles.has("reference_image") && roles.has("reference_video") && roles.has("reference_audio")) return "全能参考";
+    if (roles.size > 1) return "多模态参考";
+    if (roles.has("reference_image")) return "图片参考";
+    if (roles.has("reference_video")) return "视频参考";
+    if (roles.has("reference_audio")) return "音频参考";
+    return "参考素材";
+}
+
+export function nativeCreationModeOptions(variants: NativeMediaVariant[], current: NativeMediaVariant | undefined, automaticVideo = false) {
+    const modes = new Map<string, NativeMediaVariant>();
+    for (const variant of variants) {
+        const label = creationModeLabel(variant);
+        if (automaticVideo && label === "文生视频") continue;
+        const existing = modes.get(label);
+        if (!existing || variant.id === current?.id || (existing.id !== current?.id && existing.gateway_protocol !== current?.gateway_protocol && variant.gateway_protocol === current?.gateway_protocol)) {
+            modes.set(label, variant);
+        }
+    }
+    return Array.from(modes, ([label, variant]) => ({ value: variant.id, label }));
+}
+
 export function nativeMediaVariantOptions(variants: NativeMediaVariant[]) {
     const roleLabels: Record<string, string> = { first_frame: "首帧", last_frame: "尾帧", reference_image: "参考图片", reference_video: "参考视频", reference_audio: "参考音频", mask: "蒙版" };
     const options = variants.map((variant) => {
@@ -71,17 +100,39 @@ export function nativeImageReferenceVariant(config: AiConfig, model: string, cur
     return edits?.length === 1 ? edits[0] : current;
 }
 
-export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId">, hasReferenceImages: boolean) {
-    const base = nativeMediaDefaults(config, model, saved);
+export function nativeVideoComposerVariants(variants: NativeMediaVariant[], base: NativeMediaVariant, preferredId?: string) {
+    const siblings = variants.filter((v) => v.gateway_protocol === base.gateway_protocol && v.native_request_variant.path === base.native_request_variant.path);
+    const references = siblings.filter((v) => creationModeLabel(v) !== "文生视频");
+    return {
+        reference: references.find((v) => v.id === preferredId)
+            ?? references.find((v) => creationModeLabel(v) === "全能参考")
+            ?? references.find((v) => v.id === base.id)
+            ?? references[0],
+        text: siblings.find((v) => creationModeLabel(v) === "文生视频"),
+    };
+}
+
+export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId">, hasReferences: boolean) {
+    const profile = nativeMediaProfile(config, model);
+    const savedVariant = profile?.variants.find((v) => v.id === saved.nativeVariantId);
+    const fallback = profile?.variants.find((v) => v.id === profile.defaultId) ?? profile?.variants[0];
+    const base = nativeMediaDefaults(config, model, savedVariant || (!saved.nativeVariantId && fallback?.id === profile?.defaultId) ? saved : { nativeVariantId: fallback?.id });
     const variant = nativeMediaVariant(config, model, base.nativeVariantId);
-    const referenceVariant = nativeImageReferenceVariant(config, model, variant);
-    if (!hasReferenceImages || !referenceVariant || !variant || referenceVariant.id === variant.id) return { settings: base, referenceVariant };
-    const values = nativeParameterValues(referenceVariant);
-    const previous = nativeParameterObject(base.nativeParameters);
-    for (const [key, field] of Object.entries(referenceVariant.specifications_schema.properties)) {
-        if ((!referenceVariant.workbench_parameters || referenceVariant.workbench_parameters.includes(key)) && Object.hasOwn(previous, key) && JSON.stringify(field) === JSON.stringify(variant.specifications_schema.properties[key])) values[key] = previous[key];
+    let referenceVariant = nativeImageReferenceVariant(config, model, variant);
+    let requestVariant = hasReferences ? referenceVariant : variant;
+    if (variant?.gateway_protocol.endsWith(".video")) {
+        const video = nativeVideoComposerVariants(profile?.variants ?? [], variant, savedVariant?.id);
+        referenceVariant = video.reference;
+        const text = video.text;
+        requestVariant = (hasReferences ? referenceVariant : text) ?? referenceVariant ?? variant;
     }
-    return { settings: { nativeVariantId: referenceVariant.id, nativeParameters: JSON.stringify(values) }, referenceVariant };
+    if (!requestVariant || !variant || requestVariant.id === variant.id) return { settings: base, referenceVariant };
+    const values = nativeParameterValues(requestVariant);
+    const previous = nativeParameterObject(base.nativeParameters);
+    for (const [key, field] of Object.entries(requestVariant.specifications_schema.properties)) {
+        if ((!requestVariant.workbench_parameters || requestVariant.workbench_parameters.includes(key)) && Object.hasOwn(previous, key) && JSON.stringify(field) === JSON.stringify(variant.specifications_schema.properties[key])) values[key] = previous[key];
+    }
+    return { settings: { nativeVariantId: requestVariant.id, nativeParameters: JSON.stringify(values) }, referenceVariant };
 }
 
 export function nativeMediaReferenceLimits(config: AiConfig, model = config.model, variant = nativeMediaVariant(config, model)) {

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { defaultConfig } from "@/stores/use-config-store";
 import { systemChannelModelChannels } from "@/lib/user-session";
-import { nativeCreationSettings, nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues } from "@/lib/platform-native-media";
+import { nativeCreationModeOptions, nativeCreationSettings, nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues } from "@/lib/platform-native-media";
 import { modelCompatibilityError, resolveModelGenerationDefaults } from "@/lib/model-selection";
 import { backendProviderConfig } from "@/services/api/generation-task";
 import { buildNodeConfig } from "@/components/canvas/canvas-node-prompt-config";
@@ -57,6 +57,17 @@ test("native protocol choices describe the published reference inputs without mo
     ]);
     expect(nativeMediaVariantOptions([text, { ...text, id: "other" }]).map((option) => option.label)).toEqual(["modelark.video · 文生视频 · text", "modelark.video · 文生视频 · other"]);
 });
+test("creation mode choices hide duplicate protocols and keep the selected native route", () => {
+    const variants = ["sora.video", "newapi.video", "modelark.video"].flatMap((protocol) =>
+        [[], ["first_frame", "last_frame"], ["reference_image", "reference_video", "reference_audio"]].map((roles, i) => ({
+            ...variant, id: protocol + i, gateway_protocol: protocol,
+            native_request_variant: { ...variant.native_request_variant, native_reference_inputs: roles.map((role) => ({ ...variant.native_request_variant.native_reference_inputs[0], role })) },
+        })),
+    );
+    expect(nativeCreationModeOptions(variants, variants[6], true)).toEqual([
+        { label: "首尾帧", value: "modelark.video1" }, { label: "全能参考", value: "modelark.video2" },
+    ]);
+});
 const model = {
     id: "native",
     modelKey: "doubao-seedance-2-0-fast-260128",
@@ -90,6 +101,14 @@ test("native selection preserves exact values and ignores legacy video controls"
     expect(resolveModelGenerationDefaults(value, selected, "video", settings).count).toBe("1");
     expect(() => backendProviderConfig({ ...value, nativeParameters: "[" }, "video")).toThrow();
     expect(() => backendProviderConfig({ ...value, nativeVariantId: "retired" }, "video")).toThrow();
+});
+
+test("reopening an editable draft restores a published mode and its own defaults", () => {
+    const empty = nativeCreationSettings(config, selected, { nativeVariantId: "retired", nativeParameters: '{"/seed":999}' }, false);
+    expect(empty.referenceVariant?.id).toBe("ark");
+    expect(empty.settings.nativeVariantId).toBe("other");
+    expect(JSON.parse(empty.settings.nativeParameters)["/seed"]).not.toBe(999);
+    expect(nativeCreationSettings(config, selected, { nativeVariantId: "other" }, true).settings.nativeVariantId).toBe("ark");
 });
 
 test("selected protocol owns reference capacity without merging alternatives", () => {
@@ -152,7 +171,7 @@ test("creation selects a published edit only for attached images and retains com
     expect(modelCompatibilityError(cfg, selected, { capability: "image", input, useImageEditForReferences: true })).toBe("");
     expect(modelCompatibilityError(cfg, selected, { capability: "image", input })).toContain("0");
     expect(modelCompatibilityError(cfg, selected, { capability: "image", input: { ...input, imageCount: 17 }, useImageEditForReferences: true })).toContain("16");
-    expect(nativeCreationSettings(cfg, selected, { nativeVariantId: "retired" }, true).settings.nativeVariantId).toBe("retired");
+    expect(nativeCreationSettings(cfg, selected, { nativeVariantId: "retired" }, true).settings.nativeVariantId).toBe("edit");
     image.platform!.media_generation_profile!.variants = [generate, edit, { ...edit, id: "another" }];
     expect(nativeCreationSettings(cfg, selected, saved, true).settings.nativeVariantId).toBe("generate");
 });

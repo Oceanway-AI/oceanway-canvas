@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ImageParameterInput } from "./image-parameter-fields";
 import { Select } from "@/components/ui/base/select";
 import type { ImageParameter } from "@/lib/image-parameters";
-import { creativeParameterLabel, nativeMediaProfile, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues, type NativeSchemaField } from "@/lib/platform-native-media";
+import { creativeParameterLabel, nativeMediaProfile, nativeMediaVariant, nativeMediaVariantOptions, nativeCreationModeOptions, nativeParameterValues, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
 import { nativeImageSizePointers } from "@/lib/platform-native-image-size";
 import { PlatformNativeImageSize } from "./platform-native-image-size";
@@ -39,10 +39,10 @@ export function PlatformNativeMediaSettings({ config, onChange }: { config: AiCo
             {profile && profile.variants.length > 1 && !automaticImageMode ? (
                 <Select
                     className="w-full"
-                    ariaLabel={controls ? "生成方式" : "请求协议"}
+                    ariaLabel={controls ? "生成模式" : "请求协议"}
                     value={variant?.id}
                     placeholder={controls ? "选择生成方式" : "选择请求协议"}
-                    options={nativeMediaVariantOptions(profile.variants)}
+                    options={controls ? nativeCreationModeOptions(profile.variants, variant) : nativeMediaVariantOptions(profile.variants)}
                     virtual={false}
                     optionRender={(option) => <span className="block whitespace-normal break-words">{option.label}</span>}
                     onChange={(id) => {
