@@ -154,14 +154,16 @@ test("text models without video understanding only show the image limit, and non
     expect(render()).not.toContain("图×");
 });
 
-test("platform media options show the exact display name and call ID with only curated tags", () => {
+function platformMediaFixture(capability: "image" | "video" = "video") {
     const config = fixture();
     const cost = config.channels[0].modelCosts![0];
-    const displayName = "Seedance 2.0 特惠 按条计费";
+    cost.available = true;
+    cost.capability = capability;
     cost.platform = {
         model_name: cost.model,
-        model_type: "video",
-        content: { display_name: displayName, source_label: "内部来源简称", tags: ["图×3", "官方长期稳定"] },
+        model_type: capability,
+        logical_model: "同一模型",
+        content: { display_name: "Seedance 2.0 特惠 按条计费", source_label: "内部来源简称", tags: ["图×3", "官方长期稳定"] },
         price: { status: "available", version: "p", rates: {} },
         presentation: {
             version: "model-presentation.v1",
@@ -174,13 +176,47 @@ test("platform media options show the exact display name and call ID with only c
             health: { scope: "platform", basis: "generation_outcome", state: "no_data", window_start: 0, window_end: 0, sampled_at: 0, sample_count: 0, success_count: 0, success_rate: null, buckets: [] },
         },
     };
-    const render = () => renderToStaticMarkup(<ModelLabel config={config} model={config.model} capability="video" theme={canvasThemes.light} creationVariant showConfiguredModelName={false} showPrice showDescription />);
+    const render = (model = config.model) => renderToStaticMarkup(<ModelLabel config={config} model={model} capability={capability} theme={canvasThemes.light} creationVariant showConfiguredModelName={false} showPrice showDescription />);
+    return { channel: config.channels[0], cost, render };
+}
+
+test("platform media options show the exact display name and call ID with only curated tags", () => {
+    const { cost, render } = platformMediaFixture();
+    const displayName = "Seedance 2.0 特惠 按条计费";
     const html = render();
     expect(html).toContain(displayName);
     expect(html.indexOf(displayName)).toBeLessThan(html.indexOf("<code"));
     expect(html).toContain(">" + cost.model + "</code>");
     expect(html).toContain("官方长期稳定");
-    for (const detail of ["sora.video", "resolution", "内部测试说明", "技术细节", "内部来源简称", "暂无样本", "另有"]) expect(html).not.toContain(detail);
-    cost.platform.presentation!.tags = [];
+    expect(html).toContain('data-color="green" data-callable="true">可调用</span>');
+    for (const detail of ["暂无样本", "platform-health-track", "0%", "sora.video", "resolution", "内部测试说明", "技术细节", "内部来源简称", "另有"]) expect(html).not.toContain(detail);
+    cost.available = false;
+    expect(render()).toContain('data-callable="false">不可调用</span>');
+    cost.platform!.presentation!.tags = [];
     expect(render()).not.toContain("模型标签");
+});
+
+test.each(["image", "video"] as const)("%s variants under the same model keep separate callability and recent results", (capability) => {
+    const { channel, cost, render } = platformMediaFixture(capability);
+    const sibling = structuredClone(cost);
+    sibling.model = "source-b";
+    sibling.platform!.model_name = sibling.model;
+    channel.models.push(sibling.model);
+    channel.modelCosts!.push(sibling);
+    for (const [variant, successes] of [
+        [cost, 0],
+        [sibling, 9],
+    ] as const) {
+        const bucket = { timestamp: 3600, sample_count: 10, success_count: successes, success_rate: successes * 10 };
+        Object.assign(variant.platform!.presentation!.health, { state: "ready", sample_count: bucket.sample_count, success_count: successes, success_rate: bucket.success_rate, buckets: [bucket] });
+    }
+    sibling.platform!.presentation!.availability.state = "unavailable";
+    const a = render();
+    const b = render(channel.id + "::" + sibling.model);
+    expect(a).toContain("可调用；近 24 小时生成成功率：0%");
+    expect(a).toContain("is-failed");
+    expect(a).not.toContain("90%");
+    expect(b).toContain("不可调用；近 24 小时生成成功率：90%");
+    expect(b).toContain("is-good");
+    expect(b).not.toContain("is-failed");
 });

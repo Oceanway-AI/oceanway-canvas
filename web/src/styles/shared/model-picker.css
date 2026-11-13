@@ -882,6 +882,28 @@ html:not(.dark) .creation-home .creation-chat-composer .creation-model-picker.ca
     line-height: 1.4;
     overflow-wrap: anywhere;
 }
+.canvas-model-picker-media-heading > .canvas-model-picker-variant-status,
+.canvas-model-picker-media-heading > .model-picker-availability {
+    margin-inline-start: auto;
+}
+.model-tag.canvas-model-picker-variant-status[data-callable="false"] {
+    --model-tag-ink: var(--status-error);
+}
+.model-picker-availability.is-variant {
+    border: 0;
+    padding: 0;
+    cursor: inherit;
+}
+.model-picker-availability.is-variant .platform-health-track {
+    gap: 1px;
+}
+.model-picker-availability.is-variant .model-picker-availability-pill {
+    width: 2px;
+    flex-basis: 2px;
+}
+.model-picker-availability.is-variant .platform-health-track > span:last-child {
+    margin-inline-start: var(--space-half);
+}
 .canvas-model-picker-media-copy code,
 .canvas-model-picker-media-copy small {
     color: color-mix(in srgb, currentColor 65%, transparent);

@@ -559,10 +559,13 @@ export function ModelLabel({
     const channel = resolveModelChannel(config, model);
     const logicalCost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
     const platform = logicalCost?.platform;
-    if (platform?.model_type === "image" || platform?.model_type === "video") {
+    const presentation = platform?.presentation;
+    const isPlatformMedia = platform?.model_type === "image" || platform?.model_type === "video";
+    const platformStatus = platform && <PlatformHealthIndicator health={presentation?.health} available={Boolean(logicalCost?.available) && presentation?.availability.state !== "unavailable"} compact={isPlatformMedia} />;
+    if (isPlatformMedia) {
         const title = modelChannelLabel(config, model);
-        const tags = platform.presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
-        const prices = platform.presentation?.price_summary ?? [];
+        const tags = presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
+        const prices = presentation?.price_summary ?? [];
         const price = prices.length === 1 ? platformPriceRangesLabel(prices) : "";
         return (
             <span className="canvas-model-picker-media-row">
@@ -573,6 +576,7 @@ export function ModelLabel({
                     <span className="canvas-model-picker-media-heading">
                         <strong title={title}>{title}</strong>
                         {showPrice && price && <ModelPrice price={{ kind: "estimate", label: price, title: price }} />}
+                        {platformStatus}
                     </span>
                     {title !== platform.model_name && <code title={platform.model_name}>{platform.model_name}</code>}
                     {tags.length > 0 && (
@@ -594,7 +598,6 @@ export function ModelLabel({
             </span>
         );
     }
-    const presentation = logicalCost?.platform?.presentation;
     const logicalSpec = logicalCost?.logicalCapabilitySpec;
     const videoProfile = capability === "video" ? modelCapabilityConfigFor(config, model).video : undefined;
     const videoSummary = videoProfile ? [videoProfile.durationSupported === false ? "" : formatDurationSummary(videoProfile), videoProfile.resolutions.map((item) => item.toUpperCase()).join("/")].filter(Boolean).join(" · ") : "";
@@ -626,11 +629,7 @@ export function ModelLabel({
                             {referenceLabel ? <span className="canvas-model-picker-reference-billing">{referenceLabel}</span> : null}
                         </span>
                     ) : null}
-                    {logicalCost?.platform ? (
-                        <PlatformHealthIndicator health={presentation?.health} available={Boolean(logicalCost.available) && presentation?.availability.state !== "unavailable"} />
-                    ) : (
-                        <ModelAvailabilityBadge availability={modelAvailability(config, model)} available={logicalCost?.available ?? true} showAvailability={channel.scope === "system" && Boolean(modelAvailability(config, model))} />
-                    )}
+                    {platformStatus ?? <ModelAvailabilityBadge availability={modelAvailability(config, model)} available={logicalCost?.available ?? true} showAvailability={channel.scope === "system" && Boolean(modelAvailability(config, model))} />}
                 </span>
                 {logicalCost?.platform && logicalCost.platform.model_name !== (label || pickerModelDisplayName(config, model, showConfiguredModelName)) && <code className="block text-xs break-all">{logicalCost.platform.model_name}</code>}
                 <Popover content={<div className="platform-model-description">{presentation?.description || capabilitySummary}</div>} trigger={["hover", "focus"]} arrow={false}>
@@ -927,14 +926,21 @@ function healthBucketLabel(bucket: NonNullable<PlatformModelHealth["buckets"]>[n
     return `${new Date(bucket.timestamp * 1000).toLocaleString()}：${bucket.success_rate === null ? "无样本" : `${bucket.success_rate}%`}，${bucket.success_count}/${bucket.sample_count}`;
 }
 
-function PlatformHealthIndicator({ health, available }: { health?: PlatformModelHealth; available: boolean }) {
+function PlatformHealthIndicator({ health, available, compact = false }: { health?: PlatformModelHealth; available: boolean; compact?: boolean }) {
     const current = available ? "可调用" : "不可调用";
-    const title = `${current}；生成成功率 ${platformHealthLabel(health)}`;
+    const statusTag = compact && (
+        <span className="model-tag canvas-model-picker-variant-status" data-color={available ? "green" : undefined} data-callable={available}>
+            {current}
+        </span>
+    );
+    if (compact && (health?.state !== "ready" || health.sample_count <= 0 || health.success_rate == null)) return statusTag;
+    const label = platformHealthLabel(health);
+    const title = `${current}；近 24 小时生成成功率：${label}`;
     const content = (
         <div className="model-picker-availability-popover">
             <div className="model-picker-availability-popover-head">
-                <strong>模型生成成功率</strong>
-                <span>{platformHealthLabel(health)}</span>
+                <strong>{compact ? "型号生成成功率" : "模型生成成功率"}</strong>
+                <span>{label}</span>
             </div>
             <PlatformHealthTrack health={health} />
             <div className="model-picker-availability-popover-meta">平台范围 · 24 小时桶（含当前小时） · {health?.sample_count || 0} 个样本</div>
@@ -955,9 +961,16 @@ function PlatformHealthIndicator({ health, available }: { health?: PlatformModel
     );
     return (
         <Popover content={content} trigger={["hover", "focus"]} placement="topRight" arrow={false}>
-            <span className="model-picker-availability" tabIndex={0} role="img" aria-label={[title, ...(health?.buckets.map(healthBucketLabel) || [])].join("；")} title={title} onClick={(event) => event.stopPropagation()}>
-                <span>{current}</span>
-                <span>{platformHealthLabel(health)}</span>
+            <span
+                className={cn("model-picker-availability", compact && "is-variant")}
+                tabIndex={compact ? undefined : 0}
+                role="img"
+                aria-label={compact ? title : [title, ...(health?.buckets.map(healthBucketLabel) || [])].join("；")}
+                title={title}
+                onClick={compact ? undefined : (event) => event.stopPropagation()}
+            >
+                {statusTag || <span>{current}</span>}
+                {compact ? <PlatformHealthTrack health={health} /> : <span>{label}</span>}
             </span>
         </Popover>
     );
