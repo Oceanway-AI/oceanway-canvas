@@ -21,6 +21,7 @@ export type PlatformModel = {
         display_name?: string;
         source_label?: string;
         vendor_icon?: string;
+        tags?: string[];
     };
     price: PlatformPrice;
     media_generation_profile?: Record<string, unknown>;

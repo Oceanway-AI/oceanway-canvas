@@ -21,12 +21,14 @@ export function filterModelPickerGroups(config: AiConfig, groups: ModelPickerGro
     if (!needle) return groups;
     const matches = (parts: (string | undefined)[]) => parts.filter(Boolean).join(" ").toLocaleLowerCase().includes(needle);
     return groups.flatMap((group) => {
-        if (matches([group.label, group.scope])) return [group];
+        if (matches([group.label, group.scope, group.platform?.series_info?.name, group.platform?.logical_model])) return [group];
         const models = group.models.filter((item) =>
             item.models.some((value) => {
                 const cost = resolveModelChannel(config, value).modelCosts?.find((entry) => entry.model === modelOptionName(value));
                 const presentation = cost?.platform?.presentation;
-                return matches([item.label, modelOptionName(value), cost?.displayName, presentation?.summary, presentation?.description, ...(presentation?.tags || [])]);
+                const media = cost?.platform?.model_type === "image" || cost?.platform?.model_type === "video";
+                const tags = presentation?.tags ?? cost?.platform?.content?.tags ?? cost?.tags?.map((tag) => tag.text) ?? [];
+                return matches([item.label, modelOptionName(value), cost?.displayName, cost?.platform?.content?.source_label, ...tags, ...(media ? [] : [presentation?.summary, presentation?.description])]);
             }),
         );
         return models.length ? [{ ...group, models }] : [];
@@ -36,7 +38,12 @@ export function filterModelPickerGroups(config: AiConfig, groups: ModelPickerGro
 export function modelChannelLabel(config: AiConfig, value: string) {
     const channel = resolveModelChannel(config, value);
     const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(value));
-    if (cost?.platform) return cost.platform.content?.source_label?.trim() || cost.platform.content?.display_name?.trim() || cost.platform.model_name;
+    if (cost?.platform) {
+        const { content, model_name: callID } = cost.platform;
+        const name = content?.display_name?.trim();
+        if (cost.platform.model_type === "text") return content?.source_label?.trim() || name || callID;
+        return name && name !== callID ? name : content?.source_label?.trim() || cost.displayName?.trim() || callID;
+    }
     if (channel.scope === "system") return cost?.channelLabel?.trim() || modelOptionName(value);
     return cost?.channelLabel?.trim() || channel.name || "未命名渠道";
 }
@@ -98,7 +105,7 @@ export function modelPickerSeries(groups: ModelPickerGroup[]) {
         const key = group.series ? JSON.stringify(["series", group.series.modelType, group.series.name]) : group.key;
         let entry = series.get(key);
         if (!entry) {
-            entry = { ...group, key, label: group.series?.name || group.label, icon: group.platform?.series_info?.icon || group.icon, models: [], logicalGroups: [] };
+            entry = { ...group, key, label: group.platform?.series_info?.name || group.series?.name || group.label, icon: group.platform?.series_info?.icon || group.icon, models: [], logicalGroups: [] };
             series.set(key, entry);
         }
         entry.models.push(...group.models);

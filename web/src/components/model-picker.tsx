@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { Check, ChevronDown, Coins } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Coins } from "lucide-react";
 import { Popover } from "antd";
 import { usePopoverAnchorAlign } from "@/hooks/use-popover-anchor-align";
 
@@ -8,7 +8,7 @@ import { platformModelPriceLabel, platformPriceRangesLabel, platformPriceConditi
 import { canvasThemes, type CanvasTheme } from "@/lib/canvas-theme";
 import { modelCapabilityConfigFor, videoDurationOptions } from "@/lib/model-capabilities";
 import { formatPriceRange, modelQuoteDescription, modelQuoteRequest, normalizeTierResolution, priceTierSummaryLabel, priceTiersForCurrentSelection, referenceVideoBillingLabel, tokenPriceRuleDescription } from "@/lib/model-pricing";
-import { compatibleModelInGroup, configuredModelDisplayName, modelCompatibilityError, resolveCompatibleModel, type ModelRequirements } from "@/lib/model-selection";
+import { compatibleModelInGroup, configuredModelDisplayName, modelCompatibilityError, resolveCompatibleModel, type DisplayModelGroup, type ModelRequirements } from "@/lib/model-selection";
 import { filterModelPickerGroups, groupModelsForPicker, modelPickerSeries, isDirectSystemModel, modelChannelLabel, type ModelPickerGroup } from "@/lib/model-picker-groups";
 import { cn } from "@/lib/utils";
 import { modelDisplayName, modelIcon, modelOptionName, resolveModelChannel, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
@@ -18,7 +18,7 @@ import { useModelCatalogStore } from "@/stores/use-model-catalog-store";
 import { refreshSystemChannels } from "@/lib/user-session";
 import { ModelLogo } from "@/components/model-logo";
 import { ModelTags } from "@/components/model-tags";
-import { referenceCapabilityTag } from "@/lib/model-tags";
+import { referenceCapabilityTag, type ModelTag } from "@/lib/model-tags";
 import { quoteModel, type LogicalModelQuote, type PublicChannelModelAvailability } from "@/services/api/logical-models";
 
 type ModelPickerProps = {
@@ -71,6 +71,8 @@ export function ModelPicker({
     const popoverRef = usePopoverAnchorAlign(open);
     const [availableHeight, setAvailableHeight] = useState(0);
     const [activeGroupKey, setActiveGroupKey] = useState<string | null>(null);
+    const [activeLogicalKey, setActiveLogicalKey] = useState<string | null>(null);
+    const [mobileModelList, setMobileModelList] = useState(false);
     const [search, setSearch] = useState("");
     const menuRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
@@ -90,6 +92,9 @@ export function ModelPicker({
     const resolvedCurrent = isDirectSystemModel(config, storedCurrent) ? storedCurrent : resolveCompatibleModel(config, storedCurrent, selectionRequirements) || storedCurrent;
     // 旧画布可能保存过已下架或前端历史内置模型；它们不能重新进入当前可选目录。
     const current = options.includes(resolvedCurrent) ? resolvedCurrent : "";
+    const mediaHierarchy = optionGroups.some((group) => group.series?.modelType === "image" || group.series?.modelType === "video") && (capability === "image" || capability === "video" || !capability);
+    const activeSeries = visibleGroups.find((group) => group.key === displayedGroupKey) ?? visibleGroups[0];
+    const activeLogical = activeSeries?.logicalGroups.find((group) => group.key === activeLogicalKey) ?? activeSeries?.logicalGroups.find((group) => group.models.some((item) => item.models.includes(current))) ?? activeSeries?.logicalGroups[0];
     const currentPrice = modelMenuPrice(config, current, capability, false, requirements);
     const quoteRequest = useMemo(() => modelQuoteRequest(config, current, capability, requirements), [capability, config, current, requirements]);
     const [routeQuote, setRouteQuote] = useState<LogicalModelQuote | undefined>();
@@ -153,14 +158,16 @@ export function ModelPicker({
         if (nextOpen) window.dispatchEvent(new CustomEvent("model-picker-open", { detail: pickerId }));
         if (nextOpen) {
             setSearch("");
+            setActiveLogicalKey(null);
+            setMobileModelList(false);
             setActiveGroupKey(optionGroups.find((group) => group.models.some((item) => item.models.includes(current)))?.key ?? optionGroups[0]?.key ?? null);
         }
         setOpen(nextOpen);
     };
     const focusMenuOption = (last = false) => {
         window.requestAnimationFrame(() => {
-            const buttons = menuRef.current?.querySelectorAll<HTMLButtonElement>("[data-model-picker-item]:not(:disabled)");
-            const target = last ? buttons?.item((buttons?.length || 1) - 1) : buttons?.item(0);
+            const buttons = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>("[data-model-picker-item]:not(:disabled)") ?? []).filter((button) => button.getClientRects().length > 0);
+            const target = last ? buttons.at(-1) : buttons[0];
             focusPickerOption(target);
         });
     };
@@ -178,33 +185,106 @@ export function ModelPicker({
             return;
         }
         if (event.target instanceof HTMLInputElement && event.key !== "ArrowDown") return;
-        if (event.key === "ArrowLeft" && activeGroupKey !== null) {
+        const target = event.target instanceof HTMLElement ? event.target : null;
+        if (mediaHierarchy && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+            const panes = [".canvas-model-picker-series", ".canvas-model-picker-logical-rail", ".canvas-model-picker-model-pane"];
+            const at = panes.findIndex((selector) => target?.closest(selector));
+            const next = at + (event.key === "ArrowRight" ? 1 : -1);
+            if (at < 0 || !panes[next]) return;
+            event.preventDefault();
+            if (event.key === "ArrowRight" && at === 0) {
+                setActiveGroupKey(target?.closest("button")?.dataset.seriesKey ?? null);
+                setActiveLogicalKey(null);
+            }
+            if (event.key === "ArrowRight" && at === 1) {
+                setActiveLogicalKey(target?.closest("button")?.dataset.logicalKey ?? null);
+            }
+            setMobileModelList(next === 1);
+            requestAnimationFrame(() => {
+                const pane = menuRef.current?.querySelector(panes[next]);
+                focusPickerOption(pane?.querySelector<HTMLButtonElement>("[aria-pressed=true], [aria-selected=true]:not(:disabled)") ?? pane?.querySelector<HTMLButtonElement>("[data-model-picker-item]:not(:disabled)"));
+            });
+            return;
+        }
+        if (!mediaHierarchy && event.key === "ArrowLeft" && activeGroupKey !== null) {
             event.preventDefault();
             setActiveGroupKey(null);
             focusMenuOption();
             return;
         }
         if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
-        const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("[data-model-picker-item]:not(:disabled)"));
+        const pane = target?.closest("[data-model-picker-pane]") ?? event.currentTarget;
+        const buttons = Array.from(pane.querySelectorAll<HTMLButtonElement>("[data-model-picker-item]:not(:disabled)")).filter((button) => button.getClientRects().length > 0);
         if (!buttons.length) return;
         event.preventDefault();
         const activeIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
         const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : event.key === "ArrowUp" ? Math.max(0, activeIndex - 1) : Math.min(buttons.length - 1, activeIndex + 1);
         focusPickerOption(buttons[nextIndex]);
     };
+    function renderModelOption(logicalGroup: ModelPickerGroup, modelGroup: DisplayModelGroup) {
+        const selected = modelGroup.models.includes(current);
+        const usable = modelDisabledReason ? modelGroup.models.filter((item) => !modelDisabledReason(item)) : modelGroup.models;
+        const model = usable.length ? compatibleModelInGroup(config, usable, selectionRequirements, selected ? current : undefined) : undefined;
+        const displayModel = model || (selected ? current : modelGroup.models[0]);
+        const disabledReason = model ? "" : usable.length ? modelCompatibilityError(config, usable[0], selectionRequirements) || "当前输入不符合该模型能力" : modelDisabledReason?.(modelGroup.models[0]) || "该模型不可用";
+        return (
+            <button
+                key={modelGroup.key}
+                type="button"
+                data-model-picker-item
+                role="option"
+                aria-selected={selected}
+                aria-disabled={Boolean(disabledReason)}
+                disabled={Boolean(disabledReason)}
+                className="canvas-model-picker-option disabled:cursor-not-allowed disabled:opacity-45"
+                style={{ background: selected ? theme.toolbar.activeBg : "transparent", color: theme.node.text }}
+                onClick={() => {
+                    if (!model) return;
+                    onChange(model);
+                }}
+            >
+                <ModelLabel
+                    config={config}
+                    model={displayModel}
+                    capability={capability}
+                    theme={theme}
+                    creationVariant
+                    showConfiguredModelName={showConfiguredModelName}
+                    label={logicalGroup.kind === "product" ? modelGroup.label : undefined}
+                    requirements={requirements}
+                    showPrice={showOptionPrices && creditsEnabled}
+                    disabledReason={disabledReason}
+                    showDescription
+                />
+                <span className="canvas-model-picker-option-check ml-1 shrink-0" aria-hidden="true">
+                    {selected ? <Check className="size-full" style={{ color: theme.node.activeStroke }} /> : null}
+                </span>
+            </button>
+        );
+    }
     const content = (
         <div
             ref={menuRef}
             data-canvas-no-zoom
-            className={cn("canvas-model-picker-menu creation-model-picker-menu max-w-[calc(100vw-24px)]", displayedGroupKey === null ? "is-brand-list" : "is-model-list")}
+            className={cn("canvas-model-picker-menu creation-model-picker-menu max-w-[calc(100vw-24px)]", mediaHierarchy && "is-media-hierarchy", mediaHierarchy || displayedGroupKey !== null ? "is-model-list" : "is-brand-list")}
             style={{ "--canvas-model-picker-available-height": `${availableHeight}px` } as CSSProperties}
-            role="listbox"
+            role={mediaHierarchy ? "dialog" : "listbox"}
             aria-label={placeholder}
             onKeyDown={handleMenuKeyDown}
             onMouseDown={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
         >
-            <input className="canvas-model-picker-search" type="search" aria-label="搜索模型" placeholder="搜索系列、型号或标签" value={search} onChange={(event) => setSearch(event.target.value)} />
+            <input
+                className="canvas-model-picker-search"
+                type="search"
+                aria-label="搜索模型"
+                placeholder="搜索系列、模型、型号或标签"
+                value={search}
+                onChange={(event) => {
+                    setSearch(event.target.value);
+                    setMobileModelList(false);
+                }}
+            />
             {platformIdentity && catalogStatus === "error" && (
                 <div className="canvas-model-picker-catalog-error" role="alert">
                     <span>{catalogError || "模型目录加载失败"}</span>
@@ -224,7 +304,65 @@ export function ModelPicker({
                 </div>
             )}
             {visibleGroups.length ? (
-                displayedGroupKey === null ? (
+                mediaHierarchy && activeSeries && activeLogical ? (
+                    <>
+                        <nav className="canvas-model-picker-series" aria-label="系列" data-model-picker-pane>
+                            {visibleGroups.map((series) => (
+                                <button
+                                    type="button"
+                                    key={series.key}
+                                    data-model-picker-item
+                                    data-series-key={series.key}
+                                    aria-pressed={activeSeries.key === series.key}
+                                    onClick={() => {
+                                        setActiveGroupKey(series.key);
+                                        setActiveLogicalKey(null);
+                                        setMobileModelList(true);
+                                    }}
+                                >
+                                    <ModelLogo icon={series.icon} size={16} />
+                                    <span>{series.label}</span>
+                                </button>
+                            ))}
+                        </nav>
+                        <div className={cn("canvas-model-picker-media-panes", mobileModelList ? "show-models" : "show-variants")}>
+                            <nav className="canvas-model-picker-logical-rail" aria-label="模型" data-model-picker-pane>
+                                {activeSeries.logicalGroups.map((group) => (
+                                    <button
+                                        key={group.key}
+                                        type="button"
+                                        data-model-picker-item
+                                        data-logical-key={group.key}
+                                        aria-pressed={group.key === activeLogical.key}
+                                        onClick={() => {
+                                            setActiveLogicalKey(group.key);
+                                            setMobileModelList(false);
+                                        }}
+                                    >
+                                        <span>{group.label}</span>
+                                        <ChevronRight size={14} aria-hidden="true" />
+                                    </button>
+                                ))}
+                            </nav>
+                            <section className="canvas-model-picker-model-pane" data-model-picker-pane>
+                                <button
+                                    type="button"
+                                    className="canvas-model-picker-media-back"
+                                    onClick={() => {
+                                        setMobileModelList(true);
+                                        requestAnimationFrame(() => focusPickerOption(menuRef.current?.querySelector(".canvas-model-picker-logical-rail [aria-pressed=true]")));
+                                    }}
+                                >
+                                    <ChevronLeft size={14} aria-hidden="true" />
+                                    {activeLogical.label}
+                                </button>
+                                <div role="listbox" aria-label="型号">
+                                    {activeLogical.models.map((item) => renderModelOption(activeLogical, item))}
+                                </div>
+                            </section>
+                        </div>
+                    </>
+                ) : displayedGroupKey === null ? (
                     <div className="canvas-model-picker-brands" aria-label="选择产品模型">
                         {visibleGroups.map((group) => {
                             const groupCurrent = group.models.find((item) => item.models.includes(current));
@@ -302,51 +440,7 @@ export function ModelPicker({
                                                         <GroupModelSummary config={config} group={logicalGroup} />
                                                     </div>
                                                 )}
-                                                {logicalGroup.models.map((modelGroup) => {
-                                                    const selected = modelGroup.models.includes(current);
-                                                    const usable = modelDisabledReason ? modelGroup.models.filter((item) => !modelDisabledReason(item)) : modelGroup.models;
-                                                    const model = usable.length ? compatibleModelInGroup(config, usable, selectionRequirements, selected ? current : undefined) : undefined;
-                                                    const displayModel = model || (selected ? current : modelGroup.models[0]);
-                                                    const disabledReason = model
-                                                        ? ""
-                                                        : usable.length
-                                                          ? modelCompatibilityError(config, usable[0], selectionRequirements) || "当前输入不符合该模型能力"
-                                                          : modelDisabledReason?.(modelGroup.models[0]) || "该模型不可用";
-                                                    return (
-                                                        <button
-                                                            key={modelGroup.key}
-                                                            type="button"
-                                                            data-model-picker-item
-                                                            role="option"
-                                                            aria-selected={selected}
-                                                            aria-disabled={Boolean(disabledReason)}
-                                                            disabled={Boolean(disabledReason)}
-                                                            className="canvas-model-picker-option disabled:cursor-not-allowed disabled:opacity-45"
-                                                            style={{ background: selected ? theme.toolbar.activeBg : "transparent", color: theme.node.text }}
-                                                            onClick={() => {
-                                                                if (!model) return;
-                                                                onChange(model);
-                                                            }}
-                                                        >
-                                                            <ModelLabel
-                                                                config={config}
-                                                                model={displayModel}
-                                                                capability={capability}
-                                                                theme={theme}
-                                                                creationVariant
-                                                                showConfiguredModelName={showConfiguredModelName}
-                                                                label={group.kind === "product" ? modelGroup.label : undefined}
-                                                                requirements={requirements}
-                                                                showPrice={showOptionPrices && creditsEnabled}
-                                                                disabledReason={disabledReason}
-                                                                showDescription
-                                                            />
-                                                            <span className="canvas-model-picker-option-check ml-1 shrink-0" aria-hidden="true">
-                                                                {selected ? <Check className="size-full" style={{ color: theme.node.activeStroke }} /> : null}
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })}
+                                                {logicalGroup.models.map((item) => renderModelOption(logicalGroup, item))}
                                             </div>
                                         ))}
                                     </div>
@@ -394,7 +488,7 @@ export function ModelPicker({
                     ref={triggerRef}
                     type="button"
                     className={cn("canvas-composer-model-picker", fullWidth ? "w-full" : "min-w-36 max-w-full", className)}
-                    aria-haspopup="listbox"
+                    aria-haspopup={mediaHierarchy ? "dialog" : "listbox"}
                     aria-expanded={open}
                     aria-label={placeholder}
                     title={current ? pickerModelOptionLabel(config, current, showConfiguredModelName) : placeholder}
@@ -419,7 +513,7 @@ function focusPickerOption(target: HTMLButtonElement | null | undefined) {
     if (!target) return;
     target.focus({ preventScroll: true });
     // Only reveal the focused row inside its pane; scrolling portal ancestors moves the page.
-    const pane = target.closest<HTMLElement>(".canvas-model-picker-model-pane, .canvas-model-picker-menu");
+    const pane = target.closest<HTMLElement>("[data-model-picker-pane], .canvas-model-picker-model-pane, .canvas-model-picker-menu");
     if (!pane) return;
     const row = target.getBoundingClientRect();
     const top = pane.getBoundingClientRect().top + pane.clientTop;
@@ -433,6 +527,8 @@ function emptyModelLabel(config: AiConfig, capability?: ModelCapability) {
     if (capability && config.models.length) return `暂无支持当前输入的${label}模型`;
     return config.models.length ? `暂无匹配的${label}模型` : "当前没有可用模型，请联系管理员或检查模型配置";
 }
+
+const mediaTagColors: ModelTag["color"][] = ["green", "pink", "blue"];
 
 export function ModelLabel({
     config,
@@ -462,6 +558,42 @@ export function ModelLabel({
     const meta = modelMenuMeta(model, capability);
     const channel = resolveModelChannel(config, model);
     const logicalCost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
+    const platform = logicalCost?.platform;
+    if (platform?.model_type === "image" || platform?.model_type === "video") {
+        const title = modelChannelLabel(config, model);
+        const tags = platform.presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
+        const prices = platform.presentation?.price_summary ?? [];
+        const price = prices.length === 1 ? platformPriceRangesLabel(prices) : "";
+        return (
+            <span className="canvas-model-picker-media-row">
+                <span className="canvas-model-picker-option-logo">
+                    <ModelIcon config={config} model={model} />
+                </span>
+                <span className="canvas-model-picker-media-copy">
+                    <span className="canvas-model-picker-media-heading">
+                        <strong title={title}>{title}</strong>
+                        {showPrice && price && <ModelPrice price={{ kind: "estimate", label: price, title: price }} />}
+                    </span>
+                    {title !== platform.model_name && <code title={platform.model_name}>{platform.model_name}</code>}
+                    {tags.length > 0 && (
+                        <span className="model-tags" aria-label="模型标签">
+                            {tags.slice(0, 3).map((tag, index) => (
+                                <span key={index} className="model-tag" data-color={mediaTagColors[index]} title={tag}>
+                                    {tag}
+                                </span>
+                            ))}
+                            {tags.length > 3 && (
+                                <span className="model-tag-count" title={tags.slice(3).join("、")} aria-label={tags.slice(3).join("、")}>
+                                    +{tags.length - 3}
+                                </span>
+                            )}
+                        </span>
+                    )}
+                    {disabledReason && <small>{disabledReason}</small>}
+                </span>
+            </span>
+        );
+    }
     const presentation = logicalCost?.platform?.presentation;
     const logicalSpec = logicalCost?.logicalCapabilitySpec;
     const videoProfile = capability === "video" ? modelCapabilityConfigFor(config, model).video : undefined;
@@ -630,6 +762,8 @@ function modelMenuPrice(config: AiConfig, model: string, capability?: ModelCapab
 }
 
 function pickerModelDisplayName(config: AiConfig, model: string, showConfiguredModelName: boolean) {
+    const cost = resolveModelChannel(config, model).modelCosts?.find((entry) => entry.model === modelOptionName(model));
+    if (cost?.platform?.model_type === "video" || cost?.platform?.model_type === "image") return modelChannelLabel(config, model);
     const name = showConfiguredModelName ? configuredModelDisplayName(config, model) : modelDisplayName(config, model);
     const channelLabel = modelChannelLabel(config, model);
     return isDirectSystemModel(config, model) && channelLabel !== name ? `${name} · ${channelLabel}` : name;
