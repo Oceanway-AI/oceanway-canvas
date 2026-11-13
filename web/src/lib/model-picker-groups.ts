@@ -16,21 +16,23 @@ export type ModelPickerGroup = {
 
 export { isDirectSystemModel } from "@/lib/model-selection";
 
+export function modelPickerKeywords(config: AiConfig, item: DisplayModelGroup): string[] {
+    return item.models.flatMap(value => {
+        const cost = resolveModelChannel(config, value).modelCosts?.find((entry) => entry.model === modelOptionName(value));
+        const presentation = cost?.platform?.presentation;
+        const media = cost?.platform?.model_type === "image" || cost?.platform?.model_type === "video";
+        const tags = presentation?.tags ?? cost?.platform?.content?.tags ?? cost?.tags?.map((tag) => tag.text) ?? [];
+        return [item.label, modelOptionName(value), cost?.displayName, cost?.platform?.content?.source_label, ...tags, ...(media ? [] : [presentation?.summary, presentation?.description])].filter((part): part is string => Boolean(part));
+    });
+}
+
 export function filterModelPickerGroups(config: AiConfig, groups: ModelPickerGroup[], query: string): ModelPickerGroup[] {
     const needle = query.trim().toLocaleLowerCase();
     if (!needle) return groups;
     const matches = (parts: (string | undefined)[]) => parts.filter(Boolean).join(" ").toLocaleLowerCase().includes(needle);
     return groups.flatMap((group) => {
         if (matches([group.label, group.scope, group.platform?.series_info?.name, group.platform?.logical_model])) return [group];
-        const models = group.models.filter((item) =>
-            item.models.some((value) => {
-                const cost = resolveModelChannel(config, value).modelCosts?.find((entry) => entry.model === modelOptionName(value));
-                const presentation = cost?.platform?.presentation;
-                const media = cost?.platform?.model_type === "image" || cost?.platform?.model_type === "video";
-                const tags = presentation?.tags ?? cost?.platform?.content?.tags ?? cost?.tags?.map((tag) => tag.text) ?? [];
-                return matches([item.label, modelOptionName(value), cost?.displayName, cost?.platform?.content?.source_label, ...tags, ...(media ? [] : [presentation?.summary, presentation?.description])]);
-            }),
-        );
+        const models = group.models.filter(item => matches(modelPickerKeywords(config, item)));
         return models.length ? [{ ...group, models }] : [];
     });
 }

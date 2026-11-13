@@ -17,6 +17,7 @@
         "lint": "eslint src test"
     },
     "dependencies": {
+        "@oceanway/model-picker": "file:vendor/oceanway-model-picker-0.1.2.tgz",
         "@ant-design/icons": "^6.3.2",
         "@ant-design/x": "^2.9.0",
         "@codemirror/lang-json": "^6.0.2",
