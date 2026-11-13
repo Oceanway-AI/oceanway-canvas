@@ -14,6 +14,8 @@
     --ocean-air-action-fill: #1672df;
     --ocean-air-action-hover: #1766c6;
     --ocean-air-action-active: #1055a8;
+    --ocean-air-action-disabled: #94b8ec;
+    --ocean-air-on-action-disabled: #243e65;
     --ocean-air-primary-text: #ffffff;
     --ocean-air-sky: #64d2ff;
     --ocean-air-seafoam: #5ac8fa;
@@ -77,6 +79,8 @@
     --ocean-air-action-fill: #0874df;
     --ocean-air-action-hover: #096fd1;
     --ocean-air-action-active: #0b60b6;
+    --ocean-air-action-disabled: #304f7b;
+    --ocean-air-on-action-disabled: #c4d8f5;
     --ocean-air-primary-text: #ffffff;
     --ocean-air-sky: #64d2ff;
     --ocean-air-seafoam: #5ac8fa;
