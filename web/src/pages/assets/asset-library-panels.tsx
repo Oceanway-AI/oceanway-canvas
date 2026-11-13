@@ -248,6 +248,7 @@ function CharacterArchive({ asset }: { asset: Extract<LibraryAsset, { kind: "ent
 
 export function AssetDrawer({
     asset,
+    afterClose,
     onClose,
     onCopy,
     onDownload,
@@ -255,6 +256,7 @@ export function AssetDrawer({
     ark,
 }: {
     asset: LibraryAsset | null;
+    afterClose?: () => void;
     onClose: () => void;
     onCopy: (asset: LibraryAsset) => void;
     onDownload: (asset: LibraryAsset) => void;
@@ -268,7 +270,7 @@ export function AssetDrawer({
     const kind = asset && isKnownAssetKind(asset.kind) ? asset.kind : undefined;
     const KindIcon = asset ? (kind ? assetKindIcons[kind] : FileText) : Clapperboard;
     return (
-        <Drawer className="library-drawer" title="素材档案" open={Boolean(asset)} size="large" onClose={onClose}>
+        <Drawer className="library-drawer" title="素材档案" open={Boolean(asset)} size="large" onClose={onClose} afterOpenChange={(open) => { if (!open) afterClose?.(); }}>
             {asset ? (
                 <div className="space-y-4">
                     <div className="asset-archive-header">

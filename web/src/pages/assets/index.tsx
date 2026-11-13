@@ -124,6 +124,8 @@ function AssetLibrary() {
     const [editingAsset, setEditingAsset] = useState<LibraryAsset | null>(null);
     const [isAssetOpen, setIsAssetOpen] = useState(false);
     const [previewAsset, setPreviewAsset] = useState<LibraryAsset | null>(null);
+    const [editFromPreview, setEditFromPreview] = useState<LibraryAsset | null>(null);
+    const reopenPreview = useRef<LibraryAsset | null>(null);
     const [deletingAsset, setDeletingAsset] = useState<LibraryAsset | null>(null);
     const [archivingAsset, setArchivingAsset] = useState<LibraryAsset | null>(null);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -397,7 +399,9 @@ function AssetLibrary() {
                 if (JSON.stringify(tags) !== JSON.stringify(editingAsset.tags)) patch.tags = tags;
                 if (Object.keys(patch).length) {
                     const updated = await patchPlatformMaterial(editingAsset.id, patch);
-                    setPreviewAsset((current) => current?.id === updated.asset_id ? { ...current, title: updated.title, tags: updated.tags, updatedAt: updated.updated_at } : current);
+                    if (reopenPreview.current?.id === updated.asset_id) {
+                        reopenPreview.current = { ...reopenPreview.current, title: updated.title, tags: updated.tags, updatedAt: updated.updated_at };
+                    }
                     await invalidateAssetLibrary();
                 }
                 setIsAssetOpen(false);
@@ -971,6 +975,10 @@ function AssetLibrary() {
                 className="workspace-modal workspace-modal-wide library-modal"
                 title={editingAsset ? t("library.assets.form.editTitle") : t("library.assets.page.create")}
                 open={isAssetOpen}
+                afterClose={() => {
+                    if (reopenPreview.current) setPreviewAsset(reopenPreview.current);
+                    reopenPreview.current = null;
+                }}
                 onCancel={() => {
                     if (!imageUploading) setIsAssetOpen(false);
                 }}
@@ -1126,7 +1134,16 @@ function AssetLibrary() {
             <AssetDrawer
                 asset={previewAsset}
                 onClose={() => setPreviewAsset(null)}
-                onEdit={platform && previewAsset ? () => void openEdit(previewAsset) : undefined}
+                onEdit={platform && previewAsset ? () => {
+                    reopenPreview.current = previewAsset;
+                    setEditFromPreview(previewAsset);
+                    setPreviewAsset(null);
+                } : undefined}
+                afterClose={() => {
+                    if (!editFromPreview) return;
+                    void openEdit(editFromPreview);
+                    setEditFromPreview(null);
+                }}
                 onCopy={copyAssetText}
                 onDownload={downloadImage}
                 ark={
