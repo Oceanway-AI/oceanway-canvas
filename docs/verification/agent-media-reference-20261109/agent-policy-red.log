@@ -1,0 +1,5 @@
+--- FAIL: TestStudioAgentPolicyUsesPlatformBudgetAuthority (0.00s)
+    studio_agent_policy_test.go:32: Platform projected local budget: map[maxCredits:0 maxGenerationTasks:0 maxSteps:0 maxVideoSeconds:0]
+FAIL
+FAIL	yingce/backend/internal/app	1.516s
+FAIL

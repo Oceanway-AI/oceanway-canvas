@@ -153,6 +153,11 @@ func (r *Repository) ResourceReferenceSnapshotExcludingAssets(userID string, exc
 	for _, lease := range leases {
 		snapshot.Direct = append(snapshot.Direct, ResourceDirectReference{Kind: "Agent 待执行引用", ID: lease.OwnerID, Title: "已准备的生成输入", ResourceID: lease.ResourceID})
 	}
+	agentDocuments, err := r.agentResourceReferenceDocuments(userID, resourceIDs)
+	if err != nil {
+		return snapshot, err
+	}
+	snapshot.Documents = append(snapshot.Documents, agentDocuments...)
 
 	var toolRecords []model.Tool
 	if err := r.db.Where("owner_id = ?", userID).Find(&toolRecords).Error; err != nil {
@@ -484,6 +489,9 @@ func (r *Repository) DeleteAssetsAndResources(userID string, assetIDs []string, 
 		}
 		if len(assetIDs) == 0 || len(ownedAssets) != len(assetIDs) {
 			return gorm.ErrRecordNotFound
+		}
+		if err := New(tx).requireLocalResourceDeletionIDs(resourceIDs); err != nil {
+			return err
 		}
 		if deleteReferencedResources {
 			// 彻底删除：移除被删资源的画布历史索引，让删除 worker 可以释放物理对象；

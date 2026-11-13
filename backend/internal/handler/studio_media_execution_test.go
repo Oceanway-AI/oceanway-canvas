@@ -11,6 +11,7 @@ import (
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
 	"yingce/backend/internal/model"
+	"yingce/backend/internal/repository"
 )
 
 func TestStudioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T) {
@@ -19,7 +20,15 @@ func TestStudioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T) {
 	}
 }
 
+func TestStudioMediaTaskRetainsReferenceInputs(t *testing.T) {
+	studioMediaFreezesQuoteAndRecoversFixedOutput(t, "image_reference")
+}
+
 func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
+	withReference := kind == "image_reference"
+	if withReference {
+		kind = "image"
+	}
 	fixedResolution := kind == "video_const"
 	if fixedResolution {
 		kind = "video"
@@ -33,6 +42,10 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	}
 	if fixedResolution {
 		f.catalog = strings.Replace(f.catalog, `"type":"string","enum":["480p","720p"]`, `"type":"string","const":"720p"`, 1)
+	}
+	if withReference {
+		studioLibraryResource(t, f, "retained-input")
+		f.catalog = strings.Replace(f.catalog, `"parameter_bindings":`, `"native_reference_inputs":[{"field":"images","transport":"image-reference-array","roles":["reference_image"],"max_items":1}],"parameter_bindings":`, 1)
 	}
 	var previewBody []byte
 	submits, previews, reads, binds := 0, 0, 0, 0
@@ -123,6 +136,9 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 		body = `{"commandId":"video-intent","type":"canvas_video","operation":"text_to_video","prompt":"cat","model":"doubao-seedance-2-0-fast-260128","platform":{"expectedPriceVersion":"price-1","walletMaxPoints":"1.23456789"},"input":{"mode":"video","config":{"channelId":"oceanway-platform","model":"doubao-seedance-2-0-fast-260128","videoSeconds":"4","vquality":"720p","size":"16:9","videoGenerateAudio":"false","videoWatermark":"false"}}}`
 	}
 	body = strings.Replace(body, `"walletMaxPoints":`, `"expectedCapabilityRevision":"`+strings.Repeat("a", 64)+`","expectedConnectionRevision":7,"walletMaxPoints":`, 1)
+	if withReference {
+		body = strings.Replace(body, `"input":{`, `"input":{"referenceImages":[{"storageKey":"resource:retained-input","url":"https://cdn.test/not-persisted?signature=private"}],`, 1)
+	}
 	f.request(t, "POST", "/api/tasks/preview", "platform_session=alice", body, 200)
 	w := f.request(t, "POST", "/api/tasks", "platform_session=alice", body, 200)
 	var created struct {
@@ -141,6 +157,25 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	w = f.request(t, "GET", "/api/tasks/"+created.Data.ID, "platform_session=alice", "", 200)
 	if !strings.Contains(w.Body.String(), "succeeded") || !strings.Contains(w.Body.String(), "resource:") {
 		t.Fatalf("output not adopted: %s", w.Body.String())
+	}
+	if withReference {
+		var task model.Task
+		if err := f.db.First(&task, "id = ?", created.Data.ID).Error; err != nil {
+			t.Fatal(err)
+		}
+		snapshot, err := repository.New(f.db).ResourceReferenceSnapshot(task.UserID, "", []string{"retained-input"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := studioSnapshotReferenceIDs(snapshot, []string{"retained-input"})["retained-input"]; !ok {
+			t.Errorf("completed Task lost its immutable reference input: %s", task.InputJSON)
+		}
+		if strings.Contains(task.InputJSON, "signature=") || strings.Contains(task.InputJSON, "material://") {
+			t.Fatal("public Task leaked native request")
+		}
+		if !strings.Contains(string(previewBody), "material://asset_1/version_1") {
+			t.Fatal("native request lost the fixed version")
+		}
 	}
 	if submits != 1 || previews != 2 || reads != len(recoveryStates) || binds != 1 {
 		t.Fatalf("duplicate lifecycle: submit=%d preview=%d read=%d binds=%d", submits, previews, reads, binds)

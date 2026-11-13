@@ -626,7 +626,6 @@ function collectCanvasLoadAssetIds(project: unknown) {
 }
 
 async function loadReferencedAssets(ids: Iterable<string>, refresh = false) {
-    if (useUserStore.getState().platformIdentity) return [];
     const epoch = sessionEpoch;
     const loadedIds = new Set(useAssetStore.getState().assets.map((asset) => asset.id));
     const pending = [...new Set(ids)].filter((id) => refresh || !loadedIds.has(id) || !verifiedAssets.has(id));
@@ -1591,7 +1590,6 @@ async function saveRemoteUserDataBatch(uploaded: Map<string, string>, options: {
     });
     const canvasAssetIds = selectedProjectIds?.size ? new Set(currentProjects.filter((project) => selectedProjectIds.has(project.id)).flatMap((project) => [...collectAssetIds(project)])) : undefined;
     const dirtyAssets = currentAssets.filter((asset) => {
-        if (useUserStore.getState().platformIdentity) return false;
         const dirty = !sameEntitySnapshot(acknowledgedAssets.get(asset.id), asset);
         const selected = !canvasAssetIds || canvasAssetIds.has(asset.id) || (typeof asset.metadata?.canvasId === "string" && selectedProjectIds!.has(asset.metadata.canvasId));
         return selected && dirty;

@@ -198,6 +198,13 @@ func (s *Service) UserAsset(userID string, id string) (json.RawMessage, error) {
 }
 
 func (s *Service) UpsertUserAsset(userID string, raw json.RawMessage) (UserDataSummary, error) {
+	if s.UsesPlatformIdentity() {
+		var err error
+		raw, err = s.studioAssetPayload(userID, raw)
+		if err != nil {
+			return UserDataSummary{}, err
+		}
+	}
 	return s.canvasDomain().UpsertUserAsset(userID, raw)
 }
 

@@ -15,6 +15,8 @@ Studio 原生 Pi 已开放 `/api/agent` 的轮次、事件、审批和同链工�
 
 Pi 媒体报价同时冻结能力/连接 revision 到原加密准备态，公共审批格式不变；批准不重新报价、不申请独立 EXA。缺失版本的旧准备态409拒绝，已排队且未提交的旧媒体任务标记失败；已提交的旧任务继续按原 request ID 恢复，即使旧 envelope 缺少 revision，也不得改判为未执行或补发。
 
+Studio 普通媒体和 Agent 审批后的 Task，在完成输入校验后将图片、视频、音频及 mask 的固定本地 ID 写入公开 `inputJson.referenceResourceIds`；原协议正文与执行凭据仍加密保存。此字段随原 Task 保留，供历史及清理引用检查，不授权客户端添加任意引用，也不包含签名 URL。
+
 ## OceanWay Studio 素材 v2
 
 所有以下接口要求当前 Platform 登录、已登记 Host/Origin；写请求必须携带 Origin。成功仍使用 OAC 信封。
@@ -31,6 +33,8 @@ Pi 媒体报价同时冻结能力/连接 revision 到原加密准备态，公共
 | `GET /api/materials/assets`、`GET /api/materials/storage` | 当前账号平台素材列表、容量（十进制字符串） |
 
 浏览器只按票据独立 PUT，不携带登录凭据、不跟随重定向。provider-input 仅供后续服务端执行流程，浏览器不可申请。列表、上传与签名访问均不代表生成调用已接通。完整状态/恢复合同见[素材实施合同](../../../plans/oceanway-studio-materials-contract.md)。
+
+Platform 素材 `state=trashed` 时，显式新采用返回409；原 Resource 通过已有 binding 继续按固定版本申请 Access，仍受当前账号权限约束。Studio 永久删除继续禁用，原本地资源清理、管理员删除和公告清理事务不能直接删除 Platform Resource。历史引用检查同时识别 `resultStorageKeys`、原生工具的结构化结果，以及持久 Agent 状态/会话/事件/撤销记录；此前漏建索引的 Platform 历史快照从原正文补充检查，不改写历史。
 
 图片展示依据访问回执 actualVariant：thumbnail/preview 的解码宽高不代表原件尺寸。未获得完整原件尺寸时保持未知，不用节点显示框兜底，不为尺寸显示额外下载 original；display/original 被转换为 preview、失败重签返回 preview 时同样适用。本地原图或实际 original 可使用解码尺寸，已有正确原件尺寸不被缩略图覆盖。
 

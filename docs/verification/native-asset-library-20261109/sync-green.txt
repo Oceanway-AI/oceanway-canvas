@@ -1,0 +1,9 @@
+bun test v1.3.14 (0d9b296a)
+
+test/studio-native-asset-sync.test.ts:
+(pass) Platform identity still saves and reloads explicit native creative assets [20.21ms]
+
+ 1 pass
+ 0 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [285.00ms]

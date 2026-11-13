@@ -42,7 +42,17 @@ export function canvasAssetHandoffPayloads(assets: Asset[], assetIds: Iterable<s
     unique(assetIds).forEach((assetId) => {
         const asset = byId.get(assetId);
         if (asset?.kind === "image") {
-            payloads.push({ kind: "image", dataUrl: asset.data.dataUrl, storageKey: asset.data.storageKey, title: asset.title, assetId: asset.id });
+            payloads.push({
+                kind: "image",
+                dataUrl: asset.data.dataUrl,
+                storageKey: asset.data.storageKey,
+                title: asset.title,
+                assetId: asset.id,
+                width: asset.data.width,
+                height: asset.data.height,
+                bytes: asset.data.bytes,
+                mimeType: asset.data.mimeType,
+            });
             return;
         }
         if (asset?.kind === "video") {
@@ -94,12 +104,19 @@ export function creationResultAssetIds(assets: Asset[], input: { messageId: stri
             const rightResult = typeof right.metadata?.outputIndex === "number" ? right.metadata.outputIndex : typeof right.metadata?.resultIndex === "number" ? right.metadata.resultIndex : 0;
             return leftResult - rightResult;
         });
-    const unused = new Set(candidates.map((asset) => asset.id));
+    const nativeMedia = assets.filter((asset) => asset.kind === "image" || asset.kind === "video");
+    const unused = new Set(nativeMedia.map((asset) => asset.id));
     const stableKeys = input.resultStorageKeys || [];
     const allowOrderedFallback = candidates.length === Math.max(input.resultUrls.length, stableKeys.length);
     return Array.from({ length: Math.max(input.resultUrls.length, stableKeys.length) }, (_, index) => {
         const storageKey = stableKeys[index];
         const url = input.resultUrls[index] || "";
+        if (storageKey?.startsWith("resource:")) {
+            const fixed = nativeMedia.find((asset) => unused.has(asset.id) && asset.data.storageKey === storageKey);
+            if (!fixed) return undefined;
+            unused.delete(fixed.id);
+            return fixed.id;
+        }
         const exact =
             candidates.find((asset) => unused.has(asset.id) && Boolean(storageKey) && asset.data.storageKey === storageKey) ||
             candidates.find((asset) => unused.has(asset.id) && (asset.coverUrl === url || (asset.kind === "image" ? asset.data.dataUrl === url : asset.data.url === url)));

@@ -16,11 +16,11 @@ test("报价和批准通过不同请求，批准只携带已展示报价身份",
         return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { id: "exact-quote", walletMaxPoints: "0.123456789", priceVersion: "price" } } };
     };
     try {
-        const quote = await quoteAgentMedia("run", "approval");
+        const quote = await quoteAgentMedia("run", "approval", undefined, "0.123456789");
         expect(quote.walletMaxPoints).toBe("0.123456789");
         await decideAgentApproval("run", "approval", "approve", undefined, undefined, undefined, quote.id);
         expect(requests).toEqual([
-            { url: "/agent/runs/run/approvals/approval/quote", data: {} },
+            { url: "/agent/runs/run/approvals/approval/quote", data: { walletMaxPoints: "0.123456789" } },
             { url: "/agent/runs/run/approvals/approval/decision", data: { decision: "approve", quoteId: "exact-quote" } },
         ]);
     } finally {

@@ -1,0 +1,5 @@
+--- FAIL: TestStudioPiMediaPreviewDoesNotAuthorize (0.16s)
+    studio_agent_media_test.go:186: unconfirmed preview became an executable quote: &{ID:9359c7cdeb1c0a479b93f23ef2b8b048 EstimatedPoints:0.123456789 WalletMaxPoints:0.123456789 PriceVersion:price-1 ExpiresAt:2026-11-09 00:37:57.419136 +0800 CST m=+1800.448054043 Parameters:map[n:1 size:1:1]}
+FAIL
+FAIL	yingce/backend/internal/app	1.917s
+FAIL

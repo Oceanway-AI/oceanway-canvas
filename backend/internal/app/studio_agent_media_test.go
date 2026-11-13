@@ -31,6 +31,14 @@ func TestStudioPiNativeMediaApprovalPreservesProtocolAndRequest(t *testing.T) {
 	}
 }
 
+func TestStudioPiMediaPreviewDoesNotAuthorize(t *testing.T) {
+	studioPiMediaApprovalScenario(t, "preview_only")
+}
+
+func TestStudioPiMediaRetainsApprovedReferenceInput(t *testing.T) {
+	studioPiMediaApprovalScenario(t, "reference_input")
+}
+
 func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	s, db, _, _ := creationTestService(t)
 	if err := db.AutoMigrate(&model.StudioExecution{}, &model.StudioMaterialReference{}); err != nil {
@@ -79,6 +87,9 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 		catalog = strings.ReplaceAll(catalog, `"size":{"type":"string"`, `"background":{"type":"string","enum":["opaque","transparent"]},"size":{"type":"string"`)
 		catalog = strings.ReplaceAll(catalog, `"size":"size"`, `"size":"size","background":"background"`)
 	}
+	if scenario == "reference_input" {
+		catalog = strings.Replace(catalog, `"parameter_bindings":`, `"native_reference_inputs":[{"field":"images","transport":"image-reference-array","roles":["reference_image"],"max_items":1}],"parameter_bindings":`, 1)
+	}
 	var quotedBody []byte
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -117,7 +128,11 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 			body, _ := io.ReadAll(r.Body)
 			raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get("X-Platform-Media-Consumption"))
 			var constraints platformclient.MediaConsumptionConstraints
-			if json.Unmarshal(raw, &constraints) != nil || constraints.ExpectedCapabilityRevision != strings.Repeat("a", 64) || constraints.ExpectedConnectionRevision != 7 || constraints.ExpectedPriceVersion != "price-1" || constraints.WalletMaxPoints != "0.123456789" {
+			expectedMaximum := "0.123456789"
+			if scenario == "approve" {
+				expectedMaximum = "2.5"
+			}
+			if json.Unmarshal(raw, &constraints) != nil || constraints.ExpectedCapabilityRevision != strings.Repeat("a", 64) || constraints.ExpectedConnectionRevision != 7 || constraints.ExpectedPriceVersion != "price-1" || constraints.WalletMaxPoints != expectedMaximum {
 				t.Error("Pi consumption header lost confirmed versions")
 			}
 			if string(body) != string(quotedBody) || r.Header.Get("X-Platform-Execution-Authorization") != "exa_media_run" || r.Header.Get("Cookie") != "" {
@@ -154,6 +169,19 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if err := db.Create(&model.CanvasProject{ID: "media-canvas", UserID: "user", PayloadJSON: `{"nodes":[],"connections":[]}`}).Error; err != nil {
 		t.Fatal(err)
 	}
+	if scenario == "reference_input" {
+		for _, row := range []any{
+			&model.Resource{ID: "agent-input", UserID: "user", Provider: "platform", Kind: "image", MimeType: "image/png", Size: 12, Status: model.ResourceStatusReady},
+			&model.StudioMaterialReference{ResourceID: "agent-input", UserID: "user", AssetID: "input-asset", VersionID: "input-version", FileID: "input-file", BindingID: "input-binding"},
+		} {
+			if err := db.Create(row).Error; err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := db.Model(&model.CanvasProject{}).Where("id = ?", "media-canvas").Update("payload_json", `{"nodes":[{"id":"input-node","type":"image","width":320,"height":180,"position":{"x":0,"y":0},"metadata":{"storageKey":"resource:agent-input","content":"/api/resources/agent-input/file"}}],"connections":[]}`).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
 	session := platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "session=fixture"}
 	req := CloudAgentRequest{Prompt: "draw", CanvasID: "media-canvas", Model: "pi-model", ChannelID: StudioPlatformChannelID, ChannelModelKey: "pi-model", IdempotencyKey: "pi-media", PermissionMode: "request_approval"}
 	req.Budget.MaxSteps = 4
@@ -165,6 +193,9 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	run, _ := s.repo.CloudAgent("user", view.ID)
 	state, _ := cloudAgentDecode(run)
 	args := cloudAgentMediaArgs{Mode: "image", Prompt: "a green square", ChannelID: StudioPlatformChannelID, ChannelModelKey: "image-model", Size: "1:1", NodeID: "image-node", Title: "草稿"}
+	if scenario == "reference_input" {
+		args.ReferenceNodeIDs = []string{"input-node"}
+	}
 	if kind == "video" {
 		args.Mode, args.Size, args.Duration = "video", "16:9", 4
 		if scenario == "video_const" {
@@ -207,10 +238,61 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 		t.Fatalf("media draft did not reach native Pi approval: status=%s events=%+v", run.Status, state.Events)
 	}
 	approval := state.Approval.ID
+	if scenario == "preview_only" {
+		originalRevision := run.Revision
+		for i := 0; i < 2; i++ {
+			preview, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if preview.ID != "" || preview.WalletMaxPoints != "" || preview.EstimatedPoints != "0.123456789" {
+				t.Fatalf("unconfirmed preview became an executable quote: %+v", preview)
+			}
+			reloaded, _ := s.repo.CloudAgent("user", view.ID)
+			restored, _ := cloudAgentDecode(reloaded)
+			if reloaded.Revision != originalRevision || restored.Approval.StudioQuote != nil || restored.Approval.StudioPreparedEncrypted != "" {
+				t.Fatal("preview/cancel/reload persisted approval authority")
+			}
+			if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", preview.ID, nil); err == nil {
+				t.Fatal("preview allowed approval")
+			}
+		}
+		if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, ""); err == nil {
+			t.Fatal("explicit empty maximum accepted")
+		}
+		confirmed, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, "2.5")
+		if err != nil || confirmed.ID == "" {
+			t.Fatalf("confirmed maximum not frozen: %+v %v", confirmed, err)
+		}
+		if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval); err != nil {
+			t.Fatal(err)
+		}
+		reloaded, _ := s.repo.CloudAgent("user", view.ID)
+		restored, _ := cloudAgentDecode(reloaded)
+		if restored.Approval.StudioQuote.ID != confirmed.ID || restored.Approval.StudioQuote.WalletMaxPoints != "2.5" || submits != 0 || issues != 1 {
+			t.Fatal("preview replaced confirmed scope or submitted work")
+		}
+		return
+	}
+	if scenario == "approve" {
+		for _, maximum := range []string{"-1", "0.1", "NaN"} {
+			if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, maximum); err == nil {
+				t.Fatalf("invalid maximum %q accepted", maximum)
+			}
+		}
+		custom, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, "2.5")
+		if err != nil || custom.WalletMaxPoints != "2.5" || custom.EstimatedPoints != "0.123456789" {
+			t.Fatalf("explicit maximum not frozen: %+v %v", custom, err)
+		}
+	}
 	if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", "", nil); err == nil {
 		t.Fatal("unquoted media approved")
 	}
-	quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval)
+	maximum := "0.123456789"
+	if scenario == "approve" {
+		maximum = "2.5"
+	}
+	quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, maximum)
 	if strings.HasPrefix(scenario, "missing_preview_") {
 		if appErr, ok := err.(*AppError); !ok || appErr.Status != 409 {
 			t.Fatalf("incomplete preview not rejected: %v", err)
@@ -225,7 +307,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if quote.WalletMaxPoints != "0.123456789" || quote.PriceVersion != "price-1" {
+	if (quote.WalletMaxPoints != "0.123456789" && !(scenario == "approve" && quote.WalletMaxPoints == "2.5")) || quote.PriceVersion != "price-1" {
 		t.Fatal("decimal quote changed")
 	}
 	if kind == "video" {
@@ -328,11 +410,26 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	if frozen.Consumption == nil || frozen.Consumption.ExpectedCapabilityRevision != strings.Repeat("a", 64) || frozen.Consumption.ExpectedConnectionRevision != 7 {
 		t.Fatal("Pi encrypted envelope lost confirmed capability/connection")
 	}
+	if scenario == "reference_input" {
+		task, err := s.repo.Task(state.MediaTaskID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := documentReferencedResourceIDs(task.InputJSON, map[string]struct{}{"agent-input": {}})["agent-input"]; !ok {
+			t.Errorf("approved media Task lost reference after native approval: %s", task.InputJSON)
+		}
+		if strings.Contains(task.InputJSON, "material://") || strings.Contains(task.InputJSON, "exa_") {
+			t.Fatal("public Task exposes native authority")
+		}
+		if !strings.Contains(string(frozen.Body), "material://input-asset/input-version") {
+			t.Fatal("native request changed fixed version")
+		}
+	}
 	grant, _ := s.decryptSettingSecret(execution.AuthorizationEncrypted)
 	if grant != "exa_media_run" || !execution.Released || frozen.Consumption.WalletMaxPoints != quote.WalletMaxPoints || !strings.Contains(string(frozen.Body), "a green square") {
 		t.Fatal("frozen request or shared authority changed")
 	}
-	if quotes != 1 || issues != 1 {
+	if (quotes != 1 && !(scenario == "approve" && quotes == 3)) || issues != 1 {
 		t.Fatalf("unexpected quote/grant count %d/%d", quotes, issues)
 	}
 	if scenario == "changed_capability" || scenario == "missing_recovery_version" {

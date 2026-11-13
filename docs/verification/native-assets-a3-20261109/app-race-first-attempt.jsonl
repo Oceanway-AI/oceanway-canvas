@@ -1,0 +1,200 @@
+{"Time": "2026-11-09T16:36:04.494369+08:00", "Action": "start", "Package": "yingce/backend/internal/app"}
+{"Time": "2026-11-09T16:36:11.175424+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementPublishReadAndCloseLifecycle"}
+{"Time": "2026-11-09T16:36:21.419921+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementPublishReadAndCloseLifecycle", "Elapsed": 10.24}
+{"Time": "2026-11-09T16:36:21.419958+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementUpdateRepublishesAndResetsReads"}
+{"Time": "2026-11-09T16:36:29.716358+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementUpdateRepublishesAndResetsReads", "Elapsed": 8.3}
+{"Time": "2026-11-09T16:36:29.716839+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementImageDraftIsConsumedWhenAnnouncementIsCreated"}
+{"Time": "2026-11-09T16:36:38.265664+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementImageDraftIsConsumedWhenAnnouncementIsCreated", "Elapsed": 8.55}
+{"Time": "2026-11-09T16:36:38.265808+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementImageReplacementQueuesOldResourceDeletionAtomically"}
+{"Time": "2026-11-09T16:36:47.675097+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementImageReplacementQueuesOldResourceDeletionAtomically", "Elapsed": 9.41}
+{"Time": "2026-11-09T16:36:47.676025+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementPublishRejectsInvalidInput"}
+{"Time": "2026-11-09T16:36:47.676621+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementPublishRejectsInvalidInput", "Elapsed": 0}
+{"Time": "2026-11-09T16:36:47.677326+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementPublishAllowsEmptyContent"}
+{"Time": "2026-11-09T16:37:01.829269+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestAnnouncementPublishAllowsEmptyContent", "Elapsed": 14.15}
+{"Time": "2026-11-09T16:37:01.854594+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestCanvasHistoryProtectsMediaAndDeletionWorker"}
+{"Time": "2026-11-09T16:37:13.145158+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestCanvasHistoryProtectsMediaAndDeletionWorker", "Elapsed": 11.29}
+{"Time": "2026-11-09T16:37:13.465366+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDetachedProtocolWaitsForLateResultInsideWorker"}
+{"Time": "2026-11-09T16:37:13.489989+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDetachedProtocolWaitsForLateResultInsideWorker", "Elapsed": 0.02}
+{"Time": "2026-11-09T16:37:13.581414+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestCollectOwnedAssetDocumentReferences"}
+{"Time": "2026-11-09T16:37:13.584247+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestCollectOwnedAssetDocumentReferences", "Elapsed": 0}
+{"Time": "2026-11-09T16:37:13.584326+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestResourceReferenceFieldsUseExplicitSchema"}
+{"Time": "2026-11-09T16:37:13.58442+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestResourceReferenceFieldsUseExplicitSchema", "Elapsed": 0}
+{"Time": "2026-11-09T16:37:13.584509+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDocumentReferencesResourcesUsesExactResourceID"}
+{"Time": "2026-11-09T16:37:13.584708+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDocumentReferencesResourcesUsesExactResourceID", "Elapsed": 0}
+{"Time": "2026-11-09T16:37:13.585336+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteAssetDatabaseFailureLeavesPhysicalObjectAndNoOutbox"}
+{"Time": "2026-11-09T16:37:21.585952+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteAssetDatabaseFailureLeavesPhysicalObjectAndNoOutbox", "Elapsed": 8}
+{"Time": "2026-11-09T16:37:21.586101+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteAssetKeepsResourceSharedByIndependentAsset"}
+{"Time": "2026-11-09T16:37:29.103547+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteAssetKeepsResourceSharedByIndependentAsset", "Elapsed": 7.52}
+{"Time": "2026-11-09T16:37:29.103568+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteAssetStillRejectsLiveCanvasResourceReference"}
+{"Time": "2026-11-09T16:37:36.612357+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteAssetStillRejectsLiveCanvasResourceReference", "Elapsed": 7.51}
+{"Time": "2026-11-09T16:37:36.612396+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences"}
+{"Time": "2026-11-09T16:37:36.613343+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_output"}
+{"Time": "2026-11-09T16:37:36.614552+08:00", "Action": "pause", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_output"}
+{"Time": "2026-11-09T16:37:36.614732+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/failed_output"}
+{"Time": "2026-11-09T16:37:36.614754+08:00", "Action": "pause", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/failed_output"}
+{"Time": "2026-11-09T16:37:36.614863+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/cancelled_output"}
+{"Time": "2026-11-09T16:37:36.614888+08:00", "Action": "pause", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/cancelled_output"}
+{"Time": "2026-11-09T16:37:36.615006+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/running_output"}
+{"Time": "2026-11-09T16:37:36.61502+08:00", "Action": "pause", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/running_output"}
+{"Time": "2026-11-09T16:37:36.615157+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/queued_output"}
+{"Time": "2026-11-09T16:37:36.615171+08:00", "Action": "pause", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/queued_output"}
+{"Time": "2026-11-09T16:37:36.615303+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/unknown_status"}
+{"Time": "2026-11-09T16:37:36.615323+08:00", "Action": "pause", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/unknown_status"}
+{"Time": "2026-11-09T16:37:36.615434+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_input"}
+{"Time": "2026-11-09T16:37:36.615445+08:00", "Action": "pause", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_input"}
+{"Time": "2026-11-09T16:37:36.615565+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_output_on_canvas"}
+{"Time": "2026-11-09T16:37:36.615586+08:00", "Action": "pause", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_output_on_canvas"}
+{"Time": "2026-11-09T16:37:36.615591+08:00", "Action": "cont", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_output"}
+{"Time": "2026-11-09T16:37:36.615648+08:00", "Action": "cont", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/queued_output"}
+{"Time": "2026-11-09T16:37:36.61571+08:00", "Action": "cont", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/unknown_status"}
+{"Time": "2026-11-09T16:37:36.61573+08:00", "Action": "cont", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/running_output"}
+{"Time": "2026-11-09T16:37:36.615754+08:00", "Action": "cont", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_input"}
+{"Time": "2026-11-09T16:37:36.615777+08:00", "Action": "cont", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/cancelled_output"}
+{"Time": "2026-11-09T16:37:36.615821+08:00", "Action": "cont", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_output_on_canvas"}
+{"Time": "2026-11-09T16:37:36.615863+08:00", "Action": "cont", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/failed_output"}
+{"Time": "2026-11-09T16:37:45.592087+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/unknown_status", "Elapsed": 8.97}
+{"Time": "2026-11-09T16:37:45.665937+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_output_on_canvas", "Elapsed": 8.98}
+{"Time": "2026-11-09T16:37:45.684278+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_input", "Elapsed": 9.05}
+{"Time": "2026-11-09T16:37:45.686973+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/completed_output", "Elapsed": 9.07}
+{"Time": "2026-11-09T16:37:45.711903+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/queued_output", "Elapsed": 9.07}
+{"Time": "2026-11-09T16:37:45.716828+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/running_output", "Elapsed": 9.1}
+{"Time": "2026-11-09T16:37:45.736505+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/failed_output", "Elapsed": 9.1}
+{"Time": "2026-11-09T16:37:45.736552+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences/cancelled_output", "Elapsed": 9.12}
+{"Time": "2026-11-09T16:37:45.736614+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDeleteGeneratedAssetTaskReferences", "Elapsed": 0}
+{"Time": "2026-11-09T16:37:45.736787+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestPurgeConfirmedAssetIgnoresTaskReferences"}
+{"Time": "2026-11-09T16:37:53.486139+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestPurgeConfirmedAssetIgnoresTaskReferences", "Elapsed": 7.75}
+{"Time": "2026-11-09T16:37:53.486159+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestResourceDeletionWorkerRemovesObjectAndCompletesOutbox"}
+{"Time": "2026-11-09T16:38:00.924066+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestResourceDeletionWorkerRemovesObjectAndCompletesOutbox", "Elapsed": 7.44}
+{"Time": "2026-11-09T16:38:00.924096+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestExpiredArchivedAssetCleanupDeletesReferencedAssetAndUsesDeletionOutbox"}
+{"Time": "2026-11-09T16:38:08.31665+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestExpiredArchivedAssetCleanupDeletesReferencedAssetAndUsesDeletionOutbox", "Elapsed": 7.39}
+{"Time": "2026-11-09T16:38:08.316856+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDetachedResourceCleanupRemovesOrphanAndKeepsAssetBackedResource"}
+{"Time": "2026-11-09T16:38:19.027854+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDetachedResourceCleanupRemovesOrphanAndKeepsAssetBackedResource", "Elapsed": 10.71}
+{"Time": "2026-11-09T16:38:19.02947+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDetachedResourceCleanupKeepsAppearanceAssets"}
+{"Time": "2026-11-09T16:38:32.377009+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDetachedResourceCleanupKeepsAppearanceAssets", "Elapsed": 13.35}
+{"Time": "2026-11-09T16:38:32.377338+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestResourceCleanupCandidatesUseStatusSpecificRetention"}
+{"Time": "2026-11-09T16:38:40.673675+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestResourceCleanupCandidatesUseStatusSpecificRetention", "Elapsed": 8.3}
+{"Time": "2026-11-09T16:38:40.673964+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestDetachedFailedResourceWithoutObjectKeyNeedsNoDeletionJob"}
+{"Time": "2026-11-09T16:38:48.469134+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestDetachedFailedResourceWithoutObjectKeyNeedsNoDeletionJob", "Elapsed": 7.8}
+{"Time": "2026-11-09T16:38:48.493658+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority"}
+{"Time": "2026-11-09T16:38:48.494828+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/approve"}
+{"Time": "2026-11-09T16:38:49.115574+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/approve", "Elapsed": 0.62}
+{"Time": "2026-11-09T16:38:49.115582+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/image_parameters"}
+{"Time": "2026-11-09T16:38:49.556738+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/image_parameters", "Elapsed": 0.44}
+{"Time": "2026-11-09T16:38:49.556749+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/video_const"}
+{"Time": "2026-11-09T16:38:49.953828+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/video_const", "Elapsed": 0.4}
+{"Time": "2026-11-09T16:38:49.953838+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/video_const_default"}
+{"Time": "2026-11-09T16:38:50.330522+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/video_const_default", "Elapsed": 0.38}
+{"Time": "2026-11-09T16:38:50.330543+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/video_const_invalid"}
+{"Time": "2026-11-09T16:38:50.617009+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/video_const_invalid", "Elapsed": 0.29}
+{"Time": "2026-11-09T16:38:50.617016+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/expired"}
+{"Time": "2026-11-09T16:38:50.96586+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/expired", "Elapsed": 0.35}
+{"Time": "2026-11-09T16:38:50.96587+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/changed_canvas"}
+{"Time": "2026-11-09T16:38:51.325782+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/changed_canvas", "Elapsed": 0.36}
+{"Time": "2026-11-09T16:38:51.325793+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/reject"}
+{"Time": "2026-11-09T16:38:51.750066+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/reject", "Elapsed": 0.42}
+{"Time": "2026-11-09T16:38:51.750077+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/stopped"}
+{"Time": "2026-11-09T16:38:52.507881+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/stopped", "Elapsed": 0.76}
+{"Time": "2026-11-09T16:38:52.507893+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_preview_capability"}
+{"Time": "2026-11-09T16:38:52.882318+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_preview_capability", "Elapsed": 0.37}
+{"Time": "2026-11-09T16:38:52.882325+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_preview_connection"}
+{"Time": "2026-11-09T16:38:53.22217+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_preview_connection", "Elapsed": 0.34}
+{"Time": "2026-11-09T16:38:53.222178+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_prepared_capability"}
+{"Time": "2026-11-09T16:38:53.612363+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_prepared_capability", "Elapsed": 0.39}
+{"Time": "2026-11-09T16:38:53.612376+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_prepared_connection"}
+{"Time": "2026-11-09T16:38:54.002206+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_prepared_connection", "Elapsed": 0.39}
+{"Time": "2026-11-09T16:38:54.002214+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/changed_capability"}
+{"Time": "2026-11-09T16:38:54.418113+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/changed_capability", "Elapsed": 0.42}
+{"Time": "2026-11-09T16:38:54.418119+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/changed_connection"}
+{"Time": "2026-11-09T16:38:54.775128+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/changed_connection", "Elapsed": 0.36}
+{"Time": "2026-11-09T16:38:54.775138+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_queued_capability"}
+{"Time": "2026-11-09T16:38:55.166723+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_queued_capability", "Elapsed": 0.39}
+{"Time": "2026-11-09T16:38:55.166741+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_queued_connection"}
+{"Time": "2026-11-09T16:38:55.565969+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/missing_queued_connection", "Elapsed": 0.4}
+{"Time": "2026-11-09T16:38:55.565989+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/submitted_legacy"}
+{"Time": "2026-11-09T16:38:55.962611+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority/submitted_legacy", "Elapsed": 0.4}
+{"Time": "2026-11-09T16:38:55.962633+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority", "Elapsed": 7.47}
+{"Time": "2026-11-09T16:38:55.962797+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaPreviewDoesNotAuthorize"}
+{"Time": "2026-11-09T16:38:56.377648+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaPreviewDoesNotAuthorize", "Elapsed": 0.41}
+{"Time": "2026-11-09T16:38:56.377656+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaRetainsApprovedReferenceInput"}
+{"Time": "2026-11-09T16:38:56.862797+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiMediaRetainsApprovedReferenceInput", "Elapsed": 0.49}
+{"Time": "2026-11-09T16:38:56.862818+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioAgentPolicyUsesPlatformBudgetAuthority"}
+{"Time": "2026-11-09T16:38:56.868773+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioAgentPolicyUsesPlatformBudgetAuthority", "Elapsed": 0.01}
+{"Time": "2026-11-09T16:38:56.868817+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiModelStepUsesOriginalRunAuthority"}
+{"Time": "2026-11-09T16:38:57.258969+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiModelStepUsesOriginalRunAuthority", "Elapsed": 0.39}
+{"Time": "2026-11-09T16:38:57.258985+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip"}
+{"Time": "2026-11-09T16:38:57.259008+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "=== RUN   TestStudioPiRuntimeToolRoundTrip\n"}
+{"Time": "2026-11-09T16:39:05.134186+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "node:internal/modules/package_json_reader:268\n"}
+{"Time": "2026-11-09T16:39:05.134441+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);\n"}
+{"Time": "2026-11-09T16:39:05.134451+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "        ^\n"}
+{"Time": "2026-11-09T16:39:05.13446+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "\n"}
+{"Time": "2026-11-09T16:39:05.13447+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'undici' imported from <workspace>/backend/agent-runtime/pi/agent-runtime.mjs\n"}
+{"Time": "2026-11-09T16:39:05.134478+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:268:9)\n"}
+{"Time": "2026-11-09T16:39:05.134481+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "    at packageResolve (node:internal/modules/esm/resolve:768:81)\n"}
+{"Time": "2026-11-09T16:39:05.13449+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "    at moduleResolve (node:internal/modules/esm/resolve:858:18)\n"}
+{"Time": "2026-11-09T16:39:05.134494+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "    at defaultResolve (node:internal/modules/esm/resolve:990:11)\n"}
+{"Time": "2026-11-09T16:39:05.134497+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "    at #cachedDefaultResolve (node:internal/modules/esm/loader:735:20)\n"}
+{"Time": "2026-11-09T16:39:05.134499+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "    at ModuleLoader.resolve (node:internal/modules/esm/loader:712:38)\n"}
+{"Time": "2026-11-09T16:39:05.134502+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)\n"}
+{"Time": "2026-11-09T16:39:05.134509+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "    at #link (node:internal/modules/esm/module_job:208:49) {\n"}
+{"Time": "2026-11-09T16:39:05.134512+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "  code: 'ERR_MODULE_NOT_FOUND'\n"}
+{"Time": "2026-11-09T16:39:05.134558+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "}\n"}
+{"Time": "2026-11-09T16:39:05.134561+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "\n"}
+{"Time": "2026-11-09T16:39:05.134564+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "Node.js v24.6.0\n"}
+{"Time": "2026-11-09T16:39:05.136984+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "2026/11/09 16:39:05 [Agent] session failed run=ag60ee8e33128963049e8abe55d132f688: agent runtime exited: exit status 1\n"}
+{"Time": "2026-11-09T16:39:05.137002+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "2026/11/09 16:39:05 [Agent] internal failure run=ag60ee8e33128963049e8abe55d132f688: agent runtime exited: exit status 1\n"}
+{"Time": "2026-11-09T16:39:05.16108+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "    studio_agent_test.go:247: native Pi failed: failed Agent 执行中断，请重新发送消息；如反复出现，请把诊断号 ag60ee8e33128963049e8abe55d132f688 反馈给管理员\n"}
+{"Time": "2026-11-09T16:39:05.184523+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Output": "--- FAIL: TestStudioPiRuntimeToolRoundTrip (7.93s)\n"}
+{"Time": "2026-11-09T16:39:05.184551+08:00", "Action": "fail", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeToolRoundTrip", "Elapsed": 7.93}
+{"Time": "2026-11-09T16:39:05.184683+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip"}
+{"Time": "2026-11-09T16:39:05.18469+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "=== RUN   TestStudioPiRuntimeMediaApprovalRoundTrip\n"}
+{"Time": "2026-11-09T16:39:12.789187+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "node:internal/modules/package_json_reader:268\n"}
+{"Time": "2026-11-09T16:39:12.789509+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);\n"}
+{"Time": "2026-11-09T16:39:12.789526+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "        ^\n"}
+{"Time": "2026-11-09T16:39:12.78954+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "\n"}
+{"Time": "2026-11-09T16:39:12.789544+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'undici' imported from <workspace>/backend/agent-runtime/pi/agent-runtime.mjs\n"}
+{"Time": "2026-11-09T16:39:12.78956+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:268:9)\n"}
+{"Time": "2026-11-09T16:39:12.789571+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "    at packageResolve (node:internal/modules/esm/resolve:768:81)\n"}
+{"Time": "2026-11-09T16:39:12.789574+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "    at moduleResolve (node:internal/modules/esm/resolve:858:18)\n"}
+{"Time": "2026-11-09T16:39:12.789577+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "    at defaultResolve (node:internal/modules/esm/resolve:990:11)\n"}
+{"Time": "2026-11-09T16:39:12.789579+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "    at #cachedDefaultResolve (node:internal/modules/esm/loader:735:20)\n"}
+{"Time": "2026-11-09T16:39:12.78962+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "    at ModuleLoader.resolve (node:internal/modules/esm/loader:712:38)\n"}
+{"Time": "2026-11-09T16:39:12.789625+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)\n"}
+{"Time": "2026-11-09T16:39:12.789628+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "    at #link (node:internal/modules/esm/module_job:208:49) {\n"}
+{"Time": "2026-11-09T16:39:12.789631+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "  code: 'ERR_MODULE_NOT_FOUND'\n"}
+{"Time": "2026-11-09T16:39:12.789637+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "}\n"}
+{"Time": "2026-11-09T16:39:12.789639+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "\n"}
+{"Time": "2026-11-09T16:39:12.789642+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "Node.js v24.6.0\n"}
+{"Time": "2026-11-09T16:39:12.791241+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "2026/11/09 16:39:12 [Agent] session failed run=ag60ee8e33128963049e8abe55d132f688: agent runtime exited: exit status 1\n"}
+{"Time": "2026-11-09T16:39:12.791266+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "2026/11/09 16:39:12 [Agent] internal failure run=ag60ee8e33128963049e8abe55d132f688: agent runtime exited: exit status 1\n"}
+{"Time": "2026-11-09T16:39:12.814879+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "    studio_agent_test.go:247: native Pi failed: failed Agent 执行中断，请重新发送消息；如反复出现，请把诊断号 ag60ee8e33128963049e8abe55d132f688 反馈给管理员\n"}
+{"Time": "2026-11-09T16:39:12.83602+08:00", "Action": "output", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Output": "--- FAIL: TestStudioPiRuntimeMediaApprovalRoundTrip (7.65s)\n"}
+{"Time": "2026-11-09T16:39:12.836082+08:00", "Action": "fail", "Package": "yingce/backend/internal/app", "Test": "TestStudioPiRuntimeMediaApprovalRoundTrip", "Elapsed": 7.65}
+{"Time": "2026-11-09T16:39:12.836107+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioCatalogUsesInstalledOACProtocols"}
+{"Time": "2026-11-09T16:39:12.836165+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioCatalogUsesInstalledOACProtocols", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.836177+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioCatalogProjectionKeepsTypedDefaultsAndMissingLimits"}
+{"Time": "2026-11-09T16:39:12.836781+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioCatalogProjectionKeepsTypedDefaultsAndMissingLimits", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.836806+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioDoubaoCatalogProjectsNativeRatioAndFourSecond720p"}
+{"Time": "2026-11-09T16:39:12.837139+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioDoubaoCatalogProjectsNativeRatioAndFourSecond720p", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.837145+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioCatalogProjectsConstAsSinglePublishedChoice"}
+{"Time": "2026-11-09T16:39:12.837161+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioCatalogProjectsConstAsSinglePublishedChoice", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.837306+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts"}
+{"Time": "2026-11-09T16:39:12.837446+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts/#00"}
+{"Time": "2026-11-09T16:39:12.838729+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts/#00", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.838736+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts/720p"}
+{"Time": "2026-11-09T16:39:12.839093+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts/720p", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.839157+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts/1080p"}
+{"Time": "2026-11-09T16:39:12.840327+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts/1080p", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.840356+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioMediaConstSpecificationsUsePublishedValuesAndRejectConflicts", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.840374+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioNativeMediaBodyUsesPublishedBindings"}
+{"Time": "2026-11-09T16:39:12.840617+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioNativeMediaBodyUsesPublishedBindings/gemini"}
+{"Time": "2026-11-09T16:39:12.841031+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioNativeMediaBodyUsesPublishedBindings/gemini", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.841055+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioNativeMediaBodyUsesPublishedBindings/videos"}
+{"Time": "2026-11-09T16:39:12.841342+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioNativeMediaBodyUsesPublishedBindings/videos", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.841373+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioNativeMediaBodyUsesPublishedBindings/doubao/api/v3/contents/generations/tasks"}
+{"Time": "2026-11-09T16:39:12.841657+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioNativeMediaBodyUsesPublishedBindings/doubao/api/v3/contents/generations/tasks", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.84167+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioNativeMediaBodyUsesPublishedBindings", "Elapsed": 0}
+{"Time": "2026-11-09T16:39:12.841673+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioMediaReferencesPinOwnedVersions"}
+{"Time": "2026-11-09T16:39:13.112605+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioMediaReferencesPinOwnedVersions", "Elapsed": 0.27}
+{"Time": "2026-11-09T16:39:13.112638+08:00", "Action": "run", "Package": "yingce/backend/internal/app", "Test": "TestStudioLegacyMediaAuthorizationRejectsMissingFrozenRevisions"}
+{"Time": "2026-11-09T16:39:13.443253+08:00", "Action": "pass", "Package": "yingce/backend/internal/app", "Test": "TestStudioLegacyMediaAuthorizationRejectsMissingFrozenRevisions", "Elapsed": 0.33}
+{"Time": "2026-11-09T16:39:13.544017+08:00", "Action": "fail", "Package": "yingce/backend/internal/app", "Elapsed": 189.052}

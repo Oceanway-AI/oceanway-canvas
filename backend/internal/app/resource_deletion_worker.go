@@ -133,6 +133,9 @@ func (s *Service) cleanupDetachedUserResources(userID string, candidates []model
 }
 
 func (s *Service) cleanupExpiredArchivedAssets() {
+	if s.UsesPlatformIdentity() {
+		return
+	}
 	policy, err := s.RuntimePolicy()
 	if err != nil {
 		return

@@ -1051,7 +1051,7 @@ export function ApprovalCard({
                 <div aria-label="平台生成报价">
                     {quote ? (
                         <p>
-                            本次最高 {quote.walletMaxPoints} 平台积分；{quoteExpired ? "报价已过期，请刷新" : `有效至 ${new Date(quote.expiresAt).toLocaleTimeString()}`}。参数：
+                            预估 {quote.estimatedPoints ?? quote.walletMaxPoints} 平台积分，本次最高 {quote.walletMaxPoints} 平台积分；{quoteExpired ? "报价已过期，请刷新" : `有效至 ${new Date(quote.expiresAt).toLocaleTimeString()}`}。参数：
                             {Object.entries(quote.parameters)
                                 .map(([key, value]) => `${parameterLabels[key] || key}：${typeof value === "string" ? value : JSON.stringify(value)}`)
                                 .join("，")}

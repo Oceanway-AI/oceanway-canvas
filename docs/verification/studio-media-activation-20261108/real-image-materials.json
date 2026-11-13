@@ -1,0 +1,46 @@
+[
+  {
+    "operation_id": "media_cf352dba4b9ff9137baa34d454457db4515108b9a22526a2626c2994da26c8c7",
+    "asset_id": "a_77b6b6bbfc69e078776788cf650c9559118f424eba30e78e061194958850",
+    "version_id": "v_77b6b6bbfc69e078776788cf650c9559118f424eba30e78e061194958850",
+    "file_id": "f_77b6b6bbfc69e078776788cf650c9559118f424eba30e78e061194958850",
+    "variant": "original",
+    "status": 200,
+    "host": "oceanway-w7-assets-cn.tos-s3-cn-beijing.volces.com",
+    "mime": "image/png",
+    "bytes": 1039672,
+    "sha256": "8201e10b72ee6a3c340a3cea4dd6a4816f8de31e1507d7ae7b14fac9f9ffa3f0",
+    "dimensions": [
+      1024,
+      1024
+    ]
+  },
+  {
+    "operation_id": "media_cf352dba4b9ff9137baa34d454457db4515108b9a22526a2626c2994da26c8c7",
+    "asset_id": "a_77b6b6bbfc69e078776788cf650c9559118f424eba30e78e061194958850",
+    "version_id": "v_77b6b6bbfc69e078776788cf650c9559118f424eba30e78e061194958850",
+    "file_id": "f_77b6b6bbfc69e078776788cf650c9559118f424eba30e78e061194958850",
+    "variant": "thumbnail",
+    "status": 200,
+    "host": "cdn-test.oceanway.tech",
+    "mime": "image/webp",
+    "bytes": 3176,
+    "sha256": "4655a00a53c4f631874a14f0bf7cf21826555f44900aed6dda63c6082c7118f1",
+    "cache_second": null,
+    "repeat_bytes_identical": true
+  },
+  {
+    "operation_id": "media_cf352dba4b9ff9137baa34d454457db4515108b9a22526a2626c2994da26c8c7",
+    "asset_id": "a_77b6b6bbfc69e078776788cf650c9559118f424eba30e78e061194958850",
+    "version_id": "v_77b6b6bbfc69e078776788cf650c9559118f424eba30e78e061194958850",
+    "file_id": "f_77b6b6bbfc69e078776788cf650c9559118f424eba30e78e061194958850",
+    "variant": "preview",
+    "status": 200,
+    "host": "cdn-test.oceanway.tech",
+    "mime": "image/webp",
+    "bytes": 14008,
+    "sha256": "31f7c1852b02e811762a2e46a779357332d1a9492c6ee3aadb519604b77f53f3",
+    "cache_second": null,
+    "repeat_bytes_identical": true
+  }
+]

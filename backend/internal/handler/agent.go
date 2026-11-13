@@ -346,7 +346,18 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 			failService(c, service.NewAppError(501, "平台报价暂不可用"))
 			return
 		}
-		quote, response, err := svc.QuoteStudioAgentMedia(c.Request.Context(), user.ID, platformintegration.Session(c.Request), c.Param("id"), c.Param("approvalId"))
+		var input struct {
+			WalletMaxPoints *string `json:"walletMaxPoints"`
+		}
+		if err := c.ShouldBindJSON(&input); err != nil {
+			failService(c, service.NewAppError(400, "消费上限格式无效"))
+			return
+		}
+		var maximum []string
+		if input.WalletMaxPoints != nil {
+			maximum = append(maximum, *input.WalletMaxPoints)
+		}
+		quote, response, err := svc.QuoteStudioAgentMedia(c.Request.Context(), user.ID, platformintegration.Session(c.Request), c.Param("id"), c.Param("approvalId"), maximum...)
 		if response != nil {
 			response.AppendCookies(c.Writer.Header())
 		}

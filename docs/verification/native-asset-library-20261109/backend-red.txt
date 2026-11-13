@@ -1,0 +1,21 @@
+2026/11/09 02:45:55 handler request failed: method=POST route=<unmatched> status=501 error_type=*kernel.AppError
+--- FAIL: TestStudioNativeAssetLibraryOrganizeAndRecover (1.03s)
+    studio_asset_library_test.go:32: POST /api/asset-folders status=501 want=200 body={"code":501,"data":null,"msg":"此功能暂不可用","reason":"internal"}
+2026/11/09 02:45:56 handler request failed: method=PUT route=<unmatched> status=501 error_type=*kernel.AppError
+2026/11/09 02:45:56 handler request failed: method=PUT route=<unmatched> status=501 error_type=*kernel.AppError
+2026/11/09 02:45:56 handler request failed: method=PUT route=<unmatched> status=501 error_type=*kernel.AppError
+2026/11/09 02:45:56 handler request failed: method=PUT route=<unmatched> status=501 error_type=*kernel.AppError
+--- FAIL: TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge (0.92s)
+    --- FAIL: TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/foreign (0.00s)
+        studio_asset_library_test.go:74: PUT /api/assets/foreign status=501 want=404 body={"code":501,"data":null,"msg":"此功能暂不可用","reason":"internal"}
+    --- FAIL: TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/missing (0.00s)
+        studio_asset_library_test.go:74: PUT /api/assets/missing status=501 want=404 body={"code":501,"data":null,"msg":"此功能暂不可用","reason":"internal"}
+    --- FAIL: TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/external (0.00s)
+        studio_asset_library_test.go:74: PUT /api/assets/external status=501 want=400 body={"code":501,"data":null,"msg":"此功能暂不可用","reason":"internal"}
+    studio_asset_library_test.go:79: PUT /api/assets/safe-asset status=501 want=200 body={"code":501,"data":null,"msg":"此功能暂不可用","reason":"internal"}
+2026/11/09 02:45:57 handler request failed: method=POST route=<unmatched> status=501 error_type=*kernel.AppError
+--- FAIL: TestStudioMaterialBrowseDoesNotAdopt (0.89s)
+    studio_asset_library_test.go:101: POST /api/materials/access status=501 want=200 body={"code":501,"data":null,"msg":"此功能暂不可用","reason":"internal"}
+FAIL
+FAIL	yingce/backend/internal/handler	4.288s
+FAIL

@@ -1,0 +1,437 @@
+{
+  "observed_at": "2026-11-07T18:30:11.898127+00:00",
+  "environment": "W7 test",
+  "gateway": "ow-main:18420",
+  "gpt_connection": "studio-old-gpt-image",
+  "gpt_models": [
+    {
+      "id": 39,
+      "model_name": "gpt-image-2",
+      "upstream_model": "gpt-image-2",
+      "connection_id": "studio-old-gpt-image",
+      "executor": "image-openai",
+      "binding_revision": 1,
+      "enabled": false,
+      "supported_protocols": [
+        "oceanway-media-v1"
+      ],
+      "native_protocol_source": {
+        "connection_id": "studio-old-gpt-image",
+        "connection_revision": 1,
+        "upstream_model": "gpt-image-2",
+        "binding_revision": 1,
+        "source_version": "5016ae51f82e35ef900d3056721a006e5d32b18f7c924d725cafb8de19079cff",
+        "endpoint_types": [
+          "image-generation",
+          "openai"
+        ]
+      }
+    },
+    {
+      "id": 40,
+      "model_name": "gpt-image-2.5-flare",
+      "upstream_model": "gpt-image-2.5-flare",
+      "connection_id": "studio-old-gpt-image",
+      "executor": "image-openai",
+      "binding_revision": 1,
+      "enabled": false,
+      "supported_protocols": [
+        "oceanway-media-v1"
+      ],
+      "native_protocol_source": {
+        "connection_id": "studio-old-gpt-image",
+        "connection_revision": 1,
+        "upstream_model": "gpt-image-2.5-flare",
+        "binding_revision": 1,
+        "source_version": "5016ae51f82e35ef900d3056721a006e5d32b18f7c924d725cafb8de19079cff",
+        "endpoint_types": [
+          "image-generation",
+          "openai"
+        ]
+      }
+    },
+    {
+      "id": 41,
+      "model_name": "gpt-image-2.5-sunburst",
+      "upstream_model": "gpt-image-2.5-sunburst",
+      "connection_id": "studio-old-gpt-image",
+      "executor": "image-openai",
+      "binding_revision": 1,
+      "enabled": false,
+      "supported_protocols": [
+        "oceanway-media-v1"
+      ],
+      "native_protocol_source": {
+        "connection_id": "studio-old-gpt-image",
+        "connection_revision": 1,
+        "upstream_model": "gpt-image-2.5-sunburst",
+        "binding_revision": 1,
+        "source_version": "5016ae51f82e35ef900d3056721a006e5d32b18f7c924d725cafb8de19079cff",
+        "endpoint_types": [
+          "image-generation",
+          "openai"
+        ]
+      }
+    },
+    {
+      "id": 63,
+      "model_name": "gpt-image-2.6-flare",
+      "upstream_model": "gpt-image-2.6-flare",
+      "connection_id": "studio-old-gpt-image",
+      "executor": "image-openai",
+      "binding_revision": 1,
+      "enabled": false,
+      "supported_protocols": [
+        "oceanway-media-v1"
+      ],
+      "native_protocol_source": {
+        "connection_id": "studio-old-gpt-image",
+        "connection_revision": 1,
+        "upstream_model": "gpt-image-2.6-flare",
+        "binding_revision": 1,
+        "source_version": "5016ae51f82e35ef900d3056721a006e5d32b18f7c924d725cafb8de19079cff",
+        "endpoint_types": [
+          "image-generation",
+          "openai"
+        ]
+      }
+    },
+    {
+      "id": 64,
+      "model_name": "gpt-image-2.6-sunburst",
+      "upstream_model": "gpt-image-2.6-sunburst",
+      "connection_id": "studio-old-gpt-image",
+      "executor": "image-openai",
+      "binding_revision": 1,
+      "enabled": false,
+      "supported_protocols": [
+        "oceanway-media-v1"
+      ],
+      "native_protocol_source": {
+        "connection_id": "studio-old-gpt-image",
+        "connection_revision": 1,
+        "upstream_model": "gpt-image-2.6-sunburst",
+        "binding_revision": 1,
+        "source_version": "5016ae51f82e35ef900d3056721a006e5d32b18f7c924d725cafb8de19079cff",
+        "endpoint_types": [
+          "image-generation",
+          "openai"
+        ]
+      }
+    }
+  ],
+  "doubao_connection": "studio-old-seedance",
+  "doubao_models": [
+    {
+      "id": 60,
+      "model_name": "doubao-seedance-2-0-fast-260128",
+      "upstream_model": "doubao-seedance-2-0-fast-260128",
+      "connection_id": "studio-old-seedance",
+      "executor": "native-doubao-video",
+      "binding_revision": 1,
+      "enabled": false,
+      "supported_protocols": [
+        "doubao-video"
+      ],
+      "native_protocol_source": {
+        "connection_id": "studio-old-seedance",
+        "connection_revision": 1,
+        "upstream_model": "doubao-seedance-2-0-fast-260128",
+        "binding_revision": 1,
+        "source_version": "64831b18b584e7d7c4c81fb13e32ff88c10d222155dcec9efdc0c11d3e0f154f",
+        "endpoint_types": null
+      }
+    },
+    {
+      "id": 61,
+      "model_name": "doubao-seedance-2-0-mini-260615",
+      "upstream_model": "doubao-seedance-2-0-mini-260615",
+      "connection_id": "studio-old-seedance",
+      "executor": "native-doubao-video",
+      "binding_revision": 1,
+      "enabled": false,
+      "supported_protocols": [
+        "doubao-video"
+      ],
+      "native_protocol_source": {
+        "connection_id": "studio-old-seedance",
+        "connection_revision": 1,
+        "upstream_model": "doubao-seedance-2-0-mini-260615",
+        "binding_revision": 1,
+        "source_version": "64831b18b584e7d7c4c81fb13e32ff88c10d222155dcec9efdc0c11d3e0f154f",
+        "endpoint_types": null
+      }
+    },
+    {
+      "id": 62,
+      "model_name": "doubao-seedance-2-5-260628",
+      "upstream_model": "doubao-seedance-2-5-260628",
+      "connection_id": "studio-old-seedance",
+      "executor": "native-doubao-video",
+      "binding_revision": 1,
+      "enabled": false,
+      "supported_protocols": [
+        "doubao-video"
+      ],
+      "native_protocol_source": {
+        "connection_id": "studio-old-seedance",
+        "connection_revision": 1,
+        "upstream_model": "doubao-seedance-2-5-260628",
+        "binding_revision": 1,
+        "source_version": "64831b18b584e7d7c4c81fb13e32ff88c10d222155dcec9efdc0c11d3e0f154f",
+        "endpoint_types": null
+      }
+    }
+  ],
+  "gpt_repeat_preview_existing": 5,
+  "source_version_stable": true,
+  "generation_requests": 0,
+  "publication_changes": 0,
+  "production_console_writes": 0,
+  "gateway_writes": 0,
+  "gateway_observed_image_pricing": {
+    "gpt-image-2.5-sunburst": {
+      "model_name": "gpt-image-2.5-sunburst",
+      "vendor_id": 1,
+      "quota_type": 0,
+      "model_ratio": 37.5,
+      "model_price": 0,
+      "owner_by": "",
+      "completion_ratio": 2,
+      "enable_groups": [
+        "gpt-image系列原生Adobe",
+        "gpt-image系列1k",
+        "gpt-image系列"
+      ],
+      "supported_endpoint_types": [
+        "image-generation",
+        "openai"
+      ],
+      "billing_mode": "tiered_expr",
+      "billing_expr": "tier(\"standard\", p * 5 + cr * 1.25 + img * 8 + img_cr * 2 + c * 30)"
+    },
+    "gpt-image-2.6-flare": {
+      "model_name": "gpt-image-2.6-flare",
+      "vendor_id": 1,
+      "quota_type": 1,
+      "model_ratio": 0,
+      "model_price": 1,
+      "owner_by": "",
+      "completion_ratio": 0,
+      "enable_groups": [
+        "gpt-image系列",
+        "gpt-image系列1k"
+      ],
+      "supported_endpoint_types": [
+        "image-generation",
+        "openai"
+      ],
+      "billing_mode": "tiered_expr",
+      "billing_expr": "tier(\"image\", fixed(1)) * image_count"
+    },
+    "gpt-image-2.5-flare": {
+      "model_name": "gpt-image-2.5-flare",
+      "vendor_id": 1,
+      "quota_type": 0,
+      "model_ratio": 37.5,
+      "model_price": 0,
+      "owner_by": "",
+      "completion_ratio": 2,
+      "enable_groups": [
+        "gpt-image系列",
+        "gpt-image系列原生Adobe",
+        "gpt-image系列1k"
+      ],
+      "supported_endpoint_types": [
+        "image-generation",
+        "openai"
+      ],
+      "billing_mode": "tiered_expr",
+      "billing_expr": "tier(\"standard\", p * 5 + cr * 1.25 + img * 8 + img_cr * 2 + c * 30)"
+    },
+    "gpt-image-2.6-sunburst": {
+      "model_name": "gpt-image-2.6-sunburst",
+      "vendor_id": 1,
+      "quota_type": 0,
+      "model_ratio": 37.5,
+      "model_price": 0,
+      "owner_by": "",
+      "completion_ratio": 2,
+      "enable_groups": [
+        "gpt-image系列1k",
+        "gpt-image系列"
+      ],
+      "supported_endpoint_types": [
+        "image-generation",
+        "openai"
+      ],
+      "billing_mode": "tiered_expr",
+      "billing_expr": "tier(\"image\", fixed(1)) * image_count"
+    },
+    "gpt-image-2": {
+      "model_name": "gpt-image-2",
+      "description": "图像模型，面向提示词驱动的生成、编辑与视觉设计工作流",
+      "icon": "OpenAI",
+      "tags": "文件,多模态",
+      "vendor_id": 1,
+      "quota_type": 0,
+      "model_ratio": 37.5,
+      "model_price": 0,
+      "owner_by": "",
+      "completion_ratio": 2,
+      "enable_groups": [
+        "gpt-image系列",
+        "gpt-image系列原生Adobe",
+        "gpt-image系列1k"
+      ],
+      "supported_endpoint_types": [
+        "image-generation",
+        "openai"
+      ],
+      "billing_mode": "tiered_expr",
+      "billing_expr": "tier(\"standard\", p * 5 + cr * 1.25 + img * 8 + img_cr * 2 + c * 30)"
+    }
+  },
+  "catalog_evidence": [
+    {
+      "token_id": 1,
+      "group": "seedance 官方特价",
+      "count": 3,
+      "models": [
+        {
+          "id": "doubao-seedance-2-0-fast-260128",
+          "object": "model",
+          "created": 1626777600,
+          "owned_by": "task plugin",
+          "supported_endpoint_types": [
+            "openai"
+          ]
+        },
+        {
+          "id": "doubao-seedance-2-0-mini-260615",
+          "object": "model",
+          "created": 1626777600,
+          "owned_by": "task plugin",
+          "supported_endpoint_types": [
+            "openai"
+          ]
+        },
+        {
+          "id": "doubao-seedance-2-5-260628",
+          "object": "model",
+          "created": 1626777600,
+          "owned_by": "task plugin",
+          "supported_endpoint_types": [
+            "openai"
+          ]
+        }
+      ]
+    },
+    {
+      "token_id": 2,
+      "group": "gpt-image系列原生Adobe",
+      "count": 3,
+      "models": [
+        {
+          "id": "gpt-image-2",
+          "object": "model",
+          "created": 1626777600,
+          "owned_by": "openai",
+          "supported_endpoint_types": [
+            "image-generation",
+            "openai"
+          ]
+        },
+        {
+          "id": "gpt-image-2.5-sunburst",
+          "object": "model",
+          "created": 1626777600,
+          "owned_by": "openai",
+          "supported_endpoint_types": [
+            "image-generation",
+            "openai"
+          ]
+        },
+        {
+          "id": "gpt-image-2.5-flare",
+          "object": "model",
+          "created": 1626777600,
+          "owned_by": "openai",
+          "supported_endpoint_types": [
+            "image-generation",
+            "openai"
+          ]
+        }
+      ]
+    },
+    {
+      "token_id": 6,
+      "group": "gpt-image系列",
+      "count": 5,
+      "models": [
+        {
+          "id": "gpt-image-2",
+          "object": "model",
+          "created": 1626777600,
+          "owned_by": "openai",
+          "supported_endpoint_types": [
+            "image-generation",
+            "openai"
+          ]
+        },
+        {
+          "id": "gpt-image-2.5-sunburst",
+          "object": "model",
+          "created": 1626777600,
+          "owned_by": "openai",
+          "supported_endpoint_types": [
+            "image-generation",
+            "openai"
+          ]
+        },
+        {
+          "id": "gpt-image-2.5-flare",
+          "object": "model",
+          "created": 1626777600,
+          "owned_by": "openai",
+          "supported_endpoint_types": [
+            "image-generation",
+            "openai"
+          ]
+        },
+        {
+          "id": "gpt-image-2.6-sunburst",
+          "object": "model",
+          "created": 1626777600,
+          "owned_by": "openai",
+          "supported_endpoint_types": [
+            "image-generation",
+            "openai"
+          ]
+        },
+        {
+          "id": "gpt-image-2.6-flare",
+          "object": "model",
+          "created": 1626777600,
+          "owned_by": "openai",
+          "supported_endpoint_types": [
+            "image-generation",
+            "openai"
+          ]
+        }
+      ]
+    }
+  ],
+  "channel_5": {
+    "id": 5,
+    "type": 61,
+    "status": 1,
+    "name": "doubao-官方5折全套720P-newToken",
+    "group": "seedance 官方特价",
+    "model_names": [
+      "doubao-seedance-2-0-fast-260128",
+      "doubao-seedance-2-0-mini-260615",
+      "doubao-seedance-2-5-260628"
+    ]
+  }
+}

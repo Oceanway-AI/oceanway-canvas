@@ -19,6 +19,7 @@ import (
 
 func RegisterUserDataRoutes(r *gin.RouterGroup, svc *service.Service) {
 	RegisterCanvasDataRoutes(r, svc)
+	RegisterAssetLibraryRoutes(r, svc)
 	r.POST("/resources/access", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -37,45 +38,6 @@ func RegisterUserDataRoutes(r *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		ok(c, gin.H{"items": result})
-	})
-	r.POST("/assets/batch-delete", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 256<<10)
-		var ids []string
-		if err := c.ShouldBindJSON(&ids); err != nil {
-			fail(c, http.StatusBadRequest, err)
-			return
-		}
-		if err := svc.PurgeUserAssets(user.ID, ids); err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"ids": ids})
-	})
-	r.POST("/assets/batch", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16<<10)
-		var req struct {
-			IDs []string `json:"ids"`
-		}
-		if err := c.ShouldBindJSON(&req); err != nil {
-			fail(c, http.StatusBadRequest, err)
-			return
-		}
-		assets, err := svc.UserAssetsByIDs(user.ID, req.IDs)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"assets": assets})
 	})
 	r.GET("/settings/prompt-templates", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
@@ -322,6 +284,50 @@ func RegisterUserDataRoutes(r *gin.RouterGroup, svc *service.Service) {
 	}
 	r.GET("/public/resources/:id/file", publicResourceHandler)
 	r.GET("/public/resources/:id/file/:filename", publicResourceHandler)
+}
+
+// RegisterAssetLibraryRoutes shares the native creative metadata API without
+// enabling local object storage, public file delivery or supplier credentials.
+func RegisterAssetLibraryRoutes(r *gin.RouterGroup, svc *service.Service) {
+	r.POST("/assets/batch-delete", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 256<<10)
+		var ids []string
+		if err := c.ShouldBindJSON(&ids); err != nil {
+			fail(c, http.StatusBadRequest, err)
+			return
+		}
+		if err := svc.PurgeUserAssets(user.ID, ids); err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, gin.H{"ids": ids})
+	})
+	r.POST("/assets/batch", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16<<10)
+		var req struct {
+			IDs []string `json:"ids"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			fail(c, http.StatusBadRequest, err)
+			return
+		}
+		assets, err := svc.UserAssetsByIDs(user.ID, req.IDs)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, gin.H{"assets": assets})
+	})
 	r.GET("/assets", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

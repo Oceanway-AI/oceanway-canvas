@@ -197,7 +197,7 @@ test("canvas handoff resolves generated image and video assets in requested orde
     expect(module.canvasAssetHandoffPayloads(assets, ["video-1", "missing", "image-1"])).toEqual({
         payloads: [
             { kind: "video", url: "/video.mp4", storageKey: "resource:video", title: "video title", width: 1280, height: 720, durationMs: 6000, bytes: 800000, mimeType: "video/mp4", assetId: "video-1" },
-            { kind: "image", dataUrl: "/image.png", storageKey: "resource:image", title: "image title", assetId: "image-1" },
+            { kind: "image", dataUrl: "/image.png", storageKey: "resource:image", title: "image title", assetId: "image-1", width: 1664, height: 936, bytes: 625000, mimeType: "image/png" },
         ],
         missingAssetIds: ["missing"],
     });
@@ -359,6 +359,7 @@ test("Create forwards owned result assets through one new canvas and the project
     const canvasProject = moduleGroupSource("pages/canvas/project.tsx");
 
     expect(workspace).toContain("onContinueCanvas(selection)");
+    expect(workspace).toContain("await preparePlatformCreationAssets([item])");
     expect(createPage).toContain("continueCreationConversationOnCanvas(source)");
     expect(createPage).toContain("if (ids.length !== Math.max(resultStorageKeys.length, resultUrls.length)) throw new Error");
     expect(createPage).toContain("await saveCreationConversations(next)");

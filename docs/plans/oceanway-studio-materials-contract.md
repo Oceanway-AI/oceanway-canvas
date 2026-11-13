@@ -1,5 +1,9 @@
 # Studio 素材首批实施合同
 
+2026-11-14 本地整合保留同一 `/assets` 的共享文件视图及可切换的创作素材视图。共享文件直接使用 Platform 数据，创作素材只在用户明确采用后写入 OAC 业务元数据。首页「添加到画布」沿用固定 Resource，另可「加入创作素材」。
+
+2026-11-09 接续：规范以 oceanway-docs `PDOC-STUDIO-03-004` / `DEV-STUDIO-07-004` 为准。本轮恢复 OAC 原生资产页与业务元数据；下面的 Resource-only 规定仅适用于生成结果/画布消费，不禁止为明确采用的文件创建 Studio 创作 Asset。Asset 不复制原件。先恢复原资产/文件夹路由及纯浏览访问；永久删除和自动物理清理在共享引用生命周期完成前关闭。免费验证记录在 `docs/verification/native-asset-library-20261109/`。
+
 本批只使用 platformclient rc.5 的 materials v2，原件存储、容量、素材版本和签名访问由 Platform 管理。OAC Resource ID 保留，新增不可变 asset/version/file 映射，不保存签名 URL 或对象存储凭据。团队空间后续接入；首批只接受与当前账号匹配的 account owner。
 
 ## HTTP 与持久化

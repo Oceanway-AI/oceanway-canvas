@@ -1,0 +1,185 @@
+{
+  "implementation": "f12070b",
+  "scope": "local SQLite + mock Platform + native Node/Pi fixtures; no deployment or real model submission",
+  "checks": [
+    {
+      "evidence": "red-initial.jsonl",
+      "raw_sha256": "50ffd21e9f0fa38d298756707e5607ec229d76e823444f1495bffeabe75ec8c3",
+      "top_level": {
+        "pass": 0,
+        "fail": 6,
+        "skip": 0
+      },
+      "subcases": {
+        "pass": 0,
+        "fail": 5,
+        "skip": 0
+      },
+      "packages": {
+        "yingce/backend/internal/assets": "fail",
+        "yingce/backend/internal/app": "fail",
+        "yingce/backend/internal/handler": "fail"
+      }
+    },
+    {
+      "evidence": "red-tool-and-recycle-initial.jsonl",
+      "raw_sha256": "f709decc50a046de19bb1b2e450b4d002324f50224635a807570037fb075aa83",
+      "top_level": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "subcases": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "packages": {
+        "yingce/backend/internal/assets": "fail",
+        "yingce/backend/internal/handler": "fail"
+      }
+    },
+    {
+      "evidence": "red-recycle-contract.jsonl",
+      "raw_sha256": "e743d603bdab48ba4efb21bcfc745652b93e3ce27d07e925c20e39c51b1afc7d",
+      "top_level": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "subcases": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "packages": {
+        "yingce/backend/internal/handler": "fail"
+      }
+    },
+    {
+      "evidence": "red-announcement.jsonl",
+      "raw_sha256": "da8fdd833184ba95b9dd3fa2a5a6a5750e7f669c5e778e44d9202ce341e99ed3",
+      "top_level": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "subcases": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "packages": {
+        "yingce/backend/internal/handler": "fail"
+      }
+    },
+    {
+      "evidence": "red-preexisting-history.jsonl",
+      "raw_sha256": "86d907cec4a9788105cdd07e2f2eed098b9cf2e26a6f996b5700b88123084a71",
+      "top_level": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "subcases": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "packages": {
+        "yingce/backend/internal/handler": "fail"
+      }
+    },
+    {
+      "evidence": "green-routes.jsonl",
+      "raw_sha256": "dd62258cae2442ca469ba878ca6006f3b2c17bea30de9e5c13d280f9be21f995",
+      "top_level": {
+        "pass": 35,
+        "fail": 0,
+        "skip": 0
+      },
+      "subcases": {
+        "pass": 27,
+        "fail": 0,
+        "skip": 0
+      },
+      "packages": {
+        "yingce/backend/internal/assets": "pass",
+        "yingce/backend/internal/repository": "pass",
+        "yingce/backend/internal/handler": "pass"
+      }
+    },
+    {
+      "evidence": "app-race-first-attempt.jsonl",
+      "raw_sha256": "5e42e194b15fea10cf5b46f90006daaa246d92f9023291a44d107bcc35f1cbb5",
+      "top_level": {
+        "pass": 35,
+        "fail": 2,
+        "skip": 0
+      },
+      "subcases": {
+        "pass": 32,
+        "fail": 0,
+        "skip": 0
+      },
+      "packages": {
+        "yingce/backend/internal/app": "fail"
+      }
+    },
+    {
+      "evidence": "green-handler-race.jsonl",
+      "raw_sha256": "1f291280eeb19987a3517031f848f5ded3c8113eb9420331316b682394d691ce",
+      "top_level": {
+        "pass": 8,
+        "fail": 0,
+        "skip": 0
+      },
+      "subcases": {
+        "pass": 7,
+        "fail": 0,
+        "skip": 0
+      },
+      "packages": {
+        "yingce/backend/internal/handler": "pass"
+      }
+    },
+    {
+      "evidence": "green-pi-race.jsonl",
+      "raw_sha256": "e2e0c8fe06956e0d266142b2d2ec1941a488392fee7e45fbb3492d8f6016b867",
+      "top_level": {
+        "pass": 2,
+        "fail": 0,
+        "skip": 0
+      },
+      "subcases": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "packages": {
+        "yingce/backend/internal/app": "pass"
+      }
+    }
+  ],
+  "app_after_dependency_install": {
+    "pass": 37,
+    "fail": 0,
+    "skip": 0
+  },
+  "other_checks": {
+    "go_vet": "pass",
+    "server_build_ignored_output": "pass",
+    "gofmt_changed_files": "pass",
+    "git_diff_check": "pass",
+    "docs_check": "pass",
+    "docs_tests": 8
+  },
+  "not_verified": [
+    "full repository push gate / remote CI",
+    "PostgreSQL / Redis concurrency",
+    "browser UI reacceptance",
+    "TOS / CDN or real model calls",
+    "complete release / project snapshot / permanent deletion",
+    "authoritative Resource width / height / duration"
+  ]
+}

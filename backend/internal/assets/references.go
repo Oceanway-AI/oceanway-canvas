@@ -104,6 +104,9 @@ func walkReferenceDocument(value any, parentKey, path, nodeID string, references
 		if candidate, ok := item["id"].(string); ok && parentKey == "nodes" {
 			currentNodeID = strings.TrimSpace(candidate)
 		}
+		if role, _ := item["role"].(string); role == "tool" || role == "toolResult" {
+			walkStructuredToolContent(item["content"], joinReferencePath(path, "content"), currentNodeID, references)
+		}
 		keys := make([]string, 0, len(item))
 		for key := range item {
 			keys = append(keys, key)
@@ -132,6 +135,29 @@ func walkReferenceDocument(value any, parentKey, path, nodeID string, references
 			*references = append(*references, DocumentResourceReference{
 				ResourceID: resourceID, Path: path, NodeID: nodeID, ReferenceType: parentKey,
 			})
+		}
+	}
+}
+
+// Canonical and Pi transcripts encode structured tool receipts as text. Decode
+// only these message bodies; prompts and free-form diagnostic strings are not
+// resource documents even when they contain JSON-looking text.
+func walkStructuredToolContent(content any, path, nodeID string, references *[]DocumentResourceReference) {
+	if raw, ok := content.(string); ok {
+		var decoded any
+		if json.Unmarshal([]byte(raw), &decoded) == nil {
+			switch decoded.(type) {
+			case map[string]any, []any:
+				walkReferenceDocument(decoded, "", path, nodeID, references)
+			}
+		}
+		return
+	}
+	if blocks, ok := content.([]any); ok {
+		for i, value := range blocks {
+			if block, ok := value.(map[string]any); ok && block["type"] == "text" {
+				walkStructuredToolContent(block["text"], fmt.Sprintf("%s[%d].text", path, i), nodeID, references)
+			}
 		}
 	}
 }
@@ -177,7 +203,7 @@ func isBareResourceIDField(field string) bool {
 
 func isResourceLocatorField(field string) bool {
 	switch field {
-	case "storageKey", "content", "previewContent", "drawingPreviewStorageKey", "drawingPreviewUrl", "url", "dataUrl", "coverUrl", "imageUrl", "videoUrl", "audioUrl", "referenceUrl", "referenceUrls", "artifactRef", "providerArtifactRef":
+	case "storageKey", "resultStorageKeys", "resultUrls", "content", "previewContent", "drawingPreviewStorageKey", "drawingPreviewUrl", "url", "dataUrl", "coverUrl", "imageUrl", "videoUrl", "audioUrl", "referenceUrl", "referenceUrls", "artifactRef", "providerArtifactRef":
 		return true
 	default:
 		return false

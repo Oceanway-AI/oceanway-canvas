@@ -75,10 +75,10 @@ export function AssetCard({
     arkProgress?: ArkLibraryProgress;
 }) {
     const summary = assetSummary(asset);
-    const menuItems: MenuProps["items"] = isTrash
+    const allMenuItems: MenuProps["items"] = isTrash
         ? [{ key: "restore", icon: <RotateCcw className="size-3.5" />, label: "还原到素材库", onClick: onRestore }, { type: "divider" as const }, { key: "delete", danger: true, icon: <Trash2 className="size-3.5" />, label: "彻底删除", onClick: onDelete }]
         : [
-              ...(asset.metadata?.platformMaterial || asset.kind === "text" || asset.kind === "image" ? [{ key: "edit", icon: <PencilLine className="size-3.5" />, label: "编辑", onClick: onEdit }] : []),
+              ...(asset.metadata?.platformMaterial || ["text", "image", "video", "audio"].includes(asset.kind) ? [{ key: "edit", icon: <PencilLine className="size-3.5" />, label: "编辑", onClick: onEdit }] : []),
               ...(asset.kind === "text" ? [{ key: "copy", icon: <Copy className="size-3.5" />, label: "复制文本", onClick: () => void onCopy(asset) }] : []),
               ...(asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "model" || asset.kind === "document" ? [{ key: "download", icon: <Download className="size-3.5" />, label: "下载", onClick: () => onDownload(asset) }] : []),
               ...(folderOptions.length ? [{ key: "move", icon: <FolderOpen className="size-3.5" />, label: "移动到分类", children: folderOptions.map((folder) => ({ key: folder.value || "uncategorized", label: folder.label, onClick: () => onMoveToFolder(folder.value) })) }] : []),
@@ -86,6 +86,7 @@ export function AssetCard({
               { key: "archive", icon: <Trash2 className="size-3.5 text-amber-500" />, label: "移入回收站", onClick: onArchive },
               ...(onDelete ? [{ key: "delete", danger: true, icon: <Trash2 className="size-3.5" />, label: "彻底删除", onClick: onDelete }] : []),
           ];
+    const menuItems = allMenuItems.filter((item) => onDelete || !item || !("key" in item) || item.key !== "delete");
     const handleCardClick = (event: MouseEvent<HTMLButtonElement>) => {
         if (selectionMode || event.shiftKey || event.ctrlKey || event.metaKey) {
             onSelect(!selected, event.shiftKey);
@@ -177,6 +178,7 @@ export function AssetCover({
                     <ModelCover asset={asset} />
                 ) : (
                     <AssetMediaPreview
+                        thumbnail
                         asset={asset}
                         alt={asset.title}
                         className="assets-cover-media"

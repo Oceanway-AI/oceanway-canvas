@@ -1,0 +1,3 @@
+ok  	yingce/backend/internal/app	4.773s
+ok  	yingce/backend/internal/canvas	3.603s
+ok  	yingce/backend/internal/repository	2.013s

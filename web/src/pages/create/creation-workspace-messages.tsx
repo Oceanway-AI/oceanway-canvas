@@ -26,7 +26,9 @@ import { useAssetStore, type Asset, type ImageAsset, type VideoAsset } from "@/s
 import { creationResultAssetIds, creationResultResourceIds, creationResultStorageKeys, type CreationCanvasSelection } from "@/lib/canvas/canvas-asset-handoff";
 import { resolveMediaUrl } from "@/services/file-storage";
 import { resolveImageUrl } from "@/services/image-storage";
-import { Button } from "antd";
+import { App, Button } from "antd";
+import { getActiveUserScope } from "@/lib/user-scope";
+import { preparePlatformCreationAssets } from "@/services/creation-platform-handoff";
 import { CanvasImagePreview } from "@/components/canvas/canvas-image-preview";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { creationResultEntries } from "./creation-result-urls";
@@ -281,6 +283,20 @@ export function MediaResult({
     onContinueCanvas: (selection?: CreationCanvasSelection) => void;
     openingCanvas: boolean;
 }) {
+    const { message } = App.useApp();
+    const [adopting, setAdopting] = useState(false);
+    const adoptResult = async () => {
+        const scope = getActiveUserScope();
+        setAdopting(true);
+        try {
+            await preparePlatformCreationAssets([item]);
+            if (getActiveUserScope() === scope) message.success("已加入创作素材");
+        } catch (error) {
+            if (getActiveUserScope() === scope) message.error(error instanceof Error ? error.message : "采用素材失败");
+        } finally {
+            setAdopting(false);
+        }
+    };
     const [previewUrl, setPreviewUrl] = useState("");
     const [previewType, setPreviewType] = useState<"image" | "video">("image");
     const assets = useAssetStore((state) => state.assets);
@@ -464,6 +480,7 @@ export function MediaResult({
                 <Button type="link" size="small" loading={openingCanvas} disabled={!canContinueWithResults} title={canContinueWithResults ? undefined : "素材保存完成后才能转入画布"} onClick={() => onContinueCanvas(selection)}>
                     添加到画布
                 </Button>
+                {platformIdentity && <Button type="link" size="small" loading={adopting} disabled={!canContinueWithResults} onClick={() => void adoptResult()}>加入创作素材</Button>}
                 {displayResultUrls.map((url, index) => (
                     <a key={`download-${index}`} href={url} download>
                         {displayResultUrls.length > 1 ? (

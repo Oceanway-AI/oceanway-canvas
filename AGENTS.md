@@ -1,5 +1,19 @@
 # AGENTS.md
 
+2026-11-09 模型供给交接续记：提供方会话已完成，模型设置本地提交b20e4715b999df4ee1cedb9704f3f4f33e650347，固定验收树与提交仅差验收JSON；207前端/28顶层后端专项通过。原冻结样例未重新导出，7/8抽查契约源码相同、media_configuration有差异，不能改标最终双仓已联验。共享Platform仍有其他会话dirty，须独立检出；未push/合并/部署/收费。本轮仅文档与证据，交接docs/verification/model-supply-joint-20261109/README.md及Docs PROC-02-067已补当前版本和接手顺序；后续固定版本复验→尺寸→参考→变体/Agent，A3未完。下方未提交表述为历史。
+
+2026-11-09 模型供给联合首批：与会话01a1bbad-1640-7ac3-8c82-ae59a56fae48协作；Docs计划f1fa61d0、Studio合同13ab270/RED2b25b89/实现f210dfa。修multipleOf零起点范围、audio别名和原控件；提供方隔离HTTP发布/PG预览合成样例经正式rc.6→Studio→前端同源golden验收。图片output_mapping_unverified保留为拒绝用例，视频只代表免费预览就绪。99前端431断言、Go race24顶层＋40子例/3包、type/lint/build/vet/格式/Docs通过；旧视频2测试补显式预算确认，产品门禁不变。证据docs/verification/model-supply-joint-20261109、全局PROC-02-067；Platform候选仍未提交，以源码集合摘要追踪，不能只用HEAD7401e5cf重现。无push/部署/付费/旧任务重试。size_presets/x-size-constraints、参考依赖/总数/首尾帧、变体UI/Agent扩展参数及A3余项未完；非浏览器/真实云或生产供给验收。
+
+2026-11-09 A3首批本机修正：沿独立A2工作区，Docs计划200623f7，RED faa07bc/6ade364/ee83aaf/687db0c，实现f12070b。补resultStorageKeys及原生工具结构化结果、旧漏索引Platform历史、普通/Agent新媒体Task输入ID、持久Agent/Pi/事件/撤销引用；原本地清理与六类删除事务禁止删除Platform Resource；trashed新采用409、原binding读取及账号拒绝通过。35顶层路由/引用专项＋27子例，37顶层app race＋32子例（首轮2项缺Pi依赖，按原锁安装后定向通过），8顶层handler race＋7子例；vet/build/gofmt/Docs通过。证据docs/verification/native-assets-a3-20261109、Docs PROC-02-068 A3。未push/部署/付费/旧任务重试/修改SDK或云。永久删除、完整release/outbox/project snapshot、旧加密执行输入投影、团队和权威元数据仍待办，rc.6没有宽高时长；不称A3整体或上线完成。仅SQLite/假Platform/真实Node Pi免费夹具，未验PG多进程、浏览器或实际TOS/CDN。
+
+2026-11-09 A2本机完成：独立codex/studio-assets-a2-20261109从A1 1094b50继续，Docs计划d814895e、RED b9a0da3、实现cb0a95c。/create点击转画布时复用ready Resource建立确定性业务Asset，单卡/整会话、部分保存重入、账号切换及原生画布/Agent选择器通过；原生成Resource-only回填不改。历史空对象坐标误关联修为按Resource ID精确保护，历史保留输出固定引用。67前端（含独立React按钮夹具）、10顶层handler race＋3子例、2原生历史测试/type/lint/vet/build/格式通过。免费浏览器2Asset/2Resource/2绑定/3节点/0连线/会话引用重开一致，实际JPEG/MP4可读播放，0模型提交/旧失败重试。证据docs/verification/native-assets-a2-20261109，Docs PROC-02-068 A2节。未push/部署/改Platform SDK或云；完整解绑/永久删除、团队、媒体元数据及性能仍A3。夹具为独立SQLite＋假Platform，不称真实TOS/CDN或生产PG；手动浏览器fixture在验收取证后触发默认10分钟超时，非产品测试失败，复跑用-timeout 0，测试端口均已关闭。
+
+2026-11-09 原生资产库A1：独立分支代码855fbed，失败测试5653362/c0ab5c2/164ab6f/d0b11fc；复用OAC原资产页/CRUD/同步，修Studio路由501、Platform身份跳过显式Asset保存读取、folderId丢失；共享浏览只读Access不adopt，显式采用固定Resource生成业务Asset，卡片走thumbnail/poster。软回收可恢复，旧永久删除/物理清理暂停。50前端、Studio handler/原资产专项、3顶层race、type/lint/vet/build通过；免费浏览器3资产/2Resource/2绑定/0删除任务，关页重开同ID。证据docs/verification/native-asset-library-20261109，规范Docs PDOC-STUDIO-03-004/DEV-STUDIO-07-004，交接PROC-02-068。未部署/推送/改Platform SDK或云/付费/重试旧任务。下一步A2修/create ready Resource显式采用和原画布/Agent选择器，A3元数据/团队/完整释放与性能；不宣称本机夹具为真实TOS/CDN或全功能验收。
+
+2026-11-09真实Agent接续：d04c2a6/809b5e3已部署18448，未确认额度只预览，Skills原路由共享注册，原单一Agent合同v21/编译器v7及摘要使用Platform资金权威。免费RED→GREEN/race与原生浏览器取消/拒绝通过；一个新Mini参考图生视频成功，实际200.7878点≤250，原worker归档一次、输入引用释放，4节点2连线/素材/Task在进行中和完成后关页重开均恢复。原失败保留，Console/原108受保护容器/nginx不变，无push，Platform/18420/Pi保持。证据docs/verification/agent-media-reference-20261109、全局Docs PROC-02-067；C4整体未完，付费进程重启/无画布媒体/团队全链及Resource宽高时长仍待办。下一步C2两图片异步恢复与另一视频系列。
+
+2026-11-08 23:43 真实闭环：本轮用户授权测试发布，Studio ff6a3ce 已在18448运行，Platform dba921b5在18447，18420原异步发行补processing映射。新画布sQ3Xqpn5rFRjYHy6Pjigf通过原生按钮真实生成gpt-image-2与Seedance Mini（4秒720p），明确上限20/250，最终结算20/200.7878积分；原worker入库、原件摘要、CDN派生、播放和关页重开同ID通过。原Pi/Task保留，旧失败未重试，Console及受保护服务不变。证据docs/verification/native-media-actual-budget-20261108，规范/全局交接Docs PROC-02-067。本批Agent额度路径只有免费测试，付费审批/参考素材、异步图片、第二视频系列及完整故障矩阵仍待验；不宣称全部首发已完成。下文禁止部署为早期分工，未来操作仍按当前用户范围。
+
 ## OceanWay Studio 当前改造边界（2026-11-07）
 
 - 2026-11-08 首发范围：身份、素材、文本/图片/视频、原生 Pi Agent 与画布恢复。其他创作源码保留，未接通能力明确暂不可用；不以全插件/音频/3D 完成阻塞首发。应用侧仅改 backend、web、应用配置与计划，部署文件由协调会话负责；不推送、不部署、不操作远端配置。进度见 [应用侧实施进度](docs/plans/oceanway-studio-application-progress.md)。

@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-09",
+  "docs_redirects": {
+    "total": 1304,
+    "added": 0
+  },
+  "docs_test": {
+    "pass": 8,
+    "fail": 0,
+    "skip": 0
+  },
+  "docs_registry": "current",
+  "docs_check": {
+    "current_pages": 472,
+    "links": 2496,
+    "existing_warnings": 4
+  },
+  "checked_documents": {
+    "content/docs/03_平台/02_platform/02_需求与工作包/PLAT-02-059_模型渠道配置收敛工作包.mdx": "445a49fcefcb7dd30c4f14d28fd0c299bf825456f436994673dfaa446109e93c",
+    "content/docs/07_过程记录/02_验收证据/PROC-02-067_模型渠道收敛基线与交接20261108.mdx": "cca87a3bb46854f4d17d0b98b94d78d42f54ec2f86ad2c0f587c342dc1908452"
+  },
+  "git_diff_check": "pass",
+  "ci": "not_run"
+}

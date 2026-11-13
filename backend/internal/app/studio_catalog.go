@@ -224,6 +224,9 @@ func studioCapabilityProjection(s platformintegration.ModelSelection) map[string
 					param[to] = v
 				}
 			}
+			if v, ok := field["multipleOf"]; ok {
+				param["multipleOf"] = v
+			}
 			if v := defaultValue(key); v != nil {
 				param["default"] = v
 			}
@@ -253,6 +256,9 @@ func studioCapabilityProjection(s platformintegration.ModelSelection) map[string
 			duration[to] = v
 		}
 	}
+	if v, ok := schema.Properties[durationKey]["multipleOf"]; ok {
+		duration["multipleOf"] = v
+	}
 	if len(values(durationKey)) > 0 {
 		duration["selection"] = "enum"
 		duration["values"] = values(durationKey)
@@ -272,5 +278,9 @@ func studioCapabilityProjection(s platformintegration.ModelSelection) map[string
 	if schema.Properties[ratioKey] == nil && schema.Properties["ratio"] != nil {
 		ratioKey = "ratio"
 	}
-	return map[string]any{"version": 1, "video": map[string]any{"references": refs, "duration": duration, "durationSupported": schema.Properties[durationKey] != nil, "ratios": values(ratioKey), "defaultRatio": stringDefault(ratioKey), "resolutions": values("resolution"), "defaultResolution": stringDefault("resolution"), "generateAudio": map[string]any{"supported": schema.Properties["generate_audio"] != nil, "default": boolDefault("generate_audio")}, "watermark": map[string]any{"supported": schema.Properties["watermark"] != nil, "default": boolDefault("watermark")}, "operations": operations, "defaultOperation": operations[0]}}
+	audioKey := "generate_audio"
+	if schema.Properties[audioKey] == nil && schema.Properties["audio"] != nil {
+		audioKey = "audio"
+	}
+	return map[string]any{"version": 1, "video": map[string]any{"references": refs, "duration": duration, "durationSupported": schema.Properties[durationKey] != nil, "ratios": values(ratioKey), "defaultRatio": stringDefault(ratioKey), "resolutions": values("resolution"), "defaultResolution": stringDefault("resolution"), "generateAudio": map[string]any{"supported": schema.Properties[audioKey] != nil, "default": boolDefault(audioKey)}, "watermark": map[string]any{"supported": schema.Properties["watermark"] != nil, "default": boolDefault("watermark")}, "operations": operations, "defaultOperation": operations[0]}}
 }

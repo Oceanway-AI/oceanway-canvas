@@ -2610,7 +2610,11 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                                                 try {
                                                     await prepareCanvasForCloudAction(run.canvasId);
                                                     if (!accountIsCurrent() || currentScope.current !== scope) return;
-                                                    const quote = await quoteAgentMedia(runId, approvalId, AbortSignal.timeout(30_000));
+                                                    const preview = await quoteAgentMedia(runId, approvalId, AbortSignal.timeout(30_000));
+                                                    if (!accountIsCurrent() || currentScope.current !== scope) return;
+                                                    const maximum = await confirmPlatformBudget(preview.estimatedPoints ?? preview.walletMaxPoints, "确认 Agent 媒体消费额度");
+                                                    if (maximum == null || !accountIsCurrent() || currentScope.current !== scope) return;
+                                                    const quote = await quoteAgentMedia(runId, approvalId, AbortSignal.timeout(30_000), maximum);
                                                     if (!accountIsCurrent() || currentScope.current !== scope) return;
                                                     setApproval((current) => (current?.approvalId === approvalId ? { ...current, detail: { ...current.detail, studioQuote: quote } } : current));
                                                 } catch (error) {
@@ -2797,3 +2801,4 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         </>
     );
 });
+import { confirmPlatformBudget } from "@/services/platform-budget-confirmation";

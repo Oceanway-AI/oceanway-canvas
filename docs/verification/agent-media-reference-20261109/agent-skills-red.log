@@ -1,0 +1,6 @@
+2026/11/09 00:14:28 handler request failed: method=GET route=<unmatched> status=501 error_type=*kernel.AppError
+--- FAIL: TestStudioAgentSkillsUseNativeCatalogAndAccountIsolation (0.89s)
+    studio_agent_skills_test.go:23: GET /api/skills?scope=created status=501 want=200 body={"code":501,"data":null,"msg":"此功能暂不可用","reason":"internal"}
+FAIL
+FAIL	yingce/backend/internal/handler	4.941s
+FAIL

@@ -1,0 +1,10 @@
+{
+  "source": "dd7d6c6616f5a59353e8a89e7801301b15ce7860",
+  "tag": "dd7d6c6",
+  "release": "/opt/oceanway-studio-preview/releases/dd7d6c6",
+  "images": {
+    "backend": "sha256:23c4b11e72ee542398aa9069b13528b19941014f1add269a3c090a875d08c5f4",
+    "web": "sha256:02f2c2ad06861a802487ba47f198889e03e7435e596d90b9cf9ea45f48e914ef",
+    "agent": "sha256:ea5bfdf49d3558d925aca0ffafae76ef1a75c83694c449f7a200e2d7949566b1"
+  }
+}

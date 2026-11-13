@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-09",
+  "base": "7401e5cfd28e46cf52346552a23b25967276d83f",
+  "validated_code_tree": "657208b8e57ba22d846f9cef0410511cb9a772dc",
+  "scope": [
+    "model series and exact public media IDs",
+    "one series and type per channel",
+    "per-model details and draft-only manufacturer capability suggestions",
+    "native expression pricing editor and readonly legacy conversion"
+  ],
+  "frontend": {
+    "files": 13,
+    "tests_passed": 207,
+    "typecheck": "PASS",
+    "changed_file_lint": "PASS; 3 existing prefer-object-spread warnings",
+    "build": "PASS",
+    "method": "Fixed source export, original 13-file run plus final reruns of catalog and connection files. Initial failures and interrupted shared-edit snapshot runs retained privately."
+  },
+  "postgres": {
+    "top_level_passed": 28,
+    "ordinary_harness": {
+      "passed": 27,
+      "initial_skip": [
+        "TestPlatformPricingCompletionPostgresPricingReaderCatalogProjection"
+      ]
+    },
+    "dedicated_harness": [
+      {
+        "test": "TestPlatformPricingCompletionPostgresPricingReaderCatalogProjection",
+        "status": "PASS"
+      }
+    ],
+    "unresolved_skips": [],
+    "cleanup": "Both owned temporary PostgreSQL 16 clusters stopped and removed",
+    "source_stable": true
+  },
+  "other_checks": {
+    "service_unit": "PASS",
+    "formal_contract_routes": "PASS",
+    "diff_check": "PASS"
+  },
+  "runtime_boundary": "Published manual profiles remain the sole execution authority; suggestions do not publish or modify frozen tasks. No local acceptance runtime rebuilt in this commit-only pass.",
+  "data_contract": "Additive 0046 channel series/type migration. OpenAPI candidate 0.25.0; no new routes or SDK release. Existing unclassified channels require explicit classification.",
+  "excluded": [
+    "account/team changes",
+    "secondary forms outside model/pricing settings",
+    "active follow-up series UI changes",
+    "active native video billing seconds changes"
+  ],
+  "not_verified": [
+    "PR CI",
+    "production migration or deployment",
+    "paid generation",
+    "live supplier acceptance"
+  ],
+  "private_evidence": ".local/model-settings-candidate-20261109",
+  "frozen_handoff": {
+    "image_sha256": "3a7c041e65c099d45d881a3e47478546746e62e947a50cbae3b642ec33fa067b",
+    "video_sha256": "d89fc68646c3c48d581468a0564d3087d4b7ad857a86d4a196bfabfb26f9b053",
+    "boundary": "Historical isolated HTTP publication samples preserved byte-for-byte; not regenerated in this commit-only pass. Image remains a negative admission sample."
+  }
+}

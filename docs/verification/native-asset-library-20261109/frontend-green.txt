@@ -1,0 +1,27 @@
+bun test v1.3.14 (0d9b296a)
+
+test/asset-library-selection.test.tsx:
+(pass) 素材详情通过资源标识加载原图，解析历史地址 /api/resources/detail-image/file [5.90ms]
+(pass) 素材详情通过资源标识加载原图，解析历史地址 https://old.example/expired-original.png [1.29ms]
+(pass) 素材库分页多选 > 跨页选择合并去重，取消只影响指定素材 [0.51ms]
+(pass) 素材库分页多选 > Shift 正向反向连选和连取消，保留其他页的选择 [0.09ms]
+(pass) 素材库分页多选 > 翻页后锚点不在当前页时仅切换目标 [0.02ms]
+(pass) 素材库分页多选 > 普通模式点击封面和文字仍打开预览 [6.72ms]
+(pass) 素材库分页多选 > 多选模式封面和文字直接切换选择（原选中：%s） [0.27ms]
+(pass) 素材库分页多选 > 多选模式封面和文字直接切换选择（原选中：%s） [0.11ms]
+(pass) 素材库分页多选 > Shift 或 Ctrl 点击卡片可直接开始多选 [0.10ms]
+(pass) 素材库分页多选 > 选择为空或操作中时禁用写按钮，并明确全选范围 [20.33ms]
+
+test/platform-material-selection.test.ts:
+(pass) Canvas insertion adopts the selected immutable version and stores a stable resource URL [15.13ms]
+
+test/studio-native-assets.test.tsx:
+(pass) shared file preview is a read and never adopts or uploads [0.87ms]
+(pass) adopted file becomes one native business asset; repeated adoption preserves edits [4.32ms]
+(pass) native image cards request small derived files [0.22ms]
+(pass) native video cards request small derived files
+
+ 15 pass
+ 0 fail
+ 47 expect() calls
+Ran 15 tests across 3 files. [1343.00ms]

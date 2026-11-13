@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -96,8 +97,11 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 		if e != nil {
 			return nil, response, e
 		}
-		publicInput, _ := json.Marshal(map[string]any{"mode": selected.Kind, "metadata": studioTaskMetadata(req.Input)})
-		task := model.Task{ID: id, UserID: userID, ProjectID: req.ProjectID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: string(publicInput), Status: model.TaskStatusQueued, Stage: "等待平台任务调度", TraceID: req.TraceID, RequestID: req.RequestID, WorkbenchKind: workbenchKindFromTaskInput(req.Input, req.Type)}
+		publicInput, e := studioPublicTaskInput(selected.Kind, req)
+		if e != nil {
+			return nil, response, e
+		}
+		task := model.Task{ID: id, UserID: userID, ProjectID: req.ProjectID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: publicInput, Status: model.TaskStatusQueued, Stage: "等待平台任务调度", TraceID: req.TraceID, RequestID: req.RequestID, WorkbenchKind: workbenchKindFromTaskInput(req.Input, req.Type)}
 		envelope := studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, ContentType: "application/json", Body: body, Consumption: consumption}
 		encoded, e := s.encryptStudioValue(envelope)
 		if e != nil {
@@ -143,6 +147,38 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 	s.wakeTaskDispatcher()
 	task, err := s.Task(userID, id)
 	return task, response, err
+}
+
+// Called after native input validation. Keep local identities for the original
+// Task/history reference scanner without publishing protocol bytes or access URLs.
+func studioPublicTaskInput(kind string, req CreateTaskRequest) (string, error) {
+	input, err := studioDecodeInput(req)
+	if err != nil {
+		return "", err
+	}
+	refs := append(append(append([]providerMedia{}, input.ReferenceImages...), input.ReferenceVideos...), input.ReferenceAudios...)
+	if input.Mask != nil {
+		refs = append(refs, *input.Mask)
+	}
+	seen := map[string]bool{}
+	ids := []string{}
+	for _, ref := range refs {
+		id, ok := strings.CutPrefix(ref.StorageKey, "resource:")
+		if !ok || id == "" {
+			return "", BadAuthRequest("参考素材缺少固定资源标识")
+		}
+		if !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	sort.Strings(ids)
+	public := map[string]any{"mode": kind, "metadata": studioTaskMetadata(req.Input)}
+	if len(ids) > 0 {
+		public["referenceResourceIds"] = ids
+	}
+	raw, err := json.Marshal(public)
+	return string(raw), err
 }
 
 func studioTaskMetadata(input map[string]any) map[string]any {

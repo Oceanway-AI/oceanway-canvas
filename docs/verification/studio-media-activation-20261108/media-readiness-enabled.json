@@ -1,0 +1,80 @@
+{
+  "enabled": true,
+  "reason": "configured",
+  "models": [
+    {
+      "model": "doubao-seedance-2-0-fast-260128",
+      "configured": true,
+      "reason": "configured"
+    },
+    {
+      "model": "doubao-seedance-2-0-mini-260615",
+      "configured": true,
+      "reason": "configured"
+    },
+    {
+      "model": "doubao-seedance-2-5-260628",
+      "configured": true,
+      "reason": "configured"
+    },
+    {
+      "model": "gpt-image-2",
+      "configured": true,
+      "reason": "configured"
+    },
+    {
+      "model": "gpt-image-2.5-flare",
+      "configured": true,
+      "reason": "configured"
+    },
+    {
+      "model": "gpt-image-2.5-sunburst",
+      "configured": true,
+      "reason": "configured"
+    },
+    {
+      "model": "gpt-image-2.6-flare",
+      "configured": true,
+      "reason": "configured"
+    },
+    {
+      "model": "gpt-image-2.6-sunburst",
+      "configured": true,
+      "reason": "configured"
+    }
+  ],
+  "pricing_invocation": [
+    {
+      "model_name": "doubao-seedance-2-0-fast-260128",
+      "invocation_status": "unsupported_usage"
+    },
+    {
+      "model_name": "doubao-seedance-2-0-mini-260615",
+      "invocation_status": "unsupported_usage"
+    },
+    {
+      "model_name": "doubao-seedance-2-5-260628",
+      "invocation_status": "unsupported_usage"
+    },
+    {
+      "model_name": "gpt-image-2",
+      "invocation_status": "available_media"
+    },
+    {
+      "model_name": "gpt-image-2.5-flare",
+      "invocation_status": "available_media"
+    },
+    {
+      "model_name": "gpt-image-2.5-sunburst",
+      "invocation_status": "available_media"
+    },
+    {
+      "model_name": "gpt-image-2.6-flare",
+      "invocation_status": "available_media"
+    },
+    {
+      "model_name": "gpt-image-2.6-sunburst",
+      "invocation_status": "available_media"
+    }
+  ]
+}

@@ -11,6 +11,8 @@ type Props = {
     open: boolean;
     multiple?: boolean;
     imageReferences?: boolean;
+    title?: string;
+    confirmLabel?: (count: number) => string;
     disabledReason?: (kind: string) => string | undefined;
     onClose: () => void;
     onInsert: (items: InsertAssetPayload[]) => Promise<unknown> | void;
@@ -19,7 +21,7 @@ export function PlatformMaterialPicker(props: Props) {
     const userId = useUserStore((state) => state.user?.id);
     return <MaterialPicker key={userId} {...props} />;
 }
-function MaterialPicker({ open, multiple = true, imageReferences = false, disabledReason, onClose, onInsert }: Props) {
+function MaterialPicker({ open, multiple = true, imageReferences = false, title, confirmLabel, disabledReason, onClose, onInsert }: Props) {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const scope = getActiveUserScope();
@@ -56,8 +58,8 @@ function MaterialPicker({ open, multiple = true, imageReferences = false, disabl
             categoryLabels={{}}
             remoteKind={imageReferences ? "image" : undefined}
             remoteItemDisabledReason={disabledReason && ((asset) => disabledReason(asset.kind))}
-            title={imageReferences ? t("library.assets.platform.reference") : t("library.picker.title")}
-            confirmLabel={(count) => (imageReferences ? t("library.assets.platform.addReferences", { count }) : t("canvasA.assetPicker.insertSelectedCount", { count }))}
+            title={title ?? (imageReferences ? t("library.assets.platform.reference") : t("library.picker.title"))}
+            confirmLabel={confirmLabel ?? ((count) => (imageReferences ? t("library.assets.platform.addReferences", { count }) : t("canvasA.assetPicker.insertSelectedCount", { count })))}
             upload={{ accept: imageReferences ? "image/*" : "image/*,video/*,audio/*", description: t("library.assets.platform.upload"), onUpload: upload }}
             onClose={onClose}
             onConfirm={async (ids, picked = []) => {

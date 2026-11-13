@@ -1,0 +1,33 @@
+=== RUN   TestStudioPlatformLoginCanvasPersistenceAndIsolation
+2026/11/09 15:33:25 handler request failed: method=POST route=<unmatched> status=501 error_type=*kernel.AppError
+--- PASS: TestStudioPlatformLoginCanvasPersistenceAndIsolation (8.23s)
+=== RUN   TestStudioCanvasRemovalKeepsOtherCanvasTaskAndHistory
+--- PASS: TestStudioCanvasRemovalKeepsOtherCanvasTaskAndHistory (7.78s)
+=== RUN   TestStudioHistoryProtectsOnlyTheReferencedPlatformResource
+--- PASS: TestStudioHistoryProtectsOnlyTheReferencedPlatformResource (8.13s)
+=== RUN   TestStudioNativeAssetLibraryOrganizeAndRecover
+--- PASS: TestStudioNativeAssetLibraryOrganizeAndRecover (11.08s)
+=== RUN   TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge
+=== RUN   TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/foreign
+=== RUN   TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/missing
+=== RUN   TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/external
+--- PASS: TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge (7.86s)
+    --- PASS: TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/foreign (0.00s)
+    --- PASS: TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/missing (0.00s)
+    --- PASS: TestStudioNativeAssetLibraryRejectsUnsafeResourcesAndPurge/external (0.00s)
+=== RUN   TestStudioMaterialBrowseDoesNotAdopt
+--- PASS: TestStudioMaterialBrowseDoesNotAdopt (7.83s)
+=== RUN   TestStudioMaterialsUploadAdoptRecoverAndAccess
+2026/11/09 15:34:16 handler request failed: method=POST route=/api/resources/platform-uploads/:id/complete status=503 error_type=*platformclient.Error
+--- PASS: TestStudioMaterialsUploadAdoptRecoverAndAccess (8.06s)
+=== RUN   TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant
+--- PASS: TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant (7.79s)
+=== RUN   TestStudioCanvasAcceptsOnlyOwnedBoundPlatformResources
+--- PASS: TestStudioCanvasAcceptsOnlyOwnedBoundPlatformResources (7.76s)
+=== RUN   TestStudioMaterialBindingRecoveryAndImmutableVersion
+2026/11/09 15:34:39 handler request failed: method=POST route=/api/resources/adopt status=503 error_type=*platformclient.Error
+2026/11/09 15:34:39 handler request failed: method=POST route=/api/resources/adopt status=500 error_type=*errors.errorString
+2026/11/09 15:34:39 handler request failed: method=POST route=/api/resources/adopt status=502 error_type=*kernel.AppError
+--- PASS: TestStudioMaterialBindingRecoveryAndImmutableVersion (7.75s)
+PASS
+ok  	yingce/backend/internal/handler	87.076s

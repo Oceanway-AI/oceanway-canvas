@@ -27,7 +27,7 @@ import { CreditSymbol, requestCreditCost } from "@/constant/credits";
 import { ASSET_CATEGORY_LABELS } from "@/lib/asset-category";
 import { formatShotOrdinal } from "@/lib/shot-label";
 import { buildImageResolutionOptions, formatImageResolutionSize, supportsImageResolutionPresets } from "@/lib/image-resolution-tiers";
-import { normalizeVideoValue, videoDurationOptions, type ImageCapabilityConfig, type VideoCapabilityConfig } from "@/lib/model-capabilities";
+import { normalizeVideoValue, videoDurationOptions, videoDurationRange, type ImageCapabilityConfig, type VideoCapabilityConfig } from "@/lib/model-capabilities";
 import { mergedImageCapabilityConfig, type ModelRequirements } from "@/lib/model-selection";
 import { imageQualityLabel } from "@/lib/image-quality";
 import { modelQuoteDescription, modelQuoteRequest } from "@/lib/model-pricing";
@@ -919,9 +919,10 @@ function DurationMenu({ profile, seconds, onChange }: { profile: VideoCapability
     const value = Number(normalizeVideoValue(profile, { seconds }).seconds);
     const presets = profile.duration.selection === "enum" ? videoDurationOptions(profile) : [];
     const fallbackPreset = presets.length ? presets : [profile.duration.default];
-    const min = profile.duration.selection === "range" ? profile.duration.min || 1 : Math.min(...fallbackPreset);
-    const max = profile.duration.selection === "range" ? Math.max(min, profile.duration.max || min) : Math.max(...fallbackPreset);
-    const step = Math.max(1, profile.duration.step || 1);
+    const range = videoDurationRange(profile);
+    const min = profile.duration.selection === "range" ? range.min : Math.min(...fallbackPreset);
+    const max = profile.duration.selection === "range" ? range.max : Math.max(...fallbackPreset);
+    const step = range.step;
     const durationControl =
         profile.duration.selection === "range" ? (
             <>

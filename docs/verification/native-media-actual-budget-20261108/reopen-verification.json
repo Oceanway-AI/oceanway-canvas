@@ -1,0 +1,22 @@
+{
+  "canvas_id": "sQ3Xqpn5rFRjYHy6Pjigf",
+  "before_revision": 113,
+  "after_revision": 114,
+  "stable_node_task_resource_version_bindings": true,
+  "same_task_count": true,
+  "same_material_versions": true,
+  "same_resource_mappings": true,
+  "same_platform_tasks_funds_archives": true,
+  "connections_before": 0,
+  "connections_after": 0,
+  "browser_video_before": "1280x720; played to 0:04/0:04",
+  "browser_video_after": "1280x720; played to 0:04/0:04",
+  "browser_image_after": "visible",
+  "browser_closed_and_new_tab_opened": true,
+  "not_exercised": [
+    "in-flight close (video finished before close)",
+    "non-empty edge recovery",
+    "server restart during paid execution",
+    "paid Agent approval"
+  ]
+}

@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { creationResultAssetRatio, MediaResult } from "@/pages/create/creation-workspace-messages";
 import type { CreationMessage } from "@/pages/create/creation-types";
 import type { ImageAsset } from "@/stores/use-asset-store";
+import { resolve } from "node:path";
 
 const noop = () => {};
 const at = "2026-10-28T06:04:00.000Z";
@@ -23,6 +24,11 @@ function renderResult(item: Partial<CreationMessage>) {
 }
 
 describe("首页图片结果在加载完成前就占好位置", () => {
+    test("Platform 的固定结果无需预先建立业务 Asset 即可显式转入画布", () => {
+        const result = Bun.spawnSync([process.execPath, "test", "./test/fixtures/studio-result-handoff.harness.tsx"], { cwd: resolve(import.meta.dir, ".."), timeout: 30000 });
+        expect(result.exitCode, new TextDecoder().decode(result.stderr)).toBe(0);
+    }, 35000);
+
     test("图片还没加载出来时按生成比例预留尺寸并显示加载态", () => {
         const markup = renderResult({ resultStorageKeys: ["resource:image-1"], resultUrls: ["/api/resources/image-1/file"] });
         expect(markup).toContain('data-media-state="loading"');

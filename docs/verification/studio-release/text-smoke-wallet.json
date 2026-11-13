@@ -1,0 +1,20 @@
+{
+  "credited_points": "0",
+  "charged_points": "0.1006",
+  "adjustment_net_points": "200",
+  "pending_frozen_points": "0",
+  "available_quota": "999497",
+  "frozen_quota": "0",
+  "total_quota": "999497",
+  "credited_quota": "0",
+  "charged_quota": "503",
+  "adjustment_net_quota": "1000000",
+  "pending_frozen_quota": "0",
+  "pending_operation_count": "0",
+  "available_points": "199.8994",
+  "frozen_points": "0",
+  "total_points": "199.8994",
+  "display_symbol": "积分",
+  "unit": "quota",
+  "calculated_at": 1794073929
+}

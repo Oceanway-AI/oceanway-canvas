@@ -162,6 +162,16 @@ func (r *Repository) SaveCanvasWithSnapshot(project *model.CanvasProject, snapsh
 
 func (r *Repository) CanvasHistoryReferencesObject(resource *model.Resource) (bool, error) {
 	var count int64
+	// Platform Resources use fixed remote file identities, not local object
+	// coordinates. Empty coordinates must not alias every adopted file.
+	if resource.Provider == "platform" || resource.ObjectKey == "" {
+		err := r.db.Model(&model.CanvasSnapshotResource{}).Where("resource_id = ?", resource.ID).Count(&count).Error
+		if err == nil && count == 0 && resource.Provider == "platform" {
+			refs, err := r.CanvasHistoryResourceReferences([]string{resource.ID})
+			return len(refs) > 0, err
+		}
+		return count > 0, err
+	}
 	aliases := r.db.Model(&model.Resource{}).Select("id").Where("endpoint = ? AND bucket = ? AND object_key = ?", resource.Endpoint, resource.Bucket, resource.ObjectKey)
 	err := r.db.Model(&model.CanvasSnapshotResource{}).
 		Where("resource_id = ? OR resource_id IN (?)", resource.ID, aliases).
@@ -197,7 +207,45 @@ func (r *Repository) CanvasHistoryResourceReferences(resourceIDs []string) ([]Re
 		Select("'画布历史版本' AS kind, snapshots.canvas_id AS id, snapshots.title, refs.resource_id").
 		Joins("JOIN canvas_snapshots AS snapshots ON snapshots.id = refs.snapshot_id").
 		Where("refs.resource_id IN ?", resourceIDs).Distinct().Scan(&refs).Error
-	return refs, err
+	if err != nil {
+		return nil, err
+	}
+	// Earlier Studio snapshots retained resultStorageKeys without indexing them.
+	// Read their original payloads for managed files; never rewrite history or
+	// change the upstream local-file purge semantics.
+	var resources []model.Resource
+	if err := r.db.Select("id", "user_id").Where("provider = ? AND id IN ?", "platform", resourceIDs).Find(&resources).Error; err != nil {
+		return nil, err
+	}
+	if len(resources) == 0 {
+		return refs, nil
+	}
+	owners := map[string]string{}
+	ids := map[string]struct{}{}
+	userIDs := []string{}
+	for _, resource := range resources {
+		owners[resource.ID] = resource.UserID
+		ids[resource.ID] = struct{}{}
+		userIDs = append(userIDs, resource.UserID)
+	}
+	var snapshots []model.CanvasSnapshot
+	if err := r.db.Select("canvas_id", "user_id", "title", "payload_json").Where("user_id IN ?", uniqueSortedStrings(userIDs)).Find(&snapshots).Error; err != nil {
+		return nil, err
+	}
+	seen := map[[2]string]bool{}
+	for _, ref := range refs {
+		seen[[2]string{ref.ID, ref.ResourceID}] = true
+	}
+	for _, snapshot := range snapshots {
+		for id := range assets.DocumentReferencedIDs(snapshot.PayloadJSON, ids) {
+			key := [2]string{snapshot.CanvasID, id}
+			if owners[id] == snapshot.UserID && !seen[key] {
+				refs = append(refs, ResourceDirectReference{Kind: "画布历史版本", ID: snapshot.CanvasID, Title: snapshot.Title, ResourceID: id})
+				seen[key] = true
+			}
+		}
+	}
+	return refs, nil
 }
 
 func (r *Repository) RequireNoCanvasHistoryReferences(resourceIDs []string) error {

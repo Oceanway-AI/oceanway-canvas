@@ -1,0 +1,42 @@
+# Use with docker-compose.deploy.yml. Never share the old Studio project name.
+services:
+  postgres:
+    mem_limit: 768m
+    pids_limit: 128
+  redis:
+    mem_limit: 256m
+    pids_limit: 64
+  migrate:
+    mem_limit: 768m
+  yingce-agent:
+    image: ${CANVAS_YINGCE_AGENT_IMAGE:?fixed OceanWay Agent image required}
+    environment:
+      YINGCE_AGENT_TOKEN: ${YINGCE_AGENT_TOKEN:?dedicated Studio Agent token required}
+    mem_limit: 768m
+    pids_limit: 128
+  backend:
+    environment:
+      STUDIO_PLATFORM_ORIGIN: ${STUDIO_PLATFORM_ORIGIN:?Platform origin required}
+      STUDIO_PLATFORM_PRODUCT_KEY: ${STUDIO_PLATFORM_PRODUCT_KEY:?server product credential required}
+      STUDIO_PUBLIC_ORIGIN: ${STUDIO_PUBLIC_ORIGIN:?Studio HTTPS origin required}
+      STUDIO_PLATFORM_SESSION_HOSTS: ${STUDIO_PLATFORM_SESSION_HOSTS:?exact incoming Host required}
+      STUDIO_PLATFORM_ALLOWED_ORIGINS: ${STUDIO_PLATFORM_ALLOWED_ORIGINS:?registered Origin required}
+      CANVAS_CORS_ORIGINS: ${STUDIO_PLATFORM_ALLOWED_ORIGINS:?registered Origin required}
+      CANVAS_PUBLIC_BASE_URL: ${STUDIO_PUBLIC_ORIGIN:?Studio HTTPS origin required}
+      CANVAS_UPDATER_TOKEN: ""
+      YINGCE_AGENT_TOKEN: ${YINGCE_AGENT_TOKEN:?dedicated Studio Agent token required}
+    volumes: !override
+      - ${CANVAS_DATA_PATH:-backend-data}:/data
+    networks: [default, egress]
+    mem_limit: 1536m
+    pids_limit: 256
+  web:
+    ports: !override
+      - "127.0.0.1:${STUDIO_LOCAL_PORT:-18449}:3000"
+    mem_limit: 256m
+    pids_limit: 128
+
+networks:
+  default:
+    internal: true
+  egress: {}

@@ -1,0 +1,631 @@
+{
+  "containers": {
+    "buildx_buildkit_oceanway-studio-main-1f2be1d4ef610": {
+      "id": "b816ee53ed0a577d4319c33de711233ea2ce4ceadcf505d36c1e12b79da70765",
+      "image": "sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea",
+      "started_at": "2026-10-22T18:05:46.306195791Z",
+      "status": "exited"
+    },
+    "buildx_buildkit_ow-storage-owner-7099bc2a723a0": {
+      "id": "54704412d7f3515aed1f526ce32003e38d7b02991aff092a92f5f428710358d0",
+      "image": "sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea",
+      "started_at": "2026-10-22T18:05:51.537005005Z",
+      "status": "exited"
+    },
+    "buildx_buildkit_ow-storage-platform-0b581720cd460": {
+      "id": "4385f4ea4a1c66af7ca56632ea6fb7802a5765c7d9ed30b4f73fcb7fff1f80de",
+      "image": "sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea",
+      "started_at": "2026-10-28T07:21:22.429634898Z",
+      "status": "running"
+    },
+    "buildx_buildkit_ow-storage-runtime-74c161b25e400": {
+      "id": "85d11ca9710febe9fcc3fdf3350b8c2130aa78a32a34c25d7e92bca18829a0cd",
+      "image": "sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea",
+      "started_at": "2026-10-28T07:21:22.460391483Z",
+      "status": "running"
+    },
+    "buildx_buildkit_ow-storage-studio-3d7050c07d6e0": {
+      "id": "11199a8d0ee83ec2be8d07fbea89a234dad31f1e0678167374c7bce84415e22e",
+      "image": "sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea",
+      "started_at": "2026-10-28T07:21:22.427620588Z",
+      "status": "running"
+    },
+    "intelligent_albattani": {
+      "id": "7f64ade758c4a4c4ce3dae0c46009711de875c242fe6bd399222f1bfd4ea4302",
+      "image": "sha256:fd4f0bd2c524f259f35ae2b90404b0588551517f46fd6fa03f3d082dd1965235",
+      "started_at": "2026-10-22T05:53:20.729050972Z",
+      "status": "exited"
+    },
+    "intelligent_rhodes": {
+      "id": "347b4f5428038940d77757bceb9d85e2f674ef9aa8e19dba7be40559e5da31b0",
+      "image": "sha256:a84b15b9435f3f77dae1dfe2b2b1913660396ba724e86bf7aacd81024dade873",
+      "started_at": "0001-01-01T00:00:00Z",
+      "status": "created"
+    },
+    "naughty_bhabha": {
+      "id": "6433fcfe854d82d1ce1eff05792bf24804272280b4b16cc1671ce16cb0929bfe",
+      "image": "sha256:3d04c9f2bb1685c8efbee80842d563759fe409a5f245c39453e551d03fa8a3bd",
+      "started_at": "0001-01-01T00:00:00Z",
+      "status": "created"
+    },
+    "oceanway-console-bff-1": {
+      "id": "a172906d496c24ddeee7427d697e9bf67c4c2e829f6e19157cf8b1f08ff8ccf0",
+      "image": "sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8",
+      "started_at": "2026-10-28T07:21:28.744572876Z",
+      "status": "running"
+    },
+    "oceanway-console-core-1": {
+      "id": "68d60612d7688e3ee05f5520473d42af601637d6fe435628946595240d691db6",
+      "image": "sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8",
+      "started_at": "2026-10-28T07:21:28.764458703Z",
+      "status": "running"
+    },
+    "oceanway-console-db-1": {
+      "id": "93c4d1e3ad7b31e867ce5c1e0867aa82f813f4e889ce52820c5a65e98a6756d3",
+      "image": "sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94",
+      "started_at": "2026-10-28T07:21:22.457594779Z",
+      "status": "running"
+    },
+    "oceanway-console-identity-1": {
+      "id": "a49208c214261ed8fa341e8c134fa7d2498929256615fdbd97819b1e51c5ab91",
+      "image": "sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8",
+      "started_at": "2026-10-28T07:21:22.212544692Z",
+      "status": "running"
+    },
+    "oceanway-drama-app-1": {
+      "id": "6a9f1f882a564988e708c607ad19e761fc7b17280418a1a0c748cc272dba46a4",
+      "image": "sha256:aebbf15df666ef89fc087c1f39a4597443964e6c66f634138d02b7754291d0b4",
+      "started_at": "2026-10-28T07:21:22.449809298Z",
+      "status": "exited"
+    },
+    "oceanway-drama-customer-app-1": {
+      "id": "8d40bc2dc2b548865a9b17e3e38e3e47460a913bd03b049e362d206c718c47e0",
+      "image": "sha256:47e8d098f10d1e17ca21f2fc2a5a7fe282de99a85b3ddb0dd1061907b42833b4",
+      "started_at": "2026-10-28T07:21:22.391740544Z",
+      "status": "exited"
+    },
+    "oceanway-drama-customer-postgres-1": {
+      "id": "ecf3b2474c8690740f3ddadadcd5b6f948ec88d440c5c43502453a31ced7fb57",
+      "image": "sha256:b6a16ed0eb96e2c362811f7eeb951eac8b459e7b40be4149ea5444aa7c65569b",
+      "started_at": "2026-10-28T07:21:22.324371943Z",
+      "status": "exited"
+    },
+    "oceanway-drama-customer-source-1": {
+      "id": "95338ee28a124c7cce6303139438ef4f157b34386340f75d40a3102240692664",
+      "image": "sha256:7b95c8b119915a24ab27ae4e492e3f2788441735e1185951130a1299ab04b2fe",
+      "started_at": "2026-10-28T07:21:30.305912994Z",
+      "status": "exited"
+    },
+    "oceanway-drama-customer-worker-1": {
+      "id": "11bc3ed6f0ffd7c152a7d81fa8a9c3f2daf90b9c88648f357ee16542c071a40c",
+      "image": "sha256:47e8d098f10d1e17ca21f2fc2a5a7fe282de99a85b3ddb0dd1061907b42833b4",
+      "started_at": "2026-10-28T07:21:22.394678559Z",
+      "status": "exited"
+    },
+    "oceanway-drama-generation-worker-1": {
+      "id": "43d7672ef9829e4944058e83c75a16e40fac5d124d4c90cbe006e0a59a346af0",
+      "image": "sha256:aebbf15df666ef89fc087c1f39a4597443964e6c66f634138d02b7754291d0b4",
+      "started_at": "2026-10-28T07:21:22.326808945Z",
+      "status": "exited"
+    },
+    "oceanway-drama-postgres-1": {
+      "id": "e81fa0bdf5de0e8584639711deb0dd673c3f58decbd785f595f209e553ad0659",
+      "image": "sha256:b6a16ed0eb96e2c362811f7eeb951eac8b459e7b40be4149ea5444aa7c65569b",
+      "started_at": "2026-10-28T07:21:22.492950253Z",
+      "status": "exited"
+    },
+    "oceanway-drama-rebuild-postgres": {
+      "id": "9db025b72d8807179ea4eda3123cfe63537c22ed62432512062673b5a1574286",
+      "image": "sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94",
+      "started_at": "2026-10-28T07:21:22.458846205Z",
+      "status": "running"
+    },
+    "oceanway-media-acceptance-api-1": {
+      "id": "8bfd9e79502590ceaada924162c84ae80a820ebec98c4c52b6267e491678f4ab",
+      "image": "sha256:55f96a9a2fcd9dc4a4c785f840c32d9e6a57fa9b2270f2fd6abbc12466dbf80b",
+      "started_at": "2026-10-28T07:21:30.916330957Z",
+      "status": "running"
+    },
+    "oceanway-media-acceptance-dispatcher-1": {
+      "id": "3ce88f9d9a550f48cc69e1d9d2f2b0c46f6b3c8daeda96304bb2111274b92692",
+      "image": "sha256:55f96a9a2fcd9dc4a4c785f840c32d9e6a57fa9b2270f2fd6abbc12466dbf80b",
+      "started_at": "2026-10-28T07:21:30.182532448Z",
+      "status": "running"
+    },
+    "oceanway-media-acceptance-migrate-1": {
+      "id": "37e942ca1a6524666f053379f74102f789ccfd7a0aefce8057a174901f2c5d41",
+      "image": "sha256:39b59b389634e43bb3f2d4e94bc1edef0775ec2a9a3540ce6a2cf330e5daae55",
+      "started_at": "2026-09-21T04:07:25.708382672Z",
+      "status": "exited"
+    },
+    "oceanway-media-acceptance-minio-1": {
+      "id": "d9e2c89c454cda344bb758c54ae5654d3f8521b5b5e73a60d04641eaa4243552",
+      "image": "sha256:d249d1fb6966de4d8ad26c04754b545205ff15a62e4fd19ebd0f26fa5baacbc0",
+      "started_at": "2026-10-28T07:21:22.459459122Z",
+      "status": "running"
+    },
+    "oceanway-media-acceptance-minio-init-1": {
+      "id": "4a49c3831ae5d3cafcb0a74d0711b494bc514174f8142233e371804a7eaa25d7",
+      "image": "sha256:fb8f773eac8ef9d6da0486d5dec2f42f219358bcb8de579d1623d518c9ebd4cc",
+      "started_at": "2026-09-21T04:07:25.707057169Z",
+      "status": "exited"
+    },
+    "oceanway-media-acceptance-poller-1": {
+      "id": "eb0e12102c94165e0dd2729531fb2753a8e804d56a7fc3acc7a83d4380170190",
+      "image": "sha256:55f96a9a2fcd9dc4a4c785f840c32d9e6a57fa9b2270f2fd6abbc12466dbf80b",
+      "started_at": "2026-10-28T07:21:31.329214392Z",
+      "status": "running"
+    },
+    "oceanway-media-acceptance-postgres-1": {
+      "id": "faebc34ad83027cb6204757c12397ce319a9e58294237045f148e900a672c6ba",
+      "image": "sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94",
+      "started_at": "2026-10-28T07:21:22.458944919Z",
+      "status": "running"
+    },
+    "oceanway-media-acceptance-reconciler-1": {
+      "id": "4fec5ec589de6a2dee17682d1dc861d73e1ed2a673de0e135d199d3e3135ff41",
+      "image": "sha256:55f96a9a2fcd9dc4a4c785f840c32d9e6a57fa9b2270f2fd6abbc12466dbf80b",
+      "started_at": "2026-10-28T07:21:28.718049905Z",
+      "status": "running"
+    },
+    "oceanway-media-acceptance-redis-1": {
+      "id": "26bb7dfb85ce314eb4c2cf4ef3629f95b81dae51c4a0e1d4e90325efc496680e",
+      "image": "sha256:987c376c727652f99625c7d205a1cba3cb2c53b92b0b62aade2bd48ee1593232",
+      "started_at": "2026-10-28T07:21:22.234279138Z",
+      "status": "running"
+    },
+    "oceanway-media-acceptance-result-spool-init-1": {
+      "id": "b73f9e19fe9b8da843f37b59a7f671c8735e652fae748627280009d5f609c8e5",
+      "image": "sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
+      "started_at": "2026-09-21T04:07:25.188180631Z",
+      "status": "exited"
+    },
+    "oceanway-media-acceptance-web-1": {
+      "id": "e5f028dab82dc6aa6c7f5932e50212fef4a0a48ab544d6b591497dda398263a2",
+      "image": "sha256:33a5998a6d201627079d3759a0a1bbc825a91c387352698654ac8852e562040c",
+      "started_at": "2026-10-28T07:21:33.803142601Z",
+      "status": "running"
+    },
+    "oceanway-platform-capability-8965ebadfb82": {
+      "id": "4069cb6456c39180737d0d04375b528a05491908038e593aa3c540b0a129f720",
+      "image": "sha256:9817962eddd4ba6e5152518a45c945fbf66dd82f6e852f5836d4138b5c73875c",
+      "started_at": "2026-10-25T18:42:18.934754757Z",
+      "status": "exited"
+    },
+    "oceanway-platform-capability-ecac00e77686": {
+      "id": "2f240a332025aa7e965dafcfec83c098974ea46ef0526c42fca1f094c00616a8",
+      "image": "sha256:0e068d30c7ea1fa465ced0b324937514dfff3b2dcea61bae9b13cc67c8af226c",
+      "started_at": "2026-11-05T10:07:40.906267786Z",
+      "status": "running"
+    },
+    "oceanway-platform-main-c43e9109926d-main-app-1": {
+      "id": "b20e97f0b85e186db22ffece050d4b2fd580817ed687a077dfde3c6475c2c99b",
+      "image": "sha256:d80e5b9934e0e26de462c42e9d8cef0f9695651e5b589d201010effd46f51ead",
+      "started_at": "2026-10-22T05:57:00.882318123Z",
+      "status": "exited"
+    },
+    "oceanway-platform-redemption-3d319408": {
+      "id": "353ce2744363a1b092c49b4cb3cb1fea8fc85d0c1a81ffc121b214a7bb4811e1",
+      "image": "sha256:95ace19445d5a5029393b10c66bb9950da3e7f59058e33e8877039b8f11d7451",
+      "started_at": "2026-10-25T03:46:49.968691371Z",
+      "status": "exited"
+    },
+    "oceanway-platform-reference-3c9714c": {
+      "id": "4b6dbd9339e7b246ebe4b256ea80bd3bb1a123db4e93524782d50a4d79958c01",
+      "image": "sha256:55bb9f082612910514a94d697046ae809b41ae09acd358c6188af3ee020d97a0",
+      "started_at": "2026-10-23T02:49:37.598218871Z",
+      "status": "exited"
+    },
+    "oceanway-platform-snapshot-c98dbb2": {
+      "id": "8c2b183117af2ee696fd8683889fc108e4ce4d1dd5951855d146b960efb92218",
+      "image": "sha256:edc4633cbfb21afd9070721953788f953002dae6ffee554548e7a4fa39a281d1",
+      "started_at": "2026-10-23T04:46:46.613138292Z",
+      "status": "exited"
+    },
+    "oceanway-platform-staging-app-1": {
+      "id": "7b722b6e917e0bf6164c35448ec0f0d8aec0977d369842a275755bd71e6a5f51",
+      "image": "sha256:7f1e79e62b043056aac3dcd67a0c89b359e0a2c547465b0b645cf59947133872",
+      "started_at": "2026-10-20T02:54:52.382406746Z",
+      "status": "exited"
+    },
+    "oceanway-platform-staging-postgres-1": {
+      "id": "5042caa3527dd500424f5c3a0b2b6291e729b87e42366feae5a641f3554b3d60",
+      "image": "sha256:b6a16ed0eb96e2c362811f7eeb951eac8b459e7b40be4149ea5444aa7c65569b",
+      "started_at": "2026-10-28T07:21:22.4579841Z",
+      "status": "running"
+    },
+    "oceanway-platform-staging-redis-1": {
+      "id": "b0fc123ca2a794f974f3457848c3b300c33430c0d4896e5f859fa724fadecbed",
+      "image": "sha256:02c2454cd3b6277389101b9d42d009f8518255930f8b06ae33624e324f8c6455",
+      "started_at": "2026-10-28T07:21:22.419133209Z",
+      "status": "running"
+    },
+    "oceanway-runtime-main-57753ba01cbb-runtime-api-1": {
+      "id": "a981d4037fa8832839dd6a7d54f66f6112d2aeed5729f5e6a1f1cbd874da68d7",
+      "image": "sha256:ca27e503e3b28f3eb7e2d1594667e9f31568fc300d7e88d77a6f2d7b2cf7aa13",
+      "started_at": "2026-11-03T02:26:58.973896651Z",
+      "status": "exited"
+    },
+    "oceanway-runtime-main-57753ba01cbb-runtime-db-1": {
+      "id": "549abcdf4fa61a346e7f27c8faf7445abb8250c7a4f7cfd4b3ea5907d1b72c4e",
+      "image": "sha256:b6a16ed0eb96e2c362811f7eeb951eac8b459e7b40be4149ea5444aa7c65569b",
+      "started_at": "2026-10-28T07:21:22.519961918Z",
+      "status": "running"
+    },
+    "oceanway-runtime-main-57753ba01cbb-runtime-worker-1": {
+      "id": "92b8d1d4f710b202c2c2b5a3d138ca7398a6996a02291625c3461c687f908a22",
+      "image": "sha256:ca27e503e3b28f3eb7e2d1594667e9f31568fc300d7e88d77a6f2d7b2cf7aa13",
+      "started_at": "2026-10-22T06:22:33.932529692Z",
+      "status": "exited"
+    },
+    "oceanway-storage-20261022-owner-storage-20261022-1": {
+      "id": "c74aa5423f0500a0908b67491314aafab64117776f57a0026b4ff3f044d686ed",
+      "image": "sha256:f4e9b350978b320560f1430cfba72ad6839f203b1e95338d50c922ecec9fbadd",
+      "started_at": "2026-10-28T07:21:22.525570337Z",
+      "status": "running"
+    },
+    "oceanway-storage-20261022-platform-storage-20261022-1": {
+      "id": "0e40ad158c73381e68cf423e9c9e315a224e93159b0d71cc15e0c5a1212066ef",
+      "image": "sha256:0d611eb6696f56e3ded9b1549b35cc70e03405aa6a47bc279fae54e524cff687",
+      "started_at": "2026-10-23T02:01:10.984121592Z",
+      "status": "exited"
+    },
+    "oceanway-storage-20261022-runtime-storage-20261022-1": {
+      "id": "1ae812e9ffc3ff5b80b59cc7c93d5d435954bfa0346e8671d71354dbf69c47f3",
+      "image": "sha256:b8746538b7ea38f3c442726d75ebe4f2c8bc9ea37dff87efbcd2afd492aba06e",
+      "started_at": "2026-10-28T07:21:22.416415212Z",
+      "status": "running"
+    },
+    "oceanway-storage-20261022-runtime-worker-storage-1": {
+      "id": "ae08630321171e5183324446f147b3e2f4db5f11433f3b5b2f7ebaccae06fcff",
+      "image": "sha256:b8746538b7ea38f3c442726d75ebe4f2c8bc9ea37dff87efbcd2afd492aba06e",
+      "started_at": "2026-10-28T07:21:22.425145768Z",
+      "status": "running"
+    },
+    "oceanway-storage-20261022-studio-maintenance-storage-1": {
+      "id": "cd9d0e3d185f5e1cd9b5ceb5f5d71693ce109f6b1636fb6e496a4fefc1f86e1d",
+      "image": "sha256:94143f9a0821d3b24cfa344106c992818c6d784246f37979cce2b0778d943bcd",
+      "started_at": "2026-10-28T07:27:39.389071307Z",
+      "status": "running"
+    },
+    "oceanway-storage-20261022-studio-storage-20261022-1": {
+      "id": "568a4174f04cf14b7ddc8057bc69ccb0e9cb9d1e9f7b2a3a227ea77b77c01140",
+      "image": "sha256:8424d740ae9c4a00b2a1c9ca8b0b2087d55fc156293a77c4a93781075acc7a42",
+      "started_at": "2026-10-25T03:31:23.571344708Z",
+      "status": "exited"
+    },
+    "oceanway-studio-capability-38028fe50f9c": {
+      "id": "f45f83116bcf4f605c82065bd9de7ae17e36b213c76560233437054b26eb1e82",
+      "image": "sha256:94143f9a0821d3b24cfa344106c992818c6d784246f37979cce2b0778d943bcd",
+      "started_at": "2026-10-28T07:27:38.924983943Z",
+      "status": "running"
+    },
+    "oceanway-studio-capability-67716acd752e": {
+      "id": "193791918c1d037a0ee3724b2cac23a969aacfde4108c3e84582d55bd391b4a8",
+      "image": "sha256:b5c775486ba4cf969b3afd780070fa76cb0df6456c66ddd735b109b024ee4128",
+      "started_at": "2026-10-25T18:43:29.811133585Z",
+      "status": "exited"
+    },
+    "oceanway-studio-creative-backend-1": {
+      "id": "0d14a3e852c116760ba453bb4fb7ce5bc03a0f84853a4b68af35dde0ed517668",
+      "image": "sha256:4d57b06ce935a91cb4f15ed9742a46b519c5da146a0fe6cec51a88509ce72fc1",
+      "started_at": "2026-11-05T06:00:21.106804286Z",
+      "status": "running"
+    },
+    "oceanway-studio-creative-migrate-1": {
+      "id": "8299e42d024620d70fc8e2f4447e479482bbb76abbd415356d208db8e960e6ae",
+      "image": "sha256:a4005ef0ce546972b44ae0db5e7099c963a9d4aaee5e28523e98c5707d5a7c95",
+      "started_at": "2026-11-04T18:30:52.516998355Z",
+      "status": "exited"
+    },
+    "oceanway-studio-creative-postgres-1": {
+      "id": "b1c87dd100f82170690fb1eb3127c2ec315dd2f2f01dd6d55bc45998604b7a0e",
+      "image": "sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b",
+      "started_at": "2026-11-04T17:01:47.553065545Z",
+      "status": "running"
+    },
+    "oceanway-studio-creative-redis-1": {
+      "id": "d5a3b9000302d49bee3e80d80baee19619cc6f6d8099a6dc9d8ff40ebd744553",
+      "image": "sha256:8da19c7399dca900c6822a1cf30f9d2285585e2c4b457ff4095b0f4500054d3f",
+      "started_at": "2026-11-04T17:01:47.552316845Z",
+      "status": "running"
+    },
+    "oceanway-studio-creative-web-1": {
+      "id": "c95b936c271c438c070309ddf3b6340d7077b21350a40aa2ebd90b671b67c528",
+      "image": "sha256:d4b5fb5e9d67ecc3f474ad2f58e9db1dd8150b10291284aa8f6ddfd1da4474ae",
+      "started_at": "2026-11-05T06:00:26.846819818Z",
+      "status": "running"
+    },
+    "oceanway-studio-creative-yingce-agent-1": {
+      "id": "fe3576e51abae7fd64cb63ec4d03ed2cdb759dc267e275078d2bbb03fea642e5",
+      "image": "sha256:ab0f5d6ac3e4548f5e859d9391af5faaec1873e6898573c2e961775682d56736",
+      "started_at": "2026-11-05T06:00:15.403752759Z",
+      "status": "running"
+    },
+    "oceanway-studio-development-postgres-1": {
+      "id": "0b966f5d2c0ebb420f40f14e2bf8a7758904d8b0956204e5cc9fc3f711b4d847",
+      "image": "sha256:b6a16ed0eb96e2c362811f7eeb951eac8b459e7b40be4149ea5444aa7c65569b",
+      "started_at": "2026-10-28T07:21:22.518531659Z",
+      "status": "running"
+    },
+    "oceanway-studio-development-producer-1": {
+      "id": "e0264883b3c42cfadd66b77806fb2440136a16c2344a3b51384bfe3c97f30387",
+      "image": "sha256:7b95c8b119915a24ab27ae4e492e3f2788441735e1185951130a1299ab04b2fe",
+      "started_at": "2026-10-28T07:21:28.740295296Z",
+      "status": "running"
+    },
+    "oceanway-studio-main-1f2be1d4ef61-studio-app-20261022-1": {
+      "id": "4681f28988110cdb5e0f2eda863f96af17f74632e07ec344e898d052dcae44d7",
+      "image": "sha256:d28f3faddf4c8067997a4f21469d7c665fdf93deaa79c7595e24be0615b218b5",
+      "started_at": "2026-10-22T06:24:12.295579817Z",
+      "status": "exited"
+    },
+    "oceanway-studio-main-1f2be1d4ef61-studio-maintenance-20261022-1": {
+      "id": "af13d9e6ab785c44661b6c654a26e85f064f6408633771f65bbdf998a9f53eb7",
+      "image": "sha256:d28f3faddf4c8067997a4f21469d7c665fdf93deaa79c7595e24be0615b218b5",
+      "started_at": "2026-10-22T06:24:25.764510195Z",
+      "status": "exited"
+    },
+    "oceanway-studio-platform-app-1": {
+      "id": "05315b062909293911f2eee436633aed9c4c006d0b8cc752dd7a3e5a53cc655b",
+      "image": "sha256:de6915b5f4bcc3b469de0ffff4d11063a95a836aaf0d14ae87ae0b0ec0ee4f4b",
+      "started_at": "2026-10-20T09:30:14.781928022Z",
+      "status": "exited"
+    },
+    "oceanway-studio-platform-generation-worker-1": {
+      "id": "b96d0fb929122a3f754a11daa89d82b068997f515df01350efeed546eaa5d476",
+      "image": "sha256:de6915b5f4bcc3b469de0ffff4d11063a95a836aaf0d14ae87ae0b0ec0ee4f4b",
+      "started_at": "2026-10-20T09:30:45.08917707Z",
+      "status": "exited"
+    },
+    "oceanway-studio-runtime-preprod-app-1": {
+      "id": "3dd8be001c8e275840842b27278848eda5c4865d0c1e91b090b1470022d289e4",
+      "image": "sha256:5b93acb02745d135857bb556491acec9d714d85a73d8811b32a0fdb565954cca",
+      "started_at": "2026-10-15T16:42:57.965279891Z",
+      "status": "exited"
+    },
+    "oceanway-studio-runtime-preprod-generation-worker-1": {
+      "id": "bcf378cbf83cc5abd7f7818325d0fae784f3bd97398e36b0061b61a8d907de47",
+      "image": "sha256:5b93acb02745d135857bb556491acec9d714d85a73d8811b32a0fdb565954cca",
+      "started_at": "2026-10-15T16:24:48.432681489Z",
+      "status": "exited"
+    },
+    "oceanway-studio-runtime-restore-app-1": {
+      "id": "84725d823594bb50c2f47ea2fa3317316874b98a8142c5114406ad5bece40eee",
+      "image": "sha256:5b93acb02745d135857bb556491acec9d714d85a73d8811b32a0fdb565954cca",
+      "started_at": "2026-10-15T16:47:05.441535375Z",
+      "status": "exited"
+    },
+    "oceanway-studio-ui-preview-53e4eaa": {
+      "id": "6a2fb6111636eda60fec00c78ac1ff4e67bdf9ffc6fe8334e041c58e3dc0d729",
+      "image": "sha256:3dddbbd017445dbee8cfbb87b5c85fafae04c8c3549cae0d8890c4f52aee2603",
+      "started_at": "2026-10-13T12:43:24.239223073Z",
+      "status": "exited"
+    },
+    "oceanway-w7-test-edge-1": {
+      "id": "cfe430ad977bf432cbce042a9be5948b0e97b49d64e04793fc8f098c4251a658",
+      "image": "sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
+      "started_at": "2026-11-07T11:36:12.884389241Z",
+      "status": "running"
+    },
+    "oceanway-w7-test-material-worker-1": {
+      "id": "0ac702e4c47c9bf3530e95008d35adc15c57e885c328be6c83a6b37b6bbf6010",
+      "image": "sha256:2132d5ca6f41ba014ec59d95802db45466e1c2a626284e63e81881710902ded8",
+      "started_at": "2026-11-07T15:57:39.280812609Z",
+      "status": "running"
+    },
+    "oceanway-w7-test-platform-1": {
+      "id": "c371c33e7a02959dab73a72ec07da68dbf8a657795bf2856485d3d53e049da44",
+      "image": "sha256:2933ff284eb60152c6ec5c2a79a6468a536c92310558cbb305077ef3d87bf50f",
+      "started_at": "2026-11-07T15:57:38.627292959Z",
+      "status": "running"
+    },
+    "oceanway-w7-test-postgres-1": {
+      "id": "77392bbc2094361df9f392a39d916a3072702cd770faf6d4a8ffaa6f6875f342",
+      "image": "sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b",
+      "started_at": "2026-11-07T09:37:42.67368442Z",
+      "status": "running"
+    },
+    "oceanway-w7-test-redis-1": {
+      "id": "ea1dd504c87bd7e99dd1e6c64e9808f487df40bae8603b4de19c59a81aa13277",
+      "image": "sha256:8da19c7399dca900c6822a1cf30f9d2285585e2c4b457ff4095b0f4500054d3f",
+      "started_at": "2026-11-07T09:37:42.674620834Z",
+      "status": "running"
+    },
+    "ow-sdk-boundary-20261018-aec051a8ba7b-app": {
+      "id": "fea019f72885045ceb171455c2e61a9940195b8a01c05cf4ce472e516a2c316b",
+      "image": "sha256:806e97489d5b7c1e5b7a3d8d42640e874a4850a928bac6a83acd7bf8d73f09d1",
+      "started_at": "2026-10-17T17:52:32.317480414Z",
+      "status": "exited"
+    },
+    "ow-sdk-boundary-20261018-aec051a8ba7b-pg": {
+      "id": "88d3e1303eeadbaebf29ae8cf645d94707646b368a339762277f50b68b119aaf",
+      "image": "sha256:1d04b9ba1d4996401f2552b51beda8187f175c0645c091e4781134fc9c9a3eef",
+      "started_at": "2026-10-17T17:52:30.239730509Z",
+      "status": "exited"
+    },
+    "ow-sdk-boundary-20261018-b2c073882861-app": {
+      "id": "9f9751e46674a52d0b754794cd6012e9ab4d685dd2b155b7c168023dfcc8a081",
+      "image": "sha256:2d179d1bbe55deab643a10d0ffcab88c5489b030c5f299452c7525f284c09a1f",
+      "started_at": "2026-10-17T20:27:21.615271315Z",
+      "status": "exited"
+    },
+    "ow-sdk-boundary-20261018-b2c073882861-pg": {
+      "id": "3b5dfeac77f11cbbbdf59e8457313deca709925005b596cb94bf20f57cc82821",
+      "image": "sha256:1d04b9ba1d4996401f2552b51beda8187f175c0645c091e4781134fc9c9a3eef",
+      "started_at": "2026-10-17T20:27:19.101777079Z",
+      "status": "exited"
+    },
+    "ow-sdk-boundary-20261018-b408a4e464c6-app": {
+      "id": "632074a70e76a66eaf364f4dc2036a2caf76afea29f48e375af515d97d9581de",
+      "image": "sha256:806e97489d5b7c1e5b7a3d8d42640e874a4850a928bac6a83acd7bf8d73f09d1",
+      "started_at": "2026-10-17T17:46:27.167006387Z",
+      "status": "exited"
+    },
+    "ow-sdk-boundary-20261018-b408a4e464c6-pg": {
+      "id": "2d300108ad03c0fdb4cea0117aa6c0c77c376740e3642fc801d512a68d78e7a5",
+      "image": "sha256:1d04b9ba1d4996401f2552b51beda8187f175c0645c091e4781134fc9c9a3eef",
+      "started_at": "2026-10-17T17:46:24.931397538Z",
+      "status": "exited"
+    },
+    "ow-team-assets-test-pg": {
+      "id": "e1b163bd4cdef2ec81ea6586e58673f8337b1be572d541bae8487fbe06d0eeaf",
+      "image": "sha256:b6a16ed0eb96e2c362811f7eeb951eac8b459e7b40be4149ea5444aa7c65569b",
+      "started_at": "2026-11-02T16:05:10.374939992Z",
+      "status": "running"
+    },
+    "ow-team-assets-test-platform": {
+      "id": "f3fcf6da72b386cf59e3db3c86583e04991b233b1e4dd7d3cb37129b1069d3a8",
+      "image": "sha256:8d1872a9dd6e11466aec9eee2b45eeaae91e4acbf4bbbcd77dcf679e7b865a4e",
+      "started_at": "2026-11-03T03:40:02.615434801Z",
+      "status": "running"
+    },
+    "ow-team-assets-test-redis": {
+      "id": "305bd13c2ff4718bf45abeab7913bd2bdc970d60baf36bb1bc9d2fd06318b2e0",
+      "image": "sha256:02c2454cd3b6277389101b9d42d009f8518255930f8b06ae33624e324f8c6455",
+      "started_at": "2026-11-02T16:05:10.377258736Z",
+      "status": "running"
+    },
+    "owrt-phase1-20261017-a-003-app": {
+      "id": "713c613d89c02883eb48381485b037de09d042e6fe0efb8918d3e5295dc79fb4",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T12:01:14.707103174Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-a-003-fixture": {
+      "id": "85ef9773b97c862acfffe04058751c91effdfd300c0c01ad63a79ba83aa27724",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T12:00:59.282440398Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-a-003-named-seed-d6396c947136-named": {
+      "id": "39c61492bda23f4429e316fbed5408e7d9acd89d234c573dcfebab46ce44a242",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T12:15:47.807091652Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-a-003-proxy": {
+      "id": "003a78eb43a2753983b6a3351a694de579913c4448623f5a025836595384bb78",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T11:58:52.183126183Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-b-001-app": {
+      "id": "7cecfa88f47b062783be6191dedb312aeb4eea8746ac66340efa7e3d01cc2ff1",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T12:49:00.899293049Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-b-001-fixture": {
+      "id": "d0010eb510c36d6af84a3e56b88beb08a9783069173fd070bd1a5b7c8d39cdae",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T11:56:43.891774274Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-b-001-named-seed-d24b66ad58f9-named": {
+      "id": "39dcdacc1348a732a0d259145e4e238f6b0153d319c3247d283135868b032863",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T12:53:37.985186677Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-b-001-proxy": {
+      "id": "73562ace46944e7adfa8d6585967c6fbb46c2ba61db2aca11223da7735fbeafb",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T11:54:25.961567037Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-b-001-worker": {
+      "id": "f466c2f2e0053435aff233fc84ba3dbf03286ab6fea876a1e8f0933e3a486963",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T12:50:08.595501921Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-f96-98181a436c70-app": {
+      "id": "fba281ded646242a231afe1c7429792e1091aacee83754dabdae808b6e8d23c9",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T13:18:14.345731602Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-f96-98181a436c70-fixture": {
+      "id": "0cde108edac6682b5f621b11ac3a5c9b3884ade9c1005d8023e653303e9eb19c",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T13:18:02.247002067Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-f96-98181a436c70-proxy": {
+      "id": "21ad2b98e0c0791013701dd75b40a2c5a01849b493d144fcb06fdc453efa0c22",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T13:17:12.926501719Z",
+      "status": "exited"
+    },
+    "owrt-phase1-20261017-f96-98181a436c70-worker": {
+      "id": "fb5242765325bb700e23496834c5e69aea58e138f00363c4b52db14ea85b3c3e",
+      "image": "sha256:28791fc31b3370f5e41424ce0d2fb791f33d223f9591bc63200cd130593da141",
+      "started_at": "2026-10-17T13:21:23.650642619Z",
+      "status": "exited"
+    },
+    "romantic_villani": {
+      "id": "4f4c521ed2af88c170348949c98e930cbab22e573ec04bccb7a770320d7fba55",
+      "image": "sha256:eacdc849c759bded4ab313b33416288ed770a3df7fdd3e579c3c582a05d91b2c",
+      "started_at": "2026-10-22T05:53:31.238333734Z",
+      "status": "exited"
+    },
+    "unruffled_mcclintock": {
+      "id": "a1a4e6fa22d81f7e82f29da9bb21c77223b246560e76c10fad9d7436e7c4fa0a",
+      "image": "sha256:ea11b74b986d520137cdef9a5346e447a00f275ecc4abc0055b7151226231e09",
+      "started_at": "0001-01-01T00:00:00Z",
+      "status": "created"
+    },
+    "vozeb-pro": {
+      "id": "3f7a679cf1916cba15dd7351b3c28a829acb000075cacb8bd56b0e48c41730f7",
+      "image": "sha256:3fa70aeea35542642313acf10be1bb45c44da9e7c091f57991165b92e8d6f6c4",
+      "started_at": "2026-10-28T07:21:22.403903648Z",
+      "status": "running"
+    },
+    "vozeb-pro-generation-worker": {
+      "id": "37f51595207917b7a147bed4414f6dfb002d7e22715d807d9ecaef4feb7b0299",
+      "image": "sha256:3fa70aeea35542642313acf10be1bb45c44da9e7c091f57991165b92e8d6f6c4",
+      "started_at": "2026-10-28T07:21:22.534396962Z",
+      "status": "running"
+    },
+    "vozeb-pro-postgres": {
+      "id": "08be8abc331f40fd105bfa9253c9b1a784db0ada02fe19c41b6df8295fb375d1",
+      "image": "sha256:1d04b9ba1d4996401f2552b51beda8187f175c0645c091e4781134fc9c9a3eef",
+      "started_at": "2026-10-28T07:21:22.531536942Z",
+      "status": "running"
+    },
+    "youthful_banzai": {
+      "id": "783e622cc7aced3c59d19e157ff95c96a4b19cce14d874b5b501a247ae77e473",
+      "image": "sha256:4d6fc6de5c4d454beef3a7087ce254268703d0890be3eeb5c3eb6a3fdbcd05c6",
+      "started_at": "2026-10-22T05:53:27.799890313Z",
+      "status": "exited"
+    }
+  },
+  "nginx": {
+    "/etc/nginx/conf.d/oceanway-commerce-login-frame.conf": "a8d5b177be33aa68d839415facbe4fe05677b72f6fd9a529938658e0289e13b1",
+    "/etc/nginx/conf.d/oceanway-studio-development-source.conf": "e9e323366c9da447bbc2f6557956210fce8a0db856692b7dd45ce8e872d7c4c6",
+    "/etc/nginx/conf.d/studio-creative-upgrade.conf": "65043666f9f81f7dc76e9e82234000cce120a2cf63b2b4dcc1bab0e5877cb67a",
+    "/etc/nginx/fastcgi.conf": "dc4a3e6f16eb08000fb4a4ba6aaf9faeb50d55a3eaf152907938632f5b85b3aa",
+    "/etc/nginx/fastcgi_params": "4e0945432e68d9d7cac62356766fbea8652790c15a7332a42af1a78877225c32",
+    "/etc/nginx/koi-utf": "b5f8a6d411db5e5d11d151d50cd1e962444732593adec0e1ef0a8c6eebec63ee",
+    "/etc/nginx/koi-win": "de518a9eafe86c8bc705e296d0ef26135835b46bdc0de01d1d50a630fa5d341e",
+    "/etc/nginx/mime.types": "632f37cafbdce8ebfba27f7d8264da1ea462880c4961c32354455c8ab722f7c3",
+    "/etc/nginx/nginx.conf": "4869cddce1030ceffb99bf88b1a64a0ec2b5d51c0c2377958f48533bae320522",
+    "/etc/nginx/proxy_params": "7cff43a9768c1112bb074e9f26aaa1173da6ef85a7a20838242e846835c8eeb2",
+    "/etc/nginx/scgi_params": "f27b2027c571ccafcfb0fbb3f54d7aeee11a984e3a0f5a1fdf14629030fc9011",
+    "/etc/nginx/sites-available/console.oceanway.tech": "c64f6b5d603068f095f2ec2d0bbcb658572a166adc57ed186c605fc048601415",
+    "/etc/nginx/sites-available/default": "ce0901350a021608139b5639cf4ccd7717bef8c3a9e4f79031eb46386b67b03f",
+    "/etc/nginx/sites-available/drama.oceanway.tech": "60e615c3ff98bfff9af44fb13a7c698480d0f66685f7affceadce5226f7299fb",
+    "/etc/nginx/sites-available/media.oceanway.tech": "154aaa14efaf450cb3e41017fbe21740baec8d4bca290779d71e4d5dcd2222da",
+    "/etc/nginx/sites-available/oceanway": "5659872f66c726116bf6b8974bbf32649d38557c44f7a97596002a513d291518",
+    "/etc/nginx/sites-available/oceanway.before-homepage-10": "f0e7e051144f842c9cce8f50469ba528276c2e42f0ae503cca19b9c572c9bbb5",
+    "/etc/nginx/sites-available/studio.oceanway.tech": "05b912140b7728c0f162c9556d3c05143ba0095212cd51ca784d2e2d5aa86151",
+    "/etc/nginx/sites-available/studio.oceanway.tech-acme": "845e52fffc36b54e6eb2470a38959bc7868780c6cf850c696b2286e3f53d5a6c",
+    "/etc/nginx/sites-available/test.oceanway.tech": "9581f13c4b1a56dee0b8e1faf7710e2b5efee3dea850c44a070409c091fa3f99",
+    "/etc/nginx/snippets/fastcgi-php.conf": "a9dd98bf9631d727f0a846a9c7f4fe6193468a714c782df26d5cc9a7756411f2",
+    "/etc/nginx/snippets/snakeoil.conf": "69de463039725a6636b5a3ca87a0968dde646279bc8bb4419d200f547448a55a",
+    "/etc/nginx/snippets/studio-creative.conf": "a33dca562f56e3ac5a8885bb7261d37cb191b1991347dca518e3f813f2fe2a86",
+    "/etc/nginx/uwsgi_params": "015cb581c2eb84b1a1ac9b575521d5881f791f632bfa62f34b26ba97d70c0d4f",
+    "/etc/nginx/win-utf": "400bc5c78ad9e194069f8ce65db4284378fc95a89a70b17f4b0150a9af54b05b"
+  }
+}

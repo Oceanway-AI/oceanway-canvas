@@ -1,0 +1,14 @@
+.F......
+======================================================================
+FAIL: test_legacy_gateway_bridge_exposes_no_admin_or_identity_routes (test_studio_release.DeploymentTests.test_legacy_gateway_bridge_exposes_no_admin_or_identity_routes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/wangzihao/Projects/OceanWay/.local/worktrees/studio-release-20261108/scripts/test_studio_release.py", line 91, in test_legacy_gateway_bridge_exposes_no_admin_or_identity_routes
+    self.assertIn("listen 8444 ssl", edge)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'listen 8444 ssl' not found in 'events { worker_connections 1024; }\nhttp {\n    map $http_upgrade $studio_connection {\n        default upgrade;\n        "" "";\n    }\n    log_format studio_safe \'$remote_addr "$request_method $uri" $status $body_bytes_sent\';\n    access_log /var/log/nginx/access.log studio_safe;\n    server {\n        listen 127.0.0.1:8080;\n        location = /healthz { return 200 "alive"; }\n        location / { return 404; }\n    }\n    server {\n        listen 8443 ssl default_server;\n        ssl_reject_handshake on;\n    }\n    server {\n        listen 8443 ssl;\n        server_name test.oceanway.tech;\n        ssl_certificate /etc/letsencrypt/live/test.oceanway.tech/fullchain.pem;\n        ssl_certificate_key /etc/letsencrypt/live/test.oceanway.tech/privkey.pem;\n        ssl_protocols TLSv1.2 TLSv1.3;\n        client_max_body_size 1024m;\n        add_header Referrer-Policy "no-referrer" always;\n        location / {\n            proxy_pass http://web:3000;\n            proxy_http_version 1.1;\n            proxy_set_header Host $http_host;\n            proxy_set_header Origin $http_origin;\n            proxy_set_header X-Forwarded-Proto https;\n            proxy_set_header X-Real-IP $remote_addr;\n            proxy_set_header X-Forwarded-For $remote_addr;\n            proxy_set_header Upgrade $http_upgrade;\n            proxy_set_header Connection $studio_connection;\n            proxy_read_timeout 3600s;\n        }\n    }\n}\n'
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.140s
+
+FAILED (failures=1)

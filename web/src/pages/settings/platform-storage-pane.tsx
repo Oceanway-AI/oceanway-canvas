@@ -9,17 +9,19 @@ function bytes(value: string) {
         unit = BigInt(1024 * 1024 * 1024);
     return `${n / unit}.${(((n % unit) * BigInt(100)) / unit).toString().padStart(2, "0")} GB`;
 }
-export function PlatformStoragePane() {
+export function PlatformStoragePane({ compact = false }: { compact?: boolean }) {
     const userId = useUserStore((state) => state.user?.id);
     const query = useQuery({ queryKey: ["platform-storage", userId], queryFn: ({ signal }) => getPlatformMaterialStorage(signal), enabled: !!userId, retry: false });
     return (
         <section className="space-y-3" aria-label="平台素材空间">
-            <div className="settings-pane-header">
-                <div>
-                    <h2>素材空间</h2>
-                    <p>所有素材统一保存在 OceanWay 账号中。</p>
+            {!compact ? (
+                <div className="settings-pane-header">
+                    <div>
+                        <h2>素材空间</h2>
+                        <p>所有素材统一保存在 OceanWay 账号中。</p>
+                    </div>
                 </div>
-            </div>
+            ) : null}
             {!userId ? (
                 <p>请先登录。</p>
             ) : query.isPending ? (

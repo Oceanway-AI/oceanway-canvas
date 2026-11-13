@@ -233,7 +233,7 @@ func testStudioPiRuntimeToolRoundTrip(t *testing.T, media bool) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "session=fixture"}, run.ID, state.Approval.ID)
+			quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "session=fixture"}, run.ID, state.Approval.ID, "0.123456789")
 			if err != nil {
 				t.Fatal(err)
 			}

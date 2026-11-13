@@ -15,6 +15,7 @@ import (
 )
 
 func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
+	RegisterAgentSkillRoutes(r, svc)
 	registerSkillCurationRoutes(r, svc)
 	r.POST("/skills/install", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
@@ -72,50 +73,6 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 		ok(c, gin.H{"skill": skill})
 	})
 
-	r.GET("/skills", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		page, pageSize, err := parsePaginationQuery(c, 20)
-		if err != nil {
-			fail(c, http.StatusBadRequest, err)
-			return
-		}
-		libraryUncategorized, err := parseOptionalBool(c.Query("libraryUncategorized"))
-		if err != nil {
-			failService(c, service.BadAuthRequest("libraryUncategorized 必须是布尔值"))
-			return
-		}
-		result, err := svc.Skills(user.ID, service.SkillListRequest{
-			PlatformRootID:     c.Query("platformRootId"),
-			PlatformCategoryID: c.Query("platformCategoryId"), PlatformUncategorized: c.Query("platformUncategorized") == "true",
-			Page: page, PageSize: pageSize, Scope: c.DefaultQuery("scope", "public"),
-			Search: c.Query("search"), Tag: c.Query("tag"), Sort: c.DefaultQuery("sort", "popular"),
-			LibraryCategoryID: c.Query("libraryCategoryId"), LibraryUncategorized: libraryUncategorized,
-		})
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, result)
-	})
-
-	r.GET("/skills/library-categories", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		result, err := svc.SkillLibraryCategories(user.ID, c.DefaultQuery("scope", "mine"))
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, result)
-	})
-
 	r.POST("/skills/library-categories", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -148,30 +105,6 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 		ok(c, gin.H{"deleted": true})
 	})
 
-	r.GET("/skills/presets", func(c *gin.Context) {
-		// 场景预设目录：公开只读的市场元数据（与 /openapi.yaml 同模式，无用户数据）。
-		presets, err := svc.SkillPresets()
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"presets": presets})
-	})
-
-	r.GET("/skills/recommendations", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		list, err := svc.SkillRecommendations(user.ID)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, list)
-	})
-
 	r.POST("/skills/recommendations/:industryId/install", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -189,34 +122,6 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		ok(c, result)
-	})
-
-	r.GET("/skills/added", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		skills, err := svc.AddedSkills(user.ID)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"skills": skills})
-	})
-
-	r.GET("/skills/:id", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		skill, err := svc.SkillDetail(user.ID, c.Param("id"))
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"skill": skill})
 	})
 
 	r.PATCH("/skills/:id/library-category", func(c *gin.Context) {
@@ -238,20 +143,6 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 		ok(c, gin.H{"skill": skill})
 	})
 
-	r.GET("/skills/:id/files", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		files, err := svc.SkillPackageFiles(user.ID, c.Param("id"))
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"files": files})
-	})
-
 	r.PUT("/skills/:id/files", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -270,67 +161,6 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		ok(c, result)
-	})
-
-	r.GET("/skills/:id/file", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		file, err := svc.SkillPackageFile(user.ID, c.Param("id"), c.Query("path"))
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"file": file})
-	})
-
-	r.GET("/skills/:id/file/raw", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		data, mimeType, fileName, err := svc.SkillPackageRawFile(user.ID, c.Param("id"), c.Query("path"))
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		c.Header("Cache-Control", "private, no-store")
-		c.Header("X-Content-Type-Options", "nosniff")
-		c.Header("Content-Security-Policy", "default-src 'none'; sandbox")
-		c.Header("Content-Disposition", mime.FormatMediaType("inline", map[string]string{"filename": fileName}))
-		c.Data(http.StatusOK, mimeType, data)
-	})
-
-	r.GET("/skills/:id/bundle", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		bundle, err := svc.SkillPackageBundle(user.ID, c.Param("id"))
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		c.Header("Cache-Control", "private, no-store")
-		ok(c, gin.H{"bundle": bundle})
-	})
-
-	r.GET("/skills/:id/search", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		results, err := svc.SearchSkillPackage(user.ID, c.Param("id"), c.Query("q"))
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"results": results})
 	})
 
 	r.POST("/skills/:id/sync", func(c *gin.Context) {
@@ -407,10 +237,184 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 		ok(c, gin.H{"deleted": true})
 	})
 
-	r.POST("/skills/:id/add", setSkillAdded(svc, true))
-	r.DELETE("/skills/:id/add", setSkillAdded(svc, false))
 	r.POST("/skills/:id/like", setSkillLiked(svc, true))
 	r.DELETE("/skills/:id/like", setSkillLiked(svc, false))
+}
+
+// RegisterAgentSkillRoutes reuses the native account-scoped skill catalog and
+// attachment controls without enabling installation, publishing or admin writes.
+func RegisterAgentSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
+	r.GET("/skills", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		page, pageSize, err := parsePaginationQuery(c, 20)
+		if err != nil {
+			fail(c, http.StatusBadRequest, err)
+			return
+		}
+		libraryUncategorized, err := parseOptionalBool(c.Query("libraryUncategorized"))
+		if err != nil {
+			failService(c, service.BadAuthRequest("libraryUncategorized 必须是布尔值"))
+			return
+		}
+		result, err := svc.Skills(user.ID, service.SkillListRequest{
+			PlatformRootID:     c.Query("platformRootId"),
+			PlatformCategoryID: c.Query("platformCategoryId"), PlatformUncategorized: c.Query("platformUncategorized") == "true",
+			Page: page, PageSize: pageSize, Scope: c.DefaultQuery("scope", "public"),
+			Search: c.Query("search"), Tag: c.Query("tag"), Sort: c.DefaultQuery("sort", "popular"),
+			LibraryCategoryID: c.Query("libraryCategoryId"), LibraryUncategorized: libraryUncategorized,
+		})
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, result)
+	})
+
+	r.GET("/skills/library-categories", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		result, err := svc.SkillLibraryCategories(user.ID, c.DefaultQuery("scope", "mine"))
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, result)
+	})
+
+	r.GET("/skills/presets", func(c *gin.Context) {
+		// 场景预设目录：公开只读的市场元数据（与 /openapi.yaml 同模式，无用户数据）。
+		presets, err := svc.SkillPresets()
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, gin.H{"presets": presets})
+	})
+
+	r.GET("/skills/recommendations", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		list, err := svc.SkillRecommendations(user.ID)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, list)
+	})
+
+	r.GET("/skills/added", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		skills, err := svc.AddedSkills(user.ID)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, gin.H{"skills": skills})
+	})
+
+	r.GET("/skills/:id", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		skill, err := svc.SkillDetail(user.ID, c.Param("id"))
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, gin.H{"skill": skill})
+	})
+
+	r.GET("/skills/:id/files", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		files, err := svc.SkillPackageFiles(user.ID, c.Param("id"))
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, gin.H{"files": files})
+	})
+
+	r.GET("/skills/:id/file", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		file, err := svc.SkillPackageFile(user.ID, c.Param("id"), c.Query("path"))
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, gin.H{"file": file})
+	})
+
+	r.GET("/skills/:id/file/raw", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		data, mimeType, fileName, err := svc.SkillPackageRawFile(user.ID, c.Param("id"), c.Query("path"))
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		c.Header("Cache-Control", "private, no-store")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Content-Security-Policy", "default-src 'none'; sandbox")
+		c.Header("Content-Disposition", mime.FormatMediaType("inline", map[string]string{"filename": fileName}))
+		c.Data(http.StatusOK, mimeType, data)
+	})
+
+	r.GET("/skills/:id/bundle", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		bundle, err := svc.SkillPackageBundle(user.ID, c.Param("id"))
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		c.Header("Cache-Control", "private, no-store")
+		ok(c, gin.H{"bundle": bundle})
+	})
+
+	r.GET("/skills/:id/search", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		results, err := svc.SearchSkillPackage(user.ID, c.Param("id"), c.Query("q"))
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, gin.H{"results": results})
+	})
+
 	r.PATCH("/skills/:id/agent-mode", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -431,6 +435,10 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 		}
 		ok(c, gin.H{"skill": skill})
 	})
+
+	r.POST("/skills/:id/add", setSkillAdded(svc, true))
+
+	r.DELETE("/skills/:id/add", setSkillAdded(svc, false))
 }
 
 func parseOptionalBool(value string) (bool, error) {

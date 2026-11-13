@@ -16,6 +16,53 @@ func studioMaterialFixtureAsset() platformclient.Asset {
 	return platformclient.Asset{AssetID: "asset_1", Owner: platformclient.MaterialOwner{Kind: "account", ID: "101"}, Kind: "image", State: "ready", CurrentVersionID: "version_1", Version: platformclient.AssetVersion{AssetID: "asset_1", VersionID: "version_1", FileID: "file_1"}, File: platformclient.AssetFile{FileID: "file_1", SHA256: strings.Repeat("a", 64), ByteLength: "8", ContentType: "image/png", State: "ready"}}
 }
 
+func TestStudioRetainedBindingReadsRecycledFile(t *testing.T) {
+	f := newStudioFixture(t)
+	studioLibraryResource(t, f, "retained-recycled")
+	accesses, lookups, writes := 0, 0, 0
+	asset := studioMaterialFixtureAsset()
+	asset.State = "trashed"
+	f.materials = func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method + " " + r.URL.Path {
+		case "GET /api/platform/v1/materials/assets/asset_1":
+			lookups++
+			_ = json.NewEncoder(w).Encode(asset)
+		case "POST /api/platform/v1/materials/access":
+			accesses++
+			var req platformclient.AccessRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Fatal(err)
+			}
+			if len(req.Items) != 1 || req.Items[0].BindingID != "binding_1" || req.Items[0].VersionID != "version_1" || r.Header.Get("Cookie") != "platform_session=alice" {
+				t.Fatal("recycled read lost the owned active binding")
+			}
+			item := req.Items[0]
+			_ = json.NewEncoder(w).Encode(platformclient.AccessResponse{Protocol: platformclient.MaterialsProtocol, Results: []platformclient.AccessResult{{ItemID: item.ItemID, Status: "ready", AssetID: item.AssetID, VersionID: item.VersionID, FileID: "file_1", RequestedVariant: item.Variant, ActualVariant: item.Variant, URL: "https://cdn.test/retained", ExpiresAt: "2099-01-01T01:00:00Z", RefreshAt: "2099-01-01T00:30:00Z", Revision: "recycled-active-binding"}}})
+		default:
+			writes++
+			w.WriteHeader(500)
+		}
+	}
+	body := `[{"resourceId":"retained-recycled","purpose":"display","variant":"preview"}]`
+	for i := 0; i < 2; i++ {
+		w := f.request(t, "POST", "/api/resources/access", "platform_session=alice", body, 200)
+		if !strings.Contains(w.Body.String(), "https://cdn.test/retained") {
+			t.Fatal(w.Body.String())
+		}
+	}
+	f.request(t, "POST", "/api/resources/adopt", "platform_session=alice", `{"assetId":"asset_1","versionId":"version_1"}`, 409)
+	w := f.request(t, "POST", "/api/resources/access", "platform_session=bob", body, 200)
+	if strings.Contains(w.Body.String(), "https://") {
+		t.Fatal("recycled binding leaked across accounts")
+	}
+	f.revoked = true
+	f.request(t, "POST", "/api/resources/access", "platform_session=alice", body, 401)
+	if accesses != 2 || lookups != 1 || writes != 0 {
+		t.Fatalf("unexpected lifecycle access=%d lookup=%d write=%d", accesses, lookups, writes)
+	}
+}
+
 func TestStudioMaterialsUploadAdoptRecoverAndAccess(t *testing.T) {
 	f := newStudioFixture(t)
 	asset := studioMaterialFixtureAsset()

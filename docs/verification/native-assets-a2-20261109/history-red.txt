@@ -1,0 +1,5 @@
+--- FAIL: TestStudioHistoryProtectsOnlyTheReferencedPlatformResource (0.81s)
+    studio_asset_history_test.go:32: blank storage coordinates must not alias distinct Platform files: true <nil>
+FAIL
+FAIL	yingce/backend/internal/handler	2.394s
+FAIL

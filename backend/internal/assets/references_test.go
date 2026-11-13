@@ -36,3 +36,35 @@ func TestCollectDocumentResourceReferencesReportsInvalidJSON(t *testing.T) {
 		t.Fatal("expected malformed document to be rejected")
 	}
 }
+
+func TestCollectDocumentResourceReferencesRetainsCreationResults(t *testing.T) {
+	raw := `{"chatMessages":[{"detail":{"resultStorageKeys":["resource:result-image","resource:result-video"],"resultUrls":["/api/resources/old-result/file","https://cdn.test/external"]}}],"prompt":"resource:ignored","log":"/api/resources/ignored/file"}`
+	got := map[string]struct{}{}
+	if err := CollectOwnedDocumentReferences(raw, got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("result references = %v", got)
+	}
+	for _, id := range []string{"result-image", "result-video", "old-result"} {
+		if _, ok := got[id]; !ok {
+			t.Errorf("lost creation result %s", id)
+		}
+	}
+}
+
+func TestCollectDocumentResourceReferencesFromStructuredToolMessages(t *testing.T) {
+	raw := `{"messages":[{"role":"tool","tool_call_id":"read","content":"{\"storageKey\":\"resource:tool-file\"}"},{"role":"toolResult","toolCallId":"read-pi","content":[{"type":"text","text":"{\"resourceId\":\"pi-tool-file\"}"}]},{"role":"user","content":"{\"storageKey\":\"resource:prompt-only\"}"},{"role":"tool","content":"tool says resource:diagnostic-only"}],"log":"{\"resourceId\":\"log-only\"}"}`
+	got := map[string]struct{}{}
+	if err := CollectOwnedDocumentReferences(raw, got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("structured tool references = %v", got)
+	}
+	for _, id := range []string{"tool-file", "pi-tool-file"} {
+		if _, ok := got[id]; !ok {
+			t.Errorf("lost structured tool result %s", id)
+		}
+	}
+}

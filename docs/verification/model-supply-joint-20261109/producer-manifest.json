@@ -1,0 +1,15 @@
+{
+  "frozen_at": "2026-11-09T09:06:20.400404+00:00",
+  "producer_head": "7401e5cfd28e46cf52346552a23b25967276d83f",
+  "producer_branch": "codex/admin-model-settings",
+  "uncommitted": true,
+  "publication_source_aggregate_sha256": "4113986a07f87f1837c29626f2e0365741f28fe27319ef70ed09cc2d94587cf1",
+  "current_source_aggregate_sha256": "f5744eab7cd850afc67ab5ccb6a7112a02b8aea59ee5c002fdb490f0fea1d4a7",
+  "files": {
+    "current-source-manifest.json": "f85bf5b41de16148aec16d999a8e7473e9df96344e393ac978d666b7e447f75e",
+    "video-published.json": "d89fc68646c3c48d581468a0564d3087d4b7ad857a86d4a196bfabfb26f9b053",
+    "image-published.json": "3a7c041e65c099d45d881a3e47478546746e62e947a50cbae3b642ec33fa067b",
+    "publication-source-manifest.json": "fbfa8e7c49631057e8e4127934e17e6d03f019d7fb815b55dd12b15c4f49e72c"
+  },
+  "scope": "synthetic isolated PostgreSQL; real admin HTTP publication and product preview; no generation or production verification"
+}

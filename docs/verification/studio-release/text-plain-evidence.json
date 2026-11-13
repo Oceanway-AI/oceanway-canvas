@@ -1,0 +1,42 @@
+{
+  "content": [
+    {
+      "text": "STUDIO_TEXT_OK",
+      "type": "text"
+    }
+  ],
+  "model": "claude-haiku-4-5",
+  "protocol": "anthropic-messages",
+  "ready": true,
+  "request_id": "studio-text-20261108-plain",
+  "status": "ready",
+  "stop_reason": "end_turn",
+  "task_id": "text_fac87e5bdc6003913e44df0b28a4b5d666b277258e4c8c1c3f58b8d75af6a349",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 17,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 17,
+        "output_tokens": 16,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 16,
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "original_response_equal": true
+}

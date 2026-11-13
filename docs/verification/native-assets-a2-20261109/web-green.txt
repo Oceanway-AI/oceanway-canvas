@@ -1,0 +1,97 @@
+bun test v1.3.14 (0d9b296a)
+
+test/platform-material-selection.test.ts:
+(pass) Canvas insertion adopts the selected immutable version and stores a stable resource URL [9.73ms]
+
+test/studio-native-assets.test.tsx:
+(pass) shared file preview is a read and never adopts or uploads [23.48ms]
+(pass) adopted file becomes one native business asset; repeated adoption preserves edits [168.04ms]
+(pass) native image cards request small derived files [0.60ms]
+(pass) native video cards request small derived files [0.03ms]
+(pass) repeated adoption rejects a conflicting native asset identity [0.26ms]
+(pass) missing image dimensions read the authorized original (load failure: %s) [23.66ms]
+(pass) missing image dimensions read the authorized original (load failure: %s) [23.12ms]
+
+test/studio-platform-adoption.test.ts:
+(pass) existing image/video results are explicitly adopted once without uploading or generating [55.26ms]
+(pass) lost save response and partial adoption recover the same IDs and preserve existing edits [58.10ms]
+(pass) not-ready and mismatched Resources reject before any business writes [2.31ms]
+(pass) account switch cannot adopt the previous user's files [1.56ms]
+(pass) a single selected message does not adopt other conversation outputs [0.98ms]
+(pass) expired URL-only history cannot manufacture a fixed file identity [0.23ms]
+
+test/creation-media-result-placeholder.test.tsx:
+(pass) 首页图片结果在加载完成前就占好位置 > Platform 的固定结果无需预先建立业务 Asset 即可显式转入画布 [7301.08ms]
+(pass) 首页图片结果在加载完成前就占好位置 > 图片还没加载出来时按生成比例预留尺寸并显示加载态 [94.75ms]
+(pass) 首页图片结果在加载完成前就占好位置 > 已知素材尺寸时使用真实宽高比，避免加载完成后跳动 [0.05ms]
+(pass) 首页图片结果在加载完成前就占好位置 > 访问地址还在解析、也没有可用 hint 时同样渲染占位块，而不是空白 [0.69ms]
+
+test/platform-canvas-material-sync.test.ts:
+(pass) 平台画布只校验固定资源，不写旧资产接口；文本结果直接保存在画布 [2.35ms]
+
+test/platform-material-upload.test.ts:
+(pass) Platform upload uses credential-free tickets and recovers a lost completion without a new command [15.80ms]
+(pass) Switching accounts after upload preparation cannot send ticket bytes or complete the upload [0.49ms]
+(pass) Untrusted ticket headers and expired URLs are rejected before disclosing file bytes [1.66ms]
+
+test/creation-task-recovery.test.ts:
+(pass) 首页创作：页面没跟上 ≠ 生成失败 > 轮询中断后任务仍在跑：失败消息回到生成中，并带上真实阶段与进度 [0.52ms]
+(pass) 首页创作：页面没跟上 ≠ 生成失败 > 旧版本未分类的“网络异常”失败，在任务成功后补回作品 [3.45ms]
+(pass) 首页创作：页面没跟上 ≠ 生成失败 > 任务成功但结果暂时读不出来：保持“结果待同步”，不引导重新生成 [1.35ms]
+(pass) 首页创作：页面没跟上 ≠ 生成失败 > 后端确认失败：标记为任务失败；作品已生成可重新保存时保留入口 [1.15ms]
+(pass) 首页创作：页面没跟上 ≠ 生成失败 > 后端已确认失败的消息不会被之后的快照改写 [0.05ms]
+(pass) 首页创作：页面没跟上 ≠ 生成失败 > 阶段和进度没有变化时不产生新对象，避免每次轮询都重写本地记录 [0.02ms]
+(pass) 首页创作：页面没跟上 ≠ 生成失败 > 多图任务要等全部任务快照到齐才下结论 [0.26ms]
+(pass) 首页创作：页面没跟上 ≠ 生成失败 > 手动重新获取可以重算已完成但没有可预览结果的消息 [0.07ms]
+(pass) 首页创作：页面没跟上 ≠ 生成失败 > 文本消息恢复监听拿到进行中状态后收起连接中断提示 [0.09ms]
+(pass) 首页创作恢复监听范围 > 生成中、结果待同步与旧版本失败继续跟进；后端确认失败的不再订阅 [0.06ms]
+
+test/platform-generation-results.test.ts:
+(pass) Platform image 结果无需旧 Asset，恢复后保留固定引用与幂等回填 [361.88ms]
+(pass) Platform video 结果无需旧 Asset，恢复后保留固定引用与幂等回填 [40.76ms]
+(pass) 已消费结果恢复时重新验证删除/权限/类型，不能信任旧本地完成状态 [0.30ms]
+(pass) 缺少固定资源或类型不符不降级到下载签名 URL/旧 Asset [6.40ms]
+(pass) 校验期间切换账号或取消，不能完成节点消费 [40.72ms]
+(pass) 原生 Pi 已写回的 Platform 节点可直接准备持久化，不要求本地资产 [0.72ms]
+(pass) 真实画布消费先持久化固定引用，清空内存后仍能恢复全部图片 [51.39ms]
+
+test/studio-create-handoff.test.ts:
+(pass) explicit native adoption matches a generated result by fixed Resource without rewriting metadata [4.79ms]
+(pass) a fixed Resource result never falls back to another output or an empty URL [0.35ms]
+(pass) handoff retains the original image dimensions and stable identity [0.39ms]
+
+test/studio-native-asset-sync.test.ts:
+(pass) Platform identity still saves and reloads explicit native creative assets [162.68ms]
+
+test/create-canvas-handoff.test.ts:
+(pass) Create exposes one accessible copy action beside each displayed user prompt [22.04ms]
+(pass) Create submit button does not forward the browser click event as retry context [5.53ms]
+(pass) Create keeps optimistic messages when the first local task binds immediately [0.50ms]
+(pass) Create history deletion removes only the selected conversation snapshot [0.07ms]
+(pass) Create refresh subscriptions share one durable scheduler observation without page polling [2.02ms]
+(pass) task subscription can reconnect after an observation failure [10.00ms]
+(pass) Create durably correlates failures that happen before the first Runtime response [14.57ms]
+(pass) creation results hand off exact asset ids to one new canvas and consume the route once [1.87ms]
+(pass) canvas handoff resolves generated image and video assets in requested order [0.25ms]
+(pass) creation result handoff selects only assets owned by that message in result order [0.17ms]
+(pass) creation result handoff recognizes unified generation-task materializer metadata [0.05ms]
+(pass) canvas handoff consumes its route only after merged nodes are durably persisted [0.22ms]
+(pass) canvas handoff keeps its route when durable persistence fails [0.09ms]
+(pass) canvas handoff with no available assets remains retryable [0.06ms]
+(pass) canvas handoff waits until every requested asset is available before creating any node [0.04ms]
+(pass) canvas handoff reuses nodes carrying the same asset id after a persistence retry [0.06ms]
+(pass) creation result handoff falls back by stable result order only for a complete owned asset set [0.07ms]
+(pass) Create forwards owned result assets through one new canvas and the project persists before clearing the handoff [19.60ms]
+(pass) Create image batch retry preserves per-index lineage under one attempt group [16.72ms]
+
+test/canvas-asset-picker.test.ts:
+(pass) canvas asset picker > maps multiple local and external selections in the requested order [0.50ms]
+(pass) canvas asset picker > rejects stale selections instead of silently dropping them [0.29ms]
+(pass) asset picker media kind > prefers the declared media kind over the underlying record [0.11ms]
+(pass) asset picker media kind > resolves external plugin items and skips records without a media kind [0.04ms]
+(pass) canvas context menu motion > keeps hover feedback stationary while retaining spotlight surfaces [2.71ms]
+
+ 67 pass
+ 0 fail
+ 234 expect() calls
+Ran 67 tests across 12 files. [17.63s]

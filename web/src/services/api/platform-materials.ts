@@ -46,6 +46,33 @@ export function platformMaterialFileURL(id: string, version: string, variant: "t
 export function getPlatformMaterialStorage(signal?: AbortSignal) {
     return http.get<PlatformMaterialStorage>("/materials/storage", { signal });
 }
+
+export async function getPlatformMaterialAccess(asset: PlatformMaterialAsset, download = false, signal?: AbortSignal) {
+    const variant = download ? "original" : asset.kind === "video" || asset.kind === "audio" ? "playback" : "preview";
+    const result = await http.post<{ protocol: string; results: Array<{ item_id: string; status: string; asset_id: string; version_id: string; file_id: string; requested_variant: string; actual_variant: string; url: string; expires_at: string }> }>(
+        "/materials/access",
+        { items: [{ item_id: "view", asset_id: asset.asset_id, version_id: asset.version.version_id, purpose: download ? "download" : "display", variant }] },
+        { signal },
+    );
+    const access = result.results?.[0];
+    if (
+        result.protocol !== "oceanway.materials.v2" ||
+        result.results.length !== 1 ||
+        !access ||
+        access.status !== "ready" ||
+        access.item_id !== "view" ||
+        access.asset_id !== asset.asset_id ||
+        access.version_id !== asset.version.version_id ||
+        access.file_id !== asset.file.file_id ||
+        access.actual_variant !== variant ||
+        !Number.isFinite(Date.parse(access.expires_at)) ||
+        Date.parse(access.expires_at) <= Date.now()
+    )
+        throw new Error("素材暂时不可访问，请稍后重试");
+    const url = new URL(access.url);
+    if (url.protocol !== "https:" || url.username || url.password || url.hash) throw new Error("素材访问地址无效");
+    return access;
+}
 export async function adoptPlatformMaterial(assetId: string, versionId: string, meta?: ResourceUploadMeta) {
     const data = await http.post<{ resource: RemoteResource }>("/resources/adopt", { assetId, versionId, width: meta?.width, height: meta?.height, durationMs: meta?.durationMs });
     return data.resource;

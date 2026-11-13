@@ -40,6 +40,9 @@ import { createAssetFolder, deleteAssetFolder, listAssetFolders, listRemoteAsset
 import { assetCountMap, assetSearchText, readAssetGridDensity, assetKindIcons, assetCategoryIcons } from "./asset-library-format";
 import { ASSET_GRID_DENSITY_KEY, type LibraryAsset } from "./asset-library-format";
 import { selectAssetIds } from "./asset-library-selection";
+import { PlatformMaterialPicker } from "@/components/assets/platform-material-picker";
+import { saveAdoptedLibraryAsset } from "@/services/platform-material-selection";
+import type { InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 
 export { ASSET_GRID_DENSITY_KEY, type LibraryAsset, assetKindIcons } from "./asset-library-format";
 
@@ -59,16 +62,59 @@ type AssetFormValues = {
 type ImageDraft = ImageAsset["data"] | null;
 
 const kindOptions = [
-    { get label() { return translate("library.assets.kind.all"); }, value: "all" },
-    { get label() { return translate("library.assets.kind.text"); }, value: "text" },
-    { get label() { return translate("library.assets.kind.image"); }, value: "image" },
-    { get label() { return translate("library.assets.kind.video"); }, value: "video" },
-    { get label() { return translate("library.assets.kind.audio"); }, value: "audio" },
-    { get label() { return translate("library.assets.kind.model"); }, value: "model" },
-    { get label() { return translate("library.assets.kind.entity"); }, value: "entity" },
+    {
+        get label() {
+            return translate("library.assets.kind.all");
+        },
+        value: "all",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.text");
+        },
+        value: "text",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.image");
+        },
+        value: "image",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.video");
+        },
+        value: "video",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.audio");
+        },
+        value: "audio",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.model");
+        },
+        value: "model",
+    },
+    {
+        get label() {
+            return translate("library.assets.kind.entity");
+        },
+        value: "entity",
+    },
 ];
 
-const categoryOptions = [{ get label() { return translate("library.assets.allCategories"); }, value: "all" }, ...ASSET_CATEGORY_OPTIONS];
+const categoryOptions = [
+    {
+        get label() {
+            return translate("library.assets.allCategories");
+        },
+        value: "all",
+    },
+    ...ASSET_CATEGORY_OPTIONS,
+];
 // 方舟认证分类只能由认证结果写入：未认证素材从可选分类里排除，已认证素材只展示锁定的方舟认证分类。
 const arkLockedCategoryOptions = [{ label: ASSET_CATEGORY_LABELS[ARK_ASSET_CATEGORY], value: ARK_ASSET_CATEGORY }];
 const ASSET_LIBRARY_QUERY_KEY = ["asset-library"] as const;
@@ -77,11 +123,13 @@ type AssetFolderFilter = "all" | "uncategorized" | string;
 
 export default function AssetsPage() {
     const userId = useUserStore((state) => state.user?.id);
-    return <AssetLibrary key={userId || "guest"} />;
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const [creativeLibrary, setCreativeLibrary] = useState(false);
+    const sharedFiles = platformIdentity && !creativeLibrary;
+    return <AssetLibrary key={JSON.stringify([userId, sharedFiles])} platform={sharedFiles} onSwitchLibrary={() => setCreativeLibrary(!creativeLibrary)} />;
 }
 
-function AssetLibrary() {
-    const platform = useUserStore((state) => state.platformIdentity);
+function AssetLibrary({ platform, onSwitchLibrary }: { platform: boolean; onSwitchLibrary: () => void }) {
     const [sourceFilter, setSourceFilter] = useState("");
     const uploadInput = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
@@ -101,12 +149,15 @@ function AssetLibrary() {
 
     const updateAsset = useAssetStore((state) => state.updateAsset);
     const userId = useUserStore((state) => state.user?.id || "");
-    const retentionDays = useUserStore((state) => state.runtimeLimits.recycleBinRetentionDays ?? 30);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const configuredRetention = useUserStore((state) => state.runtimeLimits.recycleBinRetentionDays ?? 30);
+    const retentionDays = platformIdentity && !platform ? 0 : configuredRetention;
+    const [sharedLibraryOpen, setSharedLibraryOpen] = useState(false);
     // 方舟审核由服务端定时刷新；有审核中的素材时降频轮询概览，让认证角标跟上结果。
     const arkQuery = useQuery({
         queryKey: arkPortraitOverviewQueryKey,
         queryFn: ({ signal }) => getArkPortraitOverview(signal),
-        enabled: Boolean(userId) && !platform,
+        enabled: Boolean(userId) && !platformIdentity,
         staleTime: 60_000,
         refetchInterval: (query) => (query.state.data?.groups.some((group) => group.owned && group.assets.some((asset) => asset.status === "processing")) ? 30_000 : false),
     });
@@ -151,7 +202,7 @@ function AssetLibrary() {
     const debouncedKeyword = useDebouncedValue(keyword.trim(), 250);
 
     const foldersQuery = useQuery({
-        queryKey: ASSET_FOLDER_QUERY_KEY,
+        queryKey: [...ASSET_FOLDER_QUERY_KEY, userId],
         queryFn: () => listAssetFolders(),
         enabled: Boolean(userId) && !platform,
     });
@@ -209,7 +260,7 @@ function AssetLibrary() {
     const allFilteredSelected = visibleAssetIds.length > 0 && visibleAssetIds.every((id) => selectedIds.includes(id));
     const selectionMode = selecting || selectedIds.length > 0;
     const totalAssets = useRemotePage ? remoteTotal : filteredAssets.length;
-    const kindChoices = platform ? [...kindOptions.filter((item) => ["all", "image", "video", "audio"].includes(item.value)), { value: "document", label: t("library.assets.platform.document") }] : kindOptions;
+    const kindChoices = platform ? [...kindOptions.filter((item) => ["all", "image", "video", "audio"].includes(item.value)), { value: "document", label: t("library.assets.platform.document") }] : platformIdentity ? kindOptions.filter((item) => !["model", "entity"].includes(item.value)) : kindOptions;
     const sourceChoices = [{ value: "", label: t("library.assets.kind.all") }, { value: "upload", label: t("library.assets.platform.uploaded") }, { value: "generation", label: t("library.assets.platform.generated") }];
     const searchActive = Boolean(keyword || kindFilter !== "all" || categoryFilter !== "all" || folderFilter !== "all" || sourceFilter);
     const kindCounts = useMemo(() => assetCountMap(kindOptions, useRemotePage ? assetPageQuery.data?.kindCounts : undefined, viewMode === "trash" ? trashAssets : activeAssets, (asset) => asset.kind), [activeAssets, assetPageQuery.data?.kindCounts, trashAssets, useRemotePage, viewMode]);
@@ -239,10 +290,7 @@ function AssetLibrary() {
         selectionAnchor.current = id;
     };
 
-    const folderSelectOptions = useMemo(() => [
-        { label: t("library.assets.uncategorized"), value: "" },
-        ...folders.map((folder) => ({ label: folder.name, value: folder.id })),
-    ], [folders, t]);
+    const folderSelectOptions = useMemo(() => [{ label: t("library.assets.uncategorized"), value: "" }, ...folders.map((folder) => ({ label: folder.name, value: folder.id }))], [folders, t]);
 
     const resetFilters = () => {
         setPage(1); setKeyword(""); setKindFilter("all"); setCategoryFilter("all"); setFolderFilter("all"); setSourceFilter("");
@@ -254,6 +302,19 @@ function AssetLibrary() {
             queryClient.invalidateQueries({ queryKey: ASSET_FOLDER_QUERY_KEY }),
             ...(platform ? [["platform-materials", userId], ["asset-picker", userId], ["canvas-workspace-assets", userId], ["platform-storage", userId], assetStorageUsageQueryKey].map((queryKey) => queryClient.invalidateQueries({ queryKey })) : []),
         ]);
+    };
+
+    const adoptSharedFiles = async (items: InsertAssetPayload[]) => {
+        const scope = getActiveUserScope();
+        for (const item of items) {
+            if (getActiveUserScope() !== scope) throw new DOMException("素材操作已因账号切换取消", "AbortError");
+            const id = await saveAdoptedLibraryAsset(item, folderFilter !== "all" && folderFilter !== "uncategorized" ? folderFilter : undefined);
+            if (getActiveUserScope() !== scope) throw new DOMException("素材操作已因账号切换取消", "AbortError");
+            await loadAssetsForUse([id], { refresh: true });
+        }
+        if (getActiveUserScope() !== scope) return;
+        await invalidateAssetLibrary();
+        message.success("已加入创作资产");
     };
 
     const uploadFiles = async (files: File[]) => {
@@ -454,6 +515,8 @@ function AssetLibrary() {
         if (values.kind === "text") {
             const asset = { ...base, kind: "text" as const, data: { content: (values.content || "").trim() } };
             editingAsset ? updateAsset(editingAsset.id, asset) : addAsset(asset);
+        } else if (editingAsset && (editingAsset.kind === "video" || editingAsset.kind === "audio")) {
+            updateAsset(editingAsset.id, { ...base, kind: editingAsset.kind, data: editingAsset.data });
         } else {
             if (!imageData) {
                 message.error(t("library.assets.batch.chooseImages"));
@@ -720,11 +783,12 @@ function AssetLibrary() {
                         meta={<span className="app-projects-header-meta assets-header-meta">{t("library.assets.page.count", { count: totalAssets })}</span>}
                         actions={
                             <div className="assets-header-actions">
-                                <AssetStorageUsage canPurchase={!platform} />
+                                <AssetStorageUsage canPurchase={!platformIdentity} />
+                                {platformIdentity && <Button onClick={onSwitchLibrary}>{platform ? "创作素材" : "共享文件库"}</Button>}
                                 <div className="assets-header-action-buttons">
                                     {viewMode === "trash" ? (
                                         <>
-                                            {!platform && (userId || trashAssets.length > 0) ? (
+                                            {!platformIdentity && (userId || trashAssets.length > 0) ? (
                                                 <Popconfirm
                                                     title={t("library.assets.trash.confirmTitle")}
                                                     description={t("library.assets.trash.confirmDescription")}
@@ -752,20 +816,28 @@ function AssetLibrary() {
                                     ) : (
                                         platform ? <Button type="primary" loading={uploading} icon={<Upload />} onClick={() => uploadInput.current?.click()}>{t("library.assets.platform.upload")}</Button> : <>
                                             <Button type="primary" icon={<Plus />} onClick={openCreate}>{t("library.assets.page.create")}</Button>
+                                            {platformIdentity && <Button icon={<FolderOpen />} onClick={() => setSharedLibraryOpen(true)}>从共享文件库采用</Button>}
                                             <Button icon={<Images />} onClick={() => setBatchUploadOpen(true)}>{t("library.assets.page.uploadImages")}</Button>
                                             {arkEnabled ? (
                                                 <Button icon={<ShieldCheck />} onClick={() => navigate("/settings?section=ark-assets")}>
                                                     {t("library.assets.page.ark")}
                                                 </Button>
                                             ) : null}
-                                            <Dropdown trigger={["click"]} menu={{ items: [
-                                                { key: "eagle", icon: <FolderOpen />, label: t("library.assets.page.eagle"), onClick: () => navigate("/plugins/eagle") },
-                                                { key: "package", icon: <FileUp />, label: t("library.assets.page.importPackage"), onClick: () => assetInputRef.current?.click() },
-                                                { key: "model", icon: <Upload />, label: t("library.assets.page.uploadModel"), onClick: () => modelInputRef.current?.click() },
-                                                { key: "export", icon: <Download />, label: t("library.assets.page.exportAll"), onClick: () => void exportAllAssets() },
-                                            ] }}>
-                                                <Button type="text" aria-label={t("library.assets.page.moreActions")} icon={<MoreHorizontal />} />
-                                            </Dropdown>
+                                            {!platformIdentity ? (
+                                                <Dropdown
+                                                    trigger={["click"]}
+                                                    menu={{
+                                                        items: [
+                                                            { key: "eagle", icon: <FolderOpen />, label: t("library.assets.page.eagle"), onClick: () => navigate("/plugins/eagle") },
+                                                            { key: "package", icon: <FileUp />, label: t("library.assets.page.importPackage"), onClick: () => assetInputRef.current?.click() },
+                                                            { key: "model", icon: <Upload />, label: t("library.assets.page.uploadModel"), onClick: () => modelInputRef.current?.click() },
+                                                            { key: "export", icon: <Download />, label: t("library.assets.page.exportAll"), onClick: () => void exportAllAssets() },
+                                                        ],
+                                                    }}
+                                                >
+                                                    <Button type="text" aria-label={t("library.assets.page.moreActions")} icon={<MoreHorizontal />} />
+                                                </Dropdown>
+                                            ) : null}
                                         </>
                                     )}
                                 </div>
@@ -786,23 +858,27 @@ function AssetLibrary() {
                                 setPage(1);
                                 setKeyword(event.target.value);
                             }}
-                            />
-                            <Select
-                                aria-label={t("library.assets.page.density")}
-                                value={gridDensity}
-                                className="w-full sm:w-32"
-                                prefix={<LayoutGrid aria-hidden className="size-3.5" />}
-                                options={assetGridDensityOptions}
-                                onChange={(value) => setGridDensity(parseAssetGridDensity(value))}
-                            />
-                            <Button aria-pressed={selectionMode} onClick={() => {
+                        />
+                        <Select
+                            aria-label={t("library.assets.page.density")}
+                            value={gridDensity}
+                            className="w-full sm:w-32"
+                            prefix={<LayoutGrid aria-hidden className="size-3.5" />}
+                            options={assetGridDensityOptions}
+                            onChange={(value) => setGridDensity(parseAssetGridDensity(value))}
+                        />
+                        <Button
+                            aria-pressed={selectionMode}
+                            onClick={() => {
                                 setSelecting(!selectionMode);
                                 setSelectedIds([]);
                                 selectionAnchor.current = undefined;
-                            }} disabled={batchWorking}>
-                                {selectionMode ? t("library.assets.page.exitSelection") : t("library.assets.page.batchSelect")}
-                            </Button>
-                        </CollectionToolbar>
+                            }}
+                            disabled={batchWorking}
+                        >
+                            {selectionMode ? t("library.assets.page.exitSelection") : t("library.assets.page.batchSelect")}
+                        </Button>
+                    </CollectionToolbar>
                 </div>
 
                 <div className="collection-content assets-collection-content">
@@ -823,7 +899,7 @@ function AssetLibrary() {
                             {platform ? <AssetFilterGroup title={t("library.assets.platform.source")} options={sourceChoices} value={sourceFilter} onChange={(value) => { setSourceFilter(value); setPage(1); }} /> : <>
                             <AssetFilterGroup
                                 title={t("library.assets.batch.category")}
-                                options={categoryOptions}
+                                options={platformIdentity ? categoryOptions.filter((option) => option.value !== ARK_ASSET_CATEGORY) : categoryOptions}
                                 icons={assetCategoryIcons}
                                 value={viewMode === "library" ? categoryFilter : ""}
                                 counts={categoryCounts}
@@ -891,7 +967,7 @@ function AssetLibrary() {
                                 <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-600 dark:text-amber-300">
                                     <div className="flex items-center gap-2">
                                         <AlertTriangle className="size-4 shrink-0 text-amber-500" />
-                                        <span>{retentionDays > 0 ? t("library.assets.trash.retention", { days: retentionDays }) : t("library.assets.trash.retentionForever")}</span>
+                                        <span>{platformIdentity ? "创作素材可随时还原；本入口暂不提供永久删除。" : retentionDays > 0 ? t("library.assets.trash.retention", { days: retentionDays }) : t("library.assets.trash.retentionForever")}</span>
                                     </div>
                                 </div>
                             ) : null}
@@ -907,14 +983,14 @@ function AssetLibrary() {
                                     onExport={platform ? undefined : () => void exportSelectedAssets()}
                                     onRestore={() => void changeAssetStatus(selectedIds, "confirmed")}
                                     onArchive={() => setBatchArchiveOpen(true)}
-                                    onDelete={platform && viewMode !== "trash" ? undefined : () => setBatchDeleteOpen(true)}
+                                    onDelete={platformIdentity && !(platform && viewMode === "trash") ? undefined : () => setBatchDeleteOpen(true)}
                                 />
                             ) : null}
                             {platform && assetPageQuery.isPending ? <WorkspaceLoadingState /> : platform && assetPageQuery.isError ? <WorkspaceErrorState onRetry={() => void assetPageQuery.refetch()} /> : validAssets.length === 0 && totalAssets === 0 && !(platform && searchActive) ? (
                                 viewMode === "trash" ? (
                                     <WorkspaceState icon="assets" compact title={t("library.picker.recycleBinEmpty")} description={t("library.assets.trash.emptyDescription")} />
                                 ) : (
-                                    <AssetsEmptyState onNew={platform ? () => uploadInput.current?.click() : openCreate} uploadOnly={platform} onImport={() => assetInputRef.current?.click()} onGoCanvas={() => navigate("/canvas")} />
+                                    <AssetsEmptyState onNew={platform ? () => uploadInput.current?.click() : openCreate} uploadOnly={platform} sharedFiles={platformIdentity && !platform} onImport={() => platformIdentity ? setSharedLibraryOpen(true) : assetInputRef.current?.click()} onGoCanvas={() => navigate("/canvas")} />
                                 )
                             ) : (
                                 <>
@@ -944,7 +1020,7 @@ function AssetLibrary() {
                                                     onDownload={downloadImage}
                                                     onRestore={() => void changeAssetStatus([asset.id], "confirmed")}
                                                     onArchive={() => setArchivingAsset(asset)}
-                                                    onDelete={platform && viewMode !== "trash" ? undefined : () => setDeletingAsset(asset)}
+                                                    onDelete={platformIdentity && !(platform && viewMode === "trash") ? undefined : () => setDeletingAsset(asset)}
                                                     folderOptions={platform ? [] : folderSelectOptions}
                                                     onMoveToFolder={(folderId) => void moveAssetsToFolder([asset.id], folderId)}
                                                     arkProgress={arkEnabled ? arkProgress.get(asset.id) : undefined}
@@ -1001,9 +1077,11 @@ function AssetLibrary() {
                     <Form form={form} layout="vertical" requiredMark={false} initialValues={{ kind: "text", category: "other", tags: [] }}>
                         <Form.Item name="kind" label={t("library.assets.form.kind")}>
                             <Select
+                                disabled={!!editingAsset}
                                 options={[
                                     { label: t("library.assets.kind.text"), value: "text" },
                                     { label: t("library.assets.kind.image"), value: "image" },
+                                    ...(editingAsset?.kind === "video" || editingAsset?.kind === "audio" ? [{ label: t(`library.assets.kind.${editingAsset.kind}`), value: editingAsset.kind }] : []),
                                 ]}
                                 onChange={(value) => setFormKind(value)}
                             />
@@ -1014,7 +1092,10 @@ function AssetLibrary() {
                         <Form.Item name="title" label={t("library.assets.form.title")} rules={[{ required: true, message: t("library.assets.form.titleRequired") }]}>
                             <Input placeholder={t("library.assets.form.titlePlaceholder")} />
                         </Form.Item>
-                        <Form.Item name="coverUrl" label={t("library.assets.form.coverUrl")}>
+                        <Form.Item name="folderId" label={t("library.assets.page.myFolders")}>
+                            <Select options={folderSelectOptions} />
+                        </Form.Item>
+                        <Form.Item hidden={platformIdentity} name="coverUrl" label={t("library.assets.form.coverUrl")}>
                             <Space.Compact className="w-full">
                                 <Input placeholder={t("library.assets.form.coverUrlPlaceholder")} />
                                 <Button icon={<Upload className="size-3.5" />} onClick={() => coverInputRef.current?.click()}>
@@ -1026,6 +1107,7 @@ function AssetLibrary() {
                             <Select mode="tags" tokenSeparators={[",", "，"]} placeholder={t("library.assets.form.tagsPlaceholder")} />
                         </Form.Item>
                         <Form.Item
+                            hidden={platformIdentity}
                             name="arkAssetId"
                             label={t("library.assets.form.arkAssetId")}
                             extra={editingAsset?.arkCertification ? t("library.ark.detail.hint") : undefined}
@@ -1045,7 +1127,7 @@ function AssetLibrary() {
                             <Form.Item name="content" label={t("library.assets.form.content")} rules={[{ required: true, message: t("library.assets.form.contentRequired") }]}>
                                 <Input.TextArea rows={8} placeholder={t("library.assets.form.contentPlaceholder")} />
                             </Form.Item>
-                        ) : (
+                        ) : formKind === "image" ? (
                             <Form.Item label={t("library.assets.form.image")} required>
                                 <div className="rounded-lg border border-dashed border-stone-300 p-4 dark:border-stone-700">
                                     <Button disabled={imageUploading} icon={<Upload className="size-4" />} onClick={() => imageInputRef.current?.click()}>
@@ -1067,14 +1149,14 @@ function AssetLibrary() {
                                     )}
                                 </div>
                             </Form.Item>
-                        )}
+                        ) : null}
                     </Form>
                     <div className="lg:pl-4">
                         <Typography.Text strong className="text-xs">
                             {t("library.assets.form.preview")}
                         </Typography.Text>
                         <div className="mt-2 overflow-hidden rounded-md bg-stone-100 dark:bg-stone-900">
-                            {coverUrl || imageDraft?.dataUrl ? (
+                            {formKind !== "video" && formKind !== "audio" && (coverUrl || imageDraft?.dataUrl) ? (
                                 <div className={`asset-preview-uploading ${imageUploading ? "is-uploading" : ""}`}>
                                     <img src={coverUrl || imageDraft?.dataUrl} alt="" loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover" />
                                     {imageUploading && imageUploadProgress ? (
@@ -1131,6 +1213,7 @@ function AssetLibrary() {
                 />
             </Modal>
 
+            {sharedLibraryOpen && <PlatformMaterialPicker open onClose={() => setSharedLibraryOpen(false)} onInsert={adoptSharedFiles} title="从共享文件库采用" confirmLabel={() => "采用"} />}
             <AssetDrawer
                 asset={previewAsset}
                 onClose={() => setPreviewAsset(null)}
@@ -1157,14 +1240,25 @@ function AssetLibrary() {
                 }
             />
 
-            <AssetBatchUploadModal open={batchUploadOpen} defaultFolderId={folderFilter !== "all" && folderFilter !== "uncategorized" ? folderFilter : ""} folders={folders} onClose={() => setBatchUploadOpen(false)} onComplete={async () => { setBatchUploadOpen(false); await invalidateAssetLibrary(); }} />
+            <AssetBatchUploadModal
+                open={batchUploadOpen}
+                defaultFolderId={folderFilter !== "all" && folderFilter !== "uncategorized" ? folderFilter : ""}
+                folders={folders}
+                onClose={() => setBatchUploadOpen(false)}
+                onComplete={async () => {
+                    setBatchUploadOpen(false);
+                    await invalidateAssetLibrary();
+                }}
+            />
 
             <Modal
                 className="library-modal library-confirm-modal"
                 title={folderEditor === "new" ? t("library.assets.folder.create") : t("library.assets.folder.rename")}
                 open={Boolean(folderEditor)}
                 confirmLoading={folderSaving}
-                onCancel={() => { if (!folderSaving) setFolderEditor(null); }}
+                onCancel={() => {
+                    if (!folderSaving) setFolderEditor(null);
+                }}
                 onOk={() => void saveFolder()}
                 okText={t("common.save")}
                 cancelText={t("common.cancel")}
@@ -1188,7 +1282,9 @@ function AssetLibrary() {
                 className="library-modal library-confirm-modal"
                 title={t("library.assets.archive.title")}
                 open={Boolean(archivingAsset)}
-                onCancel={() => { if (!batchWorking) setArchivingAsset(null); }}
+                onCancel={() => {
+                    if (!batchWorking) setArchivingAsset(null);
+                }}
                 onOk={() => {
                     if (archivingAsset) {
                         void changeAssetStatus([archivingAsset.id], "archived");
@@ -1205,7 +1301,9 @@ function AssetLibrary() {
                 className="library-modal library-confirm-modal"
                 title={t("library.assets.archive.batchTitle")}
                 open={batchArchiveOpen}
-                onCancel={() => { if (!batchWorking) setBatchArchiveOpen(false); }}
+                onCancel={() => {
+                    if (!batchWorking) setBatchArchiveOpen(false);
+                }}
                 onOk={() => void changeAssetStatus(selectedIds, "archived")}
                 confirmLoading={batchWorking}
                 cancelButtonProps={{ disabled: batchWorking }}
@@ -1230,7 +1328,9 @@ function AssetLibrary() {
                 className="library-modal library-confirm-modal"
                 title={t("library.assets.delete.batchTitle")}
                 open={batchDeleteOpen}
-                onCancel={() => { if (!batchWorking) setBatchDeleteOpen(false); }}
+                onCancel={() => {
+                    if (!batchWorking) setBatchDeleteOpen(false);
+                }}
                 onOk={() => void confirmBatchDelete()}
                 confirmLoading={batchWorking}
                 cancelButtonProps={{ disabled: batchWorking }}

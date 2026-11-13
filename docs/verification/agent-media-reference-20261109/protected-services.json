@@ -1,0 +1,26 @@
+{
+  "whole_session_all_unchanged": false,
+  "changed_outside_this_batch": [
+    {
+      "name": "/oceanway-news-candidate-api",
+      "kind": "added"
+    },
+    {
+      "name": "/oceanway-news-candidate-web",
+      "kind": "added"
+    },
+    {
+      "name": "/oceanway-news-verify-bbd1e18",
+      "kind": "added"
+    },
+    {
+      "name": "/oceanway-news-verify-db-bbd1e18",
+      "kind": "added"
+    }
+  ],
+  "unchanged_original_containers": 108,
+  "nginx_unchanged": true,
+  "console_unchanged": true,
+  "console_count": 2,
+  "deployment_local_snapshots_unchanged": true
+}

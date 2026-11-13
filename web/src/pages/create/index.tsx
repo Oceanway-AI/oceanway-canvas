@@ -1250,6 +1250,7 @@ export default function CreatePage() {
             const referenceAssetIds = assets.filter((asset) => (asset.kind === "image" || asset.kind === "video") && asset.data.storageKey && referenceKeys.has(asset.data.storageKey)).map((asset) => asset.id);
             const assetIds = [...generatedAssetIds, ...(platformIdentity ? [] : referenceAssetIds)];
             if (assetIds.length) await saveRemoteUserDataNow([]);
+            if (scope !== getActiveUserScope()) return;
             const result = await continueCreationConversationOnCanvas(source);
             if (scope !== getActiveUserScope()) return;
             const next = updateCreationConversationSnapshot(conversationsRef.current, source.id, (item) => ({ ...item, canvasId: result.id }));
@@ -1668,7 +1669,7 @@ export default function CreatePage() {
                                                 onRecoverMedia={() => void recoverMessageMedia(item)}
                                                 refreshingResult={resultRefreshIds.has(item.id)}
                                                 onCreateVariant={() => createVariant(item, index)}
-                                                onContinueCanvas={(ids) => void continueOnCanvas(ids)}
+                                                onContinueCanvas={(selection) => void continueOnCanvas(selection)}
                                                 openingCanvas={openingCanvas}
                                                 onEditUserMessage={(text) => {
                                                     setPrompt(text);

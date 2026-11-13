@@ -2,6 +2,32 @@
 
 2026-11-11 接续：当前分支 `codex/studio-native-parameter-bindings-20261111` 从 `73c77c7` 固定正式 SDK rc.7，完成 Gateway 原生 profile、动态参数、普通生成/Agent 冻结请求、固定 Resource 转画布及 Platform poster 接入。本地免费三型号联合浏览器验收、刷新恢复与专项检查通过；本批不推送应用或部署。具体范围、失败记录和未覆盖项见 [rc.7 联调记录](../verification/studio-native-rc7-20261111/README.md)。下文为原应用批次记录，旧 SDK/运行状态不代表本次源码。
 
+## 2026-11-09 模型供给最终候选接收
+
+已核对提供方会话完成，本地提交 `b20e4715b999df4ee1cedb9704f3f4f33e650347` 存在；其固定验收代码树与提交只差验收JSON。报告207前端/28顶层后端专项通过，未push/合并/部署。共享dirty和运行实例不等于候选制品；冻结样例仍属原发布源码摘要，未重新导出。本批仅补文档/证据清单，不开发、不重跑模型。双方版本、源码一致性检查和下一执行者顺序见 `docs/verification/model-supply-joint-20261109/README.md`；Studio固定 `f210dfa`＋交接 `ae7caa9`，SDKrc.6。下一步固定双仓版本免费复验，再按尺寸→参考组合→变体/Agent扩展参数推进。以下“Platform候选仍未提交”为此前时点状态。
+
+## 2026-11-09 Platform 模型设置联合消费首批
+
+已与模型供给会话建立分工，先Docs `f1fa61d0`、Studio合同 `13ab270` 与RED `2b25b89`，再实现 `f210dfa`。修正 `multipleOf` 相对零而非最小值的范围语义、音频 `audio` 别名及原生控件；采用提供方真实隔离HTTP发布/PG预览的合成图片和视频样例，经SDK→Studio投影→原控件/提交/同command恢复联验。图片样例明确输出映射未验证，作为拒绝用例保留，不称生成成功。
+
+99前端/431断言，Go race24顶层＋40子例/3包、type/lint/build/vet/格式及Docs检查通过；前端首轮2个旧视频夹具遗漏预算确认，补模拟后通过，产品门禁未放宽。详见 `docs/verification/model-supply-joint-20261109/README.md`，规范PLAT-04-029 §0、全局事实PROC-02-067。无push/部署/收费/旧失败重试。Platform候选仍未提交（HEAD7401e5cf＋源码集合摘要），尺寸预设/扩展限制、参考依赖/总数/首尾帧、非默认变体UI及Agent扩展参数留下一批；A3余项状态不变。
+
+## 2026-11-09 A3 首批引用保护
+
+独立 A2 工作区继续，规范与工作包已先更新于 oceanway-docs `200623f7`。RED `faa07bc/6ade364/ee83aaf/687db0c`，实现 `f12070b`：原引用收集器补会话结果与原生工具 JSON；新普通/Agent媒体 Task 保存安全固定输入 ID；原持久 Agent/Pi 文档及旧漏索引 Platform 画布历史参与保护；本地清理、资产强删、管理员和公告等原删除事务拒绝 Platform Resource。共享文件回收后原绑定仍可读取，新采用明确409。
+
+35顶层路由/引用专项与27子例通过；app race最终37顶层/32子例、handler race8顶层/7子例通过。首轮两项真实Node/Pi测试因缺依赖失败，按原锁安装后定向复验通过；不隐去首次失败。vet/build/格式/Docs检查通过，完整证据及命令见 `docs/verification/native-assets-a3-20261109/README.md`，全局Docs PROC-02-068。
+
+本批仅本机代码及免费夹具，不push、不部署、不调用模型、不改线上。A3整体仍在进行：完整release/outbox/project snapshot及旧加密执行引用投影、团队、权威元数据和规模性能待办。SDK rc.6无文件宽高/时长字段，提供方契约要求已写入DEV-STUDIO-07-004；不以客户端猜测补齐。不开放永久删除，不把SQLite/假Platform/Node夹具当作实际云或PG多进程验收。
+
+## 2026-11-09 协调侧真实 Agent 接续
+
+发布分支 `codex/studio-release-20261108`：`d04c2a6`、`809b5e3` 已部署18448后端，原web/Pi/schema95保持。本轮先文档和失败测试，再修复未确认额度被保存为可执行报价、Studio缺Skills原生路由，以及原Agent合同/摘要错误投影本地零预算。Skills使用共享原handler，预算仍由Platform控制，没有新增任务或授权框架。
+
+免费专项App42、Skills14、最终Handler33子例通过，取消/Skills race、原前端18测试42断言、策略/摘要回归、vet及amd64构建通过。真实浏览器已验取消报价/刷新不授权、拒绝零媒体请求；另建运行经明确250点上限与原生批准，只生成一次Mini参考视频，实际结算200.7878点。原茶壶图片固定版本作为输入，原worker归档一次、执行引用释放；进行中及完成后关页重开同任务，4节点2接线/资源/素材版本一致，Agent完成对话恢复，视频播放到4秒。
+
+完整证据见 `docs/verification/agent-media-reference-20261109/`，全局交接Docs PROC-02-067。无push、原失败未重试、Console不切换；两次测试发布均有备份。本批没有付费执行中的Backend/Pi重启，无画布媒体/团队完整ACL仍待验；Resource宽高/时长元数据尚未回填。优先接续C2图片202异步原ID恢复/另一视频系列，原表单和本批通过项不重复重做。以下为早期应用侧分工与历史记录，不覆盖本节。
+
 更新：2026-11-08。应用分支：`codex/studio-platform-application`；基线 `b05d71d`。此文件由应用侧会话写、主协调会话读。
 
 ## 分工和首发范围
@@ -159,3 +185,10 @@ F7 发布 schema const 与原件尺寸（2026-11-08）：协调侧报告 f6de329
 F7 验证：先保存 const 目录/Pi 与图片 DOM 失败日志，再运行 `go test ./internal/app ./internal/handler -run 'TestStudio|TestCloudAgentMedia' -count=1` 通过（含真实 Node/Pi）；platformintegration 全套通过。前端图片加载/重签、const/enum 视频、三版本提交/恢复、固定素材回填、真实首页/画布节点/审批卡共34项/143断言通过；typecheck、变更 ESLint/Prettier、gofmt及 diff whitespace 通过；Go server/Vite 构建通过。图片既有下载队列用例有 React act 提示，Vite 仍有既有动态导入/大chunk提示。未重复全量无关测试或 race，未运行真实PG/Redis/收费模型。
 
 证据位于 `.local/verification/studio-const-{red-go,green-go,green-web,regression-go,regression-web,typecheck,schema-go,build-go,build-web}.log` 和 `studio-image-dimensions-red-web.log`。仅应用侧修改，未部署、未修改远端配置、未提交收费生成。上线后由协调侧以新节点验收；历史画布已保存的320尺寸不自动批量改写。
+# 2026-11-08 真实视频验收修复
+
+真实视频用量可能略高于预估。沿用原生成按钮、Task 与 Agent 审批，在提交前明确区分预估积分和操作者确认的最高积分；上限被冻结在原命令中，取消不提交，账号切换不提交，未知响应只查询原命令。不得静默放大旧任务上限。
+
+先补失败回归，再连接原 Ant Design 确认弹窗；Agent 在原报价接口中选择上限，仍按原审批 ID / 报价 ID 执行。独立 W7 / Studio 发布与真实验收分别记录，生产 Console 不切换。
+
+23:43 发布及真实浏览器验收：`ff6a3ce`已部署18448，Platform `dba921b5`已部署18447；原Pi和material-worker保持。原生按钮分别生成一张gpt-image-2与一段Mini视频，确认上限20/250积分，实际20/200.7878积分；视频87,299 tokens的差额在原上限内通过原资金事务结算。两原件均通过原素材链入库，下载摘要一致，四派生可从测试CDN读取，画布重开后节点/Task/Resource/版本稳定且视频可播放。画布为0接线，不代验非空接线或进行中关页；Agent本批只有免费审批/额度测试。证据见[真实验收记录](../verification/native-media-actual-budget-20261108/README.md)，全局事实见Docs PROC-02-067。未推送Git，旧失败任务未重试，生产Console及受保护容器/nginx不变。

@@ -7,8 +7,8 @@ import { ImageSettingsTheme } from "@/components/image-settings-panel";
 import { boolConfig, isSeedanceFastModel, isSeedanceVideoConfig, normalizeSeedanceDuration, normalizeSeedanceRatio, normalizeSeedanceResolution, seedanceRatioOptions } from "@/lib/seedance-video";
 import { isVolcengineArkVideoProtocol } from "@/lib/model-protocols";
 import { type CanvasTheme } from "@/lib/canvas-theme";
-import { formatVideoResolutionLabel, isVideoResolutionMatch, normalizeVideoDuration, videoDimensionsForRatioAndResolution, videoResolutionComparisonKey, VIDEO_DURATION_MIN } from "@/lib/video-generation-options";
-import { modelCapabilityConfigFor, resolveVideoRatioValue, resolveVideoResolutionValue, videoDurationOptions, type VideoCapabilityConfig } from "@/lib/model-capabilities";
+import { formatVideoResolutionLabel, isVideoResolutionMatch, normalizeVideoDuration, videoDimensionsForRatioAndResolution, videoResolutionComparisonKey } from "@/lib/video-generation-options";
+import { modelCapabilityConfigFor, normalizeVideoValue, resolveVideoRatioValue, resolveVideoResolutionValue, videoDurationOptions, videoDurationRange, type VideoCapabilityConfig } from "@/lib/model-capabilities";
 import { modelOptionName, resolveModelChannel, resolveModelRequestConfig, type AiConfig } from "@/stores/use-config-store";
 
 const sizeOptions = [
@@ -39,14 +39,16 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
         );
     const profile = modelCapabilityConfigFor(config, config.model).video!;
     const priceTiers = modelPriceTiers(config);
-    if (resolveModelRequestConfig(config, config.model).interfaceType === "volcengine-jimeng-video") {
+    const channel = resolveModelChannel(config, config.model);
+    const published = Boolean(channel.modelCosts?.find((item) => item.model === modelOptionName(config.model))?.platform);
+    if (!published && resolveModelRequestConfig(config, config.model).interfaceType === "volcengine-jimeng-video") {
         return <JiMengVideoSettingsPanel config={config} profile={profile} priceTiers={priceTiers} onConfigChange={onConfigChange} theme={theme} showTitle={showTitle} className={className} />;
     }
-    if (isSeedanceVideoConfig(config)) {
+    if (!published && isSeedanceVideoConfig(config)) {
         return <SeedanceVideoSettingsPanel config={config} profile={profile} priceTiers={priceTiers} onConfigChange={onConfigChange} theme={theme} showTitle={showTitle} className={className} />;
     }
 
-    const seconds = normalizeVideoDuration(config.videoSeconds);
+    const seconds = normalizeVideoValue(profile, { seconds: config.videoSeconds }).seconds;
     const resolution = resolveVideoResolutionValue(profile, config.vquality);
     const ratio = resolveVideoRatioValue(profile, config.size);
     const dimensions = videoDimensionsForRatioAndResolution(ratio, resolution);
@@ -274,9 +276,9 @@ function DimensionValue({ prefix, value, theme }: { prefix: string; value: numbe
     );
 }
 
-function DurationInput({ value, min, max, theme, onChange }: { value: number; min: number; max?: number; theme: CanvasTheme; onChange: (value: number) => void }) {
+function DurationInput({ value, min, max, step = 1, theme, onChange }: { value: number; min: number; max?: number; step?: number; theme: CanvasTheme; onChange: (value: number) => void }) {
     const commit = (input: HTMLInputElement) => {
-        const next = Math.min(max || Number.POSITIVE_INFINITY, Math.max(min, Math.floor(Number(input.value) || value || min)));
+        const next = normalizeDurationValue(input.value === "" ? value : Number(input.value), value, min, max ?? Number.POSITIVE_INFINITY, step);
         input.value = String(next);
         onChange(next);
     };
@@ -289,6 +291,7 @@ function DurationInput({ value, min, max, theme, onChange }: { value: number; mi
                 inputMode="numeric"
                 min={min}
                 max={max}
+                step={step}
                 defaultValue={value}
                 aria-label="视频时长（秒）"
                 className="min-w-0 flex-1 bg-transparent pl-2 text-right outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -307,9 +310,7 @@ function DurationInput({ value, min, max, theme, onChange }: { value: number; mi
 
 function VideoDurationControl({ profile, value, theme, disabled, onChange }: { profile: VideoCapabilityConfig; value: number; theme: CanvasTheme; disabled?: (value: number) => boolean; onChange: (value: number) => void }) {
     if (profile.duration.selection === "range") {
-        const min = profile.duration.min || VIDEO_DURATION_MIN;
-        const max = Math.max(min, profile.duration.max || min);
-        const step = Math.max(1, profile.duration.step || 1);
+        const { min, max, step } = videoDurationRange(profile);
         const normalized = normalizeDurationValue(value, profile.duration.default, min, max, step);
         return (
             <DurationRangeControl
@@ -374,7 +375,7 @@ function DurationRangeControl({ value, min, max, step, theme, onChange }: { valu
                     onChange={(event) => onChange(Number(event.target.value))}
                     onMouseDown={(event) => event.stopPropagation()}
                 />
-                <DurationInput value={value} min={min} max={max} theme={theme} onChange={onChange} />
+                <DurationInput value={value} min={min} max={max} step={step} theme={theme} onChange={onChange} />
             </div>
             <div className="flex justify-between px-0.5 text-[var(--fs-tiny)]" style={{ color: theme.node.muted }}>
                 <span>{min}s</span>
@@ -386,13 +387,13 @@ function DurationRangeControl({ value, min, max, step, theme, onChange }: { valu
 
 function normalizeDurationValue(value: number, fallback: number, min: number, max: number, step: number) {
     const candidate = Number.isFinite(value) ? value : fallback;
-    const clamped = Math.min(max, Math.max(min, Math.floor(candidate)));
-    const maxStep = Math.max(0, Math.floor((max - min) / step));
-    return min + Math.min(maxStep, Math.max(0, Math.round((clamped - min) / step))) * step;
+    const clamped = Math.min(max, Math.max(min, candidate));
+    const maxStep = Math.max(0, Math.floor((max - min) / step + 1e-8));
+    return Number((min + Math.min(maxStep, Math.max(0, Math.round((clamped - min) / step))) * step).toPrecision(12));
 }
 
 function normalizedNumber(value: number) {
-    return Number.isFinite(value) ? Math.floor(value) : 0;
+    return Number.isFinite(value) ? value : 0;
 }
 
 function SizePreview({ width, height, color }: { width: number; height: number; color: string }) {

@@ -11,6 +11,50 @@ import (
 	"yingce/backend/internal/model"
 )
 
+// Browsing the shared library is an account read, not Resource adoption.
+func (s *Service) StudioMaterialBrowseAccess(ctx context.Context, session platformclient.SessionContext, request platformclient.AccessRequest) (platformclient.AccessResponse, *platformclient.Response, error) {
+	empty := platformclient.AccessResponse{}
+	if len(request.Items) < 1 || len(request.Items) > 100 {
+		return empty, nil, BadAuthRequest("每批素材访问须为 1–100 项")
+	}
+	items := map[string]platformclient.AccessItem{}
+	for _, item := range request.Items {
+		if item.ItemID == "" || items[item.ItemID].ItemID != "" || !studioMaterialID.MatchString(item.AssetID) || !studioMaterialID.MatchString(item.VersionID) || item.BindingID != "" {
+			return empty, nil, BadAuthRequest("素材访问身份无效")
+		}
+		if !((item.Purpose == "display" && (item.Variant == "thumbnail" || item.Variant == "preview" || item.Variant == "poster" || item.Variant == "playback")) || (item.Purpose == "download" && item.Variant == "original")) {
+			return empty, nil, BadAuthRequest("素材浏览用途无效")
+		}
+		items[item.ItemID] = item
+	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	result, err := s.studioPlatform.Client.CurrentMaterials(session).Access(ctx, request)
+	if err != nil {
+		return empty, result.Response, studioMaterialError(err)
+	}
+	if len(result.Data.Results) != len(items) {
+		return empty, result.Response, NewAppError(502, "素材访问响应不完整")
+	}
+	for _, access := range result.Data.Results {
+		item, exists := items[access.ItemID]
+		if !exists || access.AssetID != item.AssetID || access.VersionID != item.VersionID || access.RequestedVariant != item.Variant {
+			return empty, result.Response, NewAppError(502, "素材访问响应不匹配")
+		}
+		delete(items, access.ItemID)
+		if access.Status != "ready" {
+			continue
+		}
+		u, urlErr := url.Parse(access.URL)
+		expires, expErr := time.Parse(time.RFC3339, access.ExpiresAt)
+		refresh, refreshErr := time.Parse(time.RFC3339, access.RefreshAt)
+		if urlErr != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Fragment != "" || expErr != nil || refreshErr != nil || !expires.After(time.Now()) || refresh.After(expires) || access.Revision == "" || access.FileID == "" || access.ActualVariant != item.Variant {
+			return empty, result.Response, NewAppError(502, "素材访问凭据无效")
+		}
+	}
+	return result.Data, result.Response, nil
+}
+
 func (s *Service) StudioResourceAccess(ctx context.Context, user *model.User, session platformclient.SessionContext, requests []ResourceAccessRequest) ([]ResourceAccessResult, *platformclient.Response, error) {
 	if user == nil || !user.PlatformAuthenticated || user.PlatformSessionID == "" {
 		return nil, nil, Unauthorized("登录状态已失效")

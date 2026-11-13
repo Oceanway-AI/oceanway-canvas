@@ -12,6 +12,8 @@ import type { ExternalAssetPickerReference } from "@/lib/plugins/plugin-types";
 import { useAssetStore, type Asset } from "@/stores/use-asset-store";
 import { PlatformMaterialPicker } from "@/components/assets/platform-material-picker";
 
+import { useUserStore } from "@/stores/use-user-store";
+
 type InsertableAsset = Extract<Asset, { kind: "text" | "image" | "video" | "audio" }>;
 
 export type InsertAssetPayload =
@@ -49,7 +51,8 @@ export function AssetPickerModal({ open, multiple = true, onInsert, onClose }: P
 export function OACAssetPickerModal({ open, multiple = true, onInsert, onClose }: Props) {
     const { t } = useTranslation();
     const assets = useAssetStore((state) => state.assets);
-    const externalAssetSources = useExternalAssetSources(open);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const externalAssetSources = useExternalAssetSources(open && !platformIdentity);
     const insertableAssets = useMemo(() => assets.filter((asset): asset is InsertableAsset => asset.kind === "text" || asset.kind === "image" || asset.kind === "video" || asset.kind === "audio"), [assets]);
     const items = useMemo<AssetLibraryPickerItem[]>(
         () => [
@@ -73,7 +76,7 @@ export function OACAssetPickerModal({ open, multiple = true, onInsert, onClose }
     return (
         <AssetLibraryPickerModal
             remoteLibrary
-            allowCharacters
+            allowCharacters={!platformIdentity}
             acceptRemoteItems
             open={open}
             mediaKinds={["image", "video", "audio", "text"]}

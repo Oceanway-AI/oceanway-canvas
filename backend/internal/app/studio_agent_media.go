@@ -17,6 +17,7 @@ import (
 
 type StudioAgentMediaQuote struct {
 	ID              string         `json:"id"`
+	EstimatedPoints string         `json:"estimatedPoints"`
 	WalletMaxPoints string         `json:"walletMaxPoints"`
 	PriceVersion    string         `json:"priceVersion"`
 	ExpiresAt       time.Time      `json:"expiresAt"`
@@ -211,7 +212,7 @@ func (s *Service) requestStudioAgentMediaApproval(run *model.CloudAgentExecution
 	})
 }
 
-func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, session platformclient.SessionContext, runID, approvalID string) (*StudioAgentMediaQuote, *platformclient.Response, error) {
+func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, session platformclient.SessionContext, runID, approvalID string, maximum ...string) (*StudioAgentMediaQuote, *platformclient.Response, error) {
 	response := &platformclient.Response{Header: make(http.Header)}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -242,14 +243,22 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 		return nil, response, err
 	}
 	req.Platform = &StudioTaskOptions{VariantID: selected.ID, ExpectedPriceVersion: selected.Price.Version}
+	if len(maximum) > 0 {
+		if len(maximum) != 1 || !studioValidDecimal(maximum[0]) {
+			return nil, response, BadAuthRequest("请提供本次生成的平台积分上限")
+		}
+		req.Platform.WalletMaxPoints = maximum[0]
+	}
 	preview, err := s.studioPreviewMedia(ctx, session, req, selected, body, response, false)
 	if err != nil {
 		return nil, response, err
 	}
-	req.Platform.WalletMaxPoints = preview.WalletPoints
 	id := cloudAgentID(userID, runID+":media:"+approvalID)
-	public, _ := json.Marshal(map[string]any{"mode": selected.Kind, "metadata": studioTaskMetadata(req.Input)})
-	task := model.Task{ID: id, UserID: userID, ProjectID: state.Request.CanvasID, AgentRunID: runID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: string(public), Status: model.TaskStatusQueued, Stage: "等待已批准的平台媒体任务"}
+	public, err := studioPublicTaskInput(selected.Kind, req)
+	if err != nil {
+		return nil, response, err
+	}
+	task := model.Task{ID: id, UserID: userID, ProjectID: state.Request.CanvasID, AgentRunID: runID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: public, Status: model.TaskStatusQueued, Stage: "等待已批准的平台媒体任务"}
 	canvas, err := s.repo.CanvasProjectForUser(userID, state.Request.CanvasID)
 	if err != nil {
 		return nil, response, err
@@ -270,7 +279,12 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 	if err != nil {
 		return nil, response, err
 	}
-	quote := StudioAgentMediaQuote{ID: newID(), WalletMaxPoints: preview.WalletPoints, PriceVersion: preview.PriceVersion, ExpiresAt: time.Now().Add(cloudAgentMediaQuoteLifetime), Parameters: parameters}
+	if len(maximum) == 0 {
+		// Reading an estimate must not create approval authority. A cancelled
+		// confirmation or reconnect leaves the original approval unchanged.
+		return &StudioAgentMediaQuote{EstimatedPoints: preview.WalletPoints, PriceVersion: preview.PriceVersion, Parameters: parameters}, response, nil
+	}
+	quote := StudioAgentMediaQuote{ID: newID(), EstimatedPoints: preview.WalletPoints, WalletMaxPoints: req.Platform.WalletMaxPoints, PriceVersion: preview.PriceVersion, ExpiresAt: time.Now().Add(cloudAgentMediaQuoteLifetime), Parameters: parameters}
 	prepared := studioAgentMediaPrepared{Envelope: studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, AgentRunID: runID, ContentType: "application/json", Body: body, Consumption: studioMediaConsumption(preview, req.Platform)}, Request: req, Plan: *plan, DependencyHash: dependency, Quote: quote}
 	encrypted, err := s.encryptStudioValue(prepared)
 	if err != nil {

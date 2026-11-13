@@ -1,0 +1,25 @@
+# Add only for the isolated HTTPS test entry; no host nginx reload required.
+services:
+  edge:
+    image: nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    ports:
+      - "0.0.0.0:18448:8443"
+      - "0.0.0.0:18450:8444"
+    volumes:
+      - ./deploy/studio/nginx.test.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt/live/test.oceanway.tech:/etc/letsencrypt/live/test.oceanway.tech:ro
+      - /etc/letsencrypt/archive/test.oceanway.tech:/etc/letsencrypt/archive/test.oceanway.tech:ro
+    networks: [default, ingress]
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    mem_limit: 128m
+    pids_limit: 64
+networks:
+  ingress: {}

@@ -36,6 +36,9 @@ func (r *Repository) DeleteDetachedResources(resources []model.Resource, deletio
 		if len(current) != len(resources) {
 			return ErrResourceCleanupSetChanged
 		}
+		if err := requireLocalResourceDeletion(current); err != nil {
+			return err
+		}
 		// The service performs exact JSON parsing before entering this transaction.
 		// This conservative second check closes the common race where an Asset or
 		// canvas is attached after that snapshot but before Resource deletion.
