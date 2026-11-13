@@ -2,11 +2,46 @@ package app
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
 	"yingce/backend/internal/platformintegration"
 )
+
+func TestStudioCatalogWirePreservesPresentationGroupsAndNativeExtensions(t *testing.T) {
+	body := []byte(`{"success":true,"data":{"items":[{"model_name":"b","model_series":"GPT","presentation":{"tags":["精细编辑"],"health":{"state":"no_data","success_rate":null}},"media_generation_profile":{"future":{"exact":9007199254740993}}},{"model_name":"a","logical_model":"Image","price":{"display_items":[{"amount":"0.00000000123456789"}]}}],"groups":[{"key":"g","model_names":["a","b"],"health":{"sample_count":101,"success_count":100,"success_rate":99.01}}]}}`)
+	models, groups, err := studioCatalogWire(&platformclient.Response{Body: body}, []platformclient.Model{{ModelName: "a"}, {ModelName: "b"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(models["b"]), "9007199254740993") || !strings.Contains(string(models["a"]), "0.00000000123456789") {
+		t.Fatal("wire precision or exact ID mapping lost")
+	}
+	catalog := PublicChannelCatalog{PlatformGroups: groups, Models: []PublicChannelModel{{Platform: models["b"]}}}
+	raw, err := json.Marshal(catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"model_series":"GPT"`, `"tags":["精细编辑"]`, `"success_rate":null`, `"success_rate":99.01`, `9007199254740993`} {
+		if !strings.Contains(string(raw), want) {
+			t.Fatalf("lost public display contract: %s", want)
+		}
+	}
+}
+
+func TestStudioCatalogWireRejectsMismatchedOrHiddenMembers(t *testing.T) {
+	for _, body := range []string{
+		`{"success":false,"data":{"items":[{"model_name":"a"}]}}`,
+		`{"success":true,"data":{"items":[{"model_name":"b"}]}}`,
+		`{"success":true,"data":{"items":[{"model_name":"a"},{"model_name":"a"}]}}`,
+		`{"success":true,"data":{"items":[{"model_name":"a"}],"groups":[{"model_names":["hidden"]}]}}`,
+	} {
+		if _, _, err := studioCatalogWire(&platformclient.Response{Body: []byte(body)}, []platformclient.Model{{ModelName: "a"}}); err == nil {
+			t.Fatal("accepted inconsistent catalog")
+		}
+	}
+}
 
 func TestStudioCatalogUsesInstalledOACProtocols(t *testing.T) {
 	for _, tc := range []struct {

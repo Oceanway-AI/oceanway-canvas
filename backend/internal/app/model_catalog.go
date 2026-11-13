@@ -6,8 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/Oceanway-AI/oceanway-platform/platformclient"
-
 	"yingce/backend/internal/logging"
 	"yingce/backend/internal/model"
 )
@@ -58,16 +56,17 @@ type PublicModelAvailabilityDay struct {
 
 // PublicChannelCatalog 公开的渠道目录信息（脱敏）
 type PublicChannelCatalog struct {
-	ID          string               `json:"id"`
-	Name        string               `json:"name"`
-	DisplayName string               `json:"displayName"`
-	SortOrder   int                  `json:"sortOrder"`
-	Models      []PublicChannelModel `json:"models"`
+	PlatformGroups json.RawMessage      `json:"platformGroups,omitempty"`
+	ID             string               `json:"id"`
+	Name           string               `json:"name"`
+	DisplayName    string               `json:"displayName"`
+	SortOrder      int                  `json:"sortOrder"`
+	Models         []PublicChannelModel `json:"models"`
 }
 
 // PublicChannelModel 公开的渠道模型信息（脱敏）
 type PublicChannelModel struct {
-	Platform          *platformclient.Model         `json:"platform,omitempty"`
+	Platform          json.RawMessage               `json:"platform,omitempty"`
 	UnavailableReason string                        `json:"unavailableReason,omitempty"`
 	ID                string                        `json:"id"`
 	ModelKey          string                        `json:"modelKey"`

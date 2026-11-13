@@ -1,0 +1,47 @@
+{
+  "verified": true,
+  "parent_test": "TestPlatformModelPresentationStudioLivePostgres",
+  "child_test": "TestStudioCatalogPresentationLivePlatform",
+  "parent_top_level_pass": 1,
+  "child_top_level_pass": 1,
+  "failed": 0,
+  "skipped": 0,
+  "race": "parent and child",
+  "sdk": {
+    "version": "v0.1.0",
+    "replace": false
+  },
+  "counts": {
+    "callable_models": 3,
+    "groups": 2,
+    "image_variants": 2,
+    "provider_catalog_reads": 3,
+    "generation_requests": 0,
+    "tasks": 0,
+    "operations": 0,
+    "quota_holds": 0,
+    "quota_ledger": 0
+  },
+  "checks": [
+    "actual production Platform router and owned PostgreSQL",
+    "actual published SDK and Studio TCP router",
+    "exact model and group public wire (except collection timestamps)",
+    "personal 0.5 prices on text and both images",
+    "weighted image health 100/101 = 99.01%",
+    "text no_data with null percentage",
+    "eligible hidden model excluded including health",
+    "anonymous Studio catalog returns 401 before catalog provider",
+    "private manifest explicitly removed and temporary directory cleaned"
+  ],
+  "source_stable": true,
+  "cluster_stopped": true,
+  "cleanup": "Owned cluster stopped and temporary role/database/cluster directory removed",
+  "finished_at_utc": "2026-11-12T18:43:37.519232+00:00",
+  "limits": [
+    "controlled model records and SQL health samples, not paid generation",
+    "new presentation SDK types remain candidate; released v0.1.0 forwards the actual wire losslessly",
+    "Studio host database is owned in-memory SQLite; Platform database is real PostgreSQL16",
+    "no browser evidence claimed for this isolated live response",
+    "no deployment, shared-runtime restart, commit, push or SDK release"
+  ]
+}

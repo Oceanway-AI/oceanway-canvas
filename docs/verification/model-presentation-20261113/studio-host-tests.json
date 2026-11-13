@@ -1,0 +1,8 @@
+{"Time":"2026-11-13T02:24:51.682784+08:00","Action":"start","Package":"yingce/backend/internal/handler"}
+{"Time":"2026-11-13T02:24:52.763862+08:00","Action":"run","Package":"yingce/backend/internal/handler","Test":"TestStudioCatalogPresentationHTTP"}
+{"Time":"2026-11-13T02:24:52.763944+08:00","Action":"output","Package":"yingce/backend/internal/handler","Test":"TestStudioCatalogPresentationHTTP","Output":"=== RUN   TestStudioCatalogPresentationHTTP\n"}
+{"Time":"2026-11-13T02:24:53.650517+08:00","Action":"output","Package":"yingce/backend/internal/handler","Test":"TestStudioCatalogPresentationHTTP","Output":"--- PASS: TestStudioCatalogPresentationHTTP (0.89s)\n"}
+{"Time":"2026-11-13T02:24:53.65055+08:00","Action":"pass","Package":"yingce/backend/internal/handler","Test":"TestStudioCatalogPresentationHTTP","Elapsed":0.89}
+{"Time":"2026-11-13T02:24:53.650571+08:00","Action":"output","Package":"yingce/backend/internal/handler","Output":"PASS\n"}
+{"Time":"2026-11-13T02:24:53.655983+08:00","Action":"output","Package":"yingce/backend/internal/handler","Output":"ok  \tyingce/backend/internal/handler\t1.973s\n"}
+{"Time":"2026-11-13T02:24:53.656022+08:00","Action":"pass","Package":"yingce/backend/internal/handler","Elapsed":1.9729999999999999}

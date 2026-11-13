@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-11-12T18:22:57.602455+00:00",
+  "head": "00396bccd051fe4000e61dd5cb859aedb138f3ba",
+  "files": {
+    "web/src/components/model-picker.tsx": "a2f1ff973049e218ffb280b7f3b9e0d6434a48fa0650395303ba706a12375edf",
+    "web/src/lib/model-picker-groups.ts": "a609063c1c684071f86e763d61ec5a01b45c3f5a5410812d6e122380a9b285d7",
+    "web/src/lib/platform-models.ts": "29cc060d1b09e5d1637ca849494204f79e5dc1e11224dfbc002240da52d97ff7",
+    "web/src/lib/user-session.ts": "e197b1bd56084a731efb58a73bcd85054ce219811e41ecd41d200910381a2b8b",
+    "web/src/services/api/logical-models.ts": "dfda44852ce285ae092d90006008d9413fb20eee9929ddfd4c341dc2375a99fe",
+    "web/src/stores/use-config-store.ts": "7036101cc510f8bc9ad0fe9906d9b74f8123cfa2ac66de4cdc64a103c446bb19",
+    "web/src/stores/use-model-catalog-store.ts": "66f1bf05c8c2cdd16549c26d3a1c7996f779792e548b74a0ea7d399bf7cdc781",
+    "web/src/styles/shared/model-picker.css": "ac7f713d6628d9350701fe4fd7d2b90e5e370e06449e36832fb0dcaccec78281",
+    "web/test/model-catalog-refresh.test.ts": "59dd12ffbf0244f2a4569ffaad097a7faeaa9a4e15fed9d00664881a1bcfac62",
+    "web/test/model-picker-groups.test.ts": "4283a66e73d247e43f5b91aa21eec0f8e28e8e21ff29cb6c7458a35a48227345",
+    "web/test/model-picker-style-source.test.ts": "20c9e90ad6ca398adf4a3651b2c24ed43662a365395e9fb2dae2303a635b9628",
+    "web/test/platform-model-presentation.test.ts": "6845b4f1f1b0eb8e822e5ae2e663796abb7855f01ae7c91c9336eb039e6e9687"
+  }
+}

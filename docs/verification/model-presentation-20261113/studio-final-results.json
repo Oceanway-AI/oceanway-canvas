@@ -1,0 +1,36 @@
+{
+  "completed_at": "2026-11-12T18:23:45.388970+00:00",
+  "source_files_changed_during_checks": [],
+  "checks": [
+    {
+      "name": "targeted_tests",
+      "command": "bun test test/model-picker-groups.test.ts test/platform-model-presentation.test.ts test/model-picker-style-source.test.ts test/platform-catalog.test.ts test/model-catalog-refresh.test.ts test/platform-session-reopen.test.ts test/model-picker-prices.test.tsx test/model-picker-availability-runs.test.ts",
+      "exit_code": 0,
+      "top_level_pass": 34,
+      "fail": 0,
+      "assertions": 180,
+      "files": 8,
+      "log": "studio-final-tests.log"
+    },
+    {
+      "name": "typecheck",
+      "command": "bun run typecheck",
+      "exit_code": 0,
+      "log": "studio-final-typecheck.log"
+    },
+    {
+      "name": "lint",
+      "command": "bun run lint",
+      "exit_code": 0,
+      "log": "studio-final-lint.log"
+    },
+    {
+      "name": "build",
+      "command": "bunx vite build",
+      "exit_code": 0,
+      "log": "studio-final-build.log",
+      "warning": "Existing chunk size warning (>500 kB); build succeeded."
+    }
+  ],
+  "scope": "Current isolated Studio worktree; no service startup, shared-runtime changes, paid calls, or Platform PostgreSQL rerun."
+}
