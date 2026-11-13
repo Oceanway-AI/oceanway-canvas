@@ -14,7 +14,11 @@ import { flushCanvasStorePersistence, useCanvasStore } from "@/stores/canvas/use
 import { useUserStore } from "@/stores/use-user-store";
 import { RelativeTime } from "@/components/ui/product/relative-time";
 
-const RECENT_COUNT = 4;
+const RECENT_COUNT = 3;
+const STUDIO_EXAMPLES = [
+    { title: "品牌视觉探索", image: "/oceanway-workspace/brand-visual-board.webp" },
+    { title: "产品概念图", image: "/oceanway-workspace/product-concept-board.webp" },
+] as const;
 
 export function CreationRecentCanvases({ onRequireLogin }: { onRequireLogin: () => void }) {
     const { t } = useTranslation();
@@ -118,6 +122,20 @@ export function CreationRecentCanvases({ onRequireLogin }: { onRequireLogin: () 
                                     </small>
                                 </span>
                             </Link>
+                        </div>
+                    ))
+                ) : !userId ? (
+                    STUDIO_EXAMPLES.map((example) => (
+                        <div key={example.title} className="creation-canvas-strip-item" role="listitem">
+                            <button type="button" className="creation-canvas-tile" onClick={onRequireLogin}>
+                                <span className="creation-canvas-thumbnail">
+                                    <img src={example.image} alt={example.title} loading="lazy" />
+                                </span>
+                                <span className="creation-canvas-copy">
+                                    <strong>{example.title}</strong>
+                                    <small>灵感示例 · 登录后创作</small>
+                                </span>
+                            </button>
                         </div>
                     ))
                 ) : (

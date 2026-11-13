@@ -10,10 +10,10 @@ afterEach(() => {
 });
 
 describe("canvas theme ownership", () => {
-    test("defaults to black while allowing an explicit light theme", () => {
-        expect(useCanvasThemeStore.getInitialState().theme).toBe("dark");
-        useCanvasThemeStore.getState().setTheme("light");
-        expect(useCanvasThemeStore.getState().theme).toBe("light");
+    test("defaults to Ocean Air light while preserving an explicit dark preference", () => {
+        expect(useCanvasThemeStore.getInitialState().theme).toBe("light");
+        useCanvasThemeStore.getState().setTheme("dark");
+        expect(useCanvasThemeStore.getState().theme).toBe("dark");
     });
     test("editing the canvas theme never mutates the workspace preference", () => {
         useThemeStore.setState({ theme: "light" });
@@ -36,6 +36,6 @@ describe("canvas theme ownership", () => {
     });
     test("persistence source contract excludes transient route state", async () => {
         const source = await Bun.file(new URL("../src/stores/canvas/use-canvas-theme-store.ts", import.meta.url)).text();
-        expect(source).toContain('partialize: ({ theme }) => ({ theme })');
+        expect(source).toContain("partialize: ({ theme }) => ({ theme })");
     });
 });

@@ -21,6 +21,7 @@ import { AuthSessionHydrator } from "@/components/auth/auth-session-hydrator";
 import { AppFeedbackProvider } from "@/components/layout/app-feedback";
 import { FullScreenLoader } from "@/components/ui/aceternity/full-screen-loader";
 import { getAntThemeConfig } from "@/lib/app-theme";
+import { getOceanwayAntThemeConfig } from "@/lib/oceanway-theme";
 import { applySkinTheme } from "@/lib/skin-themes";
 import { appQueryClient } from "@/lib/query-client";
 import { isIsolatedPrevisRepro } from "@/lib/dev-repro";
@@ -49,7 +50,7 @@ function ClientRootBoundary({ children }: { children: ReactNode }) {
     );
 }
 
-export function AppProviders({ children }: { children: ReactNode }) {
+export function AppProviders({ children, oceanway = true }: { children: ReactNode; oceanway?: boolean }) {
     const theme = useActiveTheme();
     const dark = theme === "dark";
     const appearance = useAppearanceStore((state) => state.appearance);
@@ -89,7 +90,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         // 两个汉字的按钮（取消、确定）不再被 antd 拉开字距，与其他按钮的文字节奏一致。
         // I18nextProvider 放在最外层，antd 浮层与懒加载模块都能取到同一实例。
         <I18nextProvider i18n={i18n}>
-            <ConfigProvider locale={ANTD_LOCALES[locale]} theme={getAntThemeConfig(dark, appearance.activeSkin)} wave={{ disabled: true }} button={{ autoInsertSpace: false }}>
+            <ConfigProvider locale={ANTD_LOCALES[locale]} theme={oceanway ? getOceanwayAntThemeConfig(dark, appearance.activeSkin) : getAntThemeConfig(dark, appearance.activeSkin)} wave={{ disabled: true }} button={{ autoInsertSpace: false }}>
                 <AppFeedbackProvider>
                     <QueryClientProvider client={appQueryClient}>
                         {isolateDevRepro ? (
