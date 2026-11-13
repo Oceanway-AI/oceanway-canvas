@@ -46,7 +46,7 @@ const (
 	defaultAppearanceSkinID    = "classic"
 	defaultAppearanceLogoURL   = "/oceanway/oceanway-ai-symbol-blue.svg"
 	defaultAppearanceVideoURL  = ""
-	defaultAppearancePosterURL = "/oceanway-workspace/particle-wave-premium.webp"
+	defaultAppearancePosterURL = ""
 	defaultAppearanceHeroTitle = "让灵感，\n自由流动。"
 	defaultRedeemPurchaseURL   = "" // 默认不配置购买链接，前端为空时不展示入口
 )

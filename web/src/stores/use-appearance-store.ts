@@ -19,7 +19,7 @@ export const DEFAULT_PUBLIC_APPEARANCE: PublicAppearance = {
     darkLogoUrl: "/oceanway/oceanway-ai-symbol-blue.svg",
     logoFrameEnabled: false,
     authVideoUrl: "",
-    authVideoPosterUrl: "/oceanway-workspace/particle-wave-premium.webp",
+    authVideoPosterUrl: "",
     authVideoAutoplay: true,
     skinId: "classic",
     activeSkin: DEFAULT_CLASSIC_SKIN,
