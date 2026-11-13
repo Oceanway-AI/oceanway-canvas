@@ -149,6 +149,8 @@ export function CreationWorkspaceToolbar({
 
 type ComposerProps = {
     variant: "empty" | "thread";
+    guest: boolean;
+    onRequireLogin: () => void;
     mode: CreationMode;
     prompt: string;
     setPrompt: (value: string) => void;
@@ -537,19 +539,27 @@ export function CreationComposer(props: ComposerProps) {
                             </button>
                         </Tooltip>
                     ) : null}
-                    <ModelPicker
-                        config={props.config}
-                        value={props.model}
-                        onChange={props.onModelChange}
-                        capability={props.mode}
-                        requirements={props.modelRequirements}
-                        className="creation-model-picker"
-                        placeholder={`选择${modeLabels[props.mode]}模型`}
-                        showSelectedPrice={false}
-                        showOptionPrices
-                        variant="creation"
-                    />
-                    {!modelAvailable ? <span role="status">当前模式暂无可用模型，请选择其他模式或稍后重试</span> : null}
+                    {props.guest ? (
+                        <button type="button" className="creation-chat-control" onClick={props.onRequireLogin}>
+                            登录后选择{modeLabels[props.mode]}模型
+                        </button>
+                    ) : (
+                        <>
+                            <ModelPicker
+                                config={props.config}
+                                value={props.model}
+                                onChange={props.onModelChange}
+                                capability={props.mode}
+                                requirements={props.modelRequirements}
+                                className="creation-model-picker"
+                                placeholder={`选择${modeLabels[props.mode]}模型`}
+                                showSelectedPrice={false}
+                                showOptionPrices
+                                variant="creation"
+                            />
+                            {!modelAvailable ? <span role="status">当前模式暂无可用模型，请选择其他模式或稍后重试</span> : null}
+                        </>
+                    )}
                     {nativeMediaProfile(props.config, props.model) || (props.mode === "video" && props.videoProfile) || (props.mode === "image" && imageSettingsSupported) ? <GenerationSettingsMenu {...props} /> : null}
                     {props.mode === "video" && props.videoProfile && !nativeMediaProfile(props.config, props.model) ? <DurationMenu profile={props.videoProfile} seconds={props.seconds} onChange={props.setSeconds} /> : null}
                     {props.mode === "text" ? (

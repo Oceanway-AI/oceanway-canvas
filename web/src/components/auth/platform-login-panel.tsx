@@ -12,7 +12,8 @@ export function PlatformLoginPanel({ next }: { next: string }) {
         try {
             const result = await getPlatformLoginURL();
             const target = new URL(result.url);
-            if (target.protocol !== "https:" || target.username || target.password) throw new Error("登录地址不可用");
+            const localPreview = window.location.protocol === "http:" && window.location.hostname === "127.0.0.1" && target.protocol === "http:" && target.hostname === window.location.hostname && target.pathname === "/login";
+            if ((!localPreview && target.protocol !== "https:") || target.username || target.password) throw new Error("登录地址不可用");
             rememberPlatformLoginNext(next);
             window.location.assign(target.href);
         } catch {

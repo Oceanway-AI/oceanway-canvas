@@ -1421,6 +1421,8 @@ export default function CreatePage() {
     };
 
     const composerProps = {
+        guest: userSessionHydrated && !userId,
+        onRequireLogin: () => openAuth({ preferDialog: true }),
         mode,
         prompt,
         setPrompt,
