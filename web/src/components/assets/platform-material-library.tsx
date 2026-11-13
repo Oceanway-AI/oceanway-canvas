@@ -11,15 +11,15 @@ import type { InsertAssetPayload } from "@/components/canvas/asset-picker-modal"
 import { AppModal } from "@/components/ui/product/app-modal";
 import { downloadBrowserMedia } from "@/services/browser-download";
 
-type Props = { onInsert?: (items: InsertAssetPayload[]) => Promise<unknown> | void; multiple?: boolean; compact?: boolean };
+type Props = { onInsert?: (items: InsertAssetPayload[]) => Promise<unknown> | void; multiple?: boolean; compact?: boolean; imageReferences?: boolean };
 const labels: Record<string, string> = { image: "图片", video: "视频", audio: "音频", document: "文档" };
 
-export function PlatformMaterialLibrary({ onInsert, multiple = true, compact = false }: Props) {
+export function PlatformMaterialLibrary({ onInsert, multiple = true, compact = false, imageReferences }: Props) {
     const userId = useUserStore((state) => state.user?.id);
-    return <MaterialLibrary key={userId || "anonymous"} onInsert={onInsert} multiple={multiple} compact={compact} />;
+    return <MaterialLibrary key={userId || "anonymous"} onInsert={onInsert} multiple={multiple} compact={compact} imageReferences={imageReferences} />;
 }
 
-function MaterialLibrary({ onInsert, multiple, compact }: Props) {
+function MaterialLibrary({ onInsert, multiple, compact, imageReferences }: Props) {
     const { message } = App.useApp();
     const userId = useUserStore((state) => state.user?.id);
     const queryClient = useQueryClient();
@@ -32,7 +32,7 @@ function MaterialLibrary({ onInsert, multiple, compact }: Props) {
         };
     }, []);
     const [page, setPage] = useState(1);
-    const [kind, setKind] = useState("");
+    const [kind, setKind] = useState(imageReferences ? "image" : "");
     const [search, setSearch] = useState("");
     const [selected, setSelected] = useState<PlatformMaterialAsset[]>([]);
     const [busy, setBusy] = useState(false);
@@ -87,6 +87,7 @@ function MaterialLibrary({ onInsert, multiple, compact }: Props) {
             for (const file of files) {
                 assertCurrent();
                 setUploadStatus(`正在准备 ${file.name}`);
+                if (imageReferences && !file.type.startsWith("image/")) throw new Error("请选择参考图片");
                 const fileKind = file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : file.type.startsWith("audio/") ? "audio" : "file";
                 await uploadResourceFile(file, fileKind, { fileName: file.name }, (loaded, total) => {
                     if (mounted.current) setUploadStatus(loaded === total ? `正在确认 ${file.name}` : `正在上传 ${file.name} · ${Math.round((100 * loaded) / total)}%`);
@@ -110,7 +111,7 @@ function MaterialLibrary({ onInsert, multiple, compact }: Props) {
                     }}
                     className={compact ? "w-full" : "max-w-xs"}
                 />
-                <Select
+                {!imageReferences && <Select
                     aria-label="素材类型"
                     value={kind}
                     onChange={(value) => {
@@ -118,7 +119,7 @@ function MaterialLibrary({ onInsert, multiple, compact }: Props) {
                         setPage(1);
                     }}
                     options={[{ value: "", label: "全部类型" }, ...Object.entries(labels).map(([value, label]) => ({ value, label }))]}
-                />
+                />}
                 <Button aria-label="刷新素材" icon={<RefreshCw className="size-4" />} loading={query.isFetching} onClick={() => void query.refetch()} />
                 <Button icon={<Upload className="size-4" />} disabled={busy} onClick={() => fileInput.current?.click()}>
                     上传
@@ -127,6 +128,7 @@ function MaterialLibrary({ onInsert, multiple, compact }: Props) {
                     hidden
                     ref={fileInput}
                     type="file"
+                    accept={imageReferences ? "image/*" : undefined}
                     multiple
                     onChange={(event) => {
                         const files = Array.from(event.target.files || []);
@@ -198,7 +200,7 @@ function MaterialLibrary({ onInsert, multiple, compact }: Props) {
                 </Button>
                 {onInsert ? (
                     <Button type="primary" disabled={!selected.length || busy} loading={busy && !uploadStatus} onClick={() => void insert()}>
-                        插入 {selected.length || ""} 项
+                        {imageReferences ? "添加参考图" : "插入"} {selected.length || ""} 项
                     </Button>
                 ) : null}
             </div>

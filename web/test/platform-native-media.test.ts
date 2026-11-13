@@ -156,3 +156,10 @@ test("creation selects a published edit only for attached images and retains com
     image.platform!.media_generation_profile!.variants = [generate, edit, { ...edit, id: "another" }];
     expect(nativeCreationSettings(cfg, selected, saved, true).settings.nativeVariantId).toBe("generate");
 });
+
+test("Platform controls discard API-only and stale overrides while retaining explicit zero", () => {
+    const variant = nativeMediaVariant(config)!;
+    const source = { ...variant, workbench_parameters: ["/seed"], defaults: { "/seed": 3, "/n": 1 } };
+    expect(nativeParameterValues(source, '{"/seed":0,"/n":8}')).toEqual({ "/seed": 0 });
+    expect(nativeParameterValues({ ...source, workbench_parameters: [] }, '{"/n":8}')).toEqual({});
+});

@@ -34,7 +34,10 @@ test("Platform upload uses credential-free tickets and recovers a lost completio
                 throw new Error("connection lost after commit");
             } else if (config.url === "/resources/platform-uploads/local_1") {
                 expect(completed).toBe(true);
-                data = { id: "local_1", upload: { protocol: "oceanway.materials.v2", upload_id: "up_1", state: "ready" }, resource: { id: "resource_1", status: "ready", provider: "platform" } };
+                data = { id: "local_1", upload: { protocol: "oceanway.materials.v2", upload_id: "up_1", state: "ready", asset: { asset_id: "asset1", version: { asset_id: "asset1", version_id: "version1" }, file: { sha256: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", byte_length: "5" } } } };
+            } else if (config.url === "/resources/adopt") {
+                expect(JSON.parse(config.data)).toMatchObject({assetId:"asset1",versionId:"version1"});
+                data = {resource: { id: "resource_1", status: "ready", provider: "platform" }};
             } else throw new Error(`Unexpected API ${config.url}`);
             return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data } };
         };
@@ -49,7 +52,7 @@ test("Platform upload uses credential-free tickets and recovers a lost completio
         const resource = await uploadResourceFile(new Blob(["hello"], { type: "text/plain" }), "file", { fileName: "hello.txt", idempotencyKey: "logical:upload:1" }, (loaded, total) => progress.push([loaded, total]));
         expect(resource.id).toBe("resource_1");
         expect(command).toMatch(/^[a-zA-Z0-9_-]+$/);
-        expect(calls).toEqual(["post /resources/platform-uploads", "post /resources/platform-uploads/local_1/complete", "get /resources/platform-uploads/local_1"]);
+        expect(calls).toEqual(["post /resources/platform-uploads", "post /resources/platform-uploads/local_1/complete", "get /resources/platform-uploads/local_1", "post /resources/adopt"]);
         expect(progress).toEqual([[5, 5]]);
     } finally {
         apiClient.defaults.adapter = adapter;

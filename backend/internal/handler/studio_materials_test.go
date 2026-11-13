@@ -108,6 +108,10 @@ func TestStudioMaterialsUploadAdoptRecoverAndAccess(t *testing.T) {
 	f.request(t, "POST", path+"/complete", "platform_session=bob", `{"parts":[]}`, 404)
 	f.request(t, "POST", path+"/complete", "platform_session=alice", `{"parts":[{"part_number":1,"etag":"opaque"}]}`, 503)
 	w = f.request(t, "GET", path, "platform_session=alice", "", 200)
+	if bindCreates != 0 || confirms != 0 || !strings.Contains(w.Body.String(), `"asset_id":"asset_1"`) {
+		t.Fatal("status polling must return the sealed asset without creating a binding")
+	}
+	w = f.request(t, "POST", "/api/resources/adopt", "platform_session=alice", `{"assetId":"asset_1","versionId":"version_1"}`, 200)
 	var done struct {
 		Data struct {
 			Resource model.Resource `json:"resource"`

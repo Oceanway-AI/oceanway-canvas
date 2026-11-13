@@ -111,7 +111,7 @@ func (s *Service) StudioCreateUpload(ctx context.Context, userID string, session
 	if err != nil {
 		return nil, c.response, studioMaterialError(err)
 	}
-	out, err := c.uploadResult(u, result.Data)
+	out, err := c.uploadResult(u, result.Data, true)
 	return out, c.response, err
 }
 
@@ -149,11 +149,11 @@ func (s *Service) StudioUploadStatus(ctx context.Context, userID string, session
 	if err != nil {
 		return nil, c.response, studioMaterialError(err)
 	}
-	out, err := c.uploadResult(u, result.Data)
+	out, err := c.uploadResult(u, result.Data, complete != nil)
 	return out, c.response, err
 }
 
-func (c *studioMaterialCall) uploadResult(u *model.StudioMaterialUpload, result platformclient.UploadSession) (*StudioUploadResult, error) {
+func (c *studioMaterialCall) uploadResult(u *model.StudioMaterialUpload, result platformclient.UploadSession, adopt bool) (*StudioUploadResult, error) {
 	if !studioMaterialID.MatchString(result.UploadID) || result.CommandID != u.CommandID || (u.UploadID != "" && u.UploadID != result.UploadID) {
 		return nil, NewAppError(502, "上传身份响应不匹配")
 	}
@@ -171,7 +171,17 @@ func (c *studioMaterialCall) uploadResult(u *model.StudioMaterialUpload, result 
 			return nil, NewAppError(502, "上传文件响应不匹配")
 		}
 		var err error
-		out.Resource, err = c.adopt(*result.Asset, in.StudioResourceMeta)
+		if adopt {
+			out.Resource, err = c.adopt(*result.Asset, in.StudioResourceMeta)
+		} else {
+			// Browsers omit Origin on same-origin reads. A status poll must
+			// never create or confirm a binding on the user's behalf.
+			id := studioMaterialResourceID(c.userID, *result.Asset)
+			out.Resource, err = c.s.repo.WithContext(c.ctx).ResourceForUser(c.userID, id)
+			if errors.Is(err, gorm.ErrRecordNotFound) || err == nil && out.Resource.Status != model.ResourceStatusReady {
+				out.Resource, err = nil, nil
+			}
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -206,6 +216,10 @@ func (s *Service) StudioAdoptMaterial(ctx context.Context, userID string, sessio
 	return res, c.response, err
 }
 
+func studioMaterialResourceID(userID string, a platformclient.Asset) string {
+	return uuid.NewSHA1(uuid.NameSpaceURL, []byte("studio-material\n"+userID+"\n"+a.AssetID+"\n"+a.Version.VersionID)).String()
+}
+
 func (c *studioMaterialCall) adopt(a platformclient.Asset, meta StudioResourceMeta) (*model.Resource, error) {
 	owner, err := strconv.ParseInt(a.Owner.ID, 10, 64)
 	if err != nil || owner <= 0 || strconv.FormatInt(owner, 10) != a.Owner.ID || a.Owner.Kind != "account" || uuid.NewSHA1(uuid.NameSpaceURL, []byte(c.s.studioPlatform.Origin()+"\n"+a.Owner.ID)).String() != c.userID {
@@ -215,7 +229,7 @@ func (c *studioMaterialCall) adopt(a platformclient.Asset, meta StudioResourceMe
 	if err != nil || size <= 0 || a.State != "ready" || a.File.State != "ready" || !studioMaterialID.MatchString(a.AssetID) || !studioMaterialID.MatchString(a.Version.VersionID) || !studioMaterialID.MatchString(a.File.FileID) || a.Version.AssetID != a.AssetID || a.Version.FileID != a.File.FileID || !studioSHA256.MatchString(a.File.SHA256) {
 		return nil, NewAppError(502, "素材文件身份无效")
 	}
-	id := uuid.NewSHA1(uuid.NameSpaceURL, []byte("studio-material\n"+c.userID+"\n"+a.AssetID+"\n"+a.Version.VersionID)).String()
+	id := studioMaterialResourceID(c.userID, a)
 	kind := a.Kind
 	if kind == "document" {
 		kind = "file"

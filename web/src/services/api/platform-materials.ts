@@ -16,7 +16,7 @@ export type PlatformMaterialStorage = { limit_bytes: string; used_bytes: string;
 type Ticket = { part_number: number; method: string; url: string; headers: Record<string, string>; expires_at: string };
 type Upload = {
     id: string;
-    upload: { protocol: string; upload_id: string; state: string; byte_length?: string; part_size?: string; tickets?: Ticket[]; retry_after_seconds?: number };
+    upload: { protocol: string; upload_id: string; state: string; byte_length?: string; part_size?: string; asset?: PlatformMaterialAsset; tickets?: Ticket[]; retry_after_seconds?: number };
     resource?: RemoteResource;
 };
 
@@ -110,6 +110,11 @@ export async function uploadPlatformResource(file: Blob, name: string, meta: Res
         assertCurrent();
         validUpload(result, id, uploadId);
         if (result.upload.state === "ready") {
+            const asset = result.upload.asset;
+            if (!result.resource && asset?.asset_id && asset.version?.asset_id === asset.asset_id && asset.version.version_id && asset.file?.sha256 === digest && asset.file.byte_length === String(file.size)) {
+                result.resource = await adoptPlatformMaterial(asset.asset_id, asset.version.version_id, meta);
+                assertCurrent();
+            }
             if (!result.resource?.id || result.resource.status !== "ready" || result.resource.provider !== "platform") throw new Error("素材尚未完成采用，请查询原上传");
             return result.resource;
         }

@@ -16,6 +16,7 @@ export type NativeImageOutputSize = {
     max_aspect_ratio: number;
 };
 export type NativeMediaVariant = {
+    workbench_parameters?: string[];
     id: string;
     gateway_protocol: string;
     defaults: Record<string, unknown>;
@@ -45,7 +46,7 @@ export function nativeMediaVariantOptions(variants: NativeMediaVariant[]) {
             })
             .join(" + ");
         const mode = references || (variant.gateway_protocol.endsWith(".video") ? "文生视频" : "无参考素材");
-        return { value: variant.id, label: `${variant.gateway_protocol} · ${mode}` };
+        return { value: variant.id, label: variant.workbench_parameters ? mode : `${variant.gateway_protocol} · ${mode}` };
     });
     return options.map((option, i) => (options.some((other, j) => j !== i && other.label === option.label) ? { ...option, label: `${option.label} · ${variants[i].native_request_variant.id || option.value}` } : option));
 }
@@ -78,7 +79,7 @@ export function nativeCreationSettings(config: AiConfig, model: string, saved: P
     const values = nativeParameterValues(referenceVariant);
     const previous = nativeParameterObject(base.nativeParameters);
     for (const [key, field] of Object.entries(referenceVariant.specifications_schema.properties)) {
-        if (Object.hasOwn(previous, key) && JSON.stringify(field) === JSON.stringify(variant.specifications_schema.properties[key])) values[key] = previous[key];
+        if ((!referenceVariant.workbench_parameters || referenceVariant.workbench_parameters.includes(key)) && Object.hasOwn(previous, key) && JSON.stringify(field) === JSON.stringify(variant.specifications_schema.properties[key])) values[key] = previous[key];
     }
     return { settings: { nativeVariantId: referenceVariant.id, nativeParameters: JSON.stringify(values) }, referenceVariant };
 }
@@ -102,13 +103,15 @@ export function nativeParameterValues(variant: NativeMediaVariant, raw?: string)
     for (const [pointer, field] of Object.entries(variant.specifications_schema.properties)) {
         if (!(pointer in values) && Object.hasOwn(field, "const")) values[pointer] = field.const;
     }
-    return { ...values, ...nativeParameterObject(raw) };
+    const merged = { ...values, ...nativeParameterObject(raw) };
+    if (!variant.workbench_parameters) return merged;
+    return Object.fromEntries(variant.workbench_parameters.filter((key) => Object.hasOwn(merged, key)).map((key) => [key, merged[key]]));
 }
 
 export function nativeMediaDefaults(config: AiConfig, model: string, explicit: Pick<AiConfig, "nativeParameters" | "nativeVariantId"> = {}) {
     const variant = nativeMediaVariant(config, model, explicit.nativeVariantId || "");
     if (!variant) return { nativeVariantId: explicit.nativeVariantId || "", nativeParameters: explicit.nativeParameters || "{}" };
-    return { nativeVariantId: variant.id, nativeParameters: explicit.nativeParameters ?? JSON.stringify(nativeParameterValues(variant)) };
+    return { nativeVariantId: variant.id, nativeParameters: variant.workbench_parameters ? JSON.stringify(nativeParameterValues(variant, explicit.nativeParameters)) : explicit.nativeParameters ?? JSON.stringify(nativeParameterValues(variant)) };
 }
 
 export function nativeMediaSummary(config: AiConfig) {
@@ -116,18 +119,24 @@ export function nativeMediaSummary(config: AiConfig) {
     if (!variant) return "选择模型参数";
     try {
         const values = nativeParameterValues(variant, config.nativeParameters);
-        return nativeParameterSummary(values);
+        return nativeParameterSummary(values, Boolean(variant.workbench_parameters));
     } catch {
         return "参数格式无效";
     }
 }
 
-export function nativeParameterSummary(values: Record<string, unknown>) {
+export function creativeParameterLabel(pointer: string, title?: string) {
+    const labels: Record<string, string> = { size: "尺寸", imageSize: "分辨率", resolution: "分辨率", quality: "画质", aspectRatio: "画幅", aspect_ratio: "画幅", ratio: "画幅", duration: "时长", seconds: "时长", generate_audio: "生成音频", n: "生成数量", output_format: "输出格式", output_compression: "压缩率", background: "背景", seed: "随机种子" };
+    const leaf = pointer.split("/").at(-1) || pointer;
+    return labels[leaf] || title || leaf;
+}
+
+export function nativeParameterSummary(values: Record<string, unknown>, creative = false) {
     return (
         Object.entries(values)
             .filter(([, v]) => ["string", "number", "boolean"].includes(typeof v))
             .slice(0, 3)
-            .map(([k, v]) => `${k.split("/").at(-1)} ${v}`)
+            .map(([k, v]) => `${creative ? creativeParameterLabel(k) : k.split("/").at(-1)} ${creative && v === "auto" ? "自动" : v}`)
             .join(" · ") || "模型参数"
     );
 }
