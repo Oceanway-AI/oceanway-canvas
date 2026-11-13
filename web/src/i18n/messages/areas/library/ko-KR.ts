@@ -182,6 +182,18 @@ export const koKR: DeepStringRecord<typeof zhCN> = {
         },
     },
     assets: {
+        platform: {
+            reference: "참고 이미지 선택",
+            addReferences: "참고 이미지 {{count}}장 추가",
+            document: "문서",
+            uploaded: "업로드",
+            generated: "생성한 에셋",
+            source: "출처",
+            upload: "에셋 업로드",
+            search: "이름 또는 태그로 검색",
+            saved: "에셋을 저장했습니다",
+            saveFailed: "에셋을 저장할 수 없습니다",
+        },
         density: {
             comfortable: "넓게",
             standard: "표준",

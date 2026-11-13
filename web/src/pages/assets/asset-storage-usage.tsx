@@ -8,7 +8,7 @@ import { progressFillStyle } from "@/lib/progress-fill";
 
 export const assetStorageUsageQueryKey = accountFileStorageUsageQueryKey;
 
-export function AssetStorageUsage() {
+export function AssetStorageUsage({ canPurchase = true }: { canPurchase?: boolean }) {
     const { t } = useTranslation();
     const query = useAccountFileStorageUsage();
     const usage = query.data;
@@ -44,9 +44,9 @@ export function AssetStorageUsage() {
                         <span style={progressFillStyle(meter.percent)} />
                     </span>
                     <span className="assets-storage-usage-percent">{meter.percentLabel}</span>
-                    <button type="button" className="assets-storage-usage-action" onClick={() => openStoragePurchase()}>
+                    {canPurchase ? <button type="button" className="assets-storage-usage-action" onClick={() => openStoragePurchase()}>
                         {showUpsell ? t("library.assets.storage.expand") : t("library.assets.storage.buy")}
-                    </button>
+                    </button> : null}
                 </>
             ) : query.isError ? (
                 <span className="assets-storage-usage-status">

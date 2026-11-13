@@ -107,3 +107,43 @@ func (s *Service) StudioResourceAccess(ctx context.Context, user *model.User, se
 	}
 	return results, c.response, nil
 }
+
+// Browsing the account library only needs read access to a fixed asset version.
+// A resource binding is created separately when the user inserts it in Studio.
+func (s *Service) StudioLibraryFile(ctx context.Context, user *model.User, session platformclient.SessionContext, asset, version, variant string) (string, *platformclient.Response, error) {
+	if !studioMaterialID.MatchString(asset) || !studioMaterialID.MatchString(version) {
+		return "", nil, BadAuthRequest("素材版本无效")
+	}
+	purpose := "display"
+	switch variant {
+	case "thumbnail", "poster", "preview", "playback":
+	case "original":
+		purpose = "download"
+	default:
+		return "", nil, BadAuthRequest("素材文件类型无效")
+	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	materials := s.studioPlatform.Client.CurrentMaterials(session)
+	if session.Origin == "" {
+		var err error
+		materials, err = s.studioMaterialReadAuthority(ctx, user, session)
+		if err != nil {
+			return "", nil, err
+		}
+	}
+	result, err := materials.Access(ctx, platformclient.AccessRequest{Items: []platformclient.AccessItem{{ItemID: "file", AssetID: asset, VersionID: version, Variant: variant, Purpose: purpose}}})
+	if err != nil {
+		return "", result.Response, studioMaterialError(err)
+	}
+	if len(result.Data.Results) != 1 || result.Data.Results[0].Status != "ready" {
+		return "", result.Response, NotFound("素材文件尚未就绪或不可访问")
+	}
+	item := result.Data.Results[0]
+	u, err := url.Parse(item.URL)
+	expires, expiryErr := time.Parse(time.RFC3339, item.ExpiresAt)
+	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Fragment != "" || expiryErr != nil || !expires.After(time.Now()) {
+		return "", result.Response, NewAppError(502, "素材访问凭据无效")
+	}
+	return item.URL, result.Response, nil
+}

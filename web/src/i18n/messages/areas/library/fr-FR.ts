@@ -182,6 +182,18 @@ export const frFR: DeepStringRecord<typeof zhCN> = {
         },
     },
     assets: {
+        platform: {
+            reference: "Choisir des images de référence",
+            addReferences: "Ajouter {{count}} références",
+            document: "Documents",
+            uploaded: "Imports",
+            generated: "Créations générées",
+            source: "Source",
+            upload: "Importer des fichiers",
+            search: "Rechercher par nom ou tag",
+            saved: "Fichiers enregistrés",
+            saveFailed: "Impossible d’enregistrer le fichier",
+        },
         density: {
             comfortable: "Confortable",
             standard: "Standard",

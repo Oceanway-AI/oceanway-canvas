@@ -181,6 +181,18 @@ export const zhCN = {
         },
     },
     assets: {
+        platform: {
+            reference: "选择参考图",
+            addReferences: "添加 {{count}} 张参考图",
+            document: "文档",
+            uploaded: "我的上传",
+            generated: "创作生成",
+            source: "素材来源",
+            upload: "上传素材",
+            search: "按名称或标签搜索",
+            saved: "素材已保存",
+            saveFailed: "素材保存失败",
+        },
         density: {
             comfortable: "舒适",
             standard: "标准",

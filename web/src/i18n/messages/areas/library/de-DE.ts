@@ -182,6 +182,18 @@ export const deDE: DeepStringRecord<typeof zhCN> = {
         },
     },
     assets: {
+        platform: {
+            reference: "Referenzbilder wählen",
+            addReferences: "{{count}} Referenzbilder hinzufügen",
+            document: "Dokumente",
+            uploaded: "Uploads",
+            generated: "Generiert",
+            source: "Quelle",
+            upload: "Dateien hochladen",
+            search: "Nach Namen oder Tags suchen",
+            saved: "Dateien gespeichert",
+            saveFailed: "Datei konnte nicht gespeichert werden",
+        },
         density: {
             comfortable: "Großzügig",
             standard: "Standard",

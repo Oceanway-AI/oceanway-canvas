@@ -6,7 +6,6 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 
-import { AppModal } from "@/components/ui/product/app-modal";
 import type { InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import type { AssetLibraryPickerItem } from "@/components/assets/asset-library-picker-modal";
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
@@ -89,7 +88,7 @@ import { CreationAgentEntry } from "./creation-agent-entry";
 import { createCreationSubmitGate } from "./creation-submit-gate";
 import { creationVideoConfig } from "./creation-generation-config";
 
-const PlatformMaterialLibrary = lazy(() => import("@/components/assets/platform-material-library").then((module) => ({ default: module.PlatformMaterialLibrary })));
+const PlatformMaterialPicker = lazy(() => import("@/components/assets/platform-material-picker").then((module) => ({ default: module.PlatformMaterialPicker })));
 const AssetLibraryPickerModal = lazy(() => import("@/components/assets/asset-library-picker-modal").then((module) => ({ default: module.AssetLibraryPickerModal })));
 const InspirationHall = lazy(() => import("@/pages/inspirations"));
 const loadCreationRuntime = () => import("./creation-runtime");
@@ -738,6 +737,18 @@ export default function CreatePage() {
             attachment: creationAttachmentFromImage(file, uploaded),
         };
     };
+    const addPlatformImages = (items: InsertAssetPayload[]) => {
+        const next: CreationAttachment[] = items.flatMap((item) => item.kind === "image" && item.storageKey ? [{
+            id: item.storageKey, name: item.title, type: item.mimeType || "image/png", storageKey: item.storageKey,
+            dataUrl: item.dataUrl, previewUrl: item.dataUrl, url: item.dataUrl, width: item.width, height: item.height, bytes: item.bytes,
+        }] : []);
+        const candidates = [...attachments, ...next.filter((item) => !attachments.some((current) => current.storageKey === item.storageKey))];
+        const result = reconcileCreationAttachmentLimit(candidates, [], maxReferences);
+        if (result.attachments.length < candidates.length) toast.warning(t("create.page.referenceLimitExceeded"));
+        setAttachments(result.attachments);
+        setLibraryOpen(false);
+    };
+
     const uploadLibraryAssets = async (files: FileList | File[]) => {
         const next = Array.from(files).filter((file) => creationFileAccepted(mode, file));
         if (!next.length) return [];
@@ -752,18 +763,6 @@ export default function CreatePage() {
         if (assetIds.length) toast.success(t("create.page.uploadSucceeded", { count: assetIds.length }));
         if (failed.length) toast.error(t("create.page.uploadFailed", { count: failed.length }));
         return assetIds;
-    };
-
-    const addPlatformImages = (items: InsertAssetPayload[]) => {
-        const next: CreationAttachment[] = items.flatMap((item) => item.kind === "image" && item.storageKey ? [{
-            id: item.storageKey, name: item.title, type: item.mimeType || "image/png", storageKey: item.storageKey,
-            dataUrl: item.dataUrl, previewUrl: item.dataUrl, url: item.dataUrl, width: item.width, height: item.height, bytes: item.bytes,
-        }] : []);
-        const candidates = [...attachments, ...next.filter((item) => !attachments.some((current) => current.storageKey === item.storageKey))];
-        const result = reconcileCreationAttachmentLimit(candidates, [], maxReferences);
-        if (result.attachments.length < candidates.length) toast.warning(t("create.page.referenceLimitExceeded"));
-        setAttachments(result.attachments);
-        setLibraryOpen(false);
     };
 
     const handleLibrarySelect = async (selectedIds: string[], pickedItems = libraryItems) => {
@@ -1685,9 +1684,7 @@ export default function CreatePage() {
             {libraryOpen ? (
                 <Suspense fallback={null}>
                     {platformIdentity && mode === "image" ? (
-                        <AppModal title="选择参考图" open={libraryOpen} onCancel={() => setLibraryOpen(false)} footer={null} width={800}>
-                            <PlatformMaterialLibrary compact imageReferences onInsert={addPlatformImages} />
-                        </AppModal>
+                        <PlatformMaterialPicker open={libraryOpen} imageReferences onClose={() => setLibraryOpen(false)} onInsert={addPlatformImages} />
                     ) : <AssetLibraryPickerModal
                         remoteLibrary
                         acceptRemoteItems

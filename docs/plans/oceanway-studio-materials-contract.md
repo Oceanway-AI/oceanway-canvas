@@ -4,12 +4,15 @@
 
 ## HTTP 与持久化
 
+- 素材卡片和档案按固定 asset/version 读取封面、预览、播放或下载链接。浏览不会创建 Resource 或素材绑定；已采用的本账号 Resource 可以补充宽高和时长。签名地址不写入素材元数据。
+- 编辑标题、标签、移入或恢复回收站使用当前用户的 `PATCH /api/materials/assets/:id`。回收站的删除由 Platform 检查现有引用。创作参考图和画布采用共用 OAC 选择器，选入时才请求 `POST /api/resources/adopt`。
+
 - `POST /api/resources/platform-uploads`：保存按用户隔离的上传意图后，用稳定 command_id 请求上传票据。同一个命令不同文件参数返回冲突；未知创建响应只可重用原命令。
 - `GET /api/resources/platform-uploads/:id`、`POST .../:id/complete`：先查本地上传归属，再查询或完成同一 Platform upload_id。pending 不等于成功，丢失完成响应查询原上传，不重开上传。
 - 上传票据由浏览器独立请求，`credentials: omit`、禁止重定向；不经过带登录态的业务 http 客户端。SDK 不上传原件；Studio 不落原件。
 - `POST /api/resources/adopt`：按指定 asset/version 从 Platform 读取完整信息、验证账号与 file 身份；先保存 pending Resource 与映射，再以固定 command_id 绑定该 Resource，确认 active 后返回 ready。绑定响应未知时按 command_id 恢复，重试不新建 Resource 或换版本。
 - `GET /api/resources/:id` 与 `POST /api/resources/access`：本地所有权校验后解析固定映射。展示 original 意图映射为 Platform preview/playback，明确实际变体；不把缩略图失败降级为原件。download/copy/browser-process 使用 original。浏览器不能请求 provider-input；执行 worker 后续按任务绑定申请。
-- `GET /api/materials/assets` 与 `GET /api/materials/storage`：当前会话 SDK 只读列表与容量，不建立第二套容量计算。
+- `GET /api/materials/assets` 与 `GET /api/materials/storage`：当前会话 SDK 读取列表与容量。Studio 的唯一资产页是 OAC 原生 `/assets`，原卡片、标签、密度、筛选和素材档案直接使用这些数据。标签与标题在 Platform 保存，搜索支持两者。
 - `POST /api/auth/session`：浏览器使用真实 Origin 验证身份并通过 SDK IssueMaterial 获取仅限素材的委托授权；服务端加密缓存，以用户、Host 和 Identity 返回的 SID 摘要隔离。Cookie 更新或无关 Cookie 不改变归属；其他 SID 不复用授权，过期需重新初始化。`GET /auth/session` 只读身份，不签发授权。
 - `GET /api/resources/:id/file`：每次先验证当前平台会话及本地归属。无 Origin 的浏览器媒体 GET 使用该 SID 的 WorkerMaterials 授权申请访问；不伪造 Origin，不向 WorkerMaterials 发送 Cookie。访问始终带固定 binding_id，授权不存在返回 409 `material_authorization_required`，撤销会话立即拒绝。
 - 画布媒体持久化以本人 ready Resource 和完整 asset/version/file/binding 映射为准，不要求额外 OAC Asset。前端不再为采用的素材补造本地资产或等待旧 `/assets` 同步；普通本地资源仍保留原有守卫。

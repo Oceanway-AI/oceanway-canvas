@@ -7,7 +7,7 @@ import { AudioPlayButton, CharacterAssetCover } from "@/components/assets/asset-
 import { CachedResourceImage } from "@/components/cached-resource-image";
 import { StatusBadge } from "@/components/ui/base/badges";
 import { useCopyText } from "@/hooks/use-copy-text";
-import { currentLocale } from "@/i18n";
+import { currentLocale, translate } from "@/i18n";
 import { arkAssetStatusTone, arkCertificationBadgeKey, arkCertificationExpired, formatArkDate, type ArkLibraryProgress } from "@/lib/ark-assets";
 import { cn } from "@/lib/utils";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
@@ -41,10 +41,10 @@ export function AssetsBatchBar({
     pageLoading?: boolean;
     onSelectAll: () => void;
     onClear: () => void;
-    onExport: () => void;
+    onExport?: () => void;
     onRestore?: () => void;
     onArchive?: () => void;
-    onDelete: () => void;
+    onDelete?: () => void;
 }) {
     return (
         <div className="assets-batch-bar" role="toolbar" aria-label="批量操作">
@@ -69,15 +69,15 @@ export function AssetsBatchBar({
                     </>
                 ) : (
                     <>
-                        <Button size="small" disabled={!count || busy} icon={<Download className="size-3.5" />} onClick={onExport}>
+                        {onExport ? <Button size="small" disabled={!count || busy} icon={<Download className="size-3.5" />} onClick={onExport}>
                             导出
-                        </Button>
+                        </Button> : null}
                         <Button size="small" disabled={!count || busy} icon={<Trash2 className="size-3.5 text-amber-500" />} onClick={onArchive}>
                             移入回收站
                         </Button>
-                        <Button size="small" danger disabled={!count || busy} icon={<Trash2 className="size-3.5" />} onClick={onDelete}>
+                        {onDelete ? <Button size="small" danger disabled={!count || busy} icon={<Trash2 className="size-3.5" />} onClick={onDelete}>
                             彻底删除
-                        </Button>
+                        </Button> : null}
                     </>
                 )}
             </div>
@@ -91,7 +91,7 @@ export const assetsEmptyBannerFrames = [
     { src: "/short-drama-styles/suspense-noir.jpg", caption: "ASSET.03 · 暗巷追逐" },
 ];
 
-export function AssetsEmptyState({ onNew, onImport, onGoCanvas }: { onNew: () => void; onImport: () => void; onGoCanvas: () => void }) {
+export function AssetsEmptyState({ onNew, onImport, onGoCanvas, uploadOnly = false }: { uploadOnly?: boolean; onNew: () => void; onImport: () => void; onGoCanvas: () => void }) {
     const brandName = useAppearanceStore((state) => state.appearance.brandName);
     return (
         <div className="assets-empty">
@@ -111,16 +111,16 @@ export function AssetsEmptyState({ onNew, onImport, onGoCanvas }: { onNew: () =>
                     <span className="assets-empty-card-icon">
                         <Plus />
                     </span>
-                    <strong>新建素材</strong>
-                    <span>录入提示词、说明文案，或上传图片资产。</span>
+                    <strong>{uploadOnly ? translate("library.assets.platform.upload") : "新建素材"}</strong>
+                    {!uploadOnly ? <span>录入提示词、说明文案，或上传图片资产。</span> : null}
                 </button>
-                <button type="button" className="assets-empty-card" onClick={onImport}>
+                {!uploadOnly ? <button type="button" className="assets-empty-card" onClick={onImport}>
                     <span className="assets-empty-card-icon">
                         <FileUp />
                     </span>
                     <strong>导入素材包</strong>
                     <span>从素材压缩包一键恢复旧资产，继续创作。</span>
-                </button>
+                </button> : null}
                 <button type="button" className="assets-empty-card" onClick={onGoCanvas}>
                     <span className="assets-empty-card-icon">
                         <Clapperboard />
@@ -145,7 +145,7 @@ export function AssetFilterGroup({
     title: string;
     options: Array<{ label: string; value: string }>;
     value: string;
-    counts: Map<string, number>;
+    counts?: Map<string, number>;
     /** 选项图标，按 option.value 取；缺省的选项只显示文字。 */
     icons?: Partial<Record<string, LucideIcon>>;
     onChange: (value: string) => void;
@@ -168,7 +168,7 @@ export function AssetFilterGroup({
                             ) : (
                                 <span className="assets-filter-item-label">{option.label}</span>
                             )}
-                            <span className="assets-filter-count">{counts.get(option.value) || 0}</span>
+                            {counts?.has(option.value) ? <span className="assets-filter-count">{counts.get(option.value)}</span> : null}
                         </button>
                     );
                 })}
@@ -251,12 +251,14 @@ export function AssetDrawer({
     onClose,
     onCopy,
     onDownload,
+    onEdit,
     ark,
 }: {
     asset: LibraryAsset | null;
     onClose: () => void;
     onCopy: (asset: LibraryAsset) => void;
     onDownload: (asset: LibraryAsset) => void;
+    onEdit?: () => void;
     /** 方舟素材库已开放时传入：认证进度与提交、管理入口。 */
     ark?: { progress?: ArkLibraryProgress; onCertify: (asset: Extract<LibraryAsset, { kind: "image" }>) => void; onManage: () => void };
 }) {
@@ -289,7 +291,9 @@ export function AssetDrawer({
                         <CharacterArchive asset={asset} />
                     ) : (
                         <div className="asset-archive-preview">
-                            {asset.kind === "text" ? (
+                            {asset.kind === "document" || asset.status === "archived" ? (
+                                <div className="asset-archive-preview-model"><KindIcon /><span>{asset.title}</span></div>
+                            ) : asset.kind === "text" ? (
                                 <div className="asset-archive-preview-note">{asset.data.content}</div>
                             ) : asset.kind === "audio" ? (
                                 <div className="asset-archive-audio">
@@ -344,18 +348,19 @@ export function AssetDrawer({
                             <p className="asset-archive-section-body">{asset.note}</p>
                         </div>
                     ) : null}
-                    <div className="asset-archive-actions">
+                    {asset.status !== "archived" ? <div className="asset-archive-actions">
+                        {onEdit ? <Button onClick={onEdit}>{translate("library.assets.form.editTitle")}</Button> : null}
                         {asset.kind === "text" ? (
                             <Button type="primary" icon={<Copy className="size-4" />} onClick={() => onCopy(asset)}>
                                 复制文本
                             </Button>
                         ) : null}
-                        {asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "model" ? (
+                        {asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "model" || asset.kind === "document" ? (
                             <Button type="primary" icon={<Download className="size-4" />} onClick={() => onDownload(asset)}>
                                 {assetDownloadLabel(asset)}
                             </Button>
                         ) : null}
-                    </div>
+                    </div> : null}
                 </div>
             ) : null}
         </Drawer>
@@ -529,7 +534,7 @@ export function assetArchiveFacts(asset: LibraryAsset, audioSampleRate?: number)
     if (asset.kind !== "text" && asset.kind !== "entity") {
         facts.push({ label: "大小", value: formatBytes(asset.data.bytes) });
         facts.push({ label: "格式", value: mediaFormatLabel(asset.data.mimeType) || "未知" });
-        facts.push({ label: "存储", value: resourceStorageLabel(asset.data.storageKey) });
+        facts.push({ label: "存储", value: asset.metadata?.platformMaterial ? "OceanWay" : resourceStorageLabel(asset.data.storageKey) });
     }
     if (asset.kind !== "entity" || asset.source) facts.push({ label: "来源", value: asset.source || "未标注" });
     facts.push({ label: "创建", value: formatAssetDateTime(asset.createdAt) });
@@ -538,6 +543,7 @@ export function assetArchiveFacts(asset: LibraryAsset, audioSampleRate?: number)
 }
 
 export function StorageTag({ asset }: { asset: LibraryAsset }) {
+    if (asset.metadata?.platformMaterial) return null;
     if (asset.kind !== "image" && asset.kind !== "video" && asset.kind !== "audio" && asset.kind !== "model") return null;
     const location = resourceStorageLocation(asset.data.storageKey);
     const color = location === "oss" ? "green" : location === "local" ? "gold" : "default";

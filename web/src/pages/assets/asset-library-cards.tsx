@@ -45,6 +45,7 @@ export function AssetCard({
     onSelect,
     onOpen,
     onEdit,
+    onTag,
     onCopy,
     onDownload,
     onRestore,
@@ -62,11 +63,12 @@ export function AssetCard({
     onSelect: (selected: boolean, range?: boolean) => void;
     onOpen: () => void;
     onEdit: () => void;
+    onTag?: (tag: string) => void;
     onCopy: (asset: LibraryAsset) => void;
     onDownload: (asset: LibraryAsset) => void;
     onRestore?: () => void;
     onArchive?: () => void;
-    onDelete: () => void;
+    onDelete?: () => void;
     folderOptions: Array<{ label: string; value: string }>;
     onMoveToFolder: (folderId: string) => void;
     /** 这张图片最近一次方舟认证提交；已认证的展示以素材自身的 arkCertification 为准。 */
@@ -76,13 +78,13 @@ export function AssetCard({
     const menuItems: MenuProps["items"] = isTrash
         ? [{ key: "restore", icon: <RotateCcw className="size-3.5" />, label: "还原到素材库", onClick: onRestore }, { type: "divider" as const }, { key: "delete", danger: true, icon: <Trash2 className="size-3.5" />, label: "彻底删除", onClick: onDelete }]
         : [
-              ...(asset.kind === "text" || asset.kind === "image" ? [{ key: "edit", icon: <PencilLine className="size-3.5" />, label: "编辑", onClick: onEdit }] : []),
+              ...(asset.metadata?.platformMaterial || asset.kind === "text" || asset.kind === "image" ? [{ key: "edit", icon: <PencilLine className="size-3.5" />, label: "编辑", onClick: onEdit }] : []),
               ...(asset.kind === "text" ? [{ key: "copy", icon: <Copy className="size-3.5" />, label: "复制文本", onClick: () => void onCopy(asset) }] : []),
-              ...(asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "model" ? [{ key: "download", icon: <Download className="size-3.5" />, label: "下载", onClick: () => onDownload(asset) }] : []),
-              { key: "move", icon: <FolderOpen className="size-3.5" />, label: "移动到分类", children: folderOptions.map((folder) => ({ key: folder.value || "uncategorized", label: folder.label, onClick: () => onMoveToFolder(folder.value) })) },
+              ...(asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "model" || asset.kind === "document" ? [{ key: "download", icon: <Download className="size-3.5" />, label: "下载", onClick: () => onDownload(asset) }] : []),
+              ...(folderOptions.length ? [{ key: "move", icon: <FolderOpen className="size-3.5" />, label: "移动到分类", children: folderOptions.map((folder) => ({ key: folder.value || "uncategorized", label: folder.label, onClick: () => onMoveToFolder(folder.value) })) }] : []),
               { type: "divider" as const },
               { key: "archive", icon: <Trash2 className="size-3.5 text-amber-500" />, label: "移入回收站", onClick: onArchive },
-              { key: "delete", danger: true, icon: <Trash2 className="size-3.5" />, label: "彻底删除", onClick: onDelete },
+              ...(onDelete ? [{ key: "delete", danger: true, icon: <Trash2 className="size-3.5" />, label: "彻底删除", onClick: onDelete }] : []),
           ];
     const handleCardClick = (event: MouseEvent<HTMLButtonElement>) => {
         if (selectionMode || event.shiftKey || event.ctrlKey || event.metaKey) {
@@ -119,6 +121,7 @@ export function AssetCard({
                     <span className="truncate">{assetProjectLabel(asset)}</span>
                 </div>
             </button>
+            {!!asset.tags.length && onTag ? <div className="flex flex-wrap gap-1 px-2 pb-2">{asset.tags.slice(0, 3).map((tag) => <button type="button" className="asset-archive-tag max-w-full truncate rounded px-1.5 py-0.5 text-xs" key={tag} onClick={() => onTag(tag)}>{tag}</button>)}</div> : null}
         </AssetLibraryCard>
     );
 }
@@ -150,13 +153,17 @@ export function AssetCover({
     const audioPreview = asset.kind === "audio" && !isTrash;
     const clock = asset.kind === "video" || (asset.kind === "audio" && !audioPreview) ? formatAssetClock(asset.data.durationMs) : null;
     const showPlay = asset.kind === "video";
-    const isLight = asset.kind === "audio" || asset.kind === "text" || asset.kind === "model";
+    const isLight = asset.kind === "audio" || asset.kind === "text" || asset.kind === "model" || asset.kind === "document";
     // 图片和视频的画面就是预览本身，类型与分类角标只会遮挡画面；规格写在卡片摘要里。
     const visualMedia = asset.kind === "image" || asset.kind === "video";
     return (
         <AssetLibraryCardMedia className={isLight ? "assets-cover is-light" : "assets-cover"}>
             <button type="button" className="assets-cover-link" onClick={onOpen} aria-label={`查看素材：${asset.title}`}>
-                {asset.kind === "audio" ? (
+                {asset.kind === "document" ? (
+                    <div className="assets-cover-fallback"><FileText /><span>{asset.data.mimeType || asset.title}</span></div>
+                ) : asset.kind === "video" && asset.metadata?.platformMaterial && asset.coverUrl ? (
+                    <img src={asset.coverUrl} alt={asset.title} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                ) : asset.kind === "audio" ? (
                     <AudioWaveCover asset={asset} />
                 ) : asset.kind === "entity" && (asset.category === "environment" || asset.category === "prop") ? (
                     <div className="assets-cover-fallback">
@@ -191,7 +198,7 @@ export function AssetCover({
                 {visualMedia ? null : (
                     <span className="assets-cover-badge is-kind">
                         <KindIcon />
-                        {kind ? assetKindLabel(kind, asset.category) : "素材"}
+                        {assetKindLabel(asset.kind, asset.category)}
                     </span>
                 )}
                 {isTrash ? (

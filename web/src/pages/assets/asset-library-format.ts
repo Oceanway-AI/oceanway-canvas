@@ -9,11 +9,13 @@ import { type AssetGridDensity, parseAssetGridDensity } from "./asset-grid-densi
 import { type Asset } from "@/stores/use-asset-store";
 import { type LucideIcon, FileText, Image as ImageIcon, Clapperboard, AudioLines, Box, UserRound, Mountain, Package, Layers, Shapes, ShieldCheck } from "lucide-react";
 
-export type LibraryAsset = Asset;
+export type LibraryDocument = Omit<Extract<Asset, { kind: "model" }>, "kind"> & { kind: "document" };
+export type LibraryAsset = Asset | LibraryDocument;
 
 export const ASSET_GRID_DENSITY_KEY = "yingce:asset-grid-density";
 
 export const assetKindIcons: Record<LibraryAsset["kind"], LucideIcon> = {
+    document: FileText,
     text: FileText,
     image: ImageIcon,
     video: Clapperboard,
@@ -40,10 +42,10 @@ export function assetSummary(asset: LibraryAsset, audioSampleRate?: number) {
     if (asset.kind === "entity") return asset.category === "environment" || asset.category === "prop" ? String(asset.data.definition.description || "待生成图片") : characterAssetSummary(asset);
     if (asset.kind === "text") return asset.data.content;
     if (asset.kind === "audio") return [formatAssetClock(asset.data.durationMs) || formatAssetDuration(asset.data.durationMs), formatAudioSampleRate(audioSampleRate)].filter(Boolean).join(" · ");
-    if (asset.kind === "model") return `${asset.data.fileName} · ${formatBytes(asset.data.bytes)} · ${asset.data.mimeType}`;
+    if ((asset.kind === "model" || asset.kind === "document")) return `${asset.data.fileName} · ${formatBytes(asset.data.bytes)} · ${asset.data.mimeType}`;
     const tier = asset.kind === "video" ? videoResolutionTierLabel(asset.data.width, asset.data.height) : imageResolutionTierLabel(asset.data.width, asset.data.height);
     const spec = [tier, mediaAspectRatioLabel(asset.data.width, asset.data.height)].filter(Boolean).join(" · ");
-    return spec || `尺寸未知 · ${formatBytes(asset.data.bytes)}`;
+    return spec || (asset.metadata?.platformMaterial ? [mediaFormatLabel(asset.data.mimeType), formatBytes(asset.data.bytes)].filter(Boolean).join(" · ") : `尺寸未知 · ${formatBytes(asset.data.bytes)}`);
 }
 
 /** 卡片摘要悬停提示：补上像素尺寸、文件大小和格式，不必打开档案也能核对。 */
@@ -72,12 +74,14 @@ export function assetProjectLabel(asset: LibraryAsset) {
     return Array.isArray(asset.metadata?.projectIds) && asset.metadata.projectIds.length ? "已关联项目" : "未关联项目";
 }
 
-export function assetKindLabel(kind: AssetKind, category?: string) {
+export function assetKindLabel(kind: AssetKind | "document", category?: string) {
+    if (kind === "document") return "文档";
     if (kind === "entity" && (category === "environment" || category === "prop")) return `${assetCategoryLabel(category)}设定`;
     return kind === "image" ? "图片" : kind === "video" ? "视频" : kind === "audio" ? "音频" : kind === "model" ? "3D 模型" : kind === "entity" ? "角色" : "文本";
 }
 
 export function assetDownloadLabel(asset: LibraryAsset) {
+    if (asset.kind === "document") return "下载文件";
     if (asset.kind === "video") return "下载视频";
     if (asset.kind === "audio") return "下载音频";
     if (asset.kind === "model") return "下载模型";

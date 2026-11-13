@@ -6,6 +6,7 @@ import type { OSSConnectionTestInput, OSSConnectionTestResult, OSSProvider, S3Pr
 
 export type RemoteResource = {
     id: string;
+    material?: import("./platform-materials").PlatformMaterialAsset;
     userId: string;
     kind: "image" | "video" | "audio" | "file" | string;
     status: "pending" | "ready" | "failed" | "deleted" | string;

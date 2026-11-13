@@ -323,3 +323,59 @@ func TestStudioMaterialBindingRecoveryAndImmutableVersion(t *testing.T) {
 		t.Fatal("failed identity created another resource")
 	}
 }
+
+func TestStudioAccountLibraryBrowseAndEdit(t *testing.T) {
+	f := newStudioFixture(t)
+	asset := studioMaterialFixtureAsset()
+	asset.Tags = []string{"角色"}
+	asset.Title = "角色草图"
+	var reads, writes int
+	f.materials = func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method + " " + r.URL.Path {
+		case "GET /api/platform/v1/materials/assets":
+			if r.URL.Query().Get("q") != "角色" || r.URL.Query().Get("source_type") != "upload" {
+				t.Error("asset filters were lost")
+			}
+			_ = json.NewEncoder(w).Encode(platformclient.Page[platformclient.Asset]{Items: []platformclient.Asset{asset}, Total: "1", Page: 1, Limit: 40})
+		case "PATCH /api/platform/v1/materials/assets/asset_1":
+			var patch platformclient.AssetPatch
+			if err := json.NewDecoder(r.Body).Decode(&patch); err != nil || patch.Tags == nil || patch.Title != nil {
+				t.Fatal("tag edit must only change tags")
+			}
+			asset.Tags = *patch.Tags
+			writes++
+			_ = json.NewEncoder(w).Encode(asset)
+		case "POST /api/platform/v1/materials/access":
+			var in platformclient.AccessRequest
+			if err := json.NewDecoder(r.Body).Decode(&in); err != nil || len(in.Items) != 1 {
+				t.Fatal("expected one read")
+			}
+			i := in.Items[0]
+			if i.Purpose != "display" || i.Variant != "thumbnail" || i.BindingID != "" || i.VersionID != asset.Version.VersionID || i.AssetID != asset.AssetID {
+				t.Fatal("library thumbnail must read the selected version without binding")
+			}
+			reads++
+			_ = json.NewEncoder(w).Encode(platformclient.AccessResponse{Protocol: platformclient.MaterialsProtocol, Results: []platformclient.AccessResult{{ItemID: i.ItemID, Status: "ready", AssetID: i.AssetID, VersionID: i.VersionID, FileID: asset.File.FileID, RequestedVariant: i.Variant, ActualVariant: i.Variant, URL: "https://cdn.example.test/image", ExpiresAt: time.Now().Add(time.Minute).Format(time.RFC3339), Revision: "1"}}})
+		default:
+			t.Errorf("unexpected library call %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(404)
+		}
+	}
+	const cookie = "platform_session=alice"
+	const list = "/api/materials/assets?source_type=upload&q=%E8%A7%92%E8%89%B2"
+	const file = "/api/materials/assets/asset_1/versions/version_1/file"
+	check := f.request(t, "GET", list, cookie, "", 200)
+	if !strings.Contains(check.Body.String(), asset.Title) {
+		t.Fatal("list dropped the Platform asset")
+	}
+	f.request(t, "GET", file+"?variant=thumbnail", cookie, "", 307)
+	f.request(t, "GET", file+"?variant=provider-input", cookie, "", 400)
+	f.request(t, "PATCH", "/api/materials/assets/asset_1", cookie, `{"tags":["远景"]}`, 200)
+	if got := f.request(t, "GET", list, cookie, "", 200); !strings.Contains(got.Body.String(), "远景") {
+		t.Fatal("saved tags did not survive reopen")
+	}
+	if reads != 1 || writes != 1 {
+		t.Fatal("unexpected media reads or metadata writes")
+	}
+}

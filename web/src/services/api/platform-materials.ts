@@ -9,6 +9,14 @@ export type PlatformMaterialAsset = {
     kind: string;
     state: string;
     current_version_id: string;
+    tags: string[];
+    created_at: string;
+    updated_at: string;
+    source_type: string;
+    projects: { app: string; project_id: string; title: string }[];
+    width?: number;
+    height?: number;
+    durationMs?: number;
     version: { version_id: string; asset_id: string; file_id: string };
     file: { file_id: string; byte_length: string; content_type: string; sha256: string };
 };
@@ -20,8 +28,20 @@ type Upload = {
     resource?: RemoteResource;
 };
 
-export async function getPlatformMaterials(page = 1, query = "", kind = "", signal?: AbortSignal) {
-    return http.get<{ items: PlatformMaterialAsset[]; total: string; page: number; limit: number }>("/materials/assets", { signal, params: { page, limit: 50, q: query || undefined, kind: kind || undefined } });
+export async function getPlatformMaterials(page = 1, query = "", kind = "", signal?: AbortSignal, options: { limit?: number; source?: string; trash?: boolean } = {}) {
+    return http.get<{ items: PlatformMaterialAsset[]; total: string; page: number; limit: number }>("/materials/assets", {
+        signal,
+        params: { page, limit: options.limit || 50, q: query || undefined, kind: kind || undefined, source_type: options.source || undefined, trash: options.trash || undefined },
+    });
+}
+export function patchPlatformMaterial(id: string, patch: { title?: string; tags?: string[]; state?: "ready" | "trashed" }) {
+    return http.patch<PlatformMaterialAsset>(`/materials/assets/${encodeURIComponent(id)}`, patch);
+}
+export function deletePlatformMaterial(id: string) {
+    return http.delete(`/materials/assets/${encodeURIComponent(id)}`);
+}
+export function platformMaterialFileURL(id: string, version: string, variant: "thumbnail" | "poster" | "preview" | "playback" | "original") {
+    return `/api/materials/assets/${encodeURIComponent(id)}/versions/${encodeURIComponent(version)}/file?variant=${variant}`;
 }
 export function getPlatformMaterialStorage(signal?: AbortSignal) {
     return http.get<PlatformMaterialStorage>("/materials/storage", { signal });
@@ -60,7 +80,7 @@ function ticketHeaders(ticket: Ticket) {
     return headers;
 }
 
-export async function uploadPlatformResource(file: Blob, name: string, meta: ResourceUploadMeta | undefined, assertCurrent: () => void, onProgress?: (loaded: number, total: number) => void): Promise<RemoteResource> {
+export async function uploadPlatformResource(file: Blob, name: string, meta: ResourceUploadMeta | undefined, assertCurrent: () => void, onProgress?: (loaded: number, total: number) => void): Promise<RemoteResource & { material?: PlatformMaterialAsset }> {
     if (!Number.isSafeInteger(file.size) || file.size < 1) throw new ApiError("不能上传空文件", { status: 400 });
     const digest = await fileDigest(file, assertCurrent);
     const commandId = bytesToHex(sha256(new TextEncoder().encode(meta?.idempotencyKey || `${digest}\n${name}\n${file.type}`)));
@@ -116,7 +136,7 @@ export async function uploadPlatformResource(file: Blob, name: string, meta: Res
                 assertCurrent();
             }
             if (!result.resource?.id || result.resource.status !== "ready" || result.resource.provider !== "platform") throw new Error("素材尚未完成采用，请查询原上传");
-            return result.resource;
+            return { ...result.resource, material: asset };
         }
         if (result.upload.state === "failed" || result.upload.state === "expired") throw new ApiError("原上传失败或已过期，请检查文件后重新上传", { status: 422 });
         if (!["verifying", "sealing"].includes(result.upload.state)) throw new Error("上传状态待确认，请恢复原上传");

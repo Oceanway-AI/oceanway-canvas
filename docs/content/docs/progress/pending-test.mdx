@@ -5,6 +5,8 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+Studio 资产入口恢复 OAC 原生卡片和素材档案。验收时可按标签搜索，点开图片缩放、查看视频、修改标题或标签，刷新页面后核对。创作页和画布选择同一素材时采用固定版本。
+
 图片输出尺寸（2026-11-13）：已接入发布预设、16对齐自定义宽高和单张像素约束，保留完整供给组合；普通参数表单和画布共用。专项覆盖真实 Gateway→Platform 目录投影、预估与提交同体、Gemini原生字段、恢复默认值和画布保存恢复。正式 SDK 版本、全量检查及部署状态以[本批证据](../../../verification/image-output-size-20261113/README.md)为准；不能将隔离测试写成真实收费生成或运行部署完成。
 
 Studio rc.7 原生媒体（2026-11-11）：已固定正式 SDK，普通生成/画布/Agent 共用发布原生参数和三版本。正常 Chrome、真实 Studio API、正式 Platform HTTP/隔离 PostgreSQL 与 Gateway 免费夹具完成 Gemini/OpenAI 图片、ModelArk 视频的预览、生成、结算、素材采用、转入画布及刷新播放，三固定 Resource 保持且显示已同步；视频直接使用 Platform poster。专项/类型/lint/build/race 通过，详见[联调记录](../../../verification/studio-native-rc7-20261111/README.md)。七协议组包单测不等于全部供给开放；商业型号、完整参考模式、实际 Pi 浏览器链、跨站 SSO/生产 CDN、其他产品与全量发布门禁仍待验。下文 F1—F7 为历史批次边界，不把本轮免费测试写成线上发布。

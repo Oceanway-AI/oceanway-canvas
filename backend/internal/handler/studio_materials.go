@@ -128,7 +128,8 @@ func RegisterStudioMaterialRoutes(api *gin.RouterGroup, svc *service.Service) {
 		c.Redirect(http.StatusTemporaryRedirect, items[0].Access.URL)
 	})
 	api.GET("/materials/assets", func(c *gin.Context) {
-		if _, err := currentUser(c, svc); err != nil {
+		user, err := currentUser(c, svc)
+		if err != nil {
 			failService(c, err)
 			return
 		}
@@ -138,8 +139,46 @@ func RegisterStudioMaterialRoutes(api *gin.RouterGroup, svc *service.Service) {
 			failService(c, service.BadAuthRequest("素材分页参数无效"))
 			return
 		}
-		data, response, err := svc.StudioMaterialAssets(c.Request.Context(), platformintegration.Session(c.Request), platformclient.AssetQuery{Page: page, Limit: limit, Query: c.Query("q"), Kind: c.Query("kind")})
+		data, response, err := svc.StudioMaterialAssets(c.Request.Context(), user.ID, platformintegration.Session(c.Request), platformclient.AssetQuery{Page: page, Limit: limit, Query: c.Query("q"), Kind: c.Query("kind"), SourceType: c.Query("source_type"), Trash: c.Query("trash") == "true"})
 		studioMaterialReply(c, data, response, err)
+	})
+	api.PATCH("/materials/assets/:id", func(c *gin.Context) {
+		if _, err := currentUser(c, svc); err != nil {
+			failService(c, err)
+			return
+		}
+		var patch platformclient.AssetPatch
+		if !studioMaterialJSON(c, &patch) {
+			return
+		}
+		data, response, err := svc.StudioPatchMaterial(c.Request.Context(), platformintegration.Session(c.Request), c.Param("id"), patch)
+		studioMaterialReply(c, data, response, err)
+	})
+	api.DELETE("/materials/assets/:id", func(c *gin.Context) {
+		if _, err := currentUser(c, svc); err != nil {
+			failService(c, err)
+			return
+		}
+		response, err := svc.StudioDeleteMaterial(c.Request.Context(), platformintegration.Session(c.Request), c.Param("id"))
+		studioMaterialReply(c, gin.H{}, response, err)
+	})
+	api.GET("/materials/assets/:id/versions/:version/file", func(c *gin.Context) {
+		c.Header("Cache-Control", "private, no-store")
+		c.Header("Referrer-Policy", "no-referrer")
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		link, response, err := svc.StudioLibraryFile(c.Request.Context(), user, platformintegration.Session(c.Request), c.Param("id"), c.Param("version"), c.Query("variant"))
+		if err != nil {
+			studioMaterialReply(c, nil, response, err)
+			return
+		}
+		if response != nil {
+			response.AppendCookies(c.Writer.Header())
+		}
+		c.Redirect(http.StatusTemporaryRedirect, link)
 	})
 	api.GET("/materials/storage", func(c *gin.Context) {
 		if _, err := currentUser(c, svc); err != nil {

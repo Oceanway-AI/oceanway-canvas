@@ -182,6 +182,18 @@ export const jaJP: DeepStringRecord<typeof zhCN> = {
         },
     },
     assets: {
+        platform: {
+            reference: "参照画像を選択",
+            addReferences: "参照画像を {{count}} 枚追加",
+            document: "ドキュメント",
+            uploaded: "アップロード",
+            generated: "生成した素材",
+            source: "素材の出典",
+            upload: "素材をアップロード",
+            search: "名前またはタグで検索",
+            saved: "素材を保存しました",
+            saveFailed: "素材を保存できませんでした",
+        },
         density: {
             comfortable: "ゆったり",
             standard: "標準",

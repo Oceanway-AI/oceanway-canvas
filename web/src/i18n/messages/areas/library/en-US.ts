@@ -182,6 +182,18 @@ export const enUS: DeepStringRecord<typeof zhCN> = {
         },
     },
     assets: {
+        platform: {
+            reference: "Select reference images",
+            addReferences: "Add {{count}} references",
+            document: "Documents",
+            uploaded: "Uploads",
+            generated: "Generated",
+            source: "Source",
+            upload: "Upload assets",
+            search: "Search names or tags",
+            saved: "Assets saved",
+            saveFailed: "Could not save the asset",
+        },
         density: {
             comfortable: "Comfortable",
             standard: "Standard",

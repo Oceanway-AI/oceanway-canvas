@@ -11,34 +11,14 @@ import { useUserStore } from "@/stores/use-user-store";
 import type { Asset } from "@/stores/use-asset-store";
 import { assetPickerItemsToInsertPayloads, type InsertAssetPayload } from "./asset-picker-modal";
 import { Select } from "@/components/ui/base/select";
-import { PlatformMaterialLibrary } from "@/components/assets/platform-material-library";
+import { loadPlatformLibraryPage } from "@/services/platform-library-assets";
+import { insertLibraryAsset } from "@/services/platform-material-selection";
 
 const categories: AssetCategory[] = ["material", "character", "environment", "prop", "other"];
 export function CanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAssets }: { onInsert: (payloads: InsertAssetPayload[]) => Promise<unknown>; onManage: () => void; onProjectAssets?: () => void }) {
-    return (
-        <>
-            <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
-                <Images className="size-4" />
-                <strong className="text-sm">素材库</strong>
-            </header>
-            <PlatformMaterialLibrary compact onInsert={onInsert} />
-            <footer className="flex gap-2 border-t border-border p-2">
-                <Button size="small" onClick={onManage}>
-                    管理素材
-                </Button>
-                {onProjectAssets ? (
-                    <Button size="small" onClick={onProjectAssets}>
-                        项目素材
-                    </Button>
-                ) : null}
-            </footer>
-        </>
-    );
-}
-
-export function OACCanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAssets }: { onInsert: (payloads: InsertAssetPayload[]) => Promise<unknown>; onManage: () => void; onProjectAssets?: () => void }) {
     const { message } = App.useApp();
     const userId = useUserStore((state) => state.user?.id);
+    const platform = useUserStore((state) => state.platformIdentity);
     const hydrated = useUserStore((state) => state.hydrated);
     const [category, setCategory] = useState<AssetCategory>("material");
     const [kind, setKind] = useState("all");
@@ -50,18 +30,18 @@ export function OACCanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAsse
         return () => window.clearTimeout(timer);
     }, [input]);
     const query = useInfiniteQuery({
-        queryKey: ["canvas-workspace-assets", userId, category, kind, search],
+        queryKey: ["canvas-workspace-assets", userId, platform, category, kind, search],
         initialPageParam: 1,
-        queryFn: ({ signal, pageParam }) => loadAssetLibraryPage({ page: pageParam, pageSize: 40, category, kind: kind === "all" ? undefined : kind, status: "active", query: search, signal }),
+        queryFn: ({ signal, pageParam }) => platform ? loadPlatformLibraryPage({ page: pageParam, pageSize: 40, kind: kind === "all" ? undefined : kind, query: search, signal }) : loadAssetLibraryPage({ page: pageParam, pageSize: 40, category, kind: kind === "all" ? undefined : kind, status: "active", query: search, signal }),
         getNextPageParam: (page, pages) => (pages.reduce((count, item) => count + item.assets.length, 0) < page.total ? pages.length + 1 : undefined),
         enabled: Boolean(userId) && hydrated,
     });
-    const assets = query.data?.pages.flatMap((page) => page.assets) ?? [];
+    const assets = query.data?.pages.flatMap((page) => page.assets).filter((asset): asset is Asset => asset.kind !== "document") ?? [];
     const insert = async (asset: Asset) => {
         if (inserting) return;
         setInserting(asset.id);
         try {
-            const payloads = assetPickerItemsToInsertPayloads([asset.id], [{ id: asset.id, title: asset.title, category: asset.category || "other", kindLabel: asset.kind, asset }]);
+            const payloads = platform ? [await insertLibraryAsset(asset)] : assetPickerItemsToInsertPayloads([asset.id], [{ id: asset.id, title: asset.title, category: asset.category || "other", kindLabel: asset.kind, asset }]);
             await onInsert(payloads);
         } catch (error) {
             message.error(error instanceof Error ? error.message : "插入素材失败");
@@ -76,13 +56,13 @@ export function OACCanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAsse
                 <strong className="text-sm">素材库</strong>
                 <span className="text-muted-foreground">{query.data?.pages[0]?.total ?? 0}</span>
             </header>
-            <div className="sidebar-subtabs border-b border-border p-2">
+            {!platform ? <div className="sidebar-subtabs border-b border-border p-2">
                 {categories.map((id) => (
                     <button key={id} type="button" className={category === id ? "active" : ""} aria-pressed={category === id} onClick={() => setCategory(id)}>
                         {ASSET_CATEGORY_LABELS[id]}
                     </button>
                 ))}
-            </div>
+            </div> : null}
             <div className="space-y-2 border-b border-border p-3">
                 <div className="flex items-center justify-between gap-2">
                     <Select
@@ -94,7 +74,7 @@ export function OACCanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAsse
                             { value: "image", label: "图片" },
                             { value: "video", label: "视频" },
                             { value: "audio", label: "音频" },
-                            { value: "text", label: "文本" },
+                            ...(!platform ? [{ value: "text", label: "文本" }] : []),
                         ]}
                     />
                     <Button type="text" aria-label="刷新资产" loading={query.isFetching} icon={<RefreshCw className="size-4" />} onClick={() => void query.refetch()} />
@@ -127,7 +107,7 @@ export function OACCanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAsse
                                     {asset.title}
                                 </div>
                                 <div className="truncate text-xs text-muted-foreground">
-                                    {resourceStorageLabel("storageKey" in asset.data ? asset.data.storageKey : undefined)}
+                                    {platform ? asset.source : resourceStorageLabel("storageKey" in asset.data ? asset.data.storageKey : undefined)}
                                     {asset.tags?.length ? ` · ${asset.tags[0]}` : ""}
                                 </div>
                             </div>

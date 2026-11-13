@@ -301,12 +301,55 @@ func (s *Service) StudioResource(ctx context.Context, userID, id string) (*model
 	return resource, nil
 }
 
-func (s *Service) StudioMaterialAssets(ctx context.Context, session platformclient.SessionContext, query platformclient.AssetQuery) (platformclient.Page[platformclient.Asset], *platformclient.Response, error) {
+// Library entries carry display metadata from an existing Studio resource, when
+// available. Listing another product's asset must never create a Studio binding.
+type studioLibraryAsset struct {
+	platformclient.Asset
+	StudioResourceMeta
+}
+
+func (s *Service) StudioMaterialAssets(ctx context.Context, userID string, session platformclient.SessionContext, query platformclient.AssetQuery) (platformclient.Page[studioLibraryAsset], *platformclient.Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	result, err := s.studioPlatform.Client.CurrentMaterials(session).Assets(ctx, query)
+	page := platformclient.Page[studioLibraryAsset]{Items: []studioLibraryAsset{}, Total: result.Data.Total, Page: result.Data.Page, Limit: result.Data.Limit}
+	if err != nil {
+		return page, result.Response, studioMaterialError(err)
+	}
+	ids := make([]string, len(result.Data.Items))
+	for i, asset := range result.Data.Items {
+		ids[i] = studioMaterialResourceID(userID, asset)
+	}
+	resources, err := s.repo.WithContext(ctx).ResourcesForUserIDs(userID, ids)
+	if err != nil {
+		return page, result.Response, err
+	}
+	meta := make(map[string]StudioResourceMeta, len(resources))
+	for _, r := range resources {
+		if r.Status == model.ResourceStatusReady && r.Provider == "platform" {
+			meta[r.ID] = StudioResourceMeta{Width: r.Width, Height: r.Height, DurationMs: r.DurationMs}
+		}
+	}
+	for i, asset := range result.Data.Items {
+		page.Items = append(page.Items, studioLibraryAsset{Asset: asset, StudioResourceMeta: meta[ids[i]]})
+	}
+	return page, result.Response, nil
+}
+
+func (s *Service) StudioPatchMaterial(ctx context.Context, session platformclient.SessionContext, id string, patch platformclient.AssetPatch) (platformclient.Asset, *platformclient.Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	result, err := s.studioPlatform.Client.CurrentMaterials(session).PatchAsset(ctx, id, patch)
 	return result.Data, result.Response, studioMaterialError(err)
 }
+
+func (s *Service) StudioDeleteMaterial(ctx context.Context, session platformclient.SessionContext, id string) (*platformclient.Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	result, err := s.studioPlatform.Client.CurrentMaterials(session).DeleteAsset(ctx, id)
+	return result.Response, studioMaterialError(err)
+}
+
 func (s *Service) StudioMaterialStorage(ctx context.Context, session platformclient.SessionContext) (platformclient.Storage, *platformclient.Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()

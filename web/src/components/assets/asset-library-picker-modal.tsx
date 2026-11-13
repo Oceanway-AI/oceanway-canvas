@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { translate } from "@/i18n";
 import type { ExternalAssetPickerReference } from "@/lib/plugins/plugin-types";
 import { flushAssetStorePersistence, useAssetStore, type Asset } from "@/stores/use-asset-store";
+import { loadPlatformLibraryPage } from "@/services/platform-library-assets";
 import { deleteAssetsWithRemoteSync, loadAssetLibraryPage, localSavedRemotePendingMessage, saveRemoteUserDataNow } from "@/services/user-data-sync";
 
 import "./asset-library-picker-modal.css";
@@ -67,6 +68,7 @@ export type AssetLibraryPickerFolder = {
 
 type Props = {
     remoteLibrary?: boolean;
+    platformLibrary?: boolean;
     remoteKind?: string;
     /** 远端素材库里的角色卡是否展示并可选（插入画布时会作为角色卡节点）。 */
     allowCharacters?: boolean;
@@ -97,7 +99,7 @@ type Props = {
     upload?: {
         accept: string;
         description: string;
-        onUpload: (files: FileList) => Promise<string[]>;
+        onUpload: (files: FileList) => Promise<string[] | AssetLibraryPickerItem[]>;
         external?: {
             accept: string;
             description: string;
@@ -112,6 +114,7 @@ type Props = {
 
 export function AssetLibraryPickerModal({
     remoteLibrary = false,
+    platformLibrary = false,
     remoteKind,
     allowCharacters = false,
     acceptRemoteItems = false,
@@ -167,9 +170,10 @@ export function AssetLibraryPickerModal({
     // remoteKind 是调用方写死的能力约束；媒体类型筛选只在没有该约束时参与服务端查询。
     const remoteQueryKind = remoteKind || (mediaKind === "all" ? undefined : mediaKind);
     const remoteQuery = useQuery({
-        queryKey: ["asset-picker", userId, remotePage, remotePageSize, category, remoteKeyword, remoteQueryKind],
-        queryFn: ({ signal }) =>
-            loadAssetLibraryPage({
+        queryKey: ["asset-picker", userId, platformLibrary, remotePage, remotePageSize, category, remoteKeyword, remoteQueryKind],
+        queryFn: ({ signal }) => platformLibrary
+            ? loadPlatformLibraryPage({ page: remotePage, pageSize: remotePageSize, kind: remoteQueryKind, query: remoteKeyword, signal })
+            : loadAssetLibraryPage({
                 page: remotePage,
                 pageSize: remotePageSize,
                 kind: remoteQueryKind,
@@ -187,7 +191,7 @@ export function AssetLibraryPickerModal({
     const remoteItems = useMemo<AssetLibraryPickerItem[]>(
         () =>
             (remoteQuery.data?.assets || [])
-                .filter((asset) => asset.kind !== "model" && (asset.kind !== "entity" || (allowCharacters && asset.category === "character")))
+                .filter((asset): asset is Asset => asset.kind !== "document" && asset.kind !== "model" && (asset.kind !== "entity" || (allowCharacters && asset.category === "character")))
                 .map((asset) =>
                     remoteAssetToPickerItem(
                         asset,
@@ -240,7 +244,7 @@ export function AssetLibraryPickerModal({
     const archivedItems = useMemo(() => sourceItems.filter((item) => item.archived), [sourceItems]);
     const mediaKindOptions = useMemo(() => (remoteKind ? [] : Array.from(new Set(mediaKinds))), [mediaKinds, remoteKind]);
     const sourceFolders = source === "plugin" ? folders : [];
-    const showCategories = source === "local" || !sourceFolders.length;
+    const showCategories = !platformLibrary && (source === "local" || !sourceFolders.length);
     const normalCategories = useMemo(
         () =>
             useRemoteItems
@@ -405,7 +409,15 @@ export function AssetLibraryPickerModal({
                 const ids = uploaded.map((item) => item.id);
                 if (ids.length) setSelected((current) => new Set(multiple ? [...current, ...ids] : ids.slice(-1)));
             } else {
-                const ids = await upload!.onUpload(files);
+                const uploaded = await upload!.onUpload(files);
+                const fresh = uploaded.filter((entry): entry is AssetLibraryPickerItem => typeof entry !== "string");
+                if (fresh.length) {
+                    fresh.forEach((item) => pickedRemoteRef.current.set(item.id, item));
+                    setUploadedItems((current) => [...current.filter((item) => !fresh.some((entry) => entry.id === item.id)), ...fresh]);
+                    setRemotePage(1); setKeyword(""); setMediaKind("all");
+                    void remoteQuery.refetch();
+                }
+                const ids = uploaded.map((entry) => typeof entry === "string" ? entry : entry.id);
                 if (ids.length) setSelected((current) => new Set(multiple ? [...current, ...ids] : ids.slice(-1)));
             }
         } catch (reason) {
@@ -528,8 +540,8 @@ export function AssetLibraryPickerModal({
                         <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder={t("library.picker.searchPlaceholder")} aria-label={t("library.picker.search")} />
                     </label>
                 </header>
-                <div className="asset-picker-body">
-                    <nav className="asset-picker-categories" aria-label={t("library.picker.categories")}>
+                <div className="asset-picker-body" style={platformLibrary && mediaKindOptions.length <= 1 ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}>
+                    {!(platformLibrary && mediaKindOptions.length <= 1) ? <nav className="asset-picker-categories" aria-label={t("library.picker.categories")}>
                         {mediaKindOptions.length > 1 && !isRecycleBin ? (
                             <>
                                 <span className="asset-picker-nav-label">{t("library.picker.mediaKind")}</span>
@@ -572,7 +584,7 @@ export function AssetLibraryPickerModal({
                                 ) : null}
                             </>
                         ) : null}
-                    </nav>
+                    </nav> : null}
                     <div className="asset-picker-main">
                         <div ref={gridWrapRef} className="asset-picker-grid-wrap" data-canvas-wheel-scroll>
                             {remoteEnabled && remoteQuery.isError && !localItems.length ? (
@@ -733,6 +745,7 @@ export function remoteAssetToPickerItem(asset: Asset, known: AssetLibraryPickerI
                       : "library.picker.kind.text",
         ),
         searchText: (asset.tags ?? []).join(" "),
+        ...(asset.metadata?.platformMaterial ? { imageUrl: asset.coverUrl || undefined, description: (asset.tags || []).join(" · ") || asset.source } : {}),
         ...known,
         disabledReason: known?.disabledReason || (!known && !acceptRemoteItems ? translate("library.picker.notApplicable") : disabledReason),
         asset,

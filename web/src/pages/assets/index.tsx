@@ -1,3 +1,7 @@
+import { loadPlatformLibraryPage, uploadLibraryMaterial } from "@/services/platform-library-assets";
+import { deletePlatformMaterial, patchPlatformMaterial, platformMaterialFileURL } from "@/services/api/platform-materials";
+import { getActiveUserScope } from "@/lib/user-scope";
+import { WorkspaceErrorState, WorkspaceLoadingState } from "@/components/layout/workspace-state";
 import { uploadImage } from "@/services/image-storage";
 import { assetStorageUsageQueryKey, AssetStorageUsage } from "./asset-storage-usage";
 import { readFileAsDataUrl, readImageMeta, formatBytes } from "@/lib/image-utils";
@@ -72,6 +76,15 @@ const ASSET_FOLDER_QUERY_KEY = ["asset-folders"] as const;
 type AssetFolderFilter = "all" | "uncategorized" | string;
 
 export default function AssetsPage() {
+    const userId = useUserStore((state) => state.user?.id);
+    return <AssetLibrary key={userId || "guest"} />;
+}
+
+function AssetLibrary() {
+    const platform = useUserStore((state) => state.platformIdentity);
+    const [sourceFilter, setSourceFilter] = useState("");
+    const uploadInput = useRef<HTMLInputElement>(null);
+    const [uploading, setUploading] = useState(false);
     const { message } = App.useApp();
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -93,7 +106,7 @@ export default function AssetsPage() {
     const arkQuery = useQuery({
         queryKey: arkPortraitOverviewQueryKey,
         queryFn: ({ signal }) => getArkPortraitOverview(signal),
-        enabled: Boolean(userId),
+        enabled: Boolean(userId) && !platform,
         staleTime: 60_000,
         refetchInterval: (query) => (query.state.data?.groups.some((group) => group.owned && group.assets.some((asset) => asset.status === "processing")) ? 30_000 : false),
     });
@@ -102,7 +115,7 @@ export default function AssetsPage() {
     useArkLibraryReconcile(arkQuery.data);
     const [viewMode, setViewMode] = useState<"library" | "trash">("library");
     const [keyword, setKeyword] = useState("");
-    const [kindFilter, setKindFilter] = useState<AssetKind | "all">("all");
+    const [kindFilter, setKindFilter] = useState<LibraryAsset["kind"] | "all">("all");
     const [categoryFilter, setCategoryFilter] = useState<AssetCategory | "all">("all");
     const [folderFilter, setFolderFilter] = useState<AssetFolderFilter>("all");
     const [page, setPage] = useState(1);
@@ -138,7 +151,7 @@ export default function AssetsPage() {
     const foldersQuery = useQuery({
         queryKey: ASSET_FOLDER_QUERY_KEY,
         queryFn: () => listAssetFolders(),
-        enabled: Boolean(userId),
+        enabled: Boolean(userId) && !platform,
     });
     const folders = foldersQuery.data?.folders || [];
 
@@ -159,8 +172,10 @@ export default function AssetsPage() {
     }, [validAssets, keyword, kindFilter, categoryFilter, folderFilter]);
 
     const assetPageQuery = useQuery({
-        queryKey: [...ASSET_LIBRARY_QUERY_KEY, userId, page, pageSize, viewMode, kindFilter, categoryFilter, folderFilter, debouncedKeyword],
-        queryFn: ({ signal }) => loadAssetLibraryPage({
+        queryKey: [...ASSET_LIBRARY_QUERY_KEY, userId, platform, page, pageSize, viewMode, kindFilter, categoryFilter, folderFilter, sourceFilter, debouncedKeyword],
+        queryFn: ({ signal }) => platform
+            ? loadPlatformLibraryPage({ page, pageSize, trash: viewMode === "trash", kind: kindFilter === "all" ? undefined : kindFilter, source: sourceFilter, query: debouncedKeyword, signal })
+            : loadAssetLibraryPage({
             page,
             pageSize,
             status: viewMode === "trash" ? "archived" : "active",
@@ -186,20 +201,23 @@ export default function AssetsPage() {
     const remoteReady = assetPageQuery.isSuccess && assetPageQuery.data !== undefined;
     const preferLocalUnsynced = remoteReady && remoteTotal === 0 && localVisibleAssets.length > 0;
     const remoteEntityOnlyPage = remoteReady && remotePageAssets.length === 0 && remoteTotal > 0;
-    const useRemotePage = remoteReady && !preferLocalUnsynced && !remoteEntityOnlyPage && (remotePageAssets.length > 0 || remoteTotal === 0);
+    const useRemotePage = platform || (remoteReady && !preferLocalUnsynced && !remoteEntityOnlyPage && (remotePageAssets.length > 0 || remoteTotal === 0));
     const visibleAssets = useMemo(() => useRemotePage ? remotePageAssets : localVisibleAssets, [useRemotePage, remotePageAssets, localVisibleAssets]);
     const visibleAssetIds = useMemo(() => visibleAssets.map((asset) => asset.id), [visibleAssets]);
     const allFilteredSelected = visibleAssetIds.length > 0 && visibleAssetIds.every((id) => selectedIds.includes(id));
     const selectionMode = selecting || selectedIds.length > 0;
     const totalAssets = useRemotePage ? remoteTotal : filteredAssets.length;
+    const kindChoices = platform ? [...kindOptions.filter((item) => ["all", "image", "video", "audio"].includes(item.value)), { value: "document", label: t("library.assets.platform.document") }] : kindOptions;
+    const sourceChoices = [{ value: "", label: t("library.assets.kind.all") }, { value: "upload", label: t("library.assets.platform.uploaded") }, { value: "generation", label: t("library.assets.platform.generated") }];
+    const searchActive = Boolean(keyword || kindFilter !== "all" || categoryFilter !== "all" || folderFilter !== "all" || sourceFilter);
     const kindCounts = useMemo(() => assetCountMap(kindOptions, useRemotePage ? assetPageQuery.data?.kindCounts : undefined, viewMode === "trash" ? trashAssets : activeAssets, (asset) => asset.kind), [activeAssets, assetPageQuery.data?.kindCounts, trashAssets, useRemotePage, viewMode]);
     const categoryCounts = useMemo(() => assetCountMap(categoryOptions, useRemotePage ? assetPageQuery.data?.categoryCounts : undefined, viewMode === "trash" ? trashAssets : activeAssets, (asset) => asset.category || "other"), [activeAssets, assetPageQuery.data?.categoryCounts, trashAssets, useRemotePage, viewMode]);
     const folderCounts = assetPageQuery.data?.folderCounts || {};
 
     useEffect(() => {
         const maxPage = Math.max(1, Math.ceil(totalAssets / pageSize));
-        setPage((value) => Math.min(value, maxPage));
-    }, [pageSize, totalAssets]);
+        if (!platform || assetPageQuery.isSuccess) setPage((value) => Math.min(value, maxPage));
+    }, [pageSize, totalAssets, platform, assetPageQuery.isSuccess]);
 
     useEffect(() => {
         window.localStorage.setItem(ASSET_GRID_DENSITY_KEY, String(gridDensity));
@@ -224,11 +242,37 @@ export default function AssetsPage() {
         ...folders.map((folder) => ({ label: folder.name, value: folder.id })),
     ], [folders, t]);
 
+    const resetFilters = () => {
+        setPage(1); setKeyword(""); setKindFilter("all"); setCategoryFilter("all"); setFolderFilter("all"); setSourceFilter("");
+    };
+
     const invalidateAssetLibrary = async () => {
         await Promise.all([
             queryClient.invalidateQueries({ queryKey: ASSET_LIBRARY_QUERY_KEY }),
             queryClient.invalidateQueries({ queryKey: ASSET_FOLDER_QUERY_KEY }),
+            ...(platform ? [["platform-materials", userId], ["asset-picker", userId], ["canvas-workspace-assets", userId], ["platform-storage", userId], assetStorageUsageQueryKey].map((queryKey) => queryClient.invalidateQueries({ queryKey })) : []),
         ]);
+    };
+
+    const uploadFiles = async (files: File[]) => {
+        if (!files.length || uploading) return;
+        const scope = getActiveUserScope();
+        setUploading(true);
+        try {
+            for (const file of files) {
+                if (getActiveUserScope() !== scope) return;
+                await uploadLibraryMaterial(file);
+            }
+            if (getActiveUserScope() !== scope) return;
+            resetFilters();
+            setViewMode("library");
+            message.success(t("library.assets.platform.saved"));
+        } catch (error) {
+            if (getActiveUserScope() === scope) message.error(error instanceof Error ? error.message : t("library.assets.batch.uploadFailed"));
+        } finally {
+            setUploading(false);
+            if (getActiveUserScope() === scope) await invalidateAssetLibrary();
+        }
     };
 
     const saveFolder = async () => {
@@ -292,6 +336,12 @@ export default function AssetsPage() {
     };
 
     const openEdit = async (asset: LibraryAsset) => {
+        if (platform) {
+            setEditingAsset(asset);
+            form.setFieldsValue({ title: asset.title, tags: asset.tags });
+            setIsAssetOpen(true);
+            return;
+        }
         let editableAsset = useAssetStore.getState().assets.find((item) => item.id === asset.id);
         // 服务端会直接改写素材（方舟认证通过后移入「方舟认证」分类）；列表里的版本更新时先刷新本机副本，避免拿旧版本编辑。
         const remoteNewer = Boolean(editableAsset && Date.parse(asset.updatedAt) > Date.parse(editableAsset.updatedAt));
@@ -337,6 +387,25 @@ export default function AssetsPage() {
 
     const saveAsset = async () => {
         const values = await form.validateFields();
+        if (platform && editingAsset) {
+            setImageUploading(true);
+            try {
+                const patch: {title?: string; tags?: string[]} = {};
+                const title = values.title.trim();
+                const tags = Array.from(new Set((values.tags || []).map((tag) => tag.trim()).filter(Boolean)));
+                if (title !== editingAsset.title) patch.title = title;
+                if (JSON.stringify(tags) !== JSON.stringify(editingAsset.tags)) patch.tags = tags;
+                if (Object.keys(patch).length) {
+                    const updated = await patchPlatformMaterial(editingAsset.id, patch);
+                    setPreviewAsset((current) => current?.id === updated.asset_id ? { ...current, title: updated.title, tags: updated.tags, updatedAt: updated.updated_at } : current);
+                    await invalidateAssetLibrary();
+                }
+                setIsAssetOpen(false);
+            } catch (error) {
+                message.error(error instanceof Error ? error.message : t("library.assets.platform.saveFailed"));
+            } finally { setImageUploading(false); }
+            return;
+        }
         let imageData = imageDraft;
         if (values.kind === "image" && imageFile) {
             setImageUploading(true);
@@ -446,6 +515,10 @@ export default function AssetsPage() {
     };
 
     const downloadImage = async (asset: LibraryAsset) => {
+        if (platform && asset.primaryVersionId) {
+            await downloadBrowserMedia({ fileName: asset.title, url: platformMaterialFileURL(asset.id, asset.primaryVersionId, "original") });
+            return;
+        }
         if (asset.kind !== "image" && asset.kind !== "video" && asset.kind !== "audio" && asset.kind !== "model") return;
         const url = asset.kind === "image" ? asset.data.dataUrl : asset.data.url;
         const extension = asset.kind === "model" ? asset.data.fileName.split(".").pop() || "glb" : asset.data.mimeType.split("/")[1] || "png";
@@ -527,6 +600,15 @@ export default function AssetsPage() {
         let locallyUpdated = false;
         setBatchWorking(true);
         try {
+            if (platform) {
+                for (const id of assetIds) {
+                    if (useUserStore.getState().user?.id !== userId) throw new Error(t("library.assets.accountSwitched"));
+                    await patchPlatformMaterial(id, { state: archiving ? "trashed" : "ready" });
+                    setSelectedIds((current) => current.filter((item) => item !== id));
+                }
+                setArchivingAsset(null); setBatchArchiveOpen(false);
+                return;
+            }
             await ensureAssetsInStore(assetIds);
             for (const id of assetIds) updateAsset(id, { status });
             await flushAssetStorePersistence();
@@ -542,6 +624,7 @@ export default function AssetsPage() {
             else message.error(error instanceof Error ? error.message : t(archiving ? "library.assets.status.archiveFailed" : "library.assets.status.restoreFailed"));
         } finally {
             setBatchWorking(false);
+            if (platform) await invalidateAssetLibrary();
         }
     };
 
@@ -576,7 +659,8 @@ export default function AssetsPage() {
     const confirmDelete = async () => {
         if (!deletingAsset) return;
         try {
-            await deleteAssetWithRemoteSync(deletingAsset.id);
+            if (platform) { await deletePlatformMaterial(deletingAsset.id); await invalidateAssetLibrary(); }
+            else await deleteAssetWithRemoteSync(deletingAsset.id);
             message.success(t("library.assets.deleted"));
             setDeletingAsset(null);
         } catch (error) {
@@ -604,7 +688,13 @@ export default function AssetsPage() {
         const ids = [...selectedIds];
         setBatchWorking(true);
         try {
-            await deleteAssetsWithRemoteSync(ids);
+            if (platform) {
+                for (const id of ids) {
+                    if (useUserStore.getState().user?.id !== userId) throw new Error(t("library.assets.accountSwitched"));
+                    await deletePlatformMaterial(id);
+                    setSelectedIds((current) => current.filter((item) => item !== id));
+                }
+            } else await deleteAssetsWithRemoteSync(ids);
             message.success(t("library.assets.batchDeleted", { count: ids.length }));
             setSelectedIds([]);
             setBatchDeleteOpen(false);
@@ -612,6 +702,7 @@ export default function AssetsPage() {
             message.error(error instanceof Error ? error.message : t("library.assets.batchDeleteFailed"));
         } finally {
             setBatchWorking(false);
+            if (platform) await invalidateAssetLibrary();
         }
     };
 
@@ -621,15 +712,15 @@ export default function AssetsPage() {
                 <div className="studio-band">
                     <PageHeader
                         title={viewMode === "trash" ? t("library.assets.page.trashTitle") : t("library.assets.page.title")}
-                        description={viewMode === "trash" ? t("library.assets.page.trashDescription") : t("library.assets.page.description")}
+                        description={platform ? undefined : viewMode === "trash" ? t("library.assets.page.trashDescription") : t("library.assets.page.description")}
                         meta={<span className="app-projects-header-meta assets-header-meta">{t("library.assets.page.count", { count: totalAssets })}</span>}
                         actions={
                             <div className="assets-header-actions">
-                                <AssetStorageUsage />
+                                <AssetStorageUsage canPurchase={!platform} />
                                 <div className="assets-header-action-buttons">
                                     {viewMode === "trash" ? (
                                         <>
-                                            {userId || trashAssets.length > 0 ? (
+                                            {!platform && (userId || trashAssets.length > 0) ? (
                                                 <Popconfirm
                                                     title={t("library.assets.trash.confirmTitle")}
                                                     description={t("library.assets.trash.confirmDescription")}
@@ -655,7 +746,7 @@ export default function AssetsPage() {
                                             </Button>
                                         </>
                                     ) : (
-                                        <>
+                                        platform ? <Button type="primary" loading={uploading} icon={<Upload />} onClick={() => uploadInput.current?.click()}>{t("library.assets.platform.upload")}</Button> : <>
                                             <Button type="primary" icon={<Plus />} onClick={openCreate}>{t("library.assets.page.create")}</Button>
                                             <Button icon={<Images />} onClick={() => setBatchUploadOpen(true)}>{t("library.assets.page.uploadImages")}</Button>
                                             {arkEnabled ? (
@@ -678,21 +769,15 @@ export default function AssetsPage() {
                         }
                     />
                     <CollectionToolbar
-                        active={Boolean(keyword || kindFilter !== "all" || categoryFilter !== "all" || folderFilter !== "all")}
-                        onReset={() => {
-                            setKeyword("");
-                            setKindFilter("all");
-                            setCategoryFilter("all");
-                            setFolderFilter("all");
-                            setPage(1);
-                        }}
+                        active={searchActive}
+                        onReset={resetFilters}
                     >
                         <Input
                             allowClear
                             className="w-full sm:w-80"
                             prefix={<Search className="size-4 text-foreground/40" />}
                             value={keyword}
-                            placeholder={t("library.assets.page.searchPlaceholder")}
+                            placeholder={t(platform ? "library.assets.platform.search" : "library.assets.page.searchPlaceholder")}
                             onChange={(event) => {
                                 setPage(1);
                                 setKeyword(event.target.value);
@@ -722,15 +807,16 @@ export default function AssetsPage() {
                             <div className="assets-collection-filter-scroll">
                             <AssetFilterGroup
                                 title={t("library.assets.page.kindFilter")}
-                                options={kindOptions}
+                                options={kindChoices}
                                 value={viewMode === "library" ? kindFilter : ""}
-                                counts={kindCounts}
+                                counts={platform ? undefined : kindCounts}
                                 onChange={(value) => {
                                     setViewMode("library");
-                                    setKindFilter(value as AssetKind | "all");
+                                    setKindFilter(value as LibraryAsset["kind"] | "all");
                                     setPage(1);
                                 }}
                             />
+                            {platform ? <AssetFilterGroup title={t("library.assets.platform.source")} options={sourceChoices} value={sourceFilter} onChange={(value) => { setSourceFilter(value); setPage(1); }} /> : <>
                             <AssetFilterGroup
                                 title={t("library.assets.batch.category")}
                                 options={categoryOptions}
@@ -766,6 +852,7 @@ export default function AssetsPage() {
                                     ))}
                                 </div>
                             </section>
+                            </>}
                             </div>
                             <div className="collection-trash-entry">
                                 <button
@@ -791,12 +878,12 @@ export default function AssetsPage() {
                                         <Trash2 className="size-3.5" />
                                         <span>{t("library.picker.recycleBin")}</span>
                                     </span>
-                                    <span className="assets-filter-count">{trashAssets.length}</span>
+                                    {!platform ? <span className="assets-filter-count">{trashAssets.length}</span> : null}
                                 </button>
                             </div>
                         </aside>
                         <section className="min-w-0">
-                            {viewMode === "trash" ? (
+                            {!platform && viewMode === "trash" ? (
                                 <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-600 dark:text-amber-300">
                                     <div className="flex items-center gap-2">
                                         <AlertTriangle className="size-4 shrink-0 text-amber-500" />
@@ -813,17 +900,17 @@ export default function AssetsPage() {
                                     pageLoading={assetPageQuery.isFetching}
                                     onSelectAll={() => setSelectedIds((current) => Array.from(new Set([...current, ...visibleAssetIds])))}
                                     onClear={() => { setSelectedIds([]); selectionAnchor.current = undefined; }}
-                                    onExport={() => void exportSelectedAssets()}
+                                    onExport={platform ? undefined : () => void exportSelectedAssets()}
                                     onRestore={() => void changeAssetStatus(selectedIds, "confirmed")}
                                     onArchive={() => setBatchArchiveOpen(true)}
-                                    onDelete={() => setBatchDeleteOpen(true)}
+                                    onDelete={platform && viewMode !== "trash" ? undefined : () => setBatchDeleteOpen(true)}
                                 />
                             ) : null}
-                            {validAssets.length === 0 && totalAssets === 0 ? (
+                            {platform && assetPageQuery.isPending ? <WorkspaceLoadingState /> : platform && assetPageQuery.isError ? <WorkspaceErrorState onRetry={() => void assetPageQuery.refetch()} /> : validAssets.length === 0 && totalAssets === 0 && !(platform && searchActive) ? (
                                 viewMode === "trash" ? (
                                     <WorkspaceState icon="assets" compact title={t("library.picker.recycleBinEmpty")} description={t("library.assets.trash.emptyDescription")} />
                                 ) : (
-                                    <AssetsEmptyState onNew={openCreate} onImport={() => assetInputRef.current?.click()} onGoCanvas={() => navigate("/canvas")} />
+                                    <AssetsEmptyState onNew={platform ? () => uploadInput.current?.click() : openCreate} uploadOnly={platform} onImport={() => assetInputRef.current?.click()} onGoCanvas={() => navigate("/canvas")} />
                                 )
                             ) : (
                                 <>
@@ -833,13 +920,7 @@ export default function AssetsPage() {
                                             compact
                                             query={keyword}
                                             description={t("library.assets.page.noResults")}
-                                            onClear={() => {
-                                                setKeyword("");
-                                                setKindFilter("all");
-                                                setCategoryFilter("all");
-                                                setFolderFilter("all");
-                                                setPage(1);
-                                            }}
+                                            onClear={resetFilters}
                                         />
                                     ) : (
                                         <CollectionGrid className="library-grid assets-library-grid" style={{ "--collection-grid-min-width": `${assetGridCardMinWidth[gridDensity]}px` } as React.CSSProperties}>
@@ -853,13 +934,14 @@ export default function AssetsPage() {
                                                     retentionDays={retentionDays}
                                                     onSelect={(selected, range) => selectAsset(asset.id, selected, range)}
                                                     onOpen={() => setPreviewAsset(asset)}
+                                                    onTag={platform ? (tag) => { setKeyword(tag); setPage(1); } : undefined}
                                                     onEdit={() => void openEdit(asset)}
                                                     onCopy={copyAssetText}
                                                     onDownload={downloadImage}
                                                     onRestore={() => void changeAssetStatus([asset.id], "confirmed")}
                                                     onArchive={() => setArchivingAsset(asset)}
-                                                    onDelete={() => setDeletingAsset(asset)}
-                                                    folderOptions={folderSelectOptions}
+                                                    onDelete={platform && viewMode !== "trash" ? undefined : () => setDeletingAsset(asset)}
+                                                    folderOptions={platform ? [] : folderSelectOptions}
                                                     onMoveToFolder={(folderId) => void moveAssetsToFolder([asset.id], folderId)}
                                                     arkProgress={arkEnabled ? arkProgress.get(asset.id) : undefined}
                                                 />
@@ -870,7 +952,7 @@ export default function AssetsPage() {
                                         current={page}
                                         pageSize={pageSize}
                                         total={totalAssets}
-                                        pageSizeOptions={[40, 80, 120]}
+                                        pageSizeOptions={platform ? [40, 80, 100] : [40, 80, 120]}
                                         onChange={(nextPage, nextPageSize) => {
                                             setPage(nextPageSize !== pageSize ? 1 : nextPage);
                                             setPageSize(nextPageSize);
@@ -883,6 +965,7 @@ export default function AssetsPage() {
                 </div>
             </WorkspacePage>
 
+            {platform ? <input hidden type="file" multiple ref={uploadInput} onChange={(event) => { const files = Array.from(event.target.files || []); event.target.value = ""; void uploadFiles(files); }} /> : null}
             <ArkCertifyModal asset={certifyingAsset} onClose={() => setCertifyingAsset(null)} />
             <Modal
                 className="workspace-modal workspace-modal-wide library-modal"
@@ -892,14 +975,21 @@ export default function AssetsPage() {
                     if (!imageUploading) setIsAssetOpen(false);
                 }}
                 onOk={() => void saveAsset()}
-                okText={imageUploading ? t("library.assets.form.uploading") : t("common.save")}
+                okText={!platform && imageUploading ? t("library.assets.form.uploading") : t("common.save")}
                 cancelText={t("common.cancel")}
                 confirmLoading={imageUploading}
                 cancelButtonProps={{ disabled: imageUploading }}
                 closable={!imageUploading}
                 destroyOnHidden
             >
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+                {platform ? <Form form={form} layout="vertical" requiredMark={false}>
+                    <Form.Item name="title" label={t("library.assets.form.title")} rules={[{ required: true, whitespace: true, message: t("library.assets.form.titleRequired") }]}>
+                        <Input maxLength={255} />
+                    </Form.Item>
+                    <Form.Item name="tags" label={t("library.assets.form.tags")}>
+                        <Select mode="tags" maxCount={100} tokenSeparators={[",", "，"]} placeholder={t("library.assets.form.tagsPlaceholder")} />
+                    </Form.Item>
+                </Form> : <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
                     <Form form={form} layout="vertical" requiredMark={false} initialValues={{ kind: "text", category: "other", tags: [] }}>
                         <Form.Item name="kind" label={t("library.assets.form.kind")}>
                             <Select
@@ -1010,7 +1100,7 @@ export default function AssetsPage() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>}
                 <input
                     ref={coverInputRef}
                     type="file"
@@ -1036,6 +1126,7 @@ export default function AssetsPage() {
             <AssetDrawer
                 asset={previewAsset}
                 onClose={() => setPreviewAsset(null)}
+                onEdit={platform && previewAsset ? () => void openEdit(previewAsset) : undefined}
                 onCopy={copyAssetText}
                 onDownload={downloadImage}
                 ark={
