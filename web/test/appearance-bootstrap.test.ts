@@ -46,7 +46,7 @@ test("appearance URLs reject executable and insecure remote schemes", () => {
         authVideoUrl: "http://example.com/brand.mp4",
     });
 
-    expect(appearance.logoUrl).toBe("/oceanway/logo.svg");
+    expect(appearance.logoUrl).toBe("/oceanway/oceanway-ai-symbol-blue.svg");
     expect(appearance.authVideoUrl).not.toContain("example.com");
 });
 

@@ -17,7 +17,7 @@ export function BrandLogo({ className, alt = "", theme = "auto" }: BrandLogoProp
     const currentTheme = useActiveTheme();
     const source = appearanceLogoURL(appearance, theme === "auto" ? currentTheme : theme);
     const [failedSource, setFailedSource] = useState<string | null>(null);
-    if (!appearance.logoConfigured) return <img src="/oceanway/logo.svg" alt={alt} className={cn("block object-contain", className)} draggable={false} />;
+    if (!appearance.logoConfigured) return <img src="/oceanway/oceanway-ai-symbol-blue.svg" alt={alt} className={cn("block object-contain", className)} draggable={false} />;
     // A configured custom logo must never fall through to the built-in brand
     // when its file becomes unavailable. Keep its footprint neutral instead.
     if (failedSource === source) return <span className={cn("block", className)} aria-hidden="true" />;

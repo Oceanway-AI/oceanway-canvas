@@ -13,7 +13,7 @@ Source paths: `web/src/lib/ocean-air-theme.ts`,
 `web/src/components/ocean/backgrounds/molten-metal.*`,
 and `web/public/oceanway-workspace/`.
 
-The default Studio logo (`logo.svg`) is the original blue OceanWay symbol from
+The default Studio logo (`oceanway-ai-symbol-blue.svg`) is the original blue OceanWay symbol from
 `Oceanway-AI/oceanway-platform`, at
 `web/public/brand/ui-foundation-v1/logo/oceanway-ai-symbol-blue.svg`.
 

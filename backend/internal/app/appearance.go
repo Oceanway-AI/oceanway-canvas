@@ -44,7 +44,7 @@ const (
 	defaultAppearanceBrandName = "Oceanway Studio"
 	defaultAppearanceBrandSlug = "oceanway-studio"
 	defaultAppearanceSkinID    = "classic"
-	defaultAppearanceLogoURL   = "/oceanway/logo.svg"
+	defaultAppearanceLogoURL   = "/oceanway/oceanway-ai-symbol-blue.svg"
 	defaultAppearanceVideoURL  = ""
 	defaultAppearancePosterURL = "/oceanway-workspace/particle-wave-premium.webp"
 	defaultAppearanceHeroTitle = "让灵感，\n自由流动。"
