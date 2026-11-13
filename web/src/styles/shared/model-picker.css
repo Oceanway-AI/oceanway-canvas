@@ -1408,3 +1408,14 @@ html:not(.dark) .creation-home .creation-chat-composer .creation-model-picker.ca
 .creation-model-picker-surface .canvas-model-picker-option .model-picker-price {
     font-size: var(--fs-tiny);
 }
+
+
+.ow-studio-picker-menu {
+    width: min(640px, calc(100vw - 24px));
+    max-width: 100%;
+    color: var(--foreground);
+}
+.ow-studio-picker-menu .ow-picker-panel {
+    max-height: min(360px, 75dvh, var(--canvas-model-picker-available-height));
+}
+.ow-studio-picker-menu .canvas-model-picker-option { width:100%; }

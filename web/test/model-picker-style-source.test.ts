@@ -29,9 +29,11 @@ test("模型行只保留选中高亮，价格使用独立的彩色标签", async
 
 test("每次打开菜单都展开当前选中模型所属目录，无选中时直接展开首组双栏", async () => {
     const component = await Bun.file(new URL("../src/components/model-picker.tsx", import.meta.url)).text();
-    const opening = component.match(/const setPickerOpen = \(nextOpen: boolean\) => \{([\s\S]*?)\n    \};/)?.[1] || "";
-    expect(opening).toContain("setActiveGroupKey(optionGroups.find((group) => group.models.some((item) => item.models.includes(current)))?.key ?? optionGroups[0]?.key ?? null)");
-    expect(opening).not.toContain("setActiveGroupKey(null)");
+    const panel = await Bun.file(Bun.resolveSync("@oceanway/model-picker", import.meta.dir)).text();
+    expect(component).toContain("{open && <ModelPickerPanel");
+    expect(component).toContain("item.models.includes(current)");
+    expect(panel).toContain("useState(selectedSeries?.key)");
+    expect(panel).toContain("g.options.some(isSelected)");
 });
 
 test("选择模型保留菜单及行内焦点，仍可通过 Escape 和外部点击关闭", async () => {
