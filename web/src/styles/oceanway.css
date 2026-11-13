@@ -178,13 +178,13 @@ html[data-oceanway] .app-user-workspace .app-workspace-sidebar-brand-row {
     container-type: inline-size;
 }
 html[data-oceanway] .app-user-workspace .app-workspace-sidebar-brand-button {
-    gap: 1cqw;
+    gap: 6px;
     padding-inline: 0;
     justify-content: center;
 }
 html[data-oceanway] .app-user-workspace .app-workspace-brand-mark {
-    width: min(22cqw, 56px);
-    height: 56px;
+    width: min(20cqw, 44px);
+    height: 46px;
     flex: none;
     border: 0;
     border-radius: 12px;
@@ -198,12 +198,12 @@ html[data-oceanway] .app-user-workspace .app-workspace-brand-mark img {
     filter: none;
 }
 html[data-oceanway] .app-user-workspace .app-workspace-sidebar-brand-row.is-collapsed .app-workspace-brand-mark {
-    width: min(100cqw, 56px);
+    width: min(100cqw, 44px);
 }
 html[data-oceanway] .app-user-workspace .app-workspace-brand-wordmark {
-    font-size: clamp(18px, 10.05cqw, 26px);
+    font-size: clamp(16px, 8cqw, 18px);
     line-height: 1.12;
-    font-weight: 650;
+    font-weight: 600;
     letter-spacing: -0.035em;
     color: var(--ocean-air-text);
 }
