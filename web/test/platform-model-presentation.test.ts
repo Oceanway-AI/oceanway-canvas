@@ -35,7 +35,8 @@ const ranges: PlatformPriceRange[] = [
 
 test("published ranges preserve exact decimal amounts and conditions without local repricing", () => {
     const model = { price: { status: "available" }, presentation: { price_summary: ranges } } as PlatformModel;
-    expect(platformModelPriceLabel(model)).toBe("0.00000000123456789–2.500000000000001 积分/秒");
+    expect(platformModelPriceLabel(model)).toBe("0.00000000123456789–2.500000000000001 积分/s");
+    expect(platformModelPriceLabel({ ...model, price: { ...model.price, status: "usage_dependent" }, presentation: { ...model.presentation!, price_summary: [{ ...ranges[0], dimension: "image_count", rate_unit: "count", min: "20", max: "20" }] } })).toBe("20 积分/张");
     expect(platformPriceConditions(ranges)).toContain('resolution="720p"');
     expect(platformPriceConditions(ranges)).toContain("pv-a");
     expect(platformPriceConditions([{ ...ranges[0], dimension: "cache_write_5m", rate_unit: "million_tokens" }])).toContain("缓存写入 5 分钟 0.00000000123456789 积分/百万 Token");

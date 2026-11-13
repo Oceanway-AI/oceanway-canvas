@@ -547,7 +547,7 @@ export function CreationComposer(props: ComposerProps) {
                     ) : (
                         <>
                             <ModelPicker
-                                config={props.config}
+                                config={{ ...props.config, model: props.model, nativeVariantId: props.nativeVariantId, nativeParameters: props.nativeParameters }}
                                 value={props.model}
                                 onChange={props.onModelChange}
                                 capability={props.mode}

@@ -222,18 +222,21 @@ export default function CreatePage() {
         () => conversations.filter((conversation) => conversation.id === activeId || conversation.messages.length > 0).sort((left, right) => conversationTimestamp(right.updatedAt) - conversationTimestamp(left.updatedAt)),
         [activeId, conversations],
     );
-    const preferredModel = mode === "text" ? config.textModel : mode === "image" ? config.imageModel : config.videoModel;
+    const rememberedModel = mode === "text" ? config.textModel : mode === "image" ? config.imageModel : config.videoModel;
     const availableModels = useMemo(() => selectableModelsByCapability(config, mode), [config, mode]);
+    const preferredModel = availableModels.includes(rememberedModel) ? rememberedModel : availableModels[0] ?? "";
     const preferredImageProfile = useMemo(() => (mode === "image" && availableModels.includes(preferredModel) ? modelCapabilityConfigFor(config, preferredModel).image : undefined), [config, mode, availableModels, preferredModel]);
     const hasPrompt = Boolean(prompt.trim());
     const modelRequirements = useMemo<ModelRequirements>(
         () => ({
             capability: mode,
             useImageEditForReferences: mode === "image",
+            useVideoReferenceMode: mode === "video",
             input: {
                 textCount: hasPrompt ? 1 : 0,
                 imageCount: attachments.filter(isImageAttachment).length,
                 videoCount: attachments.filter(isVideoAttachment).length,
+                videoDurationsMs: attachments.filter(isVideoAttachment).flatMap((item) => "durationMs" in item && item.durationMs && item.durationMs > 0 ? [item.durationMs] : []),
                 audioCount: attachments.filter((attachment) => creationAttachmentKind(attachment) === "audio").length,
                 characterCount: 0,
             },
@@ -260,7 +263,7 @@ export default function CreatePage() {
     const videoProfile = useMemo(() => (selectedModel ? modelCapabilityConfigFor(config, selectedModel).video : undefined), [config, selectedModel]);
     const nativeProfile = nativeMediaProfile(config, selectedModel);
     const nativeSaved = mode === "video" ? savedNativePreferences.video : savedNativePreferences.image;
-    const nativeCreation = nativeProfile ? nativeCreationSettings(config, selectedModel, nativeSaved?.model === selectedModel ? nativeSaved : {}, mode === "image" && Boolean(modelRequirements.input?.imageCount)) : undefined;
+    const nativeCreation = nativeProfile ? nativeCreationSettings(config, selectedModel, nativeSaved?.model === selectedModel ? nativeSaved : {}, Boolean(modelRequirements.input?.imageCount || (mode === "video" && (modelRequirements.input?.videoCount || modelRequirements.input?.audioCount)))) : undefined;
     const nativeSettings: { nativeParameters?: string; nativeVariantId?: string } = nativeCreation?.settings || {};
     const generationConfig = useMemo(
         () => (nativeProfile ? { ...config, model: selectedModel, ...nativeSettings } : mode === "video" && videoProfile ? creationVideoConfig(config, selectedModel, { ratio, seconds, videoQuality }) : config),
@@ -282,7 +285,7 @@ export default function CreatePage() {
     };
     // 同名逻辑模型可能把文生视频、图生视频和全模态参考拆到不同路由。
     // 入口需要展示整个模型组的引用能力，添加素材后再由兼容路由选择具体模型。
-    const nativeReferenceLimits = nativeProfile ? nativeMediaReferenceLimits(generationConfig, selectedModel, mode === "image" ? nativeCreation?.referenceVariant : undefined) : undefined;
+    const nativeReferenceLimits = nativeProfile ? nativeMediaReferenceLimits(generationConfig, selectedModel, nativeCreation?.referenceVariant) : undefined;
     const videoReferenceLimits = nativeReferenceLimits || (mode === "video" && videoProfile ? modelGroupReferenceLimits(config, selectedModel, "video") || { maxImages: 0, maxVideos: 0, maxAudios: 0 } : undefined);
     const maxReferences = nativeReferenceLimits
         ? nativeReferenceLimits.maxImages + nativeReferenceLimits.maxVideos + nativeReferenceLimits.maxAudios
@@ -1496,7 +1499,7 @@ export default function CreatePage() {
         setImageResolution: setComposerImageResolution,
         imageParameters,
         nativeParameters: nativeSettings.nativeParameters,
-        nativeVariantId: nativeSettings.nativeVariantId,
+        nativeVariantId: mode === "video" ? nativeCreation?.referenceVariant?.id ?? nativeSettings.nativeVariantId : nativeSettings.nativeVariantId,
         onNativeSettingsChange: (key: "nativeParameters" | "nativeVariantId", value: string) => {
             const remember = mode === "video" ? rememberVideoSettings : rememberImageSettings;
             remember({ model: selectedModel, [key]: value, ...(key === "nativeVariantId" ? { nativeParameters: "{}" } : {}) });

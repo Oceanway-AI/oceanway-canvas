@@ -2,7 +2,7 @@ import { defaultImageCapabilityConfig, modelCapabilityConfigFor, normalizeImageV
 import { videoResolutionComparisonKey } from "@/lib/video-generation-options";
 import { imageParameterRequest, imageParameterDefaults, imageParameterAccepts } from "./image-parameters";
 import { imageSizePresets } from "@/lib/image-size-presets";
-import { nativeImageReferenceVariant, nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
+import { nativeVideoComposerVariants, nativeImageReferenceVariant, nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
 import { modelOptionName, PUBLIC_MODEL_CATALOG_ID, resolveModelChannel, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
 
 export type ModelInputSummary = {
@@ -23,6 +23,7 @@ export type ModelRequirements = {
     videoSeconds?: string;
     imageSize?: string;
     useImageEditForReferences?: boolean;
+    useVideoReferenceMode?: boolean;
     options?: Record<string, unknown>;
 };
 
@@ -120,9 +121,13 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
     const visualInputCount = input ? input.imageCount + input.characterCount : 0;
     const channel = resolveModelChannel(config, model);
     const logicalCost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
-    if (nativeMediaProfile(config, model)) {
+    const nativeProfile = nativeMediaProfile(config, model);
+    if (nativeProfile) {
         const current = nativeMediaVariant(config, model);
-        const variant = requirements.useImageEditForReferences && visualInputCount > 0 ? nativeImageReferenceVariant(config, model, current) : current;
+        const hasVideoInputs = visualInputCount > 0 || Boolean(input?.videoCount || input?.audioCount);
+        const variant = requirements.useVideoReferenceMode && capability === "video" && current && hasVideoInputs
+            ? nativeVideoComposerVariants(nativeProfile.variants, current, model === config.model ? config.nativeVariantId : undefined).reference ?? current
+            : requirements.useImageEditForReferences && visualInputCount > 0 ? nativeImageReferenceVariant(config, model, current) : current;
         if (!variant) return "模型参数版本已失效，请重新选择";
         if (logicalCost?.platform?.model_type !== capability) return "模型与创作类型不匹配";
         // Native schema admission owns parameter combinations. Legacy size and

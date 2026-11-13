@@ -93,8 +93,14 @@ export type PlatformModelGroup = {
 const priceUnits: Record<string, string> = { million_tokens: "百万 Token", call: "次", second: "秒", count: "个", token: "Token", credit: "单位" };
 const priceDimensions: Record<string, string> = { input: "输入", output: "输出", cached: "缓存", cache_read: "缓存读取", cache_write: "缓存写入", cache_write_5m: "缓存写入 5 分钟", cache_write_1h: "缓存写入 1 小时" };
 
+function priceDenominator(range: PlatformPriceRange) {
+    if (range.rate_unit === "count" && ["image_count", "images"].includes(range.dimension)) return "张";
+    if (range.rate_unit === "second") return "s";
+    return priceUnits[range.rate_unit] || range.rate_unit;
+}
+
 function priceDimensionLabel(dimension: string) {
-    return priceDimensions[dimension] || (dimension && !["seconds", "count", "call", "calls", "price", "fixed"].includes(dimension) ? dimension : "");
+    return priceDimensions[dimension] || (dimension && !["seconds", "count", "call", "calls", "price", "fixed", "image_count", "images", "completion_tokens"].includes(dimension) ? dimension : "");
 }
 
 export function platformPriceRangesLabel(ranges: PlatformPriceRange[]) {
@@ -102,7 +108,7 @@ export function platformPriceRangesLabel(ranges: PlatformPriceRange[]) {
         .map((range) => {
             const amount = range.min === range.max ? range.min : `${range.min}–${range.max}`;
             const dimension = priceDimensionLabel(range.dimension);
-            return `${dimension ? `${dimension} ` : ""}${amount} 积分/${priceUnits[range.rate_unit] || range.rate_unit}`;
+            return `${dimension ? `${dimension} ` : ""}${amount} 积分/${priceDenominator(range)}`;
         })
         .join(" · ");
 }
@@ -122,7 +128,7 @@ export function platformPriceConditions(ranges: PlatformPriceRange[]) {
                         .map(([name, value]) => `${name}=${JSON.stringify(value)}`)
                         .join(", ") || "默认规格";
                 const dimension = priceDimensionLabel(range.dimension);
-                return `${condition.model_name} · ${spec} · ${dimension ? `${dimension} ` : ""}${condition.amount} 积分/${priceUnits[range.rate_unit] || range.rate_unit} · ${condition.price_version}`;
+                return `${condition.model_name} · ${spec} · ${dimension ? `${dimension} ` : ""}${condition.amount} 积分/${priceDenominator(range)} · ${condition.price_version}`;
             }),
         )
         .join("\n");
