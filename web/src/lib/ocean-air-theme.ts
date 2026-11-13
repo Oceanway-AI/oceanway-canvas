@@ -1,3 +1,5 @@
+const logoBlue = "#1675e8";
+
 export const oceanAirPalette = {
     light: {
         // Canonical Ocean Air sRGB values. Keep this palette in lockstep with
@@ -14,7 +16,7 @@ export const oceanAirPalette = {
         borderStrong: "rgba(47,127,211,.34)",
         primary: "#2f7fd3",
         primaryHover: "#286db5",
-        actionFill: "#1672df",
+        actionFill: logoBlue,
         actionHover: "#1766c6",
         actionActive: "#1055a8",
         primaryText: "#ffffff",
@@ -44,7 +46,7 @@ export const oceanAirPalette = {
         borderStrong: "rgba(10,132,255,.42)",
         primary: "#0a84ff",
         primaryHover: "#409cff",
-        actionFill: "#0874df",
+        actionFill: logoBlue,
         actionHover: "#096fd1",
         actionActive: "#0b60b6",
         primaryText: "#ffffff",
