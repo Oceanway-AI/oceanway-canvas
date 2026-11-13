@@ -728,6 +728,7 @@ export default function CreatePage() {
             return { attachment: creationAttachmentFromDocument(file, uploaded) };
         }
         const uploaded = await uploadImage(file);
+        if (useUserStore.getState().platformIdentity && uploaded.pendingRemoteUpload) throw new Error(uploaded.remoteUploadError || t("create.page.uploadFailed", { count: 1 }));
         return {
             asset: creationImageAsset({ title: file.name, uploaded, metadata: { source: "create-upload", fileName: file.name } }),
             attachment: creationAttachmentFromImage(file, uploaded),

@@ -88,6 +88,8 @@ test("Untrusted ticket headers and expired URLs are rejected before disclosing f
             { headers: { Cookie: "secret" }, expires_at: "2099-01-01T00:00:00Z" },
             { headers: { "X-Platform-Product-Key": "secret" }, expires_at: "2099-01-01T00:00:00Z" },
             { headers: {}, expires_at: "2000-01-01T00:00:00Z" },
+            { url: "http://127.0.0.1:18474/_local-material-upload/key", headers: {}, expires_at: "2099-01-01T00:00:00Z" },
+            { url: "http://objects.example.test/_local-material-upload/key", headers: {}, expires_at: "2099-01-01T00:00:00Z" },
         ]) {
             apiClient.defaults.adapter = async (config) => ({
                 config,

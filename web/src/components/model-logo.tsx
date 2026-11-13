@@ -17,7 +17,15 @@ const iconModules = "Bun" in globalThis ? {} : import.meta.glob("../../node_modu
 const colorIconModules = "Bun" in globalThis ? {} : import.meta.glob("../../node_modules/@lobehub/icons/es/*/components/Color.js", { import: "default" });
 const iconLoaders = Object.fromEntries(
     [...Object.entries(iconModules), ...Object.entries(colorIconModules)]
-        .map(([path, loader]) => [path.match(/\/([^/]+)\/components\/(?:Mono|Color)\.js$/)?.[1], loader])
+        .flatMap(([path, loader]) => {
+            const match = path.match(/\/([^/]+)\/components\/(Mono|Color)\.js$/);
+            return match
+                ? [
+                      [match[1], loader],
+                      [`${match[1]}.${match[2]}`, loader],
+                  ]
+                : [];
+        })
         .filter((entry): entry is [string, () => Promise<LobeIconComponent>] => Boolean(entry[0] && entry[1])),
 ) as Record<string, () => Promise<LobeIconComponent>>;
 const resolveIconId = createModelLogoResolver(Object.keys(iconLoaders));
@@ -57,20 +65,20 @@ export function ModelLogo({ icon: rawIcon, size = 18, className }: { icon?: stri
     const [Icon, setIcon] = useState<LobeIconComponent | undefined>(() => (icon ? iconRegistry.get(icon) : undefined));
     useEffect(() => {
         let cancelled = false;
-        setIcon(icon ? iconRegistry.get(icon) : undefined);
+        setIcon(() => (icon ? iconRegistry.get(icon) : undefined));
         if (!icon || !iconLoaders[icon])
             return () => {
                 cancelled = true;
             };
         void loadIcon(icon).then((loaded) => {
-            if (!cancelled) setIcon(loaded);
+            if (!cancelled) setIcon(() => loaded);
         });
         return () => {
             cancelled = true;
         };
     }, [icon]);
     if (!Icon) return <Cpu className={cn("shrink-0 text-foreground/45", className)} size={size} aria-hidden />;
-    return <Icon size={size} className={cn("shrink-0", className)} aria-hidden />;
+    return <Icon size={size} data-model-logo={icon} className={cn("shrink-0", className)} aria-hidden />;
 }
 
 export function ModelIconPicker({ value, onChange }: { value?: string; onChange?: (value: string) => void }) {

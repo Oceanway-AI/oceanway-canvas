@@ -48,7 +48,11 @@ function validUpload(data: Upload, id?: string, uploadId?: string) {
 
 function ticketHeaders(ticket: Ticket) {
     const url = new URL(ticket.url);
-    if (url.protocol !== "https:" || url.username || url.password || url.hash || ticket.method !== "PUT" || !Number.isFinite(Date.parse(ticket.expires_at)) || Date.parse(ticket.expires_at) <= Date.now()) throw new Error("上传票据无效或已过期");
+    // A loopback Studio preview can relay a signed PUT to its private TLS
+    // object store. Only its own upload route may represent a local ticket.
+    const localUpload = url.protocol === "http:" && url.hostname === "127.0.0.1" && url.origin === globalThis.location?.origin && url.pathname.startsWith("/_local-material-upload/");
+    if ((!localUpload && url.protocol !== "https:") || url.username || url.password || url.hash || ticket.method !== "PUT" || !Number.isFinite(Date.parse(ticket.expires_at)) || Date.parse(ticket.expires_at) <= Date.now())
+        throw new Error("上传票据无效或已过期");
     const headers = new Headers(ticket.headers);
     for (const name of headers.keys()) {
         if (/^(cookie|authorization|proxy-authorization|host)$|^x-platform-|^x-oceanway-/i.test(name)) throw new Error("上传票据包含不允许的身份字段");

@@ -12,12 +12,15 @@ export type PlatformModel = {
     model_series?: string;
     logical_model?: string;
     series_info?: PlatformSeriesInfo;
+    display_icon?: string;
+    display_vendor?: string;
     presentation?: PlatformModelPresentation;
     content?: {
         model_series?: string;
         logical_model?: string;
         display_name?: string;
         source_label?: string;
+        vendor_icon?: string;
     };
     price: PlatformPrice;
     media_generation_profile?: Record<string, unknown>;

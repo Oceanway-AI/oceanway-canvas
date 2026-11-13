@@ -49,7 +49,12 @@ export function modelDisplayName(config: AiConfig, value: string) {
 
 export function modelIcon(config: AiConfig, value: string) {
     const model = modelOptionName(value);
-    return resolveModelChannel(config, value).modelCosts?.find((item) => item.model === model)?.icon || "";
+    const channel = resolveModelChannel(config, value);
+    const cost = channel.modelCosts?.find((item) => item.model === model);
+    const platform = cost?.platform;
+    if (!platform) return cost?.icon || "";
+    const group = channel.platformGroups?.find((entry) => entry.model_names.includes(model));
+    return platform.display_icon || platform.content?.vendor_icon || cost.icon || platform.series_info?.icon || group?.series_info?.icon || platform.display_vendor || platform.model_series || "";
 }
 
 export function modelOptionLabel(config: AiConfig, value: string) {

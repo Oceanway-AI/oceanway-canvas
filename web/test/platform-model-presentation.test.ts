@@ -12,6 +12,7 @@ import {
     type PlatformModelGroup,
 } from "../src/lib/platform-models";
 import { systemChannelModelChannels } from "../src/lib/user-session";
+import { modelIcon } from "../src/stores/config-model-options";
 import { filterModelPickerGroups, groupModelsForPicker, modelPickerSeries } from "../src/lib/model-picker-groups";
 import { defaultConfig, normalizeConfigSnapshot } from "../src/stores/use-config-store";
 import type { PublicChannelModel } from "../src/services/api/logical-models";
@@ -83,6 +84,18 @@ test("host forwards authoritative group health instead of choosing the first var
         normalized,
         models.map((model) => `oceanway-platform::${model.modelKey}`),
     );
+    const icons = {
+        ...normalized,
+        channels: normalized.channels.map((c) => ({
+            ...c,
+            platformGroups: [{ ...group, series_info: { name: "Series", icon: "Gemini.Color" } }],
+            modelCosts: c.modelCosts?.map((cost) => ({ ...cost, platform: { ...cost.platform!, display_icon: cost.model === "exact-a" ? "OpenAI" : "" } })),
+        })),
+    };
+    const members = ["oceanway-platform::exact-a", "oceanway-platform::exact-b"];
+    expect(modelIcon(icons, members[0])).toBe("OpenAI");
+    expect(modelIcon(icons, members[1])).toBe("Gemini.Color");
+    expect(modelPickerSeries(groupModelsForPicker(icons, members))[0].icon).toBe("Gemini.Color");
     expect(grouped).toHaveLength(1);
     expect(grouped[0].key).toBe("opaque-group");
     expect(grouped[0].platform?.health.success_rate).toBe(99.01);

@@ -98,7 +98,7 @@ export function modelPickerSeries(groups: ModelPickerGroup[]) {
         const key = group.series ? JSON.stringify(["series", group.series.modelType, group.series.name]) : group.key;
         let entry = series.get(key);
         if (!entry) {
-            entry = { ...group, key, label: group.series?.name || group.label, models: [], logicalGroups: [] };
+            entry = { ...group, key, label: group.series?.name || group.label, icon: group.platform?.series_info?.icon || group.icon, models: [], logicalGroups: [] };
             series.set(key, entry);
         }
         entry.models.push(...group.models);
