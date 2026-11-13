@@ -236,10 +236,16 @@ export const defaultConfig: AiConfig = {
     canvasImageCount: "1",
 };
 
+const MODEL_SELECTION_KEYS = ["model", "imageModel", "videoModel", "textModel", "audioModel"] as const;
+type ModelSelectionKey = (typeof MODEL_SELECTION_KEYS)[number];
+type ModelSelections = Partial<Pick<AiConfig, ModelSelectionKey>>;
+
 type ConfigStore = {
     config: AiConfig;
+    pendingModelSelections: ModelSelections;
     updateConfig: <K extends keyof AiConfig>(key: K, value: AiConfig[K]) => void;
     replaceConfig: (config: AiConfig) => void;
+    invalidateSystemChannels: () => void;
     mergeSystemChannels: (channels: ModelChannel[]) => void;
     isAiConfigReady: (config: AiConfig, model: string) => boolean;
 };
@@ -369,14 +375,33 @@ export const useConfigStore = create<ConfigStore>()(
     persist(
         (set) => ({
             config: defaultConfig,
+            pendingModelSelections: {},
             updateConfig: (key, value) =>
+                set((state) => {
+                    const pendingModelSelections = { ...state.pendingModelSelections };
+                    if (MODEL_SELECTION_KEYS.includes(key as ModelSelectionKey)) delete pendingModelSelections[key as ModelSelectionKey];
+                    return {
+                        pendingModelSelections,
+                        config: {
+                            ...state.config,
+                            [key]: value,
+                        },
+                    };
+                }),
+            replaceConfig: (config) =>
+                set((state) => {
+                    const pendingModelSelections = { ...state.pendingModelSelections };
+                    for (const key of MODEL_SELECTION_KEYS) {
+                        if (config[key] !== state.config[key]) delete pendingModelSelections[key];
+                    }
+                    return { config, pendingModelSelections };
+                }),
+            invalidateSystemChannels: () =>
                 set((state) => ({
-                    config: {
-                        ...state.config,
-                        [key]: value,
-                    },
+                    // Keep preference IDs while removing permission, pricing and capabilities.
+                    pendingModelSelections: { ...state.pendingModelSelections, ...systemModelSelections(state.config) },
+                    config: configWithoutSystemChannels(state.config),
                 })),
-            replaceConfig: (config) => set({ config }),
             mergeSystemChannels: (channels) =>
                 set((state) => {
                     const systemChannels = channels.map((channel, index) =>
@@ -389,24 +414,57 @@ export const useConfigStore = create<ConfigStore>()(
                         }),
                     );
                     const userChannels = state.config.channels.filter((channel) => channel.scope !== "system");
-                    return normalizeConfigSnapshot({ config: { ...state.config, channels: [...systemChannels, ...userChannels] } });
+                    return {
+                        ...normalizeConfigSnapshot({ config: { ...state.config, ...state.pendingModelSelections, channels: [...systemChannels, ...userChannels] } }),
+                        pendingModelSelections: {},
+                    };
                 }),
             isAiConfigReady: (config, model) => isAiConfigReady(config, model),
         }),
         {
             name: CONFIG_STORE_KEY,
             storage: createJSONStorage(() => scopedLocalStorage),
-            partialize: (state) => ({ config: state.config }),
+            // The authoritative catalog is session data; serializing it can exceed
+            // localStorage quota on every unrelated preference update.
+            partialize: (state) => ({ config: configWithoutSystemChannels(state.config), pendingModelSelections: { ...state.pendingModelSelections, ...systemModelSelections(state.config) } }),
             merge: (persisted, current) => {
                 const persistedState = (persisted || {}) as Partial<ConfigStore>;
                 return {
                     ...current,
-                    ...normalizeConfigSnapshot({ config: persistedState.config }),
+                    config: configWithoutSystemChannels(persistedState.config),
+                    pendingModelSelections: { ...validModelSelections(persistedState.pendingModelSelections), ...systemModelSelections(persistedState.config) },
                 };
             },
         },
     ),
 );
+
+function configWithoutSystemChannels(config?: Partial<AiConfig>) {
+    const channels = Array.isArray(config?.channels) ? config.channels : [];
+    return normalizeConfigSnapshot({ config: { ...config, channels: channels.filter((channel) => channel.scope !== "system") } }).config;
+}
+
+function systemModelSelections(config?: Partial<AiConfig>): ModelSelections {
+    const channels = Array.isArray(config?.channels) ? config.channels : [];
+    const systemChannelIDs = new Set(channels.filter((channel) => channel.scope === "system").map((channel) => channel.id));
+    const selections: ModelSelections = {};
+    for (const key of MODEL_SELECTION_KEYS) {
+        const value = config?.[key];
+        const decoded = typeof value === "string" ? decodeChannelModel(value) : null;
+        if (decoded && systemChannelIDs.has(decoded.channelId)) selections[key] = value;
+    }
+    return selections;
+}
+
+function validModelSelections(value: ModelSelections | undefined): ModelSelections {
+    const selections: ModelSelections = {};
+    for (const key of MODEL_SELECTION_KEYS) {
+        const selected = value?.[key];
+        const decoded = typeof selected === "string" ? decodeChannelModel(selected) : null;
+        if (decoded?.channelId && decoded.model) selections[key] = selected;
+    }
+    return selections;
+}
 
 export function normalizeConfigSnapshot(snapshot: ConfigStoreSnapshot | undefined = {}) {
     // 坏存储/旧版本快照可能是 undefined 或缺 config，兜底为 defaultConfig，保证渲染不崩溃

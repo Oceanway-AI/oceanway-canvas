@@ -43,7 +43,7 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     hydratingCatalogGeneration = generation;
     catalogRequest = null;
     useModelCatalogStore.setState({ status: payload.user ? "loading" : "idle", error: null });
-    withUserScopedPersistenceSuppressed(() => useConfigStore.getState().mergeSystemChannels([]));
+    withUserScopedPersistenceSuppressed(() => useConfigStore.getState().invalidateSystemChannels());
     const previousUserId = useUserStore.getState().user?.id || "";
     const nextUserId = payload.user?.id || "";
     useUserStore.getState().setHydrated(false);
@@ -81,7 +81,7 @@ function resetUserScopedMemory() {
     useCanvasStore.setState({ projects: [], hydrated: false });
     useCanvasHistoryStore.setState({ deletedProjects: [] });
     useAssetStore.setState({ assets: [], hydrated: false });
-    useConfigStore.setState({ config: normalizeConfigSnapshot({ config: defaultConfig }).config });
+    useConfigStore.setState({ config: normalizeConfigSnapshot({ config: defaultConfig }).config, pendingModelSelections: {} });
     usePluginStore.setState({ hydrated: false, installations: [], runtimeStatuses: {}, pluginStates: {} });
     useCreationPreferencesStore.setState({ hydrated: false, preferences: {} });
     // 全局 Agent 的开合与待投递消息属于账号会话，切换账号必须清空。
@@ -116,9 +116,9 @@ async function hydrateUserSessionData(payload: AuthSessionPayload, generation: n
     if (!hasPersistedValue(plugins)) usePluginStore.setState({ installations: [], runtimeStatuses: {}, pluginStates: {} });
     if (!persistedCreationPreferences) useCreationPreferencesStore.setState({ preferences: {} });
 
-    // Rehydrated system rows are cached presentation, not current permission.
+    // Saved selection IDs are preferences, not current permission.
     // Read the catalog independently of asset/project initialization.
-    useConfigStore.getState().mergeSystemChannels([]);
+    useConfigStore.getState().invalidateSystemChannels();
     hydratingCatalogGeneration = null;
     if (userId) void refreshCurrentSessionCatalog(generation, userId, !persistedConfig).catch(() => undefined);
     else useModelCatalogStore.setState({ status: "idle", error: null });
@@ -199,7 +199,7 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
             useModelCatalogStore.setState({ status: "ready", error: null });
         } catch (error) {
             if (!isCurrentSession(generation, userId)) return;
-            useConfigStore.getState().mergeSystemChannels([]);
+            useConfigStore.getState().invalidateSystemChannels();
             useModelCatalogStore.setState({ status: "error", error: "模型目录读取失败，请重试。" });
             throw error;
         } finally {
@@ -207,7 +207,7 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
         }
     });
     catalogRequest = request;
-    useConfigStore.getState().mergeSystemChannels([]);
+    useConfigStore.getState().invalidateSystemChannels();
     useModelCatalogStore.setState({ status: "loading", error: null });
     return request.promise;
 }
