@@ -464,6 +464,14 @@ export function AssetImageZoom({ asset, onError }: { asset: LibraryAsset & { kin
     const [scale, setScale] = useState(1);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+    const preview = {
+        src: asset.data.dataUrl || asset.coverUrl,
+        alt: asset.title,
+        decoding: "async" as const,
+        className: "asset-archive-preview-media asset-zoom-image",
+        style: { transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` },
+        onError,
+    };
     const reset = () => {
         setScale(1);
         setOffset({ x: 0, y: 0 });
@@ -492,16 +500,7 @@ export function AssetImageZoom({ asset, onError }: { asset: LibraryAsset & { kin
                 dragRef.current = null;
             }}
         >
-            <CachedResourceImage
-                storageKey={asset.data.storageKey}
-                src={asset.data.dataUrl || asset.coverUrl}
-                alt={asset.title}
-                eager
-                decoding="async"
-                className="asset-archive-preview-media asset-zoom-image"
-                onError={onError}
-                style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
-            />
+            {asset.metadata?.platformMaterial ? <img {...preview} /> : <CachedResourceImage {...preview} storageKey={asset.data.storageKey} eager />}
             <div className="asset-zoom-controls" data-canvas-no-zoom onPointerDown={(event) => event.stopPropagation()}>
                 <button type="button" title="缩小" aria-label="缩小" onClick={() => setScale((value) => Math.max(0.25, value / 1.25))}>
                     <ZoomOut className="size-4" />
