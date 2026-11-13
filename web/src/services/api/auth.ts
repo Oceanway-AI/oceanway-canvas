@@ -456,8 +456,8 @@ export function getAuthSettings() {
     return http.get<AuthSettings>("/auth/settings");
 }
 
-export function getPlatformLoginURL() {
-    return http.get<{ url: string }>("/auth/login-url");
+export function getPlatformLoginURL(signal?: AbortSignal) {
+    return http.get<{ url: string }>("/auth/login-url", { signal });
 }
 
 export function linuxDOLoginURL(next: string, acceptedTerms?: boolean) {

@@ -9,7 +9,6 @@ import { RequireFeature } from "@/components/auth/require-feature";
 import { FullScreenLoader, WorkspaceRouteLoader } from "@/components/ui/aceternity/full-screen-loader";
 import { workspaceRoutePages } from "@/lib/workspace-route-modules";
 import { CanvasRefreshShell } from "@/pages/canvas/canvas-refresh-shell";
-import { AuthScene } from "@/pages/auth/auth-scene";
 import RouteErrorPage from "@/pages/route-error";
 import { isGuestWorkspacePath } from "@/lib/guest-workspace";
 
@@ -54,8 +53,6 @@ const UserGroupsPage = lazyAdminPage(() => import("@/pages/admin/user-groups/use
 const AssetsPage = workspaceRoutePages.assets;
 const LoginPage = lazy(() => import("@/pages/auth/login"));
 const PlatformLoginComplete = lazy(() => import("@/pages/auth/platform-login-complete"));
-const RegisterPage = lazy(() => import("@/pages/auth/register"));
-const ForgotPasswordPage = lazy(() => import("@/pages/auth/forgot-password"));
 const CanvasPage = workspaceRoutePages.canvas;
 const CanvasProjectPage = workspaceRoutePages.canvasProject;
 const SharedCanvasPage = lazy(() => import("@/pages/canvas/shared"));
@@ -123,13 +120,12 @@ function devRoutes() {
 
 export const router = createBrowserRouter([
     {
-        element: <AuthScene />,
         errorElement: <RouteErrorPage />,
         children: [
             { path: "/login", element: fullScreenDeferred(<LoginPage />) },
             { path: "/platform/login/complete", element: fullScreenDeferred(<PlatformLoginComplete />) },
-            { path: "/register", element: fullScreenDeferred(<RegisterPage />) },
-            { path: "/forgot-password", element: fullScreenDeferred(<ForgotPasswordPage />) },
+            { path: "/register", element: fullScreenDeferred(<LoginPage />) },
+            { path: "/forgot-password", element: fullScreenDeferred(<LoginPage />) },
         ],
     },
     { path: "/share/canvas/:token", element: <StudioRouteBoundary>{fullScreenDeferred(<SharedCanvasPage />)}</StudioRouteBoundary>, errorElement: <RouteErrorPage /> },

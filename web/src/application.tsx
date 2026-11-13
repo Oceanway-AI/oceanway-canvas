@@ -9,12 +9,10 @@ import "./styles/oceanway-palette.css";
 import "./styles/oceanway.css";
 import { RouterProvider } from "react-router";
 
-import { AuthDialogHost } from "@/components/auth/auth-dialog-host";
+import { PlatformLoginDialogHost } from "@/components/auth/platform-login-dialog-host";
 import { AppProviders } from "@/components/layout/app-providers";
 import { router } from "@/router";
 
-// 登录弹窗渲染在路由之外（分享页等路由也要能打开），导航直接交给 router。
-const navigateFromAuthDialog = (to: string) => void router.navigate(to);
 const subscribeToRoute = (callback: () => void) => router.subscribe(callback);
 const currentPath = () => router.state.location.pathname;
 
@@ -27,7 +25,7 @@ function Application() {
     return (
         <AppProviders oceanway={oceanway}>
             <RouterProvider router={router} />
-            <AuthDialogHost navigate={navigateFromAuthDialog} />
+            <PlatformLoginDialogHost />
         </AppProviders>
     );
 }
