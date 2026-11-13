@@ -52,6 +52,7 @@ export function imageResolutionTierLabel(width?: number, height?: number) {
 export function videoResolutionTierLabel(width?: number, height?: number) {
     if (!knownSize(width, height) || !height) return "";
     const shortEdge = Math.min(width, height);
+    if (shortEdge < VIDEO_SHORT_EDGE_TIERS[0]) return `${shortEdge}P`;
     if (shortEdge >= 2000) return "4K";
     if (shortEdge >= 1300) return "2K";
     let closest: number = VIDEO_SHORT_EDGE_TIERS[0];

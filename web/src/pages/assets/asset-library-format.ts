@@ -109,7 +109,8 @@ export function formatAssetDuration(durationMs?: number) {
 }
 
 export function formatAssetClock(durationMs?: number) {
-    if (!durationMs || durationMs < 1000) return null;
+    if (!durationMs || !Number.isFinite(durationMs) || durationMs <= 0) return null;
+    if (durationMs < 1000) return `0:00.${String(Math.max(1, Math.round(durationMs))).padStart(3, "0").replace(/0+$/, "")}`;
     const total = Math.round(durationMs / 1000);
     const minutes = Math.floor(total / 60);
     const seconds = total % 60;
