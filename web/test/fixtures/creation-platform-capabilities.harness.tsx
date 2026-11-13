@@ -44,6 +44,8 @@ const { writeCreationConversationSnapshot } = await import("@/services/creation-
 const { getActiveUserScope } = await import("@/lib/user-scope");
 const { apiClient } = await import("@/services/api/request");
 apiClient.defaults.adapter = async (config) => {
+    if (config.method === "get" && config.url === "/materials/assets") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { items: [], total: "0" } } };
+    if (config.method === "get" && config.url === "/canvas-projects") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: [] } };
     if (config.url !== "/public/inspirations/feed") throw new Error(`Unexpected request: ${config.method} ${config.url}`);
     return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { enabled: false, entries: [], categories: {} } } };
 };
@@ -90,7 +92,7 @@ for (const mode of ["text", "image", "video"] as const) {
                 videoModels: available && mode === "video" ? ["platform::published"] : [],
             };
             useConfigStore.setState({ config });
-            useUserStore.setState({ platformIdentity: true, hydrated: true });
+            useUserStore.setState({ platformIdentity: true, hydrated: true, user: { id: "catalog-user", username: "fixture", displayName: "Fixture", role: "user", status: "active" } });
             writeCreationConversationSnapshot(getActiveUserScope(), [{ id: "existing", title: "Existing", messages: [], updatedAt: "2026-11-08T00:00:00Z" }]);
             useCreationPreferencesStore.setState({ preferences: { mode }, hydrated: true });
             const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -164,7 +166,7 @@ for (const logical of [true, false]) {
         };
         const config = { ...defaultConfig, channels: [channel], model: "platform::text-video", videoModel: "platform::text-video", textModels: [], imageModels: [], videoModels: models.map((model) => `platform::${model}`) };
         useConfigStore.setState({ config });
-        useUserStore.setState({ platformIdentity: true, hydrated: true });
+        useUserStore.setState({ platformIdentity: true, hydrated: true, user: { id: "catalog-user", username: "fixture", displayName: "Fixture", role: "user", status: "active" } });
         writeCreationConversationSnapshot(getActiveUserScope(), [{ id: "existing", title: "Existing", messages: [], updatedAt: "2026-11-08T00:00:00Z" }]);
         useCreationPreferencesStore.setState({ preferences: { mode: "video" }, hydrated: true });
         const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -258,6 +260,7 @@ test("原生视频真实生成按钮保留4秒720p参数，价格版本变化时
     apiClient.defaults.adapter = async (config) => {
         if (config.url === "/public/inspirations/feed") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { enabled: false, entries: [], categories: {} } } };
         if (config.method === "get" && config.url === "/canvas-projects") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: [] } };
+        if (config.method === "get" && config.url === "/materials/assets") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { items: [], total: "0" } } };
         requests.push({ method: config.method, url: config.url, body: JSON.parse(config.data || "{}") });
         if (config.method !== "post" || config.url !== "/tasks/preview") throw new Error(`Unexpected request: ${config.method} ${config.url}`);
         return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { allowed: true, combination_supported: true, price_version: "changed-price", wallet_points: "0.123456789" } } };

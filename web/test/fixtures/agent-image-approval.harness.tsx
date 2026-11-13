@@ -135,7 +135,7 @@ test("真实图片审批卡片可切换比例、分辨率、质量，提交值�
         expect(button("1").getAttribute("aria-pressed")).toBe("true");
         await press("42");
         await submit(imagePresetForRatio("4k", "9:16").size, "4k", "high");
-        await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="listbox"]')!.click());
+        await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]')!.click());
         await act(async () => {
             await new Promise((resolve) => setTimeout(resolve, 30));
         });

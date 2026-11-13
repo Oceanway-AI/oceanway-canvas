@@ -60,10 +60,10 @@ test("collection select focus uses a thin keyboard ring, not a persistent pointe
     expect(toolbar).not.toContain(".blur()");
 });
 
-test("workspace menu tokens are shadow-free and use theme-aware surfaces", () => {
+test("workspace menus use the raised surface and give overlays the glass shadow", () => {
     const { components } = getWorkspaceAntThemeConfig();
     for (const name of ["Select", "Dropdown", "Popover"] as const) {
-        expect(components?.[name]?.boxShadowSecondary).toBe("none");
+        expect(components?.[name]?.boxShadowSecondary).toBe(name === "Select" ? "none" : "var(--ocean-glass-shadow)");
         expect(components?.[name]?.colorBgElevated).toBe("var(--user-surface-raised)");
     }
     expect(components?.Select?.optionSelectedBg).toBe("var(--user-surface-hover)");

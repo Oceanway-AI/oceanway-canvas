@@ -24,6 +24,7 @@ func newProjectSettingsTestService(t *testing.T) (*Service, *gorm.DB) {
 		&model.Shot{}, &model.ShotArtifact{}, &model.VoiceProfile{},
 		&model.Task{}, &model.TaskLog{}, &model.Result{},
 		&model.CreationRun{}, &model.CreationSubmission{},
+		&model.CloudAgentExecution{}, &model.CloudAgentEventRecord{}, &model.CloudAgentMessageRecord{}, &model.CloudAgentCanvasMutation{}, &model.CloudAgentPiSession{},
 		&model.CloudAgentResourceLease{}, &model.Tool{}, &model.WorkbenchTool{},
 		&model.Announcement{}, &model.AnnouncementImageDraft{},
 		&model.DramaProduction{}, &model.DramaCast{}, &model.DramaEpisode{}, &model.DramaSegment{}, &model.DramaTake{},

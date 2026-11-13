@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CanvasConnectionBeam, ConnectionPath } from "../src/components/canvas/canvas-connections";
 import { CANVAS_CONNECTION_STROKE_WIDTH, canvasThemes } from "../src/lib/canvas-theme";
+import { oceanAirPalette } from "../src/lib/ocean-air-theme";
 import { CanvasNodeType } from "../src/types/canvas";
 
 const from = { id: "from", title: "来源", type: CanvasNodeType.Text, position: { x: 0, y: 0 }, width: 200, height: 100 };
@@ -24,10 +25,10 @@ test("dragging hides static beams while preserving the connection hit target", (
     expect(markup).toContain('stroke-width="16"');
 });
 
-test("both themes use neutral gray droplets with zoom-compensated widths", () => {
-    for (const theme of [canvasThemes.light, canvasThemes.dark]) {
-        const rgb = theme.connection.beam.match(/[a-f0-9]{2}/gi)!;
-        expect(new Set(rgb).size).toBe(1);
+test("both themes use their brand-colored droplets with zoom-compensated widths", () => {
+    for (const mode of ["light", "dark"] as const) {
+        const theme = canvasThemes[mode];
+        expect(theme.connection.beam).toBe(oceanAirPalette[mode].primary);
         const markup = renderToStaticMarkup(<CanvasConnectionBeam pathD="M 0 0 C 100 0 100 200 200 200" color={theme.connection.beam} />);
         expect(markup).toContain(`stroke="${theme.connection.beam}"`);
         expect(markup).toContain(`stroke-width="${CANVAS_CONNECTION_STROKE_WIDTH}"`);

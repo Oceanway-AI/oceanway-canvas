@@ -35,7 +35,7 @@ test("welcome effects preserve configured SEO title", () => {
             vm.runInNewContext(`(() => {${body}\n})()`, {
                 document,
                 window: { matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }), addEventListener() {}, removeEventListener() {} },
-                storyRef: { current: null }, restorePickerFocus: { current: false },
+                dialogRef: { current: null }, storyRef: { current: null }, restorePickerFocus: { current: false },
                 setReduced() {}, setLook() {}, getWelcomeLook() {},
             });
         }

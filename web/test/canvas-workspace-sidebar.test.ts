@@ -30,8 +30,9 @@ test("workspace keeps a permanent rail and independent task/history entries", ()
 
 test("asset panel uses scoped paginated data and existing insertion contract", () => {
     const source = component("canvas-workspace-asset-panel.tsx");
-    expect(source).toContain('["canvas-workspace-assets", userId, category, kind, search]');
+    expect(source).toContain('["canvas-workspace-assets", userId, platform, category, kind, search]');
     expect(source).toContain("loadAssetLibraryPage");
+    expect(source).toContain("loadPlatformLibraryPage");
     expect(source).toContain("assetPickerItemsToInsertPayloads");
     expect(source).toContain("query.fetchNextPage()");
     expect(source).toContain('role="alert"');
