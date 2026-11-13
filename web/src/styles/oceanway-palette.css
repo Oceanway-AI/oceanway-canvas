@@ -11,8 +11,9 @@
     --ocean-air-border-strong: rgba(47, 127, 211, 0.34);
     --ocean-air-primary: #2f7fd3;
     --ocean-air-primary-hover: #286db5;
-    --ocean-air-action-fill: #1f5f9c;
-    --ocean-air-action-hover: #174c7e;
+    --ocean-air-action-fill: #1672df;
+    --ocean-air-action-hover: #1766c6;
+    --ocean-air-action-active: #1055a8;
     --ocean-air-primary-text: #ffffff;
     --ocean-air-sky: #64d2ff;
     --ocean-air-seafoam: #5ac8fa;
@@ -75,6 +76,7 @@
     --ocean-air-primary-hover: #409cff;
     --ocean-air-action-fill: #0874df;
     --ocean-air-action-hover: #096fd1;
+    --ocean-air-action-active: #0b60b6;
     --ocean-air-primary-text: #ffffff;
     --ocean-air-sky: #64d2ff;
     --ocean-air-seafoam: #5ac8fa;

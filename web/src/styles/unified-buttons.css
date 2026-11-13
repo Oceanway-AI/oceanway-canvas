@@ -65,7 +65,7 @@
 
 :root .ant-btn.ant-btn-color-default:is(.ant-btn-variant-text, .ant-btn-variant-link):is(:disabled, .ant-btn-disabled) {
     color: var(--button-ghost-fg);
-    opacity: var(--button-disabled-opacity);
+    opacity: var(--button-text-disabled-opacity, var(--button-disabled-opacity));
 }
 
 /* 图标统一 16px（紧凑 14px）、1.75 描边。只处理 lucide 的默认尺寸与默认描边：

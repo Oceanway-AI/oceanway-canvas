@@ -43,7 +43,7 @@ export function getOceanwayAntThemeConfig(dark: boolean, skin: unknown): ThemeCo
         },
         components: {
             ...base.components,
-            Button: { ...base.components?.Button, borderRadius: 14, borderRadiusSM: 10, borderRadiusLG: 16, colorPrimary: palette.actionFill, colorPrimaryHover: palette.actionHover, colorPrimaryActive: palette.primary, primaryColor: palette.onPrimary },
+            Button: { ...base.components?.Button, borderRadius: 14, borderRadiusSM: 10, borderRadiusLG: 16, colorPrimary: palette.actionFill, colorPrimaryHover: palette.actionHover, colorPrimaryActive: palette.actionActive, primaryColor: palette.onPrimary },
             Input: { ...base.components?.Input, borderRadius: 14, activeBg: palette.surface, hoverBg: palette.surface, activeBorderColor: palette.primary, hoverBorderColor: palette.borderStrong },
             InputNumber: { ...base.components?.InputNumber, borderRadius: 14, activeBg: palette.surface, hoverBg: palette.surface, activeBorderColor: palette.primary, hoverBorderColor: palette.borderStrong },
             Select: { ...base.components?.Select, borderRadius: 14, colorBgElevated: palette.surface, optionSelectedColor: palette.text, optionSelectedBg: palette.surfaceStrong },

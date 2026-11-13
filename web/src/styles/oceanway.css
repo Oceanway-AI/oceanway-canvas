@@ -64,8 +64,11 @@ html[data-oceanway] .app-user-overlays {
     --control-focus-ring: var(--ocean-air-focus);
     --button-primary-bg: var(--ocean-air-action-fill);
     --button-primary-hover-bg: var(--ocean-air-action-hover);
-    --button-primary-active-bg: var(--ocean-air-primary);
+    --button-primary-active-bg: var(--ocean-air-action-active);
     --button-primary-fg: var(--ocean-air-on-primary);
+    --button-primary-disabled-bg: var(--ocean-air-surface-strong);
+    --button-primary-disabled-fg: var(--ocean-air-text-muted);
+    --button-primary-disabled-opacity: 1;
     --button-secondary-bg: var(--ocean-glass-strong);
     --button-secondary-fg: var(--ocean-air-text);
     --button-secondary-border: var(--ocean-glass-control-edge);
@@ -697,14 +700,6 @@ html[data-oceanway] .app-user-workspace :is(.story-launcher-panel, .collection-f
     border: 1px solid var(--ocean-glass-control-edge);
     border-radius: 24px;
     background: color-mix(in srgb, var(--ocean-air-surface) 92%, transparent);
-}
-html[data-oceanway] :is(.app-user-workspace, .app-user-overlays, .auth-panel) .ant-btn-primary:not(:disabled):not(.ant-btn-dangerous) {
-    background: var(--ocean-air-action-fill) !important;
-    color: var(--ocean-air-on-primary) !important;
-    border-color: transparent !important;
-}
-html[data-oceanway] :is(.app-user-workspace, .app-user-overlays, .auth-panel) .ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):hover {
-    background: var(--ocean-air-action-hover) !important;
 }
 html[data-oceanway] :is(.workspace-modal, .app-modal, .auth-dialog) .ant-modal-container {
     border: 1px solid var(--ocean-glass-edge);

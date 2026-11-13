@@ -104,7 +104,7 @@
 .creation-agent-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .creation-agent-error { grid-column: 1 / -1; color: var(--status-error); font-size: 12px; margin: 0; }
 .creation-home .creation-empty-composer[hidden] { display: none; }
-.creation-submit { margin-left: auto; flex: 0 0 auto; display: inline-flex; gap: 8px; }
+.creation-submit { --button-text-disabled-opacity: 1; margin-left: auto; flex: 0 0 auto; display: inline-flex; gap: 8px; }
 .creation-submit-cost { display: inline-flex; align-items: center; gap: 4px; color: var(--user-ink-muted); font-size: 12px; padding-inline: 8px; }
 .creation-submit-cost svg { width: 14px; height: 14px; }
 /* 开始创作：与 composer 里其他控件同高（34px）的统一主按钮，墨色实底 + 内高光，不做胶囊、扫光或加粗。
@@ -114,7 +114,7 @@
     .app-product-workspace .creation-home .creation-submit.ant-btn .creation-submit-action { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: var(--button-gap); width: auto; height: var(--button-height); padding: 0 14px 0 12px; border-radius: var(--button-radius); background: var(--button-primary-bg); color: var(--button-primary-fg); box-shadow: var(--button-primary-shadow); transition: background-color var(--button-motion), box-shadow var(--button-motion), opacity var(--button-motion); }
     .app-product-workspace .creation-home .creation-submit.ant-btn .creation-submit-action span { font-size: var(--button-font-size); font-weight: var(--button-font-weight); }
     .app-product-workspace .creation-home .creation-submit.ant-btn .creation-submit-action svg { width: var(--button-icon-size); height: var(--button-icon-size); stroke-width: var(--button-icon-stroke); color: currentColor; }
-    .app-product-workspace .creation-home .creation-submit.ant-btn:disabled .creation-submit-action { box-shadow: none; opacity: var(--button-disabled-opacity); }
+    .app-product-workspace .creation-home .creation-submit.ant-btn:disabled .creation-submit-action { background: var(--button-primary-disabled-bg, var(--button-primary-bg)); color: var(--button-primary-disabled-fg, var(--button-primary-fg)); box-shadow: none; opacity: var(--button-primary-disabled-opacity, var(--button-disabled-opacity)); }
     .app-product-workspace .creation-home .creation-submit.ant-btn:not(:disabled):hover .creation-submit-action { background: var(--button-primary-hover-bg); }
     .app-product-workspace .creation-home .creation-submit.ant-btn:not(:disabled):active .creation-submit-action { background: var(--button-primary-active-bg); box-shadow: var(--button-primary-active-shadow); }
 }
