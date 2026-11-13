@@ -91,20 +91,21 @@ export function ModelPicker({
     const current = options.includes(resolvedCurrent) ? resolvedCurrent : "";
     const mediaHierarchy = optionGroups.some((group) => group.series?.modelType === "image" || group.series?.modelType === "video") && (capability === "image" || capability === "video" || !capability);
     const pickerSeries = useMemo(
-        () => optionGroups.map(series => ({
-            key: series.key,
-            label: series.label,
-            icon: <ModelLogo icon={series.icon} size={16} />,
-            groups: series.logicalGroups.map(group => ({
-                key: group.key,
-                label: group.label,
-                options: group.models.map(item => ({
-                    group,
-                    item,
-                    keywords: modelPickerKeywords(config, item),
+        () =>
+            optionGroups.map((series) => ({
+                key: series.key,
+                label: series.label,
+                icon: <ModelLogo icon={series.icon} size={16} />,
+                groups: series.logicalGroups.map((group) => ({
+                    key: group.key,
+                    label: group.label,
+                    options: group.models.map((item) => ({
+                        group,
+                        item,
+                        keywords: modelPickerKeywords(config, item),
+                    })),
                 })),
             })),
-        })),
         [config, optionGroups],
     );
     const currentPrice = modelMenuPrice(config, current, capability, false, requirements);
@@ -244,43 +245,53 @@ export function ModelPicker({
             onMouseDown={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
         >
-            {open && <ModelPickerPanel
-                layout={mediaHierarchy ? "media" : "text"}
-                series={pickerSeries}
-                optionRole="listbox"
-                isSelected={({ item }) => item.models.includes(current)}
-                keywords={option => option.keywords}
-                labels={{
-                    search: "搜索模型",
-                    placeholder: "搜索系列、模型、型号或标签",
-                    series: "系列",
-                    models: "模型",
-                    variants: "型号",
-                    back: "返回模型列表",
-                    noMatches: "没有匹配的模型",
-                    empty: catalogStatus === "error" ? "目录恢复后可选择平台型号" : catalogStatus === "loading" ? "" : emptyModelLabel(config, capability),
-                }}
-                renderOption={({ group, item }) => renderModelOption(group, item)}
-                renderGroupHeading={group => {
-                    const logical = group.options[0]?.group;
-                    if (mediaHierarchy || !logical?.series || logical.models.length < 2) return null;
-                    return <div className="canvas-model-picker-logical-summary">
-                        <strong>{group.label}</strong>
-                        <GroupModelSummary config={config} group={logical} />
-                    </div>;
-                }}
-                notice={<>
-                    {platformIdentity && catalogStatus === "error" && (
-                        <div className="canvas-model-picker-catalog-error" role="alert">
-                            <span>{catalogError || "模型目录加载失败"}</span>
-                            <button type="button" onClick={() => void refreshSystemChannels().catch(() => {})}>重试加载</button>
-                        </div>
-                    )}
-                    {platformIdentity && catalogStatus === "loading" && (
-                        <div role="status" className="canvas-model-picker-empty">正在获取模型目录…</div>
-                    )}
-                </>}
-            />}
+            {open && (
+                <ModelPickerPanel
+                    layout={mediaHierarchy ? "media" : "text"}
+                    series={pickerSeries}
+                    optionRole="listbox"
+                    isSelected={({ item }) => item.models.includes(current)}
+                    keywords={(option) => option.keywords}
+                    labels={{
+                        search: "搜索模型",
+                        placeholder: "搜索系列、模型、型号或标签",
+                        series: "系列",
+                        models: "模型",
+                        variants: "型号",
+                        back: "返回模型列表",
+                        noMatches: "没有匹配的模型",
+                        empty: catalogStatus === "error" ? "目录恢复后可选择平台型号" : catalogStatus === "loading" ? "" : emptyModelLabel(config, capability),
+                    }}
+                    renderOption={({ group, item }) => renderModelOption(group, item)}
+                    renderGroupHeading={(group) => {
+                        const logical = group.options[0]?.group;
+                        if (mediaHierarchy || !logical?.series || logical.models.length < 2) return null;
+                        return (
+                            <div className="canvas-model-picker-logical-summary">
+                                <strong>{group.label}</strong>
+                                <GroupModelSummary config={config} group={logical} />
+                            </div>
+                        );
+                    }}
+                    notice={
+                        <>
+                            {platformIdentity && catalogStatus === "error" && (
+                                <div className="canvas-model-picker-catalog-error" role="alert">
+                                    <span>{catalogError || "模型目录加载失败"}</span>
+                                    <button type="button" onClick={() => void refreshSystemChannels().catch(() => {})}>
+                                        重试加载
+                                    </button>
+                                </div>
+                            )}
+                            {platformIdentity && catalogStatus === "loading" && (
+                                <div role="status" className="canvas-model-picker-empty">
+                                    正在获取模型目录…
+                                </div>
+                            )}
+                        </>
+                    }
+                />
+            )}
         </div>
     );
 
@@ -397,16 +408,24 @@ export function ModelLabel({
         let parameters = {};
         const currentVariant = nativeMediaVariant(config);
         if (currentVariant) {
-            try { parameters = nativeParameterValues(currentVariant, config.nativeParameters); } catch { parameters = { "/duration": 0 }; }
+            try {
+                parameters = nativeParameterValues(currentVariant, config.nativeParameters);
+            } catch {
+                parameters = { "/duration": 0 };
+            }
         }
         const videoCount = requirements?.input?.videoCount ?? 0;
         const durations = requirements?.input?.videoDurationsMs;
-        const referenceSeconds = durations?.length === videoCount && durations.every((ms) => Number.isFinite(ms) && ms > 0)
-            ? durations.reduce((sum, ms) => sum + ms, 0) / 1000 : undefined;
+        const referenceSeconds = durations?.length === videoCount && durations.every((ms) => Number.isFinite(ms) && ms > 0) ? durations.reduce((sum, ms) => sum + ms, 0) / 1000 : undefined;
         const settings = videoPriceSettings(parameters, videoCount > 0, referenceSeconds);
         const estimate = seedanceDisplayPrice(platform, settings);
-        const price = estimate ? estimate.state === "estimated" ? `≈ ${estimate.perSecond} 积分/s` : "暂时无法预估费用" : platformModelPriceLabel(platform);
-        const details = [estimate?.state === "estimated" ? `${estimate.ratio} · ${estimate.width} × ${estimate.height} × 24 × (${estimate.referenceSeconds} + ${estimate.seconds}) / 1024 ≈ ${estimate.tokens} Token · ${estimate.rate} 积分/百万 Token` : "", platformPriceConditions(prices)].filter(Boolean).join("\n");
+        const price = estimate ? (estimate.state === "estimated" ? `≈ ${estimate.perSecond} 积分/s` : "暂时无法预估费用") : platformModelPriceLabel(platform);
+        const details = [
+            estimate?.state === "estimated" ? `${estimate.ratio} · ${estimate.width} × ${estimate.height} × 24 × (${estimate.referenceSeconds} + ${estimate.seconds}) / 1024 ≈ ${estimate.tokens} Token · ${estimate.rate} 积分/百万 Token` : "",
+            platformPriceConditions(prices),
+        ]
+            .filter(Boolean)
+            .join("\n");
         return (
             <span className="canvas-model-picker-media-row">
                 <span className="canvas-model-picker-option-logo">

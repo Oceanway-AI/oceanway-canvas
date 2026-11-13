@@ -73,11 +73,12 @@ export function PlatformNativeMediaSettings({ config, onChange }: { config: AiCo
                         ))}
                 </>
             )}
-            {!controls && variant?.native_request_variant.native_reference_inputs?.map((ref) => (
-                <p key={ref.id} className="break-words text-xs opacity-70">
-                    {ref.role} · {ref.min_items ?? 0}–{ref.max_items ?? "未限制"} · {ref.mime_types?.join(", ") || "按发布规格"}
-                </p>
-            ))}
+            {!controls &&
+                variant?.native_request_variant.native_reference_inputs?.map((ref) => (
+                    <p key={ref.id} className="break-words text-xs opacity-70">
+                        {ref.role} · {ref.min_items ?? 0}–{ref.max_items ?? "未限制"} · {ref.mime_types?.join(", ") || "按发布规格"}
+                    </p>
+                ))}
             <button
                 type="button"
                 className="text-xs underline"

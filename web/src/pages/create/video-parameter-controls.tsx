@@ -50,29 +50,31 @@ export function VideoParameterControls({ config, variants, onChange }: { config:
             </Popover>
         );
     }
-    const modeMenu = modes.length > 0 && menu(
-        "生成模式",
-        modeLabel,
-        <Clapperboard />,
-        <>
-            <strong>生成模式</strong>
-            {modes.map((option) => (
-                <button
-                    className="studio-video-option"
-                    key={option.value}
-                    type="button"
-                    aria-pressed={option.value === variant?.id}
-                    onClick={() => {
-                        if (option.value !== variant?.id) onChange("nativeVariantId", option.value);
-                        setOpen(null);
-                    }}
-                >
-                    {option.label}
-                    {option.value === variant?.id && <Check size={15} />}
-                </button>
-            ))}
-        </>,
-    );
+    const modeMenu =
+        modes.length > 0 &&
+        menu(
+            "生成模式",
+            modeLabel,
+            <Clapperboard />,
+            <>
+                <strong>生成模式</strong>
+                {modes.map((option) => (
+                    <button
+                        className="studio-video-option"
+                        key={option.value}
+                        type="button"
+                        aria-pressed={option.value === variant?.id}
+                        onClick={() => {
+                            if (option.value !== variant?.id) onChange("nativeVariantId", option.value);
+                            setOpen(null);
+                        }}
+                    >
+                        {option.label}
+                        {option.value === variant?.id && <Check size={15} />}
+                    </button>
+                ))}
+            </>,
+        );
     if (!variant)
         return (
             <>

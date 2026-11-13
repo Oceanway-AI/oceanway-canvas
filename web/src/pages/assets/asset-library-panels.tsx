@@ -71,9 +71,11 @@ export function AssetsBatchBar({
                     </>
                 ) : (
                     <>
-                        {onExport ? <Button size="small" disabled={!count || busy} icon={<Download className="size-3.5" />} onClick={onExport}>
-                            导出
-                        </Button> : null}
+                        {onExport ? (
+                            <Button size="small" disabled={!count || busy} icon={<Download className="size-3.5" />} onClick={onExport}>
+                                导出
+                            </Button>
+                        ) : null}
                         <Button size="small" disabled={!count || busy} icon={<Trash2 className="size-3.5 text-amber-500" />} onClick={onArchive}>
                             移入回收站
                         </Button>
@@ -118,13 +120,15 @@ export function AssetsEmptyState({ onNew, onImport, onGoCanvas, uploadOnly = fal
                     <strong>{uploadOnly ? translate("library.assets.platform.upload") : "新建素材"}</strong>
                     {!uploadOnly ? <span>录入提示词、说明文案，或上传图片资产。</span> : null}
                 </button>
-                {!uploadOnly ? <button type="button" className="assets-empty-card" onClick={onImport}>
-                    <span className="assets-empty-card-icon">
-                        <FileUp />
-                    </span>
-                    <strong>{sharedFiles ? "从共享文件库采用" : "导入素材包"}</strong>
-                    <span>{sharedFiles ? "选择已有图片、视频或音频，整理为创作素材。" : "从素材压缩包一键恢复旧资产，继续创作。"}</span>
-                </button> : null}
+                {!uploadOnly ? (
+                    <button type="button" className="assets-empty-card" onClick={onImport}>
+                        <span className="assets-empty-card-icon">
+                            <FileUp />
+                        </span>
+                        <strong>{sharedFiles ? "从共享文件库采用" : "导入素材包"}</strong>
+                        <span>{sharedFiles ? "选择已有图片、视频或音频，整理为创作素材。" : "从素材压缩包一键恢复旧资产，继续创作。"}</span>
+                    </button>
+                ) : null}
                 <button type="button" className="assets-empty-card" onClick={onGoCanvas}>
                     <span className="assets-empty-card-icon">
                         <Clapperboard />
@@ -275,12 +279,19 @@ export function AssetDrawer({
     const kind = asset && isKnownAssetKind(asset.kind) ? asset.kind : undefined;
     const KindIcon = asset ? (kind ? assetKindIcons[kind] : FileText) : Clapperboard;
     return (
-        <Drawer className="library-drawer" title="素材档案" open={Boolean(asset)} size="large" onClose={onClose} afterOpenChange={(open) => {
-            if (!open) {
-                setFailedPreview(null);
-                afterClose?.();
-            }
-        }}>
+        <Drawer
+            className="library-drawer"
+            title="素材档案"
+            open={Boolean(asset)}
+            size="large"
+            onClose={onClose}
+            afterOpenChange={(open) => {
+                if (!open) {
+                    setFailedPreview(null);
+                    afterClose?.();
+                }
+            }}
+        >
             {asset ? (
                 <div className="space-y-4">
                     <div className="asset-archive-header">
@@ -304,9 +315,15 @@ export function AssetDrawer({
                     ) : (
                         <div className="asset-archive-preview">
                             {asset.kind === "document" || asset.status === "archived" ? (
-                                <div className="asset-archive-preview-model"><KindIcon /><span>{asset.title}</span></div>
+                                <div className="asset-archive-preview-model">
+                                    <KindIcon />
+                                    <span>{asset.title}</span>
+                                </div>
                             ) : failedPreview === asset ? (
-                                <div className="asset-archive-preview-model" role="status"><KindIcon /><span>{translate("library.tasks.row.previewUnavailable")}</span></div>
+                                <div className="asset-archive-preview-model" role="status">
+                                    <KindIcon />
+                                    <span>{translate("library.tasks.row.previewUnavailable")}</span>
+                                </div>
                             ) : asset.kind === "text" ? (
                                 <div className="asset-archive-preview-note">{asset.data.content}</div>
                             ) : asset.kind === "audio" ? (
@@ -362,19 +379,21 @@ export function AssetDrawer({
                             <p className="asset-archive-section-body">{asset.note}</p>
                         </div>
                     ) : null}
-                    {asset.status !== "archived" ? <div className="asset-archive-actions">
-                        {onEdit ? <Button onClick={onEdit}>{translate("library.assets.form.editTitle")}</Button> : null}
-                        {asset.kind === "text" ? (
-                            <Button type="primary" icon={<Copy className="size-4" />} onClick={() => onCopy(asset)}>
-                                复制文本
-                            </Button>
-                        ) : null}
-                        {asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "model" || asset.kind === "document" ? (
-                            <Button type="primary" icon={<Download className="size-4" />} onClick={() => onDownload(asset)}>
-                                {assetDownloadLabel(asset)}
-                            </Button>
-                        ) : null}
-                    </div> : null}
+                    {asset.status !== "archived" ? (
+                        <div className="asset-archive-actions">
+                            {onEdit ? <Button onClick={onEdit}>{translate("library.assets.form.editTitle")}</Button> : null}
+                            {asset.kind === "text" ? (
+                                <Button type="primary" icon={<Copy className="size-4" />} onClick={() => onCopy(asset)}>
+                                    复制文本
+                                </Button>
+                            ) : null}
+                            {asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "model" || asset.kind === "document" ? (
+                                <Button type="primary" icon={<Download className="size-4" />} onClick={() => onDownload(asset)}>
+                                    {assetDownloadLabel(asset)}
+                                </Button>
+                            ) : null}
+                        </div>
+                    ) : null}
                 </div>
             ) : null}
         </Drawer>

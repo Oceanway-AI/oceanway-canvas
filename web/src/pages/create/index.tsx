@@ -224,7 +224,7 @@ export default function CreatePage() {
     );
     const rememberedModel = mode === "text" ? config.textModel : mode === "image" ? config.imageModel : config.videoModel;
     const availableModels = useMemo(() => selectableModelsByCapability(config, mode), [config, mode]);
-    const preferredModel = availableModels.includes(rememberedModel) ? rememberedModel : availableModels[0] ?? "";
+    const preferredModel = availableModels.includes(rememberedModel) ? rememberedModel : (availableModels[0] ?? "");
     const preferredImageProfile = useMemo(() => (mode === "image" && availableModels.includes(preferredModel) ? modelCapabilityConfigFor(config, preferredModel).image : undefined), [config, mode, availableModels, preferredModel]);
     const hasPrompt = Boolean(prompt.trim());
     const modelRequirements = useMemo<ModelRequirements>(
@@ -236,7 +236,7 @@ export default function CreatePage() {
                 textCount: hasPrompt ? 1 : 0,
                 imageCount: attachments.filter(isImageAttachment).length,
                 videoCount: attachments.filter(isVideoAttachment).length,
-                videoDurationsMs: attachments.filter(isVideoAttachment).flatMap((item) => "durationMs" in item && item.durationMs && item.durationMs > 0 ? [item.durationMs] : []),
+                videoDurationsMs: attachments.filter(isVideoAttachment).flatMap((item) => ("durationMs" in item && item.durationMs && item.durationMs > 0 ? [item.durationMs] : [])),
                 audioCount: attachments.filter((attachment) => creationAttachmentKind(attachment) === "audio").length,
                 characterCount: 0,
             },
@@ -263,7 +263,14 @@ export default function CreatePage() {
     const videoProfile = useMemo(() => (selectedModel ? modelCapabilityConfigFor(config, selectedModel).video : undefined), [config, selectedModel]);
     const nativeProfile = nativeMediaProfile(config, selectedModel);
     const nativeSaved = mode === "video" ? savedNativePreferences.video : savedNativePreferences.image;
-    const nativeCreation = nativeProfile ? nativeCreationSettings(config, selectedModel, nativeSaved?.model === selectedModel ? nativeSaved : {}, Boolean(modelRequirements.input?.imageCount || (mode === "video" && (modelRequirements.input?.videoCount || modelRequirements.input?.audioCount)))) : undefined;
+    const nativeCreation = nativeProfile
+        ? nativeCreationSettings(
+              config,
+              selectedModel,
+              nativeSaved?.model === selectedModel ? nativeSaved : {},
+              Boolean(modelRequirements.input?.imageCount || (mode === "video" && (modelRequirements.input?.videoCount || modelRequirements.input?.audioCount))),
+          )
+        : undefined;
     const nativeSettings: { nativeParameters?: string; nativeVariantId?: string } = nativeCreation?.settings || {};
     const generationConfig = useMemo(
         () => (nativeProfile ? { ...config, model: selectedModel, ...nativeSettings } : mode === "video" && videoProfile ? creationVideoConfig(config, selectedModel, { ratio, seconds, videoQuality }) : config),
@@ -1499,7 +1506,7 @@ export default function CreatePage() {
         setImageResolution: setComposerImageResolution,
         imageParameters,
         nativeParameters: nativeSettings.nativeParameters,
-        nativeVariantId: mode === "video" ? nativeCreation?.referenceVariant?.id ?? nativeSettings.nativeVariantId : nativeSettings.nativeVariantId,
+        nativeVariantId: mode === "video" ? (nativeCreation?.referenceVariant?.id ?? nativeSettings.nativeVariantId) : nativeSettings.nativeVariantId,
         onNativeSettingsChange: (key: "nativeParameters" | "nativeVariantId", value: string) => {
             const remember = mode === "video" ? rememberVideoSettings : rememberImageSettings;
             remember({ model: selectedModel, [key]: value, ...(key === "nativeVariantId" ? { nativeParameters: "{}" } : {}) });
@@ -1703,25 +1710,33 @@ export default function CreatePage() {
             {libraryOpen ? (
                 <Suspense fallback={null}>
                     {platformIdentity ? (
-                        <PlatformMaterialPicker open={libraryOpen} imageReferences={mode === "image"} disabledReason={(kind) => creationLibraryDisabledReason(mode, kind, videoReferenceLimits)} onClose={() => setLibraryOpen(false)} onInsert={addPlatformReferences} />
-                    ) : <AssetLibraryPickerModal
-                        remoteLibrary
-                        acceptRemoteItems
-                        remoteItemDisabledReason={(asset) => creationLibraryDisabledReason(mode, asset.kind, videoReferenceLimits)}
-                        open={libraryOpen}
-                        items={libraryItems}
-                        categoryLabels={{ ...creationAssetCategoryLabels, ...externalAssetSources.categoryLabels }}
-                        folders={externalAssetSources.folders}
-                        initialSelectedIds={attachments.flatMap((item) => (item.id.startsWith("asset:") ? [item.id.slice(6)] : item.id.startsWith("external:") ? [item.id] : []))}
-                        upload={{
-                            accept: creationUploadAccept(mode),
-                            description: mode === "text" ? t("create.page.uploadHintText") : mode === "video" ? t("create.page.uploadHintVideo") : t("create.page.uploadHintImage"),
-                            onUpload: uploadLibraryAssets,
-                            external: { accept: "image/*", description: t("create.page.uploadHintEagle"), onUpload: (files, folderId) => externalAssetSources.uploadExternalFiles(files, folderId) },
-                        }}
-                        onClose={() => setLibraryOpen(false)}
-                        onConfirm={handleLibrarySelect}
-                    />}
+                        <PlatformMaterialPicker
+                            open={libraryOpen}
+                            imageReferences={mode === "image"}
+                            disabledReason={(kind) => creationLibraryDisabledReason(mode, kind, videoReferenceLimits)}
+                            onClose={() => setLibraryOpen(false)}
+                            onInsert={addPlatformReferences}
+                        />
+                    ) : (
+                        <AssetLibraryPickerModal
+                            remoteLibrary
+                            acceptRemoteItems
+                            remoteItemDisabledReason={(asset) => creationLibraryDisabledReason(mode, asset.kind, videoReferenceLimits)}
+                            open={libraryOpen}
+                            items={libraryItems}
+                            categoryLabels={{ ...creationAssetCategoryLabels, ...externalAssetSources.categoryLabels }}
+                            folders={externalAssetSources.folders}
+                            initialSelectedIds={attachments.flatMap((item) => (item.id.startsWith("asset:") ? [item.id.slice(6)] : item.id.startsWith("external:") ? [item.id] : []))}
+                            upload={{
+                                accept: creationUploadAccept(mode),
+                                description: mode === "text" ? t("create.page.uploadHintText") : mode === "video" ? t("create.page.uploadHintVideo") : t("create.page.uploadHintImage"),
+                                onUpload: uploadLibraryAssets,
+                                external: { accept: "image/*", description: t("create.page.uploadHintEagle"), onUpload: (files, folderId) => externalAssetSources.uploadExternalFiles(files, folderId) },
+                            }}
+                            onClose={() => setLibraryOpen(false)}
+                            onConfirm={handleLibrarySelect}
+                        />
+                    )}
                 </Suspense>
             ) : null}
         </>

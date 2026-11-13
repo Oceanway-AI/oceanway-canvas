@@ -104,10 +104,7 @@ export function nativeVideoComposerVariants(variants: NativeMediaVariant[], base
     const siblings = variants.filter((v) => v.gateway_protocol === base.gateway_protocol && v.native_request_variant.path === base.native_request_variant.path);
     const references = siblings.filter((v) => creationModeLabel(v) !== "文生视频");
     return {
-        reference: references.find((v) => v.id === preferredId)
-            ?? references.find((v) => creationModeLabel(v) === "全能参考")
-            ?? references.find((v) => v.id === base.id)
-            ?? references[0],
+        reference: references.find((v) => v.id === preferredId) ?? references.find((v) => creationModeLabel(v) === "全能参考") ?? references.find((v) => v.id === base.id) ?? references[0],
         text: siblings.find((v) => creationModeLabel(v) === "文生视频"),
     };
 }
@@ -130,7 +127,8 @@ export function nativeCreationSettings(config: AiConfig, model: string, saved: P
     const values = nativeParameterValues(requestVariant);
     const previous = nativeParameterObject(base.nativeParameters);
     for (const [key, field] of Object.entries(requestVariant.specifications_schema.properties)) {
-        if ((!requestVariant.workbench_parameters || requestVariant.workbench_parameters.includes(key)) && Object.hasOwn(previous, key) && JSON.stringify(field) === JSON.stringify(variant.specifications_schema.properties[key])) values[key] = previous[key];
+        if ((!requestVariant.workbench_parameters || requestVariant.workbench_parameters.includes(key)) && Object.hasOwn(previous, key) && JSON.stringify(field) === JSON.stringify(variant.specifications_schema.properties[key]))
+            values[key] = previous[key];
     }
     return { settings: { nativeVariantId: requestVariant.id, nativeParameters: JSON.stringify(values) }, referenceVariant };
 }
@@ -162,7 +160,7 @@ export function nativeParameterValues(variant: NativeMediaVariant, raw?: string)
 export function nativeMediaDefaults(config: AiConfig, model: string, explicit: Pick<AiConfig, "nativeParameters" | "nativeVariantId"> = {}) {
     const variant = nativeMediaVariant(config, model, explicit.nativeVariantId || "");
     if (!variant) return { nativeVariantId: explicit.nativeVariantId || "", nativeParameters: explicit.nativeParameters || "{}" };
-    return { nativeVariantId: variant.id, nativeParameters: variant.workbench_parameters ? JSON.stringify(nativeParameterValues(variant, explicit.nativeParameters)) : explicit.nativeParameters ?? JSON.stringify(nativeParameterValues(variant)) };
+    return { nativeVariantId: variant.id, nativeParameters: variant.workbench_parameters ? JSON.stringify(nativeParameterValues(variant, explicit.nativeParameters)) : (explicit.nativeParameters ?? JSON.stringify(nativeParameterValues(variant))) };
 }
 
 export function nativeMediaSummary(config: AiConfig) {
@@ -177,7 +175,23 @@ export function nativeMediaSummary(config: AiConfig) {
 }
 
 export function creativeParameterLabel(pointer: string, title?: string) {
-    const labels: Record<string, string> = { size: "尺寸", imageSize: "分辨率", resolution: "分辨率", quality: "画质", aspectRatio: "画幅", aspect_ratio: "画幅", ratio: "画幅", duration: "时长", seconds: "时长", generate_audio: "生成音频", n: "生成数量", output_format: "输出格式", output_compression: "压缩率", background: "背景", seed: "随机种子" };
+    const labels: Record<string, string> = {
+        size: "尺寸",
+        imageSize: "分辨率",
+        resolution: "分辨率",
+        quality: "画质",
+        aspectRatio: "画幅",
+        aspect_ratio: "画幅",
+        ratio: "画幅",
+        duration: "时长",
+        seconds: "时长",
+        generate_audio: "生成音频",
+        n: "生成数量",
+        output_format: "输出格式",
+        output_compression: "压缩率",
+        background: "背景",
+        seed: "随机种子",
+    };
     const leaf = pointer.split("/").at(-1) || pointer;
     return labels[leaf] || title || leaf;
 }

@@ -480,7 +480,11 @@ export function MediaResult({
                 <Button type="link" size="small" loading={openingCanvas} disabled={!canContinueWithResults} title={canContinueWithResults ? undefined : "素材保存完成后才能转入画布"} onClick={() => onContinueCanvas(selection)}>
                     添加到画布
                 </Button>
-                {platformIdentity && <Button type="link" size="small" loading={adopting} disabled={!canContinueWithResults} onClick={() => void adoptResult()}>加入创作素材</Button>}
+                {platformIdentity && (
+                    <Button type="link" size="small" loading={adopting} disabled={!canContinueWithResults} onClick={() => void adoptResult()}>
+                        加入创作素材
+                    </Button>
+                )}
                 {displayResultUrls.map((url, index) => (
                     <a key={`download-${index}`} href={url} download>
                         {displayResultUrls.length > 1 ? (

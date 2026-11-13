@@ -80,8 +80,12 @@ export function AssetCard({
         : [
               ...(asset.metadata?.platformMaterial || ["text", "image", "video", "audio"].includes(asset.kind) ? [{ key: "edit", icon: <PencilLine className="size-3.5" />, label: "编辑", onClick: onEdit }] : []),
               ...(asset.kind === "text" ? [{ key: "copy", icon: <Copy className="size-3.5" />, label: "复制文本", onClick: () => void onCopy(asset) }] : []),
-              ...(asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "model" || asset.kind === "document" ? [{ key: "download", icon: <Download className="size-3.5" />, label: "下载", onClick: () => onDownload(asset) }] : []),
-              ...(folderOptions.length ? [{ key: "move", icon: <FolderOpen className="size-3.5" />, label: "移动到分类", children: folderOptions.map((folder) => ({ key: folder.value || "uncategorized", label: folder.label, onClick: () => onMoveToFolder(folder.value) })) }] : []),
+              ...(asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "model" || asset.kind === "document"
+                  ? [{ key: "download", icon: <Download className="size-3.5" />, label: "下载", onClick: () => onDownload(asset) }]
+                  : []),
+              ...(folderOptions.length
+                  ? [{ key: "move", icon: <FolderOpen className="size-3.5" />, label: "移动到分类", children: folderOptions.map((folder) => ({ key: folder.value || "uncategorized", label: folder.label, onClick: () => onMoveToFolder(folder.value) })) }]
+                  : []),
               { type: "divider" as const },
               { key: "archive", icon: <Trash2 className="size-3.5 text-amber-500" />, label: "移入回收站", onClick: onArchive },
               ...(onDelete ? [{ key: "delete", danger: true, icon: <Trash2 className="size-3.5" />, label: "彻底删除", onClick: onDelete }] : []),
@@ -122,7 +126,15 @@ export function AssetCard({
                     <span className="truncate">{assetProjectLabel(asset)}</span>
                 </div>
             </button>
-            {!!asset.tags.length && onTag ? <div className="flex flex-wrap gap-1 px-2 pb-2">{asset.tags.slice(0, 3).map((tag) => <button type="button" className="asset-archive-tag max-w-full truncate rounded px-1.5 py-0.5 text-xs" key={tag} onClick={() => onTag(tag)}>{tag}</button>)}</div> : null}
+            {!!asset.tags.length && onTag ? (
+                <div className="flex flex-wrap gap-1 px-2 pb-2">
+                    {asset.tags.slice(0, 3).map((tag) => (
+                        <button type="button" className="asset-archive-tag max-w-full truncate rounded px-1.5 py-0.5 text-xs" key={tag} onClick={() => onTag(tag)}>
+                            {tag}
+                        </button>
+                    ))}
+                </div>
+            ) : null}
         </AssetLibraryCard>
     );
 }
@@ -161,7 +173,10 @@ export function AssetCover({
         <AssetLibraryCardMedia className={isLight ? "assets-cover is-light" : "assets-cover"}>
             <button type="button" className="assets-cover-link" onClick={onOpen} aria-label={`查看素材：${asset.title}`}>
                 {asset.kind === "document" ? (
-                    <div className="assets-cover-fallback"><FileText /><span>{asset.data.mimeType || asset.title}</span></div>
+                    <div className="assets-cover-fallback">
+                        <FileText />
+                        <span>{asset.data.mimeType || asset.title}</span>
+                    </div>
                 ) : asset.kind === "video" && asset.metadata?.platformMaterial && asset.coverUrl ? (
                     <img src={asset.coverUrl} alt={asset.title} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                 ) : asset.kind === "audio" ? (

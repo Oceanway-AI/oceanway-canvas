@@ -125,9 +125,12 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
     if (nativeProfile) {
         const current = nativeMediaVariant(config, model);
         const hasVideoInputs = visualInputCount > 0 || Boolean(input?.videoCount || input?.audioCount);
-        const variant = requirements.useVideoReferenceMode && capability === "video" && current && hasVideoInputs
-            ? nativeVideoComposerVariants(nativeProfile.variants, current, model === config.model ? config.nativeVariantId : undefined).reference ?? current
-            : requirements.useImageEditForReferences && visualInputCount > 0 ? nativeImageReferenceVariant(config, model, current) : current;
+        const variant =
+            requirements.useVideoReferenceMode && capability === "video" && current && hasVideoInputs
+                ? (nativeVideoComposerVariants(nativeProfile.variants, current, model === config.model ? config.nativeVariantId : undefined).reference ?? current)
+                : requirements.useImageEditForReferences && visualInputCount > 0
+                  ? nativeImageReferenceVariant(config, model, current)
+                  : current;
         if (!variant) return "模型参数版本已失效，请重新选择";
         if (logicalCost?.platform?.model_type !== capability) return "模型与创作类型不匹配";
         // Native schema admission owns parameter combinations. Legacy size and

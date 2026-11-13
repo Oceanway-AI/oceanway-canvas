@@ -44,9 +44,11 @@ export function AssetStorageUsage({ canPurchase = true }: { canPurchase?: boolea
                         <span style={progressFillStyle(meter.percent)} />
                     </span>
                     <span className="assets-storage-usage-percent">{meter.percentLabel}</span>
-                    {canPurchase ? <button type="button" className="assets-storage-usage-action" onClick={() => openStoragePurchase()}>
-                        {showUpsell ? t("library.assets.storage.expand") : t("library.assets.storage.buy")}
-                    </button> : null}
+                    {canPurchase ? (
+                        <button type="button" className="assets-storage-usage-action" onClick={() => openStoragePurchase()}>
+                            {showUpsell ? t("library.assets.storage.expand") : t("library.assets.storage.buy")}
+                        </button>
+                    ) : null}
                 </>
             ) : query.isError ? (
                 <span className="assets-storage-usage-status">

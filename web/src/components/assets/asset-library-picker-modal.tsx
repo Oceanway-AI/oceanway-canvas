@@ -171,17 +171,18 @@ export function AssetLibraryPickerModal({
     const remoteQueryKind = remoteKind || (mediaKind === "all" ? undefined : mediaKind);
     const remoteQuery = useQuery({
         queryKey: ["asset-picker", userId, platformLibrary, remotePage, remotePageSize, category, remoteKeyword, remoteQueryKind],
-        queryFn: ({ signal }) => platformLibrary
-            ? loadPlatformLibraryPage({ page: remotePage, pageSize: remotePageSize, kind: remoteQueryKind, query: remoteKeyword, signal })
-            : loadAssetLibraryPage({
-                page: remotePage,
-                pageSize: remotePageSize,
-                kind: remoteQueryKind,
-                category: category === "all" || category === "archived" || category === remoteQueryKind ? undefined : category,
-                status: category === "archived" ? "archived" : "active",
-                query: remoteKeyword,
-                signal,
-            }),
+        queryFn: ({ signal }) =>
+            platformLibrary
+                ? loadPlatformLibraryPage({ page: remotePage, pageSize: remotePageSize, kind: remoteQueryKind, query: remoteKeyword, signal })
+                : loadAssetLibraryPage({
+                      page: remotePage,
+                      pageSize: remotePageSize,
+                      kind: remoteQueryKind,
+                      category: category === "all" || category === "archived" || category === remoteQueryKind ? undefined : category,
+                      status: category === "archived" ? "archived" : "active",
+                      query: remoteKeyword,
+                      signal,
+                  }),
         enabled: remoteEnabled && open && sessionHydrated,
         // 切分类/翻页时保留上一页，避免加载间隙退回本地数据源、左侧分类被重置（点"角色"闪一下又跳回全部）。
         placeholderData: keepPreviousData,
@@ -414,10 +415,12 @@ export function AssetLibraryPickerModal({
                 if (fresh.length) {
                     fresh.forEach((item) => pickedRemoteRef.current.set(item.id, item));
                     setUploadedItems((current) => [...current.filter((item) => !fresh.some((entry) => entry.id === item.id)), ...fresh]);
-                    setRemotePage(1); setKeyword(""); setMediaKind("all");
+                    setRemotePage(1);
+                    setKeyword("");
+                    setMediaKind("all");
                     void remoteQuery.refetch();
                 }
-                const ids = uploaded.map((entry) => typeof entry === "string" ? entry : entry.id);
+                const ids = uploaded.map((entry) => (typeof entry === "string" ? entry : entry.id));
                 if (ids.length) setSelected((current) => new Set(multiple ? [...current, ...ids] : ids.slice(-1)));
             }
         } catch (reason) {
@@ -541,50 +544,52 @@ export function AssetLibraryPickerModal({
                     </label>
                 </header>
                 <div className="asset-picker-body" style={platformLibrary && mediaKindOptions.length <= 1 ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}>
-                    {!(platformLibrary && mediaKindOptions.length <= 1) ? <nav className="asset-picker-categories" aria-label={t("library.picker.categories")}>
-                        {mediaKindOptions.length > 1 && !isRecycleBin ? (
-                            <>
-                                <span className="asset-picker-nav-label">{t("library.picker.mediaKind")}</span>
-                                {(["all", ...mediaKindOptions] as const).map((value) => (
-                                    <button key={value} type="button" className={cn("assets-filter-item", mediaKind === value && "is-active")} aria-pressed={mediaKind === value} onClick={() => setMediaKind(value)}>
-                                        <span className="assets-filter-item-label">{value === "all" ? t("library.picker.allKinds") : ASSET_PICKER_MEDIA_KIND_LABELS[value]}</span>
-                                    </button>
-                                ))}
-                            </>
-                        ) : null}
-                        {sourceFolders.length ? (
-                            <>
-                                <span className="asset-picker-nav-label">{t("library.picker.folders")}</span>
-                                <button type="button" className={cn("assets-filter-item", folderId === "all" && "is-active")} aria-pressed={folderId === "all"} onClick={() => setFolderId("all")}>
-                                    <span className="assets-filter-item-label">{t("library.picker.allFolders")}</span>
-                                    <span className="assets-filter-count">{sourceItems.length}</span>
-                                </button>
-                                {renderPickerFolders(sourceFolders, activeSourceItems, folderId, setFolderId)}
-                            </>
-                        ) : null}
-                        {showCategories ? (
-                            <>
-                                <span className="asset-picker-nav-label">{t("library.picker.category")}</span>
-                                {normalCategories.map((value) => (
-                                    <button key={value} type="button" className={cn("assets-filter-item", category === value && "is-active")} aria-pressed={category === value} onClick={() => setCategory(value)}>
-                                        <span className="assets-filter-item-label">{categoryLabels[value] || (value === "all" ? t("library.picker.allAssets") : t("library.picker.other"))}</span>
-                                        <span className="assets-filter-count">{countFor(value)}</span>
-                                    </button>
-                                ))}
-                                {archivedCount > 0 || remoteEnabled ? (
-                                    <div className="asset-picker-recycle">
-                                        <button type="button" className={cn("assets-filter-item", category === "archived" && "is-active")} aria-pressed={category === "archived"} onClick={() => setCategory("archived")}>
-                                            <span className="assets-filter-item-label flex items-center gap-2">
-                                                <Trash2 className="size-3.5" />
-                                                <span>{t("library.picker.recycleBin")}</span>
-                                            </span>
-                                            <span className="assets-filter-count">{archivedCount}</span>
+                    {!(platformLibrary && mediaKindOptions.length <= 1) ? (
+                        <nav className="asset-picker-categories" aria-label={t("library.picker.categories")}>
+                            {mediaKindOptions.length > 1 && !isRecycleBin ? (
+                                <>
+                                    <span className="asset-picker-nav-label">{t("library.picker.mediaKind")}</span>
+                                    {(["all", ...mediaKindOptions] as const).map((value) => (
+                                        <button key={value} type="button" className={cn("assets-filter-item", mediaKind === value && "is-active")} aria-pressed={mediaKind === value} onClick={() => setMediaKind(value)}>
+                                            <span className="assets-filter-item-label">{value === "all" ? t("library.picker.allKinds") : ASSET_PICKER_MEDIA_KIND_LABELS[value]}</span>
                                         </button>
-                                    </div>
-                                ) : null}
-                            </>
-                        ) : null}
-                    </nav> : null}
+                                    ))}
+                                </>
+                            ) : null}
+                            {sourceFolders.length ? (
+                                <>
+                                    <span className="asset-picker-nav-label">{t("library.picker.folders")}</span>
+                                    <button type="button" className={cn("assets-filter-item", folderId === "all" && "is-active")} aria-pressed={folderId === "all"} onClick={() => setFolderId("all")}>
+                                        <span className="assets-filter-item-label">{t("library.picker.allFolders")}</span>
+                                        <span className="assets-filter-count">{sourceItems.length}</span>
+                                    </button>
+                                    {renderPickerFolders(sourceFolders, activeSourceItems, folderId, setFolderId)}
+                                </>
+                            ) : null}
+                            {showCategories ? (
+                                <>
+                                    <span className="asset-picker-nav-label">{t("library.picker.category")}</span>
+                                    {normalCategories.map((value) => (
+                                        <button key={value} type="button" className={cn("assets-filter-item", category === value && "is-active")} aria-pressed={category === value} onClick={() => setCategory(value)}>
+                                            <span className="assets-filter-item-label">{categoryLabels[value] || (value === "all" ? t("library.picker.allAssets") : t("library.picker.other"))}</span>
+                                            <span className="assets-filter-count">{countFor(value)}</span>
+                                        </button>
+                                    ))}
+                                    {archivedCount > 0 || remoteEnabled ? (
+                                        <div className="asset-picker-recycle">
+                                            <button type="button" className={cn("assets-filter-item", category === "archived" && "is-active")} aria-pressed={category === "archived"} onClick={() => setCategory("archived")}>
+                                                <span className="assets-filter-item-label flex items-center gap-2">
+                                                    <Trash2 className="size-3.5" />
+                                                    <span>{t("library.picker.recycleBin")}</span>
+                                                </span>
+                                                <span className="assets-filter-count">{archivedCount}</span>
+                                            </button>
+                                        </div>
+                                    ) : null}
+                                </>
+                            ) : null}
+                        </nav>
+                    ) : null}
                     <div className="asset-picker-main">
                         <div ref={gridWrapRef} className="asset-picker-grid-wrap" data-canvas-wheel-scroll>
                             {remoteEnabled && remoteQuery.isError && !localItems.length ? (

@@ -32,7 +32,10 @@ export function CanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAssets 
     const query = useInfiniteQuery({
         queryKey: ["canvas-workspace-assets", userId, platform, category, kind, search],
         initialPageParam: 1,
-        queryFn: ({ signal, pageParam }) => platform ? loadPlatformLibraryPage({ page: pageParam, pageSize: 40, kind: kind === "all" ? undefined : kind, query: search, signal }) : loadAssetLibraryPage({ page: pageParam, pageSize: 40, category, kind: kind === "all" ? undefined : kind, status: "active", query: search, signal }),
+        queryFn: ({ signal, pageParam }) =>
+            platform
+                ? loadPlatformLibraryPage({ page: pageParam, pageSize: 40, kind: kind === "all" ? undefined : kind, query: search, signal })
+                : loadAssetLibraryPage({ page: pageParam, pageSize: 40, category, kind: kind === "all" ? undefined : kind, status: "active", query: search, signal }),
         getNextPageParam: (page, pages) => (pages.reduce((count, item) => count + item.assets.length, 0) < page.total ? pages.length + 1 : undefined),
         enabled: Boolean(userId) && hydrated,
     });
@@ -56,26 +59,22 @@ export function CanvasWorkspaceAssetPanel({ onInsert, onManage, onProjectAssets 
                 <strong className="text-sm">素材库</strong>
                 <span className="text-muted-foreground">{query.data?.pages[0]?.total ?? 0}</span>
             </header>
-            {!platform ? <div className="sidebar-subtabs border-b border-border p-2">
-                {categories.map((id) => (
-                    <button key={id} type="button" className={category === id ? "active" : ""} aria-pressed={category === id} onClick={() => setCategory(id)}>
-                        {ASSET_CATEGORY_LABELS[id]}
-                    </button>
-                ))}
-            </div> : null}
+            {!platform ? (
+                <div className="sidebar-subtabs border-b border-border p-2">
+                    {categories.map((id) => (
+                        <button key={id} type="button" className={category === id ? "active" : ""} aria-pressed={category === id} onClick={() => setCategory(id)}>
+                            {ASSET_CATEGORY_LABELS[id]}
+                        </button>
+                    ))}
+                </div>
+            ) : null}
             <div className="space-y-2 border-b border-border p-3">
                 <div className="flex items-center justify-between gap-2">
                     <Select
                         aria-label="素材类型"
                         value={kind}
                         onChange={setKind}
-                        options={[
-                            { value: "all", label: "全部" },
-                            { value: "image", label: "图片" },
-                            { value: "video", label: "视频" },
-                            { value: "audio", label: "音频" },
-                            ...(!platform ? [{ value: "text", label: "文本" }] : []),
-                        ]}
+                        options={[{ value: "all", label: "全部" }, { value: "image", label: "图片" }, { value: "video", label: "视频" }, { value: "audio", label: "音频" }, ...(!platform ? [{ value: "text", label: "文本" }] : [])]}
                     />
                     <Button type="text" aria-label="刷新资产" loading={query.isFetching} icon={<RefreshCw className="size-4" />} onClick={() => void query.refetch()} />
                 </div>

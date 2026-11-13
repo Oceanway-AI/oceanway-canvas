@@ -42,7 +42,7 @@ export function assetSummary(asset: LibraryAsset, audioSampleRate?: number) {
     if (asset.kind === "entity") return asset.category === "environment" || asset.category === "prop" ? String(asset.data.definition.description || "待生成图片") : characterAssetSummary(asset);
     if (asset.kind === "text") return asset.data.content;
     if (asset.kind === "audio") return [formatAssetClock(asset.data.durationMs) || formatAssetDuration(asset.data.durationMs), formatAudioSampleRate(audioSampleRate)].filter(Boolean).join(" · ");
-    if ((asset.kind === "model" || asset.kind === "document")) return `${asset.data.fileName} · ${formatBytes(asset.data.bytes)} · ${asset.data.mimeType}`;
+    if (asset.kind === "model" || asset.kind === "document") return `${asset.data.fileName} · ${formatBytes(asset.data.bytes)} · ${asset.data.mimeType}`;
     const tier = asset.kind === "video" ? videoResolutionTierLabel(asset.data.width, asset.data.height) : imageResolutionTierLabel(asset.data.width, asset.data.height);
     const spec = [tier, mediaAspectRatioLabel(asset.data.width, asset.data.height)].filter(Boolean).join(" · ");
     return spec || (asset.metadata?.platformMaterial ? [mediaFormatLabel(asset.data.mimeType), formatBytes(asset.data.bytes)].filter(Boolean).join(" · ") : `尺寸未知 · ${formatBytes(asset.data.bytes)}`);
@@ -110,7 +110,10 @@ export function formatAssetDuration(durationMs?: number) {
 
 export function formatAssetClock(durationMs?: number) {
     if (!durationMs || !Number.isFinite(durationMs) || durationMs <= 0) return null;
-    if (durationMs < 1000) return `0:00.${String(Math.max(1, Math.round(durationMs))).padStart(3, "0").replace(/0+$/, "")}`;
+    if (durationMs < 1000)
+        return `0:00.${String(Math.max(1, Math.round(durationMs)))
+            .padStart(3, "0")
+            .replace(/0+$/, "")}`;
     const total = Math.round(durationMs / 1000);
     const minutes = Math.floor(total / 60);
     const seconds = total % 60;

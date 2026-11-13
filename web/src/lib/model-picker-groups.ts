@@ -17,7 +17,7 @@ export type ModelPickerGroup = {
 export { isDirectSystemModel } from "@/lib/model-selection";
 
 export function modelPickerKeywords(config: AiConfig, item: DisplayModelGroup): string[] {
-    return item.models.flatMap(value => {
+    return item.models.flatMap((value) => {
         const cost = resolveModelChannel(config, value).modelCosts?.find((entry) => entry.model === modelOptionName(value));
         const presentation = cost?.platform?.presentation;
         const media = cost?.platform?.model_type === "image" || cost?.platform?.model_type === "video";
@@ -32,7 +32,7 @@ export function filterModelPickerGroups(config: AiConfig, groups: ModelPickerGro
     const matches = (parts: (string | undefined)[]) => parts.filter(Boolean).join(" ").toLocaleLowerCase().includes(needle);
     return groups.flatMap((group) => {
         if (matches([group.label, group.scope, group.platform?.series_info?.name, group.platform?.logical_model])) return [group];
-        const models = group.models.filter(item => matches(modelPickerKeywords(config, item)));
+        const models = group.models.filter((item) => matches(modelPickerKeywords(config, item)));
         return models.length ? [{ ...group, models }] : [];
     });
 }

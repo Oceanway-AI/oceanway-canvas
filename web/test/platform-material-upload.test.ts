@@ -34,10 +34,18 @@ test("Platform upload uses credential-free tickets and recovers a lost completio
                 throw new Error("connection lost after commit");
             } else if (config.url === "/resources/platform-uploads/local_1") {
                 expect(completed).toBe(true);
-                data = { id: "local_1", upload: { protocol: "oceanway.materials.v2", upload_id: "up_1", state: "ready", asset: { asset_id: "asset1", version: { asset_id: "asset1", version_id: "version1" }, file: { sha256: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", byte_length: "5" } } } };
+                data = {
+                    id: "local_1",
+                    upload: {
+                        protocol: "oceanway.materials.v2",
+                        upload_id: "up_1",
+                        state: "ready",
+                        asset: { asset_id: "asset1", version: { asset_id: "asset1", version_id: "version1" }, file: { sha256: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", byte_length: "5" } },
+                    },
+                };
             } else if (config.url === "/resources/adopt") {
-                expect(JSON.parse(config.data)).toMatchObject({assetId:"asset1",versionId:"version1"});
-                data = {resource: { id: "resource_1", status: "ready", provider: "platform" }};
+                expect(JSON.parse(config.data)).toMatchObject({ assetId: "asset1", versionId: "version1" });
+                data = { resource: { id: "resource_1", status: "ready", provider: "platform" } };
             } else throw new Error(`Unexpected API ${config.url}`);
             return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data } };
         };

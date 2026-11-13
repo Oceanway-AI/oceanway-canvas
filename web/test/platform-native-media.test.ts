@@ -60,12 +60,15 @@ test("native protocol choices describe the published reference inputs without mo
 test("creation mode choices hide duplicate protocols and keep the selected native route", () => {
     const variants = ["sora.video", "newapi.video", "modelark.video"].flatMap((protocol) =>
         [[], ["first_frame", "last_frame"], ["reference_image", "reference_video", "reference_audio"]].map((roles, i) => ({
-            ...variant, id: protocol + i, gateway_protocol: protocol,
+            ...variant,
+            id: protocol + i,
+            gateway_protocol: protocol,
             native_request_variant: { ...variant.native_request_variant, native_reference_inputs: roles.map((role) => ({ ...variant.native_request_variant.native_reference_inputs[0], role })) },
         })),
     );
     expect(nativeCreationModeOptions(variants, variants[6], true)).toEqual([
-        { label: "首尾帧", value: "modelark.video1" }, { label: "全能参考", value: "modelark.video2" },
+        { label: "首尾帧", value: "modelark.video1" },
+        { label: "全能参考", value: "modelark.video2" },
     ]);
 });
 const model = {
