@@ -138,13 +138,22 @@ func TestStudioNativeReferenceUsesPointerRoleAndOwnedMIME(t *testing.T) {
 		t.Fatal(err)
 	}
 	one := int64(1)
-	for _, tc := range []struct{ protocol, pointer, role string }{{"gemini.image", "/contents", "reference_image"}, {"gemini.chat.image", "/messages", "reference_image"}, {"modelark.video", "/content", "first_frame"}} {
+	for _, tc := range []struct{ protocol, pointer, role string }{{"gemini.image", "/contents", "reference_image"}, {"gemini.chat.image", "/messages", "reference_image"}, {"modelark.video", "/content", "first_frame"}, {"openai.image.edit", "/image", "reference_image"}} {
 		t.Run(tc.protocol, func(t *testing.T) {
 			selected, err := platformintegration.SelectModel(studioNativeFixtureModel(t, tc.protocol), "")
 			if err != nil {
 				t.Fatal(err)
 			}
 			selected.NativeRequest.References = []platformintegration.NativeReferenceSlot{{ID: "display-id-not-path", Pointer: tc.pointer, Role: tc.role, Transport: "content-array", MinItems: &one, MaxItems: &one, MIMETypes: []string{"image/png"}}}
+			if tc.protocol == "openai.image.edit" {
+				selected.NativeRequest.References[0].Transport = "image-reference-array"
+				selected.NativeRequest.ContentTypes = []string{"multipart/form-data"}
+				var schema map[string]any
+				_ = json.Unmarshal(selected.NativeRequest.Schema, &schema)
+				schema["properties"].(map[string]any)["image"] = map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "minItems": 1}
+				schema["required"] = []string{"model", "prompt", "image"}
+				selected.NativeRequest.Schema, _ = json.Marshal(schema)
+			}
 			ref := map[string]any{"storageKey": "resource:ref", "role": tc.role, "url": "https://not-used.example/image", "type": "image/jpeg"}
 			req := CreateTaskRequest{Prompt: "same prompt", Input: map[string]any{"config": map[string]any{"channelId": StudioPlatformChannelID}, "referenceImages": []any{ref}}}
 			raw, err := s.studioMediaBody(context.Background(), "user", req, selected)
@@ -153,6 +162,9 @@ func TestStudioNativeReferenceUsesPointerRoleAndOwnedMIME(t *testing.T) {
 			}
 			if !strings.Contains(string(raw), "material://asset/version") || strings.Contains(string(raw), "display-id-not-path") || strings.Contains(string(raw), "not-used") || strings.Count(string(raw), "same prompt") != 1 {
 				t.Fatalf("incorrect reference: %s", raw)
+			}
+			if tc.protocol == "openai.image.edit" && !strings.Contains(string(raw), `"image":["material://asset/version"]`) {
+				t.Fatal("edit must contain ordered exact material versions")
 			}
 			if tc.protocol == "gemini.image" && !strings.Contains(string(raw), `"mimeType":"image/png"`) {
 				t.Fatal("lost actual MIME")

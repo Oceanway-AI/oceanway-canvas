@@ -44,9 +44,17 @@ type NativeReferenceSlot struct {
 
 var errNativeContract = errors.New("模型原生请求合同无效或尚未接通")
 
+func (v NativeRequestVariant) MultipartReferenceImages(slot NativeReferenceSlot) bool {
+	return v.Protocol == "openai.image.edit" && slices.Contains(v.ContentTypes, "multipart/form-data") &&
+		slot.Pointer == "/image" && slot.Role == "reference_image" && slot.Transport == "image-reference-array"
+}
+
 func (s *ModelSelection) selectNativeRoute() error {
 	v := s.NativeRequest
-	if v.ID == "" || v.Protocol != s.GatewayProtocol || v.Operation != "create" || v.Method != "POST" || len(v.Unresolved) != 0 || v.Defaults == nil || v.MaxOutputs < 1 || !slices.Contains(v.ContentTypes, "application/json") {
+	if v.ID == "" || v.Protocol != s.GatewayProtocol || v.Operation != "create" || v.Method != "POST" || len(v.Unresolved) != 0 || v.Defaults == nil || v.MaxOutputs < 1 {
+		return errNativeContract
+	}
+	if !slices.Contains(v.ContentTypes, "application/json") && !slices.ContainsFunc(v.References, v.MultipartReferenceImages) {
 		return errNativeContract
 	}
 	var schema map[string]any

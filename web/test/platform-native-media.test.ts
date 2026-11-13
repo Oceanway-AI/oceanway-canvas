@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { defaultConfig } from "@/stores/use-config-store";
 import { systemChannelModelChannels } from "@/lib/user-session";
-import { nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues } from "@/lib/platform-native-media";
+import { nativeCreationSettings, nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues } from "@/lib/platform-native-media";
 import { modelCompatibilityError, resolveModelGenerationDefaults } from "@/lib/model-selection";
 import { backendProviderConfig } from "@/services/api/generation-task";
 import { buildNodeConfig } from "@/components/canvas/canvas-node-prompt-config";
@@ -116,4 +116,43 @@ test("creation history preferences and Agent approval retain native values", () 
     const agent = { channelId: "oceanway-platform", channelModelKey: model.modelKey, nativeVariantId: settings.nativeVariantId, nativeParameters: settings.nativeParameters };
     expect(agentMediaSettings(agent)).toMatchObject(agent);
     expect(agentApprovalMatchesSettings(agent, { ...agent, nativeParameters: "{}" })).toBe(false);
+});
+
+test("creation selects a published edit only for attached images and retains compatible settings", () => {
+    const generate = {
+        ...variant,
+        id: "generate",
+        gateway_protocol: "openai.image.generate",
+        defaults: { "/size": "auto", "/quality": "low" },
+        specifications_schema: { properties: { "/size": { type: "string" }, "/quality": { enum: ["low", "high"] } } },
+        native_request_variant: { ...variant.native_request_variant, native_reference_inputs: [] },
+    };
+    const edit = {
+        ...generate,
+        id: "edit",
+        gateway_protocol: "openai.image.edit",
+        defaults: { "/size": "auto", "/quality": "medium" },
+        specifications_schema: { properties: { "/size": { type: "string" }, "/quality": { enum: ["medium"] } } },
+        native_request_variant: { ...variant.native_request_variant, native_reference_inputs: [{ id: "ref", pointer: "/image", transport: "image-reference-array", role: "reference_image", min_items: 1, max_items: 16 }] },
+    };
+    const image = {
+        ...model,
+        capability: "image",
+        platform: { ...model.platform, model_type: "image", media_generation_profile: { gateway_protocol: generate.gateway_protocol, default_variant: generate.id, variants: [generate, edit] } },
+    } as PublicChannelModel;
+    const cfg = { ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OW", displayName: "OW", models: [image] }]) };
+    const saved = { nativeVariantId: "generate", nativeParameters: JSON.stringify({ "/size": "1024x1024", "/quality": "high" }) };
+    const empty = nativeCreationSettings(cfg, selected, saved, false);
+    expect(empty.settings.nativeVariantId).toBe("generate");
+    expect(nativeMediaReferenceLimits(cfg, selected, empty.referenceVariant)?.maxImages).toBe(16);
+    const attached = nativeCreationSettings(cfg, selected, saved, true);
+    expect(attached.settings.nativeVariantId).toBe("edit");
+    expect(JSON.parse(attached.settings.nativeParameters)).toEqual({ "/size": "1024x1024", "/quality": "medium" });
+    const input = { textCount: 1, imageCount: 1, videoCount: 0, audioCount: 0, characterCount: 0 };
+    expect(modelCompatibilityError(cfg, selected, { capability: "image", input, useImageEditForReferences: true })).toBe("");
+    expect(modelCompatibilityError(cfg, selected, { capability: "image", input })).toContain("0");
+    expect(modelCompatibilityError(cfg, selected, { capability: "image", input: { ...input, imageCount: 17 }, useImageEditForReferences: true })).toContain("16");
+    expect(nativeCreationSettings(cfg, selected, { nativeVariantId: "retired" }, true).settings.nativeVariantId).toBe("retired");
+    image.platform!.media_generation_profile!.variants = [generate, edit, { ...edit, id: "another" }];
+    expect(nativeCreationSettings(cfg, selected, saved, true).settings.nativeVariantId).toBe("generate");
 });

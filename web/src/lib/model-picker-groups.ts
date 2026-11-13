@@ -11,6 +11,7 @@ export type ModelPickerGroup = {
     models: DisplayModelGroup[];
     platform?: PlatformModelGroup;
     platformOwned?: boolean;
+    series?: { name: string; modelType: string };
 };
 
 export { isDirectSystemModel } from "@/lib/model-selection";
@@ -51,14 +52,14 @@ export function groupModelsForPicker(config: AiConfig, options: string[]): Model
             if (cost?.platform) {
                 const item = cost.platform;
                 const suppliedGroup = channel.platformGroups?.find((group) => group.model_names.includes(item.model_name));
-                const series = item.model_series?.trim();
+                const series = suppliedGroup?.model_series?.trim() || item.model_series?.trim();
                 const logical = item.logical_model?.trim();
                 const identity = item.model_type === "text" ? series : series && logical;
                 const label = suppliedGroup?.display_name || identity || item.model_name;
                 const key = suppliedGroup?.key || (identity ? JSON.stringify(["platform", item.model_type, series || "", identity]) : JSON.stringify(["platform-single", value]));
                 let group = groups.get(key);
                 if (!group) {
-                    group = { key, label, icon: modelIcon(config, value), scope: series || "平台服务", kind: "product", models: [], platform: suppliedGroup, platformOwned: true };
+                    group = { key, label, icon: modelIcon(config, value), scope: series || "平台服务", kind: "product", models: [], platform: suppliedGroup, platformOwned: true, series: series ? { name: series, modelType: item.model_type } : undefined };
                     groups.set(key, group);
                 }
                 group.models.push({ key: value, label: modelChannelLabel(config, value), models: [value] });
@@ -87,4 +88,21 @@ export function groupModelsForPicker(config: AiConfig, options: string[]): Model
         }
     }
     return Array.from(groups.values());
+}
+
+// Series organize navigation only. Availability, pricing and health belong to the
+// original published logical group or model and are never summed across groups.
+export function modelPickerSeries(groups: ModelPickerGroup[]) {
+    const series = new Map<string, ModelPickerGroup & { logicalGroups: ModelPickerGroup[] }>();
+    for (const group of groups) {
+        const key = group.series ? JSON.stringify(["series", group.series.modelType, group.series.name]) : group.key;
+        let entry = series.get(key);
+        if (!entry) {
+            entry = { ...group, key, label: group.series?.name || group.label, models: [], logicalGroups: [] };
+            series.set(key, entry);
+        }
+        entry.models.push(...group.models);
+        entry.logicalGroups.push(group);
+    }
+    return [...series.values()];
 }

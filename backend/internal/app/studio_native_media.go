@@ -193,7 +193,7 @@ func (s *Service) studioNativeMediaReferences(ctx context.Context, userID string
 		}
 		resources[slot.Pointer] = append(resources[slot.Pointer], resource)
 		uri := "material://" + pin.AssetID + "/" + pin.VersionID
-		if err := studioAppendNativeReference(body, v.Protocol, *slot, uri, resource.MimeType); err != nil {
+		if err := studioAppendNativeReference(body, v, *slot, uri, resource.MimeType); err != nil {
 			return err
 		}
 	}
@@ -218,7 +218,7 @@ func (s *Service) studioNativeMediaReferences(ctx context.Context, userID string
 	return nil
 }
 
-func studioAppendNativeReference(body map[string]any, protocol string, slot platformintegration.NativeReferenceSlot, uri, mime string) error {
+func studioAppendNativeReference(body map[string]any, variant *platformintegration.NativeRequestVariant, slot platformintegration.NativeReferenceSlot, uri, mime string) error {
 	var value any
 	array := false
 	switch slot.Transport {
@@ -229,10 +229,15 @@ func studioAppendNativeReference(body map[string]any, protocol string, slot plat
 	case "image-reference":
 		value = map[string]any{"image_url": uri}
 	case "image-reference-array":
-		value, array = map[string]any{"image_url": uri}, true
+		array = true
+		if variant.MultipartReferenceImages(slot) {
+			value = uri
+		} else {
+			value = map[string]any{"image_url": uri}
+		}
 	case "content-array":
 		switch {
-		case protocol == "modelark.video" && slot.Pointer == "/content":
+		case variant.Protocol == "modelark.video" && slot.Pointer == "/content":
 			kind := "image"
 			if slot.Role == "reference_video" {
 				kind = "video"
@@ -240,11 +245,11 @@ func studioAppendNativeReference(body map[string]any, protocol string, slot plat
 				kind = "audio"
 			}
 			value, array = map[string]any{"type": kind + "_url", kind + "_url": map[string]any{"url": uri}, "role": slot.Role}, true
-		case protocol == "gemini.image" && slot.Pointer == "/contents":
+		case variant.Protocol == "gemini.image" && slot.Pointer == "/contents":
 			content := body["contents"].([]any)[0].(map[string]any)
 			content["parts"] = append(content["parts"].([]any), map[string]any{"fileData": map[string]any{"fileUri": uri, "mimeType": mime}})
 			return nil
-		case protocol == "gemini.chat.image" && slot.Pointer == "/messages":
+		case variant.Protocol == "gemini.chat.image" && slot.Pointer == "/messages":
 			message := body["messages"].([]any)[0].(map[string]any)
 			message["content"] = append(message["content"].([]any), map[string]any{"type": "image_url", "image_url": map[string]any{"url": uri}})
 			return nil

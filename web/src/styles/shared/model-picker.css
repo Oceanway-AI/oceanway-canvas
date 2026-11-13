@@ -620,6 +620,7 @@ html:not(.dark) .creation-home .creation-chat-composer .creation-model-picker.ca
 }
 .canvas-model-picker-brands {
     display: grid;
+    grid-auto-rows: max-content;
     gap: 4px;
     width: 100%;
 }
@@ -734,6 +735,7 @@ html:not(.dark) .creation-home .creation-chat-composer .creation-model-picker.ca
 }
 .canvas-model-picker-menu.is-model-list .canvas-model-picker-brand-rail {
     display: grid;
+    grid-auto-rows: max-content;
     min-height: 0;
     align-content: start;
     gap: 4px;
@@ -777,6 +779,18 @@ html:not(.dark) .creation-home .creation-chat-composer .creation-model-picker.ca
     gap: 8px 8px;
 }
 
+.canvas-model-picker-logical-summary {
+    padding: 8px;
+    font-size: var(--fs-label);
+}
+.canvas-model-picker-option-title {
+    flex: 1 1 14rem;
+}
+.canvas-model-picker-option-heading .canvas-model-picker-option-name {
+    overflow-wrap: anywhere;
+    white-space: normal;
+    line-height: 1.35;
+}
 .canvas-model-picker-option-name {
     flex: 1 1 10rem;
     min-width: 0;

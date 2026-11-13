@@ -10,7 +10,7 @@ import type { AssetLibraryPickerItem } from "@/components/assets/asset-library-p
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
-import { nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits } from "@/lib/platform-native-media";
+import { nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits } from "@/lib/platform-native-media";
 import { creationResultAssetIds, creationResultResourceIds, type CreationCanvasSelection } from "@/lib/canvas/canvas-asset-handoff";
 import { loadCanvasResourceHandoffPayloads } from "@/services/canvas-resource-handoff";
 import { getActiveUserScope } from "@/lib/user-scope";
@@ -224,6 +224,7 @@ export default function CreatePage() {
     const modelRequirements = useMemo<ModelRequirements>(
         () => ({
             capability: mode,
+            useImageEditForReferences: mode === "image",
             input: {
                 textCount: hasPrompt ? 1 : 0,
                 imageCount: attachments.filter(isImageAttachment).length,
@@ -254,7 +255,8 @@ export default function CreatePage() {
     const videoProfile = useMemo(() => (selectedModel ? modelCapabilityConfigFor(config, selectedModel).video : undefined), [config, selectedModel]);
     const nativeProfile = nativeMediaProfile(config, selectedModel);
     const nativeSaved = mode === "video" ? savedNativePreferences.video : savedNativePreferences.image;
-    const nativeSettings: { nativeParameters?: string; nativeVariantId?: string } = nativeProfile ? nativeMediaDefaults(config, selectedModel, nativeSaved?.model === selectedModel ? nativeSaved : {}) : {};
+    const nativeCreation = nativeProfile ? nativeCreationSettings(config, selectedModel, nativeSaved?.model === selectedModel ? nativeSaved : {}, mode === "image" && Boolean(modelRequirements.input?.imageCount)) : undefined;
+    const nativeSettings: { nativeParameters?: string; nativeVariantId?: string } = nativeCreation?.settings || {};
     const generationConfig = useMemo(
         () => (nativeProfile ? { ...config, model: selectedModel, ...nativeSettings } : mode === "video" && videoProfile ? creationVideoConfig(config, selectedModel, { ratio, seconds, videoQuality }) : config),
         [config, mode, ratio, seconds, selectedModel, videoQuality, videoProfile, nativeSettings.nativeParameters, nativeSettings.nativeVariantId, Boolean(nativeProfile)],
@@ -275,7 +277,7 @@ export default function CreatePage() {
     };
     // 同名逻辑模型可能把文生视频、图生视频和全模态参考拆到不同路由。
     // 入口需要展示整个模型组的引用能力，添加素材后再由兼容路由选择具体模型。
-    const nativeReferenceLimits = nativeProfile ? nativeMediaReferenceLimits(generationConfig) : undefined;
+    const nativeReferenceLimits = nativeProfile ? nativeMediaReferenceLimits(generationConfig, selectedModel, mode === "image" ? nativeCreation?.referenceVariant : undefined) : undefined;
     const videoReferenceLimits = nativeReferenceLimits || (mode === "video" && videoProfile ? modelGroupReferenceLimits(config, selectedModel, "video") || { maxImages: 0, maxVideos: 0, maxAudios: 0 } : undefined);
     const maxReferences = nativeReferenceLimits
         ? nativeReferenceLimits.maxImages + nativeReferenceLimits.maxVideos + nativeReferenceLimits.maxAudios
@@ -284,6 +286,8 @@ export default function CreatePage() {
           : mode === "image"
             ? imageProfile?.references.maxImages || 0
             : 6;
+    const requiredImages = mode === "image" ? nativeProfile?.variants.find((v) => v.id === nativeSettings.nativeVariantId)?.native_request_variant.native_reference_inputs?.find((ref) => ref.role === "reference_image")?.min_items || 0 : 0;
+    const missingReferenceImages = (modelRequirements.input?.imageCount || 0) < requiredImages;
     const referenceImageSize = useMemo(() => {
         const imageAttachments = attachments.filter(isImageAttachment);
         if (imageAttachments.length !== 1) return undefined;
@@ -868,6 +872,12 @@ export default function CreatePage() {
             releaseSubmitGate();
             return;
         }
+        if (missingReferenceImages) {
+            toast.warning(`请添加至少 ${requiredImages} 张参考图`);
+            releaseRetryLock();
+            releaseSubmitGate();
+            return;
+        }
         if (!nativeProfile && mode === "video" && videoProfile && !videoDurationAllowed(videoProfile, Number(seconds))) {
             toast.error(t("create.page.durationUnsupported"));
             releaseRetryLock();
@@ -1432,6 +1442,7 @@ export default function CreatePage() {
         attachments,
         referenceImageSize,
         maxReferences,
+        missingReferenceImages,
         references: mentionReferences,
         onRemoveAttachment: removeAttachment,
         onClearAttachments: clearAttachments,

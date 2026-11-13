@@ -62,8 +62,28 @@ export function nativeMediaVariant(config: AiConfig, model = config.model, id = 
     return profile?.variants.find((v) => v.id === (id || profile.defaultId));
 }
 
-export function nativeMediaReferenceLimits(config: AiConfig, model = config.model) {
-    const variant = nativeMediaVariant(config, model);
+// A text-to-image default can accept attachments in the composer when the
+// same model publishes one unambiguous edit operation for reference images.
+export function nativeImageReferenceVariant(config: AiConfig, model: string, current: NativeMediaVariant | undefined) {
+    if (current?.gateway_protocol !== "openai.image.generate") return current;
+    const edits = nativeMediaProfile(config, model)?.variants.filter((v) => v.gateway_protocol === "openai.image.edit" && v.native_request_variant.native_reference_inputs?.some((r) => r.role === "reference_image" && r.max_items !== 0));
+    return edits?.length === 1 ? edits[0] : current;
+}
+
+export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId">, hasReferenceImages: boolean) {
+    const base = nativeMediaDefaults(config, model, saved);
+    const variant = nativeMediaVariant(config, model, base.nativeVariantId);
+    const referenceVariant = nativeImageReferenceVariant(config, model, variant);
+    if (!hasReferenceImages || !referenceVariant || !variant || referenceVariant.id === variant.id) return { settings: base, referenceVariant };
+    const values = nativeParameterValues(referenceVariant);
+    const previous = nativeParameterObject(base.nativeParameters);
+    for (const [key, field] of Object.entries(referenceVariant.specifications_schema.properties)) {
+        if (Object.hasOwn(previous, key) && JSON.stringify(field) === JSON.stringify(variant.specifications_schema.properties[key])) values[key] = previous[key];
+    }
+    return { settings: { nativeVariantId: referenceVariant.id, nativeParameters: JSON.stringify(values) }, referenceVariant };
+}
+
+export function nativeMediaReferenceLimits(config: AiConfig, model = config.model, variant = nativeMediaVariant(config, model)) {
     if (!variant) return undefined;
     const refs = variant.native_request_variant.native_reference_inputs || [];
     const capacity = (roles: string[]) => refs.filter((ref) => roles.includes(ref.role)).reduce((sum, ref) => sum + (ref.max_items ?? Number.POSITIVE_INFINITY), 0);

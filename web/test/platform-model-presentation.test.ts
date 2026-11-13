@@ -12,7 +12,7 @@ import {
     type PlatformModelGroup,
 } from "../src/lib/platform-models";
 import { systemChannelModelChannels } from "../src/lib/user-session";
-import { filterModelPickerGroups, groupModelsForPicker } from "../src/lib/model-picker-groups";
+import { filterModelPickerGroups, groupModelsForPicker, modelPickerSeries } from "../src/lib/model-picker-groups";
 import { defaultConfig, normalizeConfigSnapshot } from "../src/stores/use-config-store";
 import type { PublicChannelModel } from "../src/services/api/logical-models";
 
@@ -103,4 +103,12 @@ test("host forwards authoritative group health instead of choosing the first var
         models.map((model) => `oceanway-platform::${model.modelKey}`),
     );
     expect(missingSeries).toHaveLength(2);
+    expect(modelPickerSeries(missingSeries)).toHaveLength(2);
+    const mixed = [grouped[0], { ...grouped[0], key: "other-logical", label: "Another", models: [{ key: "other", label: "other", models: ["other"] }] }];
+    const series = modelPickerSeries(mixed);
+    expect(series.map((g) => g.label)).toEqual(["Series"]);
+    expect(series[0].models.flatMap((m) => m.models)).toEqual(["oceanway-platform::exact-a", "oceanway-platform::exact-b", "other"]);
+    expect(series[0].logicalGroups.map((g) => g.key)).toEqual(["opaque-group", "other-logical"]);
+    expect(modelPickerSeries(byID)[0].models).toEqual([grouped[0].models[1]]);
+    expect(modelPickerSeries([grouped[0], { ...mixed[1], series: { name: "Series", modelType: "video" } }])).toHaveLength(2);
 });

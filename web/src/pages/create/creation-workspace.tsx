@@ -160,6 +160,7 @@ type ComposerProps = {
     attachments: CreationAttachment[];
     referenceImageSize?: { width: number; height: number };
     maxReferences: number;
+    missingReferenceImages?: boolean;
     references: CreationReference[];
     onRemoveAttachment: (id: string) => void;
     onClearAttachments: () => void;
@@ -224,7 +225,7 @@ export function CreationComposer(props: ComposerProps) {
     const previousAttachmentCountRef = useRef(0);
     const interactionBusy = props.busy || props.referenceReplacementBusy;
     const modelAvailable = Boolean(props.model && (props.mode === "image" ? props.imageProfile : props.mode === "video" ? props.videoProfile : true));
-    const canSubmit = modelAvailable && Boolean(props.prompt.trim()) && !interactionBusy;
+    const canSubmit = modelAvailable && Boolean(props.prompt.trim()) && !props.missingReferenceImages && !interactionBusy;
     const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
     const priceChannel = resolveModelChannel(props.config, props.model);
     const quoteRequest = useMemo(() => modelQuoteRequest(props.config, props.model, props.mode, props.modelRequirements), [props.config, props.mode, props.model, props.modelRequirements]);
@@ -267,8 +268,7 @@ export function CreationComposer(props: ComposerProps) {
     const showWorkingGlow = props.generationActive && !canSubmit;
     const placeholder = props.mode === "text" ? "描述你的故事、角色或想继续讨论的创意" : props.mode === "image" ? "描述画面、人物、场景、构图与风格" : "描述镜头内容、运动、光线与节奏";
     const emptyPlaceholder = "输入你的镜头、画面或故事。也可以添加参考图开始创作";
-    const imageReferencesSupported = (props.imageProfile?.references.maxImages || 0) > 0;
-    const referencesSupported = props.mode === "image" ? imageReferencesSupported : props.mode !== "video" || props.maxReferences > 0;
+    const referencesSupported = props.mode === "text" || props.maxReferences > 0;
     const canAddMoreReferences = referencesSupported && props.attachments.length < props.maxReferences;
     const addReferenceLabel = interactionBusy ? (props.referenceReplacementBusy ? "正在替换参考图" : "生成中暂不能添加参考内容") : canAddMoreReferences ? "添加更多参考内容" : `已达到当前模型的参考内容上限（${props.maxReferences} 个）`;
     const referenceCounts = useMemo(
@@ -595,7 +595,7 @@ export function CreationComposer(props: ComposerProps) {
                     }
                     onClick={interactionBusy ? undefined : props.onSubmit}
                     aria-label={actionLabel}
-                    title={!modelAvailable ? "请先选择当前模式的可用模型" : !canSubmit && !interactionBusy ? "输入创作想法后即可生成" : actionLabel}
+                    title={!modelAvailable ? "请先选择当前模式的可用模型" : props.missingReferenceImages ? "请添加当前协议要求的参考图" : !canSubmit && !interactionBusy ? "输入创作想法后即可生成" : actionLabel}
                 >
                     {showWorkingGlow ? <WorkingGlow active color="var(--creation-text)" radius="var(--button-radius)" /> : null}
                     {showCost ? (

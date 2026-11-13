@@ -2,7 +2,7 @@ import { defaultImageCapabilityConfig, modelCapabilityConfigFor, normalizeImageV
 import { videoResolutionComparisonKey } from "@/lib/video-generation-options";
 import { imageParameterRequest, imageParameterDefaults, imageParameterAccepts } from "./image-parameters";
 import { imageSizePresets } from "@/lib/image-size-presets";
-import { nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
+import { nativeImageReferenceVariant, nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
 import { modelOptionName, PUBLIC_MODEL_CATALOG_ID, resolveModelChannel, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
 
 export type ModelInputSummary = {
@@ -22,6 +22,7 @@ export type ModelRequirements = {
     videoOperation?: string;
     videoSeconds?: string;
     imageSize?: string;
+    useImageEditForReferences?: boolean;
     options?: Record<string, unknown>;
 };
 
@@ -120,7 +121,8 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
     const channel = resolveModelChannel(config, model);
     const logicalCost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
     if (nativeMediaProfile(config, model)) {
-        const variant = nativeMediaVariant(config, model);
+        const current = nativeMediaVariant(config, model);
+        const variant = requirements.useImageEditForReferences && visualInputCount > 0 ? nativeImageReferenceVariant(config, model, current) : current;
         if (!variant) return "模型参数版本已失效，请重新选择";
         if (logicalCost?.platform?.model_type !== capability) return "模型与创作类型不匹配";
         // Native schema admission owns parameter combinations. Legacy size and
