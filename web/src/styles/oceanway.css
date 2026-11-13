@@ -590,6 +590,75 @@ html[data-oceanway] .app-user-workspace .creation-canvas-strip-state {
     color: var(--ocean-air-text-muted);
     font-size: 12px;
 }
+.oceanway-context-cover {
+    position: relative;
+    flex: none;
+    width: 52px;
+    aspect-ratio: 1.08;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--ocean-air-surface-soft);
+    color: var(--ocean-air-text-muted);
+}
+.oceanway-context-cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+html[data-oceanway]:not(.dark) .is-creation-workspace {
+    --ocean-home-frost: color-mix(in srgb, var(--ocean-air-surface) 16%, transparent);
+}
+html[data-oceanway]:not(.dark) .is-creation-workspace :is(.creation-mode-card, .oceanway-context-panel, .creation-recent-canvases) {
+    background: var(--ocean-home-frost);
+    border-color: var(--ocean-glass-control-edge);
+}
+html[data-oceanway]:not(.dark) .is-creation-workspace .creation-launchpad .creation-chat-composer {
+    background: transparent !important;
+}
+html[data-oceanway]:not(.dark) .is-creation-workspace .creation-mode-card:focus-within {
+    border-color: var(--ocean-air-focus);
+}
+html[data-oceanway]:not(.dark) .is-creation-workspace .creation-launchpad .creation-chat-composer.is-empty .creation-chat-mention-editor {
+    font-size: clamp(16px, 1.4vw, 18px) !important;
+    line-height: 1.55;
+}
+@media (min-width: 1024px) {
+    html[data-oceanway]:not(.dark) .is-creation-workspace .app-workspace-sidebar {
+        background: var(--ocean-home-frost) !important;
+        border-color: var(--ocean-glass-control-edge) !important;
+    }
+}
+html[data-oceanway]:not(.dark) .is-creation-workspace .app-workspace-nav-link.is-active {
+    background: var(--ocean-glass-strong) !important;
+    box-shadow: inset 0 0 0 1px var(--ocean-glass-control-edge-strong);
+}
+html[data-oceanway]:not(.dark) .oceanway-context-items:has(.oceanway-context-cover) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+html[data-oceanway]:not(.dark) .oceanway-context-item:has(.oceanway-context-cover) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 0 0 8px;
+    border: 1px solid var(--ocean-glass-control-edge);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--ocean-glass-strong);
+}
+html[data-oceanway]:not(.dark) .oceanway-context-cover {
+    width: 100%;
+    aspect-ratio: 1.8;
+    border-radius: 0;
+}
+html[data-oceanway]:not(.dark) .oceanway-context-cover + span {
+    gap: 2px;
+    padding-inline: 10px;
+}
 .oceanway-context-state button {
     padding: 8px 14px;
     border: 1px solid var(--ocean-glass-control-edge);

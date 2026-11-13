@@ -37,7 +37,7 @@ export function OceanwayContextPanel({ onRequireLogin }: { onRequireLogin: () =>
         queryFn: async ({ signal }) => {
             const options = { page: 1, pageSize: 3, kind: platform && activeTab === "text" ? "document" : activeTab, signal };
             const page = platform ? await loadPlatformLibraryPage(options) : await listRemoteAssetsPage(options);
-            return page.assets.map(({ id, title, updatedAt }) => ({ id, title, updatedAt }));
+            return page.assets.map(({ id, title, updatedAt, coverUrl }) => ({ id, title, updatedAt, coverUrl }));
         },
         enabled: Boolean(userId) && ready && activeTab !== "projects",
         staleTime: 30_000,
@@ -51,6 +51,7 @@ export function OceanwayContextPanel({ onRequireLogin }: { onRequireLogin: () =>
             ? (projects.data?.projects || []).map(({ project, canvasCount, assetCount }) => ({
                   id: project.id,
                   title: project.name,
+                  coverUrl: "",
                   updatedAt: project.updatedAt,
                   detail: `${canvasCount} 个画布 · ${assetCount} 份素材`,
                   path: `/projects/${encodeURIComponent(project.id)}`,
@@ -110,7 +111,25 @@ export function OceanwayContextPanel({ onRequireLogin }: { onRequireLogin: () =>
                 <div className="oceanway-context-items">
                     {items.map((item) => (
                         <button type="button" key={item.id} className="oceanway-context-item" onClick={() => navigate(item.path)}>
-                            <Icon />
+                            {activeTab === "image" || activeTab === "video" ? (
+                                <span className="oceanway-context-cover">
+                                    <Icon aria-hidden />
+                                    {item.coverUrl && (
+                                        <img
+                                            key={item.coverUrl}
+                                            src={item.coverUrl}
+                                            alt=""
+                                            loading="lazy"
+                                            decoding="async"
+                                            onError={(event) => {
+                                                event.currentTarget.hidden = true;
+                                            }}
+                                        />
+                                    )}
+                                </span>
+                            ) : (
+                                <Icon />
+                            )}
                             <span>
                                 <strong>{item.title}</strong>
                                 <small>
