@@ -264,13 +264,19 @@ export function AssetDrawer({
     /** 方舟素材库已开放时传入：认证进度与提交、管理入口。 */
     ark?: { progress?: ArkLibraryProgress; onCertify: (asset: Extract<LibraryAsset, { kind: "image" }>) => void; onManage: () => void };
 }) {
+    const [failedPreview, setFailedPreview] = useState<LibraryAsset | null>(null);
     const audio = asset?.kind === "audio" ? asset : null;
     const sampleRate = useAudioSampleRate(audio?.data.storageKey, audio?.data.url || "");
     const facts = asset ? assetArchiveFacts(asset, sampleRate) : [];
     const kind = asset && isKnownAssetKind(asset.kind) ? asset.kind : undefined;
     const KindIcon = asset ? (kind ? assetKindIcons[kind] : FileText) : Clapperboard;
     return (
-        <Drawer className="library-drawer" title="素材档案" open={Boolean(asset)} size="large" onClose={onClose} afterOpenChange={(open) => { if (!open) afterClose?.(); }}>
+        <Drawer className="library-drawer" title="素材档案" open={Boolean(asset)} size="large" onClose={onClose} afterOpenChange={(open) => {
+            if (!open) {
+                setFailedPreview(null);
+                afterClose?.();
+            }
+        }}>
             {asset ? (
                 <div className="space-y-4">
                     <div className="asset-archive-header">
@@ -295,11 +301,13 @@ export function AssetDrawer({
                         <div className="asset-archive-preview">
                             {asset.kind === "document" || asset.status === "archived" ? (
                                 <div className="asset-archive-preview-model"><KindIcon /><span>{asset.title}</span></div>
+                            ) : failedPreview === asset ? (
+                                <div className="asset-archive-preview-model" role="status"><KindIcon /><span>{translate("library.tasks.row.previewUnavailable")}</span></div>
                             ) : asset.kind === "text" ? (
                                 <div className="asset-archive-preview-note">{asset.data.content}</div>
                             ) : asset.kind === "audio" ? (
                                 <div className="asset-archive-audio">
-                                    <audio src={asset.data.url} controls />
+                                    <audio src={asset.data.url} controls onError={() => setFailedPreview(asset)} />
                                 </div>
                             ) : asset.kind === "model" ? (
                                 <div className="asset-archive-preview-model">
@@ -309,9 +317,9 @@ export function AssetDrawer({
                                     </span>
                                 </div>
                             ) : asset.kind === "video" ? (
-                                <video src={asset.data.url} controls className="asset-archive-preview-media" />
+                                <video src={asset.data.url} controls className="asset-archive-preview-media" onError={() => setFailedPreview(asset)} />
                             ) : (
-                                <AssetImageZoom asset={asset} />
+                                <AssetImageZoom asset={asset} onError={() => setFailedPreview(asset)} />
                             )}
                         </div>
                     )}
@@ -452,7 +460,7 @@ function ArkArchiveSection({ asset, progress, onCertify, onManage }: { asset: Li
     );
 }
 
-export function AssetImageZoom({ asset }: { asset: LibraryAsset & { kind: "image" } }) {
+export function AssetImageZoom({ asset, onError }: { asset: LibraryAsset & { kind: "image" }; onError?: () => void }) {
     const [scale, setScale] = useState(1);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
@@ -491,6 +499,7 @@ export function AssetImageZoom({ asset }: { asset: LibraryAsset & { kind: "image
                 eager
                 decoding="async"
                 className="asset-archive-preview-media asset-zoom-image"
+                onError={onError}
                 style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
             />
             <div className="asset-zoom-controls" data-canvas-no-zoom onPointerDown={(event) => event.stopPropagation()}>
