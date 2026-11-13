@@ -92,7 +92,7 @@ export function PlatformNativeMediaSettings({ config, onChange }: { config: AiCo
     );
 }
 
-function NativeParameterInput({ pointer, field, value, onChange }: { pointer: string; field: NativeSchemaField; value: unknown; onChange: (v: unknown) => void }) {
+export function NativeParameterInput({ pointer, field, value, onChange }: { pointer: string; field: NativeSchemaField; value: unknown; onChange: (v: unknown) => void }) {
     if (Object.hasOwn(field, "const")) return <Input aria-label={pointer} value={JSON.stringify(field.const)} readOnly />;
     if (field.enum?.length)
         return (

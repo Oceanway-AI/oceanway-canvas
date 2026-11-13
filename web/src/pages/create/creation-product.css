@@ -434,3 +434,46 @@ html:not(.dark) .app-product-overlays .creation-control-popover-surface {
 .creation-home .creation-chat-mention-container {
     min-height: 0 !important;
 }
+.studio-video-menu {
+    display: grid;
+    gap: 12px;
+    width: min(264px, 75vw);
+    max-height: 55vh;
+    overflow-y: auto;
+    color: var(--ocean-air-text);
+}
+.studio-video-menu strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+.studio-video-option, .studio-video-choices button {
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    text-align: start;
+}
+.studio-video-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.studio-video-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.studio-video-menu button:is(:hover, [aria-pressed="true"]) {
+    background: var(--ocean-air-surface-strong);
+    color: var(--ocean-air-text);
+}
+.studio-video-trigger span {
+    max-width: 18ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.creation-chat-controls:has(.studio-video-trigger) {
+    flex-wrap: wrap;
+}
