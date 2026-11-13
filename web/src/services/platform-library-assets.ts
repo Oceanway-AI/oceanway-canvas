@@ -1,7 +1,7 @@
 import { getPlatformMaterials, platformMaterialFileURL, type PlatformMaterialAsset } from "@/services/api/platform-materials";
 import { uploadResourceFile } from "@/services/api/resources";
 import { readUploadImageSize } from "@/lib/canvas/canvas-file-upload";
-import { probeMediaDurationMs } from "@/lib/media-metadata";
+import { probeMediaMetadata } from "@/lib/media-metadata";
 import { translate } from "@/i18n";
 import type { LibraryAsset } from "@/pages/assets/asset-library-format";
 
@@ -51,7 +51,7 @@ export async function loadPlatformLibraryPage(options: { page: number; pageSize:
 
 export async function uploadLibraryMaterial(file: File) {
     const kind = file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : file.type.startsWith("audio/") ? "audio" : "file";
-    const meta = kind === "image" ? await readUploadImageSize(file).catch(() => ({})) : { durationMs: await probeMediaDurationMs(file) };
+    const meta = kind === "image" ? await readUploadImageSize(file).catch(() => ({})) : await probeMediaMetadata(file);
     const resource = await uploadResourceFile(file, kind, { fileName: file.name, ...meta });
     if (!resource.material) throw new Error(translate("library.assets.detailFailed"));
     return resource.material;

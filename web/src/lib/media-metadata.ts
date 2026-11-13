@@ -1,4 +1,4 @@
-// 媒体时长探测工具：上传前通过 <video>/<audio> 元数据读取真实时长（毫秒）。
+// 上传前从 <video>/<audio> 读取媒体时长和视频尺寸。
 // 结果随上传 meta 传给后端，供资源摘要和时间线片段使用；这里不负责验证完整播放能力。
 
 const PROBE_TIMEOUT_MS = 8000;
@@ -7,12 +7,11 @@ function isProbeable(file: File): boolean {
     return /^video\//.test(file.type) || /^audio\//.test(file.type);
 }
 
-/**
- * 返回可确认的媒体时长；非音视频、浏览器不支持解码、元数据错误或超时都返回 undefined。
- * 这是上传附加信息而不是写入前置条件，调用方必须允许缺少时长，但不能编造默认时长。
- */
-export async function probeMediaDurationMs(file: File): Promise<number | undefined> {
-    if (!isProbeable(file)) return undefined;
+type MediaMetadata = { durationMs?: number; width?: number; height?: number };
+
+/** Metadata is optional: a codec that the browser cannot read must not prevent an upload. */
+export async function probeMediaMetadata(file: File): Promise<MediaMetadata> {
+    if (!isProbeable(file)) return {};
     const url = URL.createObjectURL(file);
     const el: HTMLVideoElement | HTMLAudioElement = /^video\//.test(file.type)
         ? document.createElement("video")
@@ -22,18 +21,22 @@ export async function probeMediaDurationMs(file: File): Promise<number | undefin
     // 某些浏览器只有在静音时才允许视频元素主动加载元数据；这里只禁止声音，不触发自动播放。
     el.muted = true;
     try {
-        const durationMs = await new Promise<number>((resolve, reject) => {
-            timeoutId = window.setTimeout(() => reject(new Error("媒体元数据读取超时")), PROBE_TIMEOUT_MS);
+        return await new Promise<MediaMetadata>((resolve) => {
+            timeoutId = window.setTimeout(() => resolve({}), PROBE_TIMEOUT_MS);
             el.onloadedmetadata = () => {
-                const durationSeconds = el.duration;
-                resolve(Number.isFinite(durationSeconds) && durationSeconds > 0 ? Math.round(durationSeconds * 1000) : 0);
+                const durationMs = Number.isFinite(el.duration) ? Math.round(el.duration * 1000) : 0;
+                const meta: MediaMetadata = durationMs > 0 ? { durationMs } : {};
+                if (el instanceof HTMLVideoElement && el.videoWidth > 0 && el.videoHeight > 0) {
+                    meta.width = el.videoWidth;
+                    meta.height = el.videoHeight;
+                }
+                resolve(meta);
             };
-            el.onerror = () => resolve(0);
+            el.onerror = () => resolve({});
             el.src = url;
         });
-        return durationMs > 0 ? durationMs : undefined;
     } catch {
-        return undefined;
+        return {};
     } finally {
         if (timeoutId !== undefined) window.clearTimeout(timeoutId);
         el.onloadedmetadata = null;
@@ -42,4 +45,8 @@ export async function probeMediaDurationMs(file: File): Promise<number | undefin
         el.load();
         URL.revokeObjectURL(url);
     }
+}
+
+export async function probeMediaDurationMs(file: File): Promise<number | undefined> {
+    return (await probeMediaMetadata(file)).durationMs;
 }
