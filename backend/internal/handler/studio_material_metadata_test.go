@@ -34,6 +34,7 @@ func TestStudioOriginalFileMetadataReconcilesOwnedResources(t *testing.T) {
 		}{a, originalFile{a.File, width, height, duration}}
 	}
 	width, height, duration := 640, 320, int64(4064)
+	detailStatus := http.StatusOK
 	fileID := newAsset.File.FileID
 	extra := studioMaterialFixtureAsset()
 	extra.AssetID, extra.Version.AssetID = "unbound", "unbound"
@@ -46,6 +47,10 @@ func TestStudioOriginalFileMetadataReconcilesOwnedResources(t *testing.T) {
 		switch r.Method + " " + r.URL.Path {
 		case "GET /api/platform/v1/materials/assets/asset_1":
 			details++
+			if detailStatus != http.StatusOK {
+				w.WriteHeader(detailStatus)
+				return
+			}
 			if r.URL.Query().Get("version_id") != "version_1" {
 				t.Error("resource metadata did not pin the original asset version")
 			}
@@ -129,6 +134,16 @@ func TestStudioOriginalFileMetadataReconcilesOwnedResources(t *testing.T) {
 	}
 	width, height, duration = 0, 0, 0
 	check("pending authority preserves stored metadata", read("POST", "/api/resources/adopt", adopt), want)
+	reset()
+	detailStatus = http.StatusServiceUnavailable
+	check("temporary provider outage preserves original resource", read("GET", "/api/resources/"+id, ""), meta{})
+	detailStatus = http.StatusForbidden
+	f.request(t, "GET", "/api/resources/"+id, cookie, "", 403)
+	detailStatus = http.StatusUnauthorized
+	f.request(t, "GET", "/api/resources/"+id, cookie, "", 401)
+	detailStatus = http.StatusOK
+	width, height, duration = 640, 320, 4064
+	check("recovered provider fills original resource", read("GET", "/api/resources/"+id, ""), want)
 	reset()
 	fileID = "wrong-file"
 	width, height, duration = 800, 600, 2000

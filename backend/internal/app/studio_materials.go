@@ -249,6 +249,9 @@ func (c *studioMaterialCall) adopt(a platformclient.Asset, meta StudioResourceMe
 	now := time.Now()
 	ref := model.StudioMaterialReference{ResourceID: id, UserID: c.userID, AssetID: a.AssetID, VersionID: a.Version.VersionID, FileID: a.File.FileID, OwnerID: a.Owner.ID, SHA256: a.File.SHA256, ByteLength: a.File.ByteLength, CreatedAt: now, UpdatedAt: now}
 	meta = meta.withOriginal(originalStudioMetadata(a))
+	if kind == "image" {
+		meta.DurationMs = 0
+	}
 	resource := model.Resource{ID: id, UserID: c.userID, Provider: "platform", Kind: kind, Status: model.ResourceStatusPending, MimeType: a.File.ContentType, Size: size, Width: meta.Width, Height: meta.Height, DurationMs: meta.DurationMs, CreatedAt: now, UpdatedAt: now}
 	repo := c.s.repo.WithContext(c.ctx)
 	if err := repo.CreateStudioMaterialResource(ref, resource); err != nil {

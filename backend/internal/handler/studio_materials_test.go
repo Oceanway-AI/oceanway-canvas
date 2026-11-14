@@ -160,7 +160,7 @@ func TestStudioMaterialsUploadAdoptRecoverAndAccess(t *testing.T) {
 	if bindCreates != 0 || confirms != 0 || !strings.Contains(w.Body.String(), `"asset_id":"asset_1"`) {
 		t.Fatal("status polling must return the sealed asset without creating a binding")
 	}
-	w = f.request(t, "POST", "/api/resources/adopt", "platform_session=alice", `{"assetId":"asset_1","versionId":"version_1"}`, 200)
+	w = f.request(t, "POST", "/api/resources/adopt", "platform_session=alice", `{"assetId":"asset_1","versionId":"version_1","durationMs":999}`, 200)
 	var done struct {
 		Data struct {
 			Resource model.Resource `json:"resource"`
@@ -168,7 +168,7 @@ func TestStudioMaterialsUploadAdoptRecoverAndAccess(t *testing.T) {
 	}
 	_ = json.Unmarshal(w.Body.Bytes(), &done)
 	res := done.Data.Resource
-	if res.Width != 320 || res.Height != 640 {
+	if res.Width != 320 || res.Height != 640 || res.DurationMs != 0 {
 		t.Fatal("sealed upload lost original dimensions")
 	}
 	if err := f.db.Model(&model.Resource{}).Where("id = ?", res.ID).Updates(map[string]any{"width": 0, "height": 0}).Error; err != nil {

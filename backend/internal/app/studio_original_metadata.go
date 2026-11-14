@@ -74,7 +74,11 @@ func (s *Service) StudioResourceWithMetadata(ctx context.Context, userID, id str
 	if err != nil {
 		// Removed library entries can still have an active, locally owned resource.
 		var upstream *platformclient.Error
-		if errors.As(err, &upstream) && upstream.StatusCode == http.StatusNotFound {
+		if errors.As(err, &upstream) && (upstream.StatusCode == http.StatusNotFound ||
+			upstream.StatusCode == http.StatusRequestTimeout || upstream.StatusCode == http.StatusTooManyRequests ||
+			upstream.StatusCode >= 500 || upstream.Kind == "transport outcome unknown") {
+			// This response contains only the locally-owned resource descriptor.
+			// Fresh access links and bytes retain their separate authorization checks.
 			return resource, result.Response, nil
 		}
 		return nil, result.Response, studioMaterialError(err)
