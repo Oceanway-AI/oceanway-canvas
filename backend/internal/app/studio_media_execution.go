@@ -2,6 +2,9 @@ package app
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"math/big"
 	"net/http"
@@ -16,6 +19,8 @@ import (
 )
 
 type StudioTaskOptions struct {
+	PreviewUserID              string `json:"previewUserId,omitempty"`
+	PreviewBinding             string `json:"previewBinding,omitempty"`
 	VariantID                  string `json:"variantId,omitempty"`
 	ExpectedCapabilityRevision string `json:"expectedCapabilityRevision,omitempty"`
 	ExpectedConnectionRevision int64  `json:"expectedConnectionRevision,omitempty"`
@@ -58,10 +63,51 @@ func (s *Service) studioSelectTaskModel(ctx context.Context, session platformcli
 	return platformintegration.ModelSelection{}, BadAuthRequest("所选平台模型暂不可用，请刷新模型目录")
 }
 
-func (s *Service) StudioPreviewTask(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest) (*platformclient.ConsumptionPreview, *platformclient.Response, error) {
+type StudioTaskPreview struct {
+	*platformclient.ConsumptionPreview
+	PreviewUserID  string `json:"previewUserId"`
+	PreviewBinding string `json:"previewBinding"`
+}
+
+func studioPreviewAccountChanged() *AppError {
+	err := NewAppError(http.StatusConflict, "请使用当前账号重新预估并确认消费")
+	err.Reason = "studio_preview_account_changed"
+	return err
+}
+
+// The receipt binds the authenticated account to one command. Platform's live
+// quote and the confirmed revisions and ceiling still authorize the amount.
+func (s *Service) studioPreviewBinding(userID, commandID string) (string, error) {
+	key, err := s.settingsEncryptionKey()
+	if err != nil {
+		return "", err
+	}
+	mac := hmac.New(sha256.New, key)
+	mac.Write([]byte("studio-media-preview-v1\n" + userID + "\n" + commandID))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil)), nil
+}
+
+func (s *Service) verifyStudioPreviewAccount(userID string, req CreateTaskRequest) error {
+	if req.Platform == nil || req.Platform.PreviewUserID != userID || req.Platform.PreviewBinding == "" {
+		return studioPreviewAccountChanged()
+	}
+	expected, err := s.studioPreviewBinding(userID, req.CommandID)
+	if err != nil {
+		return err
+	}
+	if !hmac.Equal([]byte(expected), []byte(req.Platform.PreviewBinding)) {
+		return studioPreviewAccountChanged()
+	}
+	return nil
+}
+
+func (s *Service) StudioPreviewTask(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest) (*StudioTaskPreview, *platformclient.Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	response := &platformclient.Response{Header: make(http.Header)}
+	if !studioMaterialID.MatchString(req.CommandID) {
+		return nil, response, BadAuthRequest("请提供稳定的任务命令标识")
+	}
 	selected, err := s.studioSelectTaskModel(ctx, session, req, response)
 	if err != nil {
 		return nil, response, err
@@ -77,7 +123,14 @@ func (s *Service) StudioPreviewTask(ctx context.Context, userID string, session 
 		return nil, response, err
 	}
 	quote, err := s.studioPreviewMedia(ctx, session, req, selected, body, response, false)
-	return quote, response, err
+	if err != nil {
+		return nil, response, err
+	}
+	binding, err := s.studioPreviewBinding(userID, req.CommandID)
+	if err != nil {
+		return nil, response, err
+	}
+	return &StudioTaskPreview{ConsumptionPreview: quote, PreviewUserID: userID, PreviewBinding: binding}, response, nil
 }
 
 func (s *Service) studioPreviewMedia(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, selected platformintegration.ModelSelection, body []byte, response *platformclient.Response, requireCap bool) (*platformclient.ConsumptionPreview, error) {

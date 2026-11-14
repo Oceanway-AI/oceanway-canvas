@@ -305,3 +305,45 @@ test("原生视频真实生成按钮保留4秒720p参数，价格版本变化时
         apiClient.defaults.adapter = adapter;
     }
 });
+
+test("direct submission binds the displayed account, including when storage or cookies change before recovery", async () => {
+    const { createGenerationTask } = await import("@/services/api/task-center");
+    const { ApiError } = await import("@/services/api/request");
+    const { setActiveUserScope } = await import("@/lib/user-scope");
+    const oldState = useUserStore.getState();
+    const oldScope = getActiveUserScope();
+    const oldAdapter = apiClient.defaults.adapter;
+    const alice = { id: "original-fixture-user", username: "alice", displayName: "Alice", role: "user", status: "active" } as const;
+    const input = () => ({ commandId: "original-fixture-command", type: "canvas_image", prompt: "fixture", platform: { expectedPriceVersion: "p1", walletMaxPoints: "1" } });
+    const quote = { price_version: "p1", capability_revision: "c".repeat(64), connection_revision: 2, wallet_points: "1", allowed: true, combination_supported: true, previewUserId: alice.id, previewBinding: "fixture-binding" };
+    const paths: string[] = [];
+    let expectedRecoveryUser: string | undefined;
+    try {
+        apiClient.defaults.adapter = async (config) => {
+            paths.push(config.url ?? "");
+            if (config.url === "/tasks/preview") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: quote } };
+            if (config.url === "/tasks") throw new Error("lost response");
+            if (config.url === "/tasks/by-command/original-fixture-command") {
+                expectedRecoveryUser = config.params?.expectedUserId;
+                throw new ApiError("账号已切换", { status: 409, reason: "studio_preview_account_changed" });
+            }
+            throw new Error("unexpected route");
+        };
+        setActiveUserScope(alice.id);
+        useUserStore.setState({ platformIdentity: false, user: null });
+        await expect(createGenerationTask(input())).rejects.toThrow("账号已切换");
+        expect(paths).toEqual([]);
+        useUserStore.setState({ platformIdentity: true, user: alice });
+        setActiveUserScope("different-fixture-user");
+        await expect(createGenerationTask(input())).rejects.toThrow("账号已切换");
+        expect(paths).toEqual([]);
+        setActiveUserScope(alice.id);
+        await expect(createGenerationTask(input())).rejects.toThrow("账号已切换");
+        expect(expectedRecoveryUser).toBe(alice.id);
+        expect(paths).toEqual(["/tasks/preview", "/tasks", "/tasks/by-command/original-fixture-command"]);
+    } finally {
+        apiClient.defaults.adapter = oldAdapter;
+        useUserStore.setState(oldState);
+        setActiveUserScope(oldScope);
+    }
+});

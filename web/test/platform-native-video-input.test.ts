@@ -56,7 +56,7 @@ test.each([
         preview: async (input) => {
             previews++;
             expect(input.input).toEqual(request.input);
-            return { capability_revision: "a".repeat(64), connection_revision: 7, price_version: "new-token-price", wallet_points: "0.123456789", allowed: true, combination_supported: true };
+            return { previewUserId: "alice", previewBinding: "bound-quote", capability_revision: "a".repeat(64), connection_revision: 7, price_version: "new-token-price", wallet_points: "0.123456789", allowed: true, combination_supported: true };
         },
         confirmBudget: async (estimate) => {
             expect(estimate).toBe("0.123456789");
@@ -65,7 +65,7 @@ test.each([
         },
         create: async (input) => {
             submits++;
-            expect(input.platform).toEqual({ expectedCapabilityRevision: "a".repeat(64), expectedConnectionRevision: 7, expectedPriceVersion: "new-token-price", walletMaxPoints: "0.123456789" });
+            expect(input.platform).toEqual({ previewUserId: "alice", previewBinding: "bound-quote", expectedCapabilityRevision: "a".repeat(64), expectedConnectionRevision: 7, expectedPriceVersion: "new-token-price", walletMaxPoints: "0.123456789" });
             expect(input.input).toEqual(request.input);
             throw new Error("lost original response");
         },
