@@ -1,3 +1,5 @@
+import { StudioAccountBar } from "@/components/layout/studio-account-bar";
+import { useUserStore } from "@/stores/use-user-store";
 import { Tooltip } from "@/components/ui/base/tooltip";
 import type { ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
@@ -23,6 +25,7 @@ export function CanvasFocusModeBar({ syncIcon, dockRevealed, zoomPercent, onTogg
     const { t } = useTranslation();
     const theme = canvasThemes[useActiveTheme()];
     const reducedMotion = useReducedMotion();
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
 
     return (
         <motion.div
@@ -40,6 +43,7 @@ export function CanvasFocusModeBar({ syncIcon, dockRevealed, zoomPercent, onTogg
                     </button>
                 </Tooltip>
                 {syncIcon}
+                {platformIdentity && <StudioAccountBar compact />}
                 <span className="mx-0.5 h-4 w-px" style={{ background: theme.toolbar.border }} />
                 <Tooltip title={dockRevealed ? t("canvasA.focusBar.hideTools") : t("canvasA.focusBar.tools")}>
                     <button

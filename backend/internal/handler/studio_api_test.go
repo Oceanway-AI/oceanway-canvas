@@ -33,6 +33,8 @@ type studioFixture struct {
 	requests     int
 	catalog      string
 	catalogCalls int
+	avatar       string
+	account      http.HandlerFunc
 	materials    http.HandlerFunc
 	execution    http.HandlerFunc
 	restart      func()
@@ -45,6 +47,10 @@ func newStudioFixture(t *testing.T) *studioFixture {
 	f := &studioFixture{}
 	platform := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.requests++
+		if r.URL.Path == "/api/platform/v1/account/summary" && f.account != nil {
+			f.account(w, r)
+			return
+		}
 		if f.execution != nil && (strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/internal/materials/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
 			f.execution(w, r)
 			return
@@ -120,7 +126,7 @@ func newStudioFixture(t *testing.T) *studioFixture {
 			w.Header().Add("Set-Cookie", "platform_session=rotated; Secure; HttpOnly")
 			w.Header().Add("Set-Cookie", "nonce=next; Secure; HttpOnly")
 		}
-		_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": gin.H{"user": gin.H{"id": id, "username": "same-name", "display_name": "Platform user", "status": 1, "role": 100}, "session": gin.H{"sid": sid}, "product_roles": roles}})
+		_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": gin.H{"user": gin.H{"id": id, "username": "same-name", "display_name": "Platform user", "avatar_url": f.avatar, "status": 1, "role": 100}, "session": gin.H{"sid": sid}, "product_roles": roles}})
 	}))
 	t.Cleanup(platform.Close)
 	env := map[string]string{"STUDIO_PLATFORM_ORIGIN": platform.URL, "STUDIO_PLATFORM_PRODUCT_KEY": "fixture.secret", "STUDIO_PUBLIC_ORIGIN": "https://studio.example.test", "STUDIO_PLATFORM_SESSION_HOSTS": "studio.example.test", "STUDIO_PLATFORM_ALLOWED_ORIGINS": "https://studio.example.test"}

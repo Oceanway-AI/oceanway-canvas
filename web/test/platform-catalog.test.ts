@@ -11,7 +11,7 @@ test("Platform catalog keeps price decimals and never invents a local zero cost"
     const channel = systemChannelModelChannels([{ id: "oceanway-platform", name: "OceanWay", displayName: "OceanWay", models: [model] }])[0];
     expect(channel.modelCosts![0].platform).toEqual(platform);
     expect(platformPriceLabel(platform.price)).toContain("1.23456789");
-    expect(platformPriceLabel(platform.price)).toContain("输出 0");
+    expect(platformPriceLabel(platform.price)).toContain("输出 ✦ 0");
     expect(requestCreditCost({ channelMode: "remote", model: "exact-model", modelCosts: channel.modelCosts })).toBeNull();
     expect(platformPriceLabel({ status: "usage_dependent", version: "v1", rates: {} })).toBe("按实际规格报价");
 });

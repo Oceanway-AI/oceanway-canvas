@@ -1,0 +1,10 @@
+{
+  "name": "oceanway-account",
+  "version": "1.0.1",
+  "digest": "36392e74632fa841c04a008822b615ad5b65dcafc97806fa53236eaff89d51c2",
+  "files": {
+    "account.css": "509d2fdce721230ec25390f6008f074cc3dcb7f41eeec2066a3094302b77adc8",
+    "account.tsx": "66fa8fdb9a9c187834f2ea3ff1540cc51baa1429ff5c96e19e852a95be68914e",
+    "oceanway-ai-app-micro.svg": "6f7cb28f3d639cfb3f89814a365deb3ad4f1bcf00aeaa478cf1cba9f56862ba5"
+  }
+}

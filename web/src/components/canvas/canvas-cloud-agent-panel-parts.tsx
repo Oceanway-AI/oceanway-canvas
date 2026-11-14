@@ -1,3 +1,4 @@
+import { OceanCreditAmount } from "@/vendor/oceanway-account-v1/account";
 // 画布 Agent 面板的展示组件：悬浮入口、标题栏、上下文用量环、历史会话、对话区、
 // 输入区控件与审批卡片。
 //
@@ -1051,7 +1052,8 @@ export function ApprovalCard({
                 <div aria-label="平台生成报价">
                     {quote ? (
                         <p>
-                            预估 {quote.estimatedPoints ?? quote.walletMaxPoints} 平台积分，本次最高 {quote.walletMaxPoints} 平台积分；{quoteExpired ? "报价已过期，请刷新" : `有效至 ${new Date(quote.expiresAt).toLocaleTimeString()}`}。参数：
+                            个人空间 · 预计钱包支出 <OceanCreditAmount amount={quote.estimatedPoints ?? quote.walletMaxPoints} />
+                            ，最高 <OceanCreditAmount amount={quote.walletMaxPoints} />。{quoteExpired ? "报价已过期，请刷新" : `有效至 ${new Date(quote.expiresAt).toLocaleTimeString()}`}。参数：
                             {Object.entries(quote.parameters)
                                 .map(([key, value]) => `${parameterLabels[key] || key}：${typeof value === "string" ? value : JSON.stringify(value)}`)
                                 .join("，")}

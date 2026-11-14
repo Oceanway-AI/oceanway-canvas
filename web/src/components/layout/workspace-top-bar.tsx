@@ -5,6 +5,7 @@ import { currentLocale } from "@/i18n";
 
 import { TopbarFeedbackButton } from "@/components/feedback/topbar-feedback-button";
 import { SystemAnnouncementCenter } from "@/components/layout/system-announcement-center";
+import { StudioAccountBar } from "./studio-account-bar";
 import { WorkspaceAccountMenu } from "@/components/layout/workspace-account-menu";
 import { WorkspaceCreditGiftMark } from "@/components/layout/workspace-credit-gift-mark";
 import { WorkspaceTopBarExtensionSlot } from "@/components/layout/workspace-top-bar-extension";
@@ -23,7 +24,8 @@ export function WorkspaceTopBar({ sidebarOpen, onToggleSidebar }: { sidebarOpen:
     const theme = useThemeStore((state) => state.theme);
     const setTheme = useThemeStore((state) => state.setTheme);
     const user = useUserStore((state) => state.user);
-    const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const creditsEnabled = useUserStore((state) => !state.platformIdentity && state.features.creditsEnabled);
     const { availableMicrocredits } = useWalletBalance(user?.id, creditsEnabled);
     const { pathname } = useLocation();
     const sectionKey = workspacePageTitleKey(pathname);
@@ -36,10 +38,14 @@ export function WorkspaceTopBar({ sidebarOpen, onToggleSidebar }: { sidebarOpen:
                 {sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
             </button>
             <nav className="app-workspace-topbar-breadcrumb" aria-label={t("shell.breadcrumb")}>
-                <Link to="/" className="font-medium text-foreground/65 transition-colors hover:text-foreground">
-                    {brandName}
-                </Link>
-                <span aria-hidden="true">/</span>
+                {!platformIdentity && (
+                    <>
+                        <Link to="/" className="font-medium text-foreground/65 transition-colors hover:text-foreground">
+                            {brandName}
+                        </Link>
+                        <span aria-hidden="true">/</span>
+                    </>
+                )}
                 <span className="truncate font-medium text-foreground">{pageTitle}</span>
             </nav>
             <WorkspaceTopBarExtensionSlot />
@@ -55,7 +61,7 @@ export function WorkspaceTopBar({ sidebarOpen, onToggleSidebar }: { sidebarOpen:
                 ) : null}
                 {user ? <SystemAnnouncementCenter userId={user.id} className="app-workspace-topbar-icon-button" autoOpen /> : null}
                 <AnimatedThemeToggler className="app-workspace-topbar-icon-button" theme={theme} onThemeChange={setTheme} aria-label={t("shell.toggleTheme")} />
-                <WorkspaceAccountMenu />
+                {platformIdentity && user ? <StudioAccountBar /> : <WorkspaceAccountMenu />}
             </div>
         </header>
     );

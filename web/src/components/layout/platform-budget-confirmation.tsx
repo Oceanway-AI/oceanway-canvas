@@ -1,3 +1,4 @@
+import { OceanCreditAmount } from "@/vendor/oceanway-account-v1/account";
 import { useEffect } from "react";
 import { App, Input } from "antd";
 import { installPlatformBudgetConfirmation, validPlatformBudget } from "@/services/platform-budget-confirmation";
@@ -18,11 +19,16 @@ export function PlatformBudgetConfirmationHost() {
                         title,
                         content: (
                             <div>
-                                <p>预估 {estimate} 平台积分。最终按实际用量结算，可能高于预估。</p>
+                                <p>付款空间：个人空间</p>
+                                <p>
+                                    预计钱包支出 <OceanCreditAmount amount={estimate} />
+                                    。最终按实际用量结算。
+                                </p>
                                 <label>
-                                    本次最高消费（平台积分）
+                                    本次最高钱包支出
                                     <Input
-                                        aria-label="本次最高消费（平台积分）"
+                                        prefix={<span aria-hidden>✦</span>}
+                                        aria-label="本次最高钱包支出（OceanWay 积分）"
                                         defaultValue={estimate}
                                         inputMode="decimal"
                                         onChange={(event) => {

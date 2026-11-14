@@ -38,6 +38,18 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 		}
 		ok(c, gin.H{"url": target})
 	})
+	api.GET("/auth/account-summary", func(c *gin.Context) {
+		c.Header("Cache-Control", "private, no-store")
+		summary, response, err := svc.StudioAccountSummary(c.Request.Context(), platformintegration.Session(c.Request))
+		if response != nil {
+			response.AppendCookies(c.Writer.Header())
+		}
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, summary)
+	})
 	api.GET("/auth/profile", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
