@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { defaultConfig } from "@/stores/use-config-store";
 import { systemChannelModelChannels } from "@/lib/user-session";
 import { nativeCreationModeOptions, nativeCreationSettings, nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues } from "@/lib/platform-native-media";
-import { modelCompatibilityError, resolveModelGenerationDefaults } from "@/lib/model-selection";
+import { maxModelInputCapacity, modelCompatibilityError, resolveModelGenerationDefaults } from "@/lib/model-selection";
 import { backendProviderConfig, prepareBackendGenerationTask } from "@/services/api/generation-task";
 import { buildNodeConfig } from "@/components/canvas/canvas-node-prompt-config";
 import { buildGenerationConfig } from "@/lib/canvas/canvas-project-generation";
@@ -132,6 +132,8 @@ test("reopening an editable draft restores a published mode and its own defaults
 });
 
 test("selected protocol owns reference capacity without merging alternatives", () => {
+    expect(maxModelInputCapacity(config, "video", "image")).toBe(2);
+    expect(maxModelInputCapacity(config, "video", "audio")).toBe(0);
     expect(nativeMediaReferenceLimits({ ...config, nativeVariantId: "ark" })?.maxImages).toBe(2);
     expect(nativeMediaReferenceLimits({ ...config, nativeVariantId: "other" })?.maxImages).toBe(0);
 });

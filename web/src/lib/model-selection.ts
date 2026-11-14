@@ -454,6 +454,11 @@ export function maxModelInputCapacity(config: AiConfig, capability: "image" | "v
     const options = selectableModelsByCapability(config, capability);
     if (!options.length) return null;
     return options.reduce((maximum, model) => {
+        const native = nativeMediaProfile(config, model);
+        if (native) {
+            const key = kind === "image" ? "maxImages" : kind === "video" ? "maxVideos" : "maxAudios";
+            return native.variants.reduce((limit, variant) => Math.max(limit, nativeMediaReferenceLimits(config, model, variant)?.[key] ?? 0), maximum);
+        }
         const profile = modelCapabilityConfigFor(config, model);
         const value =
             capability === "image" ? (kind === "image" ? profile.image!.references.maxImages : 0) : kind === "image" ? profile.video!.references.maxImages : kind === "video" ? profile.video!.references.maxVideos : profile.video!.references.maxAudios;
