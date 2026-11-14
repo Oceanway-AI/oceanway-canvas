@@ -6,6 +6,9 @@ for (const [key, value] of Object.entries({
     document: dom.document,
     navigator: dom.navigator,
     HTMLElement: dom.HTMLElement,
+    HTMLInputElement: dom.HTMLInputElement,
+    HTMLTextAreaElement: dom.HTMLTextAreaElement,
+    HTMLSelectElement: dom.HTMLSelectElement,
     SVGElement: dom.SVGElement,
     Element: dom.Element,
     Node: dom.Node,
@@ -102,5 +105,93 @@ test("account menu reads platform data and drops another user's response and fai
         client.clear();
         host.remove();
         apiClient.defaults.adapter = old;
+    }
+});
+
+const { useCanvasKeyboard } = await import("@/pages/canvas/use-canvas-keyboard");
+const { OceanAccountBar } = await import("@/vendor/oceanway-account-v1/account");
+
+test.each(["切换产品 · OceanWay Studio", "工作空间 · 当前个人空间", "账户中心 · 账号"])("Escape closes %s and returns focus before the canvas can leave focus mode", async (label) => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    let exits = 0,
+        deselections = 0;
+    const noop = () => {};
+    function Canvas() {
+        useCanvasKeyboard({
+            nodesRef: { current: [] },
+            selectedNodeIdsRef: { current: new Set() },
+            selectedConnectionId: null,
+            setSelectedNodeIds: noop,
+            setSelectedConnectionId: noop,
+            setContextMenu: noop,
+            setShortcutRequestNonce: noop,
+            setInfoNodeId: noop,
+            setCropNodeId: noop,
+            setRegionEditNodeId: noop,
+            setAnnotationNodeId: noop,
+            saveCanvasProject: noop,
+            zoomToActualSize: noop,
+            fitCanvasContent: noop,
+            fitCanvasSelection: noop,
+            undoCanvas: noop,
+            redoCanvas: noop,
+            cancelSelectionBox: noop,
+            copySelectedNodes: noop,
+            pasteCopiedNodes: () => false,
+            restoreCopiedNodesFromText: () => false,
+            shouldPreferCopiedNodes: () => false,
+            pasteSystemClipboard: () => false,
+            deleteNodes: noop,
+            deleteConnection: noop,
+            deselectCanvas: () => {
+                deselections++;
+            },
+            zoomCanvasIn: noop,
+            zoomCanvasOut: noop,
+            focusMode: true,
+            exitFocusMode: () => {
+                exits++;
+            },
+            toggleFocusMode: noop,
+            onOpenSearch: noop,
+            beginBatchConnection: noop,
+        });
+        return (
+            <OceanAccountBar
+                compact
+                productName="Studio"
+                products={[{ name: "Console", href: "/console" }]}
+                workspaceId="p"
+                workspaces={[
+                    { id: "p", name: "当前个人空间" },
+                    { id: "t", name: "测试团队" },
+                ]}
+                onWorkspaceChange={noop}
+                displayName="账号"
+                balance={{ state: "ready", amount: "0" }}
+                accountHref="/console/account"
+            />
+        );
+    }
+    const escape = async () => {
+        await act(async () => document.activeElement!.dispatchEvent(new dom.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
+    };
+    try {
+        await act(async () => root.render(<Canvas />));
+        const trigger = host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+        await act(async () => trigger.click());
+        expect(trigger.getAttribute("aria-expanded")).toBe("true");
+        await escape();
+        expect(exits).toBe(0);
+        expect(deselections).toBe(0);
+        expect(trigger.getAttribute("aria-expanded")).toBe("false");
+        expect(document.activeElement).toBe(trigger);
+        await escape();
+        expect(exits).toBe(1);
+    } finally {
+        await act(async () => root.unmount());
+        host.remove();
     }
 });
