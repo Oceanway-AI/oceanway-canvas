@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { isGenerationTaskCancelled } from "../src/services/api/generation-task";
 import { ApiError } from "../src/services/api/request";
 import { submitPlatformTask } from "../src/services/platform-task-submission";
 import type { CreateTaskInput, GenerationTask } from "../src/services/api/task-center";
@@ -40,8 +41,12 @@ describe("Platform task submission", () => {
                         throw new Error("must not recover");
                     },
                 },
-            ),
-        ).rejects.toThrow();
+            ).catch((error) => {
+                expect(isGenerationTaskCancelled(error)).toBe(maximum === null);
+                if (maximum !== null) expect(error.message).toContain("最高消费");
+                throw error;
+            }),
+        ).rejects.toThrow(maximum === null ? "取消" : "最高消费");
         expect(posted).toBe(0);
     });
     test.each([

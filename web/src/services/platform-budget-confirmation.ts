@@ -1,3 +1,11 @@
+// No create request has been sent when a user declines this confirmation.
+export class PlatformBudgetDeclined extends Error {
+    constructor() {
+        super("已取消本次消费确认");
+        this.name = "AbortError";
+    }
+}
+
 export type PlatformBudgetConfirmation = (estimate: string, title: string) => Promise<string | null>;
 let confirmBudget: PlatformBudgetConfirmation | undefined;
 

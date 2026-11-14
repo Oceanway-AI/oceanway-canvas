@@ -206,9 +206,16 @@ for (const logical of [true, false]) {
     });
 }
 
-test("原生视频真实生成按钮保留4秒720p参数，价格版本变化时不创建任务", async () => {
+test.each(["stale", "decline"])("原生视频真实生成按钮保留4秒720p参数，未批准的报价不创建任务: %s", async (scenario) => {
+    const { installPlatformBudgetConfirmation } = await import("@/services/platform-budget-confirmation");
+    let declines = 0;
+    const uninstall = installPlatformBudgetConfirmation(async () => {
+        declines++;
+        return null;
+    });
     const { systemChannelModelChannels } = await import("@/lib/user-session");
     const { setActiveUserScope } = await import("@/lib/user-scope");
+    const userId = `direct-video-button-${scenario}`;
     const name = "doubao-seedance-2-0-fast-260128";
     const selected = `oceanway-platform::${name}`;
     const channels = systemChannelModelChannels([
@@ -245,13 +252,13 @@ test("原生视频真实生成按钮保留4秒720p参数，价格版本变化时
             ],
         },
     ]);
-    setActiveUserScope("direct-video-button");
+    setActiveUserScope(userId);
     useConfigStore.setState({ config: { ...defaultConfig, channels, model: selected, videoModel: selected, videoModels: [selected], imageModels: [], textModels: [] } });
     useUserStore.setState({
         platformIdentity: true,
         hydrated: true,
         features: { ...useUserStore.getState().features, creditsEnabled: false },
-        user: { id: "direct-video-button", username: "fixture", displayName: "Fixture", role: "user", status: "active" },
+        user: { id: userId, username: "fixture", displayName: "Fixture", role: "user", status: "active" },
     });
     useCreationPreferencesStore.setState({ preferences: { mode: "video", video: { ratio: "16:9", seconds: "4", videoQuality: "720" } }, hydrated: true });
     writeCreationConversationSnapshot(getActiveUserScope(), [{ id: "direct", title: "Direct", messages: [], updatedAt: "2026-11-08T00:00:00Z" }]);
@@ -263,7 +270,25 @@ test("原生视频真实生成按钮保留4秒720p参数，价格版本变化时
         if (config.method === "get" && config.url === "/materials/assets") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { items: [], total: "0" } } };
         requests.push({ method: config.method, url: config.url, body: JSON.parse(config.data || "{}") });
         if (config.method !== "post" || config.url !== "/tasks/preview") throw new Error(`Unexpected request: ${config.method} ${config.url}`);
-        return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { allowed: true, combination_supported: true, price_version: "changed-price", wallet_points: "0.123456789" } } };
+        return {
+            config,
+            headers: {},
+            status: 200,
+            statusText: "OK",
+            data: {
+                code: 0,
+                data: {
+                    allowed: true,
+                    combination_supported: true,
+                    price_version: scenario === "stale" ? "changed-price" : "new-token-price",
+                    wallet_points: "0.123456789",
+                    capability_revision: "a".repeat(64),
+                    connection_revision: 7,
+                    previewUserId: userId,
+                    previewBinding: "binding",
+                },
+            },
+        };
     };
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const host = document.createElement("div");
@@ -290,15 +315,23 @@ test("原生视频真实生成按钮保留4秒720p参数，价格版本变化时
         expect(submit.disabled).toBe(false);
         expect(requests).toEqual([]);
         await act(async () => submit.click());
-        for (let i = 0; i < 100 && !host.textContent?.includes("平台未批准当前参数或额度"); i++) await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+        for (let i = 0; i < 100 && (scenario === "decline" ? declines !== 1 || !host.querySelector(".creation-home") : !host.textContent?.includes("平台未批准当前参数或额度")); i++) await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
         expect(requests).toHaveLength(1);
         expect(requests[0]).toMatchObject({
             method: "post",
             url: "/tasks/preview",
             body: { type: "canvas_video", model: selected, platform: { expectedPriceVersion: "new-token-price" }, input: { config: { channelId: "oceanway-platform", model: name, size: "16:9", videoSeconds: "4", vquality: "720p" } } },
         });
-        expect(host.textContent).toContain("平台未批准当前参数或额度");
+        if (scenario === "stale") {
+            expect(host.textContent).toContain("平台未批准当前参数或额度");
+        } else {
+            expect(declines).toBe(1);
+            expect(host.textContent).not.toContain("未能开始生成");
+            expect(host.querySelector<HTMLTextAreaElement>("textarea.creation-chat-mention-editor")?.value).toBe("A quiet ocean");
+            expect(useConfigStore.getState().config.videoModel).toBe(selected);
+        }
     } finally {
+        uninstall();
         await act(async () => root.unmount());
         host.remove();
         client.clear();

@@ -1,7 +1,7 @@
 import { createClientUUID } from "@/lib/client-id";
 import { ApiError } from "@/services/api/request";
 import type { CreateTaskInput, GenerationTask } from "@/services/api/task-center";
-import { validPlatformBudget } from "./platform-budget-confirmation";
+import { PlatformBudgetDeclined, validPlatformBudget } from "./platform-budget-confirmation";
 
 type SubmissionDependencies = {
     confirmBudget?(estimate: string, title: string): Promise<string | null>;
@@ -49,10 +49,14 @@ export async function submitPlatformTask(input: CreateTaskInput, deps: Submissio
                 throw new Error("平台未批准当前参数或额度，请刷新报价");
             if (typeof quote.previewBinding !== "string" || !quote.previewBinding || quote.previewUserId !== scope) throw new Error("账号已切换或报价已失效，请重新确认报价");
             let maximum = input.platform.walletMaxPoints;
-            if (maximum == null && deps.confirmBudget) maximum = (await deps.confirmBudget(quote.wallet_points, input.type === "canvas_video" ? "确认视频生成消费" : "确认图片生成消费")) ?? undefined;
-            else if (maximum == null && input.type === "canvas_image") maximum = quote.wallet_points;
+            if (maximum == null && deps.confirmBudget) {
+                const confirmed = await deps.confirmBudget(quote.wallet_points, input.type === "canvas_video" ? "确认视频生成消费" : "确认图片生成消费");
+                assertScope();
+                if (confirmed === null) throw new PlatformBudgetDeclined();
+                maximum = confirmed;
+            } else if (maximum == null && input.type === "canvas_image") maximum = quote.wallet_points;
             assertScope();
-            if (!maximum || !validPlatformBudget(maximum, quote.wallet_points)) throw new Error("已取消生成或最高消费低于预估");
+            if (!maximum || !validPlatformBudget(maximum, quote.wallet_points)) throw new Error("最高消费须为不低于预估的有效积分数");
             prepared = {
                 ...prepared,
                 platform: {
