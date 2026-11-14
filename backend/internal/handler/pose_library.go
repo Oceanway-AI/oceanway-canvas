@@ -15,6 +15,11 @@ import (
 
 // RegisterPoseLibraryRoutes 注册站点姿势库：登录用户浏览、预览和选用，管理员导入、同步和维护。
 func RegisterPoseLibraryRoutes(r *gin.RouterGroup, svc *service.Service) {
+	registerPoseLibraryCatalogRoutes(r, svc)
+	registerPoseLibraryManagementRoutes(r, svc)
+}
+
+func registerPoseLibraryCatalogRoutes(r *gin.RouterGroup, svc *service.Service) {
 	r.GET("/pose-library/poses", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -37,6 +42,9 @@ func RegisterPoseLibraryRoutes(r *gin.RouterGroup, svc *service.Service) {
 	})
 	r.GET("/pose-library/items/:id/thumb", func(c *gin.Context) { servePoseLibraryFile(c, svc, service.PoseLibraryFileThumb) })
 	r.GET("/pose-library/items/:id/image", func(c *gin.Context) { servePoseLibraryFile(c, svc, service.PoseLibraryFileImage) })
+}
+
+func registerPoseLibraryManagementRoutes(r *gin.RouterGroup, svc *service.Service) {
 	r.POST("/pose-library/use", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

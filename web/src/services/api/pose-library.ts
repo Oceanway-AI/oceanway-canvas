@@ -1,5 +1,6 @@
 import { apiBaseURL, compactApiParams, http } from "./request";
-import type { RemoteResource } from "./resources";
+import { getActiveUserScope } from "@/lib/user-scope";
+import { type RemoteResource, uploadResourceFile } from "./resources";
 
 /** 一次插入画布的姿势图上限，与后端 poselibrary.MaxUseItems 一致。 */
 export const POSE_LIBRARY_MAX_USE = 16;
@@ -115,6 +116,32 @@ export function listPoseLibrary(params: PoseLibraryCatalogParams, signal?: Abort
 export async function copyPoseLibraryItems(ids: string[]) {
     const data = await http.post<{ items: PoseLibraryUseResult[] }>("/pose-library/use", { ids });
     return data.items;
+}
+
+/** Use the same Platform upload and adoption flow as a dropped image, keeping retries idempotent. */
+export async function adoptStudioPoseImages(selection: { item: PoseLibraryItem; pose: PoseLibraryPose }[]) {
+    const scope = getActiveUserScope();
+    const assertScope = () => {
+        if (getActiveUserScope() !== scope) throw new DOMException("账号已切换", "AbortError");
+    };
+    const copies: PoseLibraryUseResult[] = [];
+    for (const { item, pose } of selection) {
+        assertScope();
+        const response = await fetch(poseLibraryFileUrl(item, "image"), { credentials: "include" });
+        if (!response.ok) throw new Error("姿势原图读取失败，请刷新姿势库后重试");
+        const file = await response.blob();
+        if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) throw new Error("姿势原图格式无效");
+        assertScope();
+        const extension = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1];
+        const resource = await uploadResourceFile(file, "image", {
+            fileName: `姿势-${pose.name}-${item.angle}.${extension}`,
+            width: item.width,
+            height: item.height,
+        });
+        assertScope();
+        copies.push({ itemId: item.id, name: pose.name, angle: item.angle, category: pose.category, resource });
+    }
+    return copies;
 }
 
 export function listAdminPoseLibrary(params: AdminPoseLibraryParams, signal?: AbortSignal) {
