@@ -425,14 +425,21 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
     cloudLiveState.current = { activeConversationId, run, prompt, messages, busy, running, approvalSubmitting, canvasId, pendingHydrated, outboxCount: outbox.items.length };
     const canvasCloudConversation = useMemo(() => canvasCloudAgentConversation(conversations, canvasId, canvasAgent?.runId), [conversations, canvasId, canvasAgent?.runId]);
     const canvasCloudConversationIsCurrent = Boolean(canvasCloudConversation && (canvasCloudConversation.id === activeConversationId || cloudAgentConversationServerId(canvasCloudConversation) === run?.conversationId));
-    const restoredModelResolution = useMemo(() => (restoredModel ? resolveCloudAgentModel(restoredModel, selectableModelsByCapability(config, "text")) : null), [config, restoredModel]);
-    const modelRestoreError = restoredModelResolution?.problem === "ambiguous" ? "原会话模型对应多个渠道，请先手动选择模型后继续。" : restoredModelResolution?.problem === "unavailable" ? "原会话模型当前不可用，请先手动选择模型后继续。" : "";
+    const textModels = useMemo(() => selectableModelsByCapability(config, "text"), [config]);
+    const restoredModelResolution = useMemo(() => (restoredModel ? resolveCloudAgentModel(restoredModel, textModels) : null), [restoredModel, textModels]);
+    const previousModelName = modelOptionName(restoredModel || "");
+    const modelRestoreError =
+        restoredModelResolution?.problem === "ambiguous"
+            ? `原会话的「${previousModelName}」对应多个渠道，请选择本轮文本模型。`
+            : restoredModelResolution?.problem === "unavailable"
+              ? `原会话的「${previousModelName}」不在当前文本模型目录中，请选择本轮文本模型。`
+              : "";
+    const defaultTextModel = textModels.includes(config.textModel) ? config.textModel : "";
     const selectedModel = useMemo(() => {
         if (restoredModelResolution) return restoredModelResolution.model;
-        const textModels = selectableModelsByCapability(config, "text");
         const preferred = config.textModel || config.model || "";
         return textModels.includes(preferred) ? preferred : textModels[0] || "";
-    }, [config, restoredModelResolution]);
+    }, [config, restoredModelResolution, textModels]);
     const installedSkills = useMemo(() => skills.filter((skill) => skill.isAdded), [skills]);
     // 消息和输入框共用的引用表：每次渲染都新建会让全部消息重新解析 Markdown。
     const conversationReferences = useMemo(() => [...references, ...buildSkillMentionReferences(installedSkills)], [references, installedSkills]);
@@ -2702,8 +2709,13 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                                         </div>
                                     ) : null}
                                     {modelRestoreError ? (
-                                        <div className="px-5 py-2 text-xs" role="status" style={{ color: theme.node.muted }}>
-                                            {modelRestoreError}
+                                        <div className="flex flex-wrap items-center gap-2 px-5 py-2 text-xs" role="status" style={{ color: theme.node.muted }}>
+                                            <span>{modelRestoreError}</span>
+                                            {defaultTextModel ? (
+                                                <Button size="small" onClick={() => setModel(defaultTextModel)}>
+                                                    使用默认模型 · {modelOptionName(defaultTextModel)}
+                                                </Button>
+                                            ) : null}
                                         </div>
                                     ) : null}
                                     <AgentChatComposer

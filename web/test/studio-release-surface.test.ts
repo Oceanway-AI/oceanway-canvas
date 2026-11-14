@@ -14,7 +14,7 @@ test("首发未接通入口展示状态，直接访问不会挂载旧业务组�
         "/ecommerce",
         "/projects/new",
         "/projects/p/e/e",
-        "/skills/s/edit",
+        "/admin/skills/s/edit",
         "/plugins/eagle",
         "/toolbox/image",
         "/toolbox/video",
@@ -53,7 +53,7 @@ test("平台会话不采纳历史插件启用状态或 fallback", () => {
 });
 
 test("首发已接通的创作/画布/素材/任务/设置继续挂载", () => {
-    for (const route of ["/", "/create", "/canvas", "/canvas/canvas-1", "/assets", "/tasks", "/settings"]) {
+    for (const route of ["/", "/create", "/canvas", "/canvas/canvas-1", "/canvas/canvas-1?agent=1", "/assets", "/skills", "/skills/s/edit", "/tasks", "/settings"]) {
         const html = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [route] }, createElement(StudioRouteBoundary, null, createElement("p", null, "已接通页面"))));
         expect(html).toContain("已接通页面");
         expect(html).not.toContain("暂不可用");

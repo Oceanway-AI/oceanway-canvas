@@ -15,8 +15,8 @@ import (
 )
 
 func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
-	RegisterAgentSkillRoutes(r, svc)
-	registerSkillCurationRoutes(r, svc)
+	registerSkillCatalogRoutes(r, svc)
+	r.GET("/skills/curation", readSkillCuration(svc, false))
 	r.POST("/skills/install", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -241,9 +241,7 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 	r.DELETE("/skills/:id/like", setSkillLiked(svc, false))
 }
 
-// RegisterAgentSkillRoutes reuses the native account-scoped skill catalog and
-// attachment controls without enabling installation, publishing or admin writes.
-func RegisterAgentSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
+func registerSkillCatalogRoutes(r *gin.RouterGroup, svc *service.Service) {
 	r.GET("/skills", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

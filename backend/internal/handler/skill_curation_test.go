@@ -36,7 +36,10 @@ func TestSkillCurationHTTP(t *testing.T) {
 		db.Create(&model.AuthSession{ID: string(role), UserID: string(role), TokenHash: auth.HashToken("test-token"), ExpiresAt: time.Now().Add(time.Hour)})
 	}
 	router := gin.New()
-	RegisterSkillRoutes(router.Group("/api"), service.New(repository.New(db), t.TempDir()))
+	svc := service.New(repository.New(db), t.TempDir())
+	api := router.Group("/api")
+	RegisterSkillRoutes(api, svc)
+	RegisterAdminSkillRoutes(api, svc)
 	for _, tc := range []struct {
 		role, method, path, body string
 		status                   int

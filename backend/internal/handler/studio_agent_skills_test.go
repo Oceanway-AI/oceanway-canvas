@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -15,11 +16,17 @@ func TestStudioAgentSkillsUseNativeCatalogAndAccountIsolation(t *testing.T) {
 	if err := f.db.First(&alice).Error; err != nil {
 		t.Fatal(err)
 	}
-	skill, err := f.svc.CreateSkill(alice.ID, service.SkillMutationRequest{SkillName: "Private reference helper", Description: "Private reference guidance", Instruction: "Use the selected reference only.", Tag: "creative", IsPrivate: true})
-	if err != nil {
+	createBody := `{"skillName":"Private reference helper","description":"Private reference guidance","instruction":"Use the selected reference only.","tag":"creative","isPrivate":true}`
+	f.request(t, "POST", "/api/skills", "", createBody, 401)
+	created := f.request(t, "POST", "/api/skills", "platform_session=alice", createBody, 200)
+	var result struct {
+		Data struct{ Skill service.SkillItem }
+	}
+	if err := json.Unmarshal(created.Body.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{"/api/skills?scope=created", "/api/skills/added", "/api/skills/presets", "/api/skills/library-categories", "/api/skills/recommendations"} {
+	skill := result.Data.Skill
+	for _, path := range []string{"/api/skills?scope=created", "/api/skills/added", "/api/skills/presets", "/api/skills/library-categories", "/api/skills/recommendations", "/api/skills/curation"} {
 		f.request(t, "GET", path, "platform_session=alice", "", 200)
 	}
 	f.request(t, "GET", "/api/skills/added", "", "", 401)
@@ -43,8 +50,13 @@ func TestStudioAgentSkillsUseNativeCatalogAndAccountIsolation(t *testing.T) {
 	if strings.Contains(bob.Body.String(), skill.SkillID) {
 		t.Fatal("another account received private skill")
 	}
-	for _, path := range []string{"/api/skills", "/api/skills/install/github"} {
-		f.request(t, "POST", path, "platform_session=alice", "{}", 501)
-	}
+	files := "/api/skills/" + skill.SkillID + "/files"
+	edit := `{"baseVersionId":"` + skill.VersionID + `","operations":[{"op":"write","path":"references/example.md","content":"Reference notes"}]}`
+	f.request(t, "PUT", files, "platform_session=bob", edit, 403)
+	f.request(t, "PUT", files, "platform_session=alice", edit, 200)
+	f.request(t, "DELETE", "/api/skills/"+skill.SkillID, "platform_session=bob", "", 403)
+	f.request(t, "DELETE", "/api/skills/"+skill.SkillID, "platform_session=alice", "", 200)
+	f.request(t, "POST", "/api/skills/install/github", "", "{}", 401)
+	f.admin = true
 	f.request(t, "PUT", "/api/admin/skill-curation", "platform_session=alice", "{}", 501)
 }

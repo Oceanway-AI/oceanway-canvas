@@ -3,7 +3,6 @@ const unavailableRoutes: Record<string, string> = {
     projects: "短剧创作",
     ecommerce: "电商创作",
     toolbox: "独立创作工作台",
-    skills: "技能工作台",
     plugins: "插件中心",
     referral: "邀请返利",
     wallet: "积分中心",

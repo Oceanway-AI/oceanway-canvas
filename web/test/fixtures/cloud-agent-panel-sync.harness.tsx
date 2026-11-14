@@ -478,6 +478,24 @@ test("第二端恢复裸模型key为唯一完整option，续发保持原零积�
     }
 });
 
+test("旧型号下架时显示原型号，确认使用默认文本模型仅更新选择", async () => {
+    const mounted = await mount({ ...chat("retired", null), model: "old-channel::retired-model" }, []);
+    try {
+        expect(mounted.host.textContent).toContain("「retired-model」不在当前文本模型目录中");
+        expect(composer.submitDisabled).toBe(true);
+        const useDefault = Array.from(mounted.host.querySelectorAll("button")).find((button) => button.textContent?.includes("使用默认模型 · paid-model"));
+        expect(useDefault).toBeDefined();
+        await act(async () => useDefault!.click());
+        expect(controls.selectedModel).toBe("paid-channel::paid-model");
+        expect(composer.submitDisabled).toBe(false);
+        await persist();
+        expect(local.find((item) => item.id === activeId)?.model).toBe("paid-channel::paid-model");
+        expect(sendInputs).toHaveLength(0);
+    } finally {
+        await mounted.close();
+    }
+});
+
 test("同名多渠道不能自动换到默认收费模型，手动选择后才允许继续", async () => {
     const mounted = await mount(chat("new-device", null), []);
     try {
