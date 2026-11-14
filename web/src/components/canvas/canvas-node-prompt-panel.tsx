@@ -5,7 +5,7 @@ import { ArrowUp, ChevronDown, FileText, ImagePlus, LayoutList, LoaderCircle, Ma
 
 import { ModelPicker } from "@/components/model-picker";
 import { MediaParameterControls } from "@/components/media-parameter-controls";
-import { ReferenceSlot } from "@/components/reference-slot";
+import { FrameReferenceSlots, ReferenceSlot } from "@/components/reference-slot";
 import { PlatformMaterialPicker } from "@/components/assets/platform-material-picker";
 import type { InsertAssetPayload } from "./asset-picker-modal";
 import { assignFrameSlots, publishedFrameRoles, type FrameRole } from "@/lib/media-reference-slots";
@@ -665,20 +665,27 @@ export function CanvasNodePromptPanel({
                     <div className="studio-reference-slots">
                         {hasSlots &&
                             (frameSlots.length ? (
-                                frameSlots.map(({ role, attachment }) => (
-                                    <ReferenceSlot
-                                        key={role}
-                                        role={role}
-                                        src={attachment?.previewUrl}
-                                        disabled={isRunning || node.metadata?.locked}
-                                        onPick={() => setPickSlot(role)}
-                                        onRemove={attachment && onRemoveReference ? () => onRemoveReference(node.id, attachment) : undefined}
-                                    />
-                                ))
-                            ) : (
+                                <FrameReferenceSlots filled={frameSlots.filter((slot) => slot.attachment).length}>
+                                    {frameSlots.map(({ role, attachment }) => (
+                                        <ReferenceSlot
+                                            key={role}
+                                            role={role}
+                                            src={attachment?.previewUrl}
+                                            disabled={isRunning || node.metadata?.locked}
+                                            onPick={() => setPickSlot(role)}
+                                            onRemove={attachment && onRemoveReference ? () => onRemoveReference(node.id, attachment) : undefined}
+                                        />
+                                    ))}
+                                </FrameReferenceSlots>
+                            ) : !activeReferences.length ? (
                                 <ReferenceSlot label={mode === "image" ? "参考图" : "参考内容"} onPick={() => setPickSlot("reference")} disabled={isRunning || node.metadata?.locked || ["image", "video", "audio"].every(fullKind)} />
-                            ))}
+                            ) : null)}
                         <ConnectedReferenceShelf
+                            addSlot={
+                                hasSlots && !frameSlots.length ? (
+                                    <ReferenceSlot label={mode === "image" ? "参考图" : "参考内容"} onPick={() => setPickSlot("reference")} disabled={isRunning || node.metadata?.locked || ["image", "video", "audio"].every(fullKind)} />
+                                ) : undefined
+                            }
                             targetNodeId={node.id}
                             references={resolvedMentionReferences.filter((r) => !frameSlots.some((slot) => slot.attachment?.id === r.id))}
                             theme={theme}

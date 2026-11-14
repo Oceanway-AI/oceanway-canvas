@@ -16738,7 +16738,19 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
         height var(--motion-state) var(--motion-ease-out);
 }
 .creation-home .creation-reference-track:not(.is-expanded) .creation-reference-add-slot {
-    margin-left: var(--space-2);
+    z-index: 5;
+    align-self: flex-end;
+    margin-left: -12px;
+}
+.creation-home .creation-reference-track:not(.is-expanded) .creation-reference-add-button {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+    border-radius: 50%;
+    background: var(--creation-surface-muted);
+}
+.creation-home .creation-reference-track:not(.is-expanded) .creation-reference-add-button span {
+    display: none;
 }
 .creation-home .creation-reference-track.is-empty .creation-reference-add-slot {
     margin-left: 0;
@@ -16906,15 +16918,6 @@ html:not(.dark) .creation-home .creation-reference-add-button:hover:not(:disable
 }
 
 @media (hover: none) {
-    .creation-home .creation-reference-track:not(.is-expanded) {
-        gap: var(--space-2);
-    }
-    .creation-home .creation-reference-track:not(.is-expanded) .creation-reference-stack-card {
-        margin-left: 0;
-    }
-    .creation-home .creation-reference-track:not(.is-expanded) .creation-reference-card-content {
-        transform: rotate(0deg);
-    }
     .creation-home .creation-reference-card-remove {
         opacity: 1;
     }

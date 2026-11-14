@@ -3,7 +3,8 @@
 import { Image as AntImage, Popover } from "antd";
 import { AtSign, FileText, GripVertical, ImageIcon, Link2, Maximize2, Music2, Pencil, SlidersHorizontal, UserRound, Video, X } from "lucide-react";
 import { type CanvasResourceReference } from "@/lib/canvas/canvas-resource-references";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { ReferenceStack } from "@/components/reference-slot";
 import { usePopoverAnchorAlign } from "@/hooks/use-popover-anchor-align";
 import { CanvasNodeType } from "@/types/canvas";
 import type { CanvasTheme } from "./canvas-node-prompt-panel";
@@ -86,6 +87,7 @@ export function referenceShelfHeading(references: CanvasResourceReference[]) {
 }
 
 export function ConnectedReferenceShelf({
+    addSlot,
     targetNodeId,
     references,
     theme,
@@ -95,6 +97,7 @@ export function ConnectedReferenceShelf({
     onReplaceReference,
     onReplaceReferenceFiles,
 }: {
+    addSlot?: ReactNode;
     targetNodeId?: string;
     references: CanvasResourceReference[];
     theme: CanvasTheme;
@@ -130,144 +133,149 @@ export function ConnectedReferenceShelf({
 
     return (
         <>
-            <div className="canvas-node-composer-references" role="group" aria-label="已连接素材">
-                <div className="canvas-node-composer-references-track thin-scrollbar">
-                    {activeReferences.map((reference, index) => {
-                        const canPreview = Boolean(reference.previewUrl) && (reference.kind === "image" || reference.kind === "character" || reference.kind === "video");
-                        const isDropTarget = dropTargetReferenceId === reference.id;
-                        return (
-                            <span
-                                key={reference.id}
-                                className="canvas-node-reference-chip relative"
-                                data-reference-chip="true"
-                                data-reference-id={reference.id}
-                                data-reference-node-id={reference.nodeId}
-                                data-reference-label={reference.label}
-                                data-reference-title={reference.title || reference.label}
-                                data-target-node-id={targetNodeId}
-                                data-dragging={draggedReferenceId === reference.nodeId || undefined}
-                                data-drop-target={isDropTarget ? "true" : undefined}
-                                style={{
-                                    boxShadow: isDropTarget ? "0 0 0 2px #3b82f6, 0 0 16px rgba(59, 130, 246, 0.45)" : undefined,
-                                }}
-                                onDragOver={(event) => {
-                                    if (draggedReferenceId) {
-                                        if (!onReorder) return;
-                                        event.preventDefault();
-                                        event.dataTransfer.dropEffect = "move";
-                                        return;
-                                    }
-                                    const hasImageNode = event.dataTransfer.types.includes("application/x-canvas-image-node-id");
-                                    const hasFiles = event.dataTransfer.types.includes("Files");
-                                    if (hasImageNode || hasFiles) {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        event.dataTransfer.dropEffect = "copy";
-                                        if (dropTargetReferenceId !== reference.id) {
-                                            setDropTargetReferenceId(reference.id);
-                                        }
-                                    }
-                                }}
-                                onDragLeave={(event) => {
-                                    if (!event.currentTarget.contains(event.relatedTarget as Node)) {
-                                        if (dropTargetReferenceId === reference.id) {
-                                            setDropTargetReferenceId(null);
-                                        }
-                                    }
-                                }}
-                                onDrop={(event) => {
-                                    if (dropTargetReferenceId === reference.id) {
-                                        setDropTargetReferenceId(null);
-                                    }
-                                    if (draggedReferenceId) {
-                                        event.preventDefault();
-                                        const sourceId = draggedReferenceId || event.dataTransfer.getData("text/plain");
-                                        setDraggedReferenceId(null);
-                                        moveReference(sourceId, reference.nodeId);
-                                        return;
-                                    }
-                                    const sourceNodeId = event.dataTransfer.getData("application/x-canvas-image-node-id");
-                                    if (sourceNodeId && sourceNodeId !== reference.nodeId && onReplaceReference) {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        onReplaceReference(reference, sourceNodeId);
-                                        return;
-                                    }
-                                    const files = Array.from(event.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
-                                    if (files.length && onReplaceReferenceFiles) {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        onReplaceReferenceFiles(reference, files);
-                                        return;
-                                    }
-                                }}
-                            >
-                                {onReorder ? (
-                                    <button
-                                        type="button"
-                                        className="canvas-node-reference-drag-handle"
-                                        draggable
-                                        title={`拖动调整 ${reference.label} 的顺序`}
-                                        aria-label={`调整 ${reference.label} 的顺序；使用左右方向键也可移动`}
-                                        onDragStart={(event) => {
-                                            setDraggedReferenceId(reference.nodeId);
-                                            event.dataTransfer.effectAllowed = "move";
-                                            event.dataTransfer.setData("text/plain", reference.nodeId);
+            <ReferenceStack count={activeReferences.length} pinned={Boolean(draggedReferenceId)}>
+                {() => (
+                    <div className="canvas-node-composer-references" role="group" aria-label="已连接素材">
+                        <div className="canvas-node-composer-references-track thin-scrollbar">
+                            {activeReferences.map((reference, index) => {
+                                const canPreview = Boolean(reference.previewUrl) && (reference.kind === "image" || reference.kind === "character" || reference.kind === "video");
+                                const isDropTarget = dropTargetReferenceId === reference.id;
+                                return (
+                                    <span
+                                        key={reference.id}
+                                        className="canvas-node-reference-chip relative"
+                                        data-reference-chip="true"
+                                        data-reference-id={reference.id}
+                                        data-reference-node-id={reference.nodeId}
+                                        data-reference-label={reference.label}
+                                        data-reference-title={reference.title || reference.label}
+                                        data-target-node-id={targetNodeId}
+                                        data-dragging={draggedReferenceId === reference.nodeId || undefined}
+                                        data-drop-target={isDropTarget ? "true" : undefined}
+                                        style={{
+                                            boxShadow: isDropTarget ? "0 0 0 2px #3b82f6, 0 0 16px rgba(59, 130, 246, 0.45)" : undefined,
                                         }}
-                                        onDragEnd={() => setDraggedReferenceId(null)}
-                                        onKeyDown={(event) => {
-                                            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-                                            event.preventDefault();
-                                            moveReferenceByOffset(reference.nodeId, event.key === "ArrowLeft" ? -1 : 1);
+                                        onDragOver={(event) => {
+                                            if (draggedReferenceId) {
+                                                if (!onReorder) return;
+                                                event.preventDefault();
+                                                event.dataTransfer.dropEffect = "move";
+                                                return;
+                                            }
+                                            const hasImageNode = event.dataTransfer.types.includes("application/x-canvas-image-node-id");
+                                            const hasFiles = event.dataTransfer.types.includes("Files");
+                                            if (hasImageNode || hasFiles) {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                event.dataTransfer.dropEffect = "copy";
+                                                if (dropTargetReferenceId !== reference.id) {
+                                                    setDropTargetReferenceId(reference.id);
+                                                }
+                                            }
                                         }}
-                                        onPointerDown={(event) => event.stopPropagation()}
+                                        onDragLeave={(event) => {
+                                            if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                                                if (dropTargetReferenceId === reference.id) {
+                                                    setDropTargetReferenceId(null);
+                                                }
+                                            }
+                                        }}
+                                        onDrop={(event) => {
+                                            if (dropTargetReferenceId === reference.id) {
+                                                setDropTargetReferenceId(null);
+                                            }
+                                            if (draggedReferenceId) {
+                                                event.preventDefault();
+                                                const sourceId = draggedReferenceId || event.dataTransfer.getData("text/plain");
+                                                setDraggedReferenceId(null);
+                                                moveReference(sourceId, reference.nodeId);
+                                                return;
+                                            }
+                                            const sourceNodeId = event.dataTransfer.getData("application/x-canvas-image-node-id");
+                                            if (sourceNodeId && sourceNodeId !== reference.nodeId && onReplaceReference) {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                onReplaceReference(reference, sourceNodeId);
+                                                return;
+                                            }
+                                            const files = Array.from(event.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+                                            if (files.length && onReplaceReferenceFiles) {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                onReplaceReferenceFiles(reference, files);
+                                                return;
+                                            }
+                                        }}
                                     >
-                                        <GripVertical className="size-3" />
-                                    </button>
-                                ) : null}
-                                <span className="canvas-node-reference-order" aria-hidden>
-                                    {index + 1}
-                                </span>
-                                <button
-                                    type="button"
-                                    className="canvas-node-reference-preview"
-                                    style={{ background: theme.toolbar.itemHover, color: theme.node.text, outlineColor: theme.node.activeStroke }}
-                                    title={canPreview ? `预览 ${reference.title}` : `插入 @${reference.label}`}
-                                    aria-label={canPreview ? `预览 ${reference.title}` : `插入 @${reference.label}`}
-                                    onClick={() => (canPreview ? setImagePreview(reference) : onInsert(reference))}
-                                >
-                                    <ReferenceThumbnail reference={reference} />
-                                    {canPreview ? (
-                                        <span className="canvas-node-reference-preview-hint" aria-hidden="true">
-                                            <Maximize2 className="size-3" />
+                                        {onReorder ? (
+                                            <button
+                                                type="button"
+                                                className="canvas-node-reference-drag-handle"
+                                                draggable
+                                                title={`拖动调整 ${reference.label} 的顺序`}
+                                                aria-label={`调整 ${reference.label} 的顺序；使用左右方向键也可移动`}
+                                                onDragStart={(event) => {
+                                                    setDraggedReferenceId(reference.nodeId);
+                                                    event.dataTransfer.effectAllowed = "move";
+                                                    event.dataTransfer.setData("text/plain", reference.nodeId);
+                                                }}
+                                                onDragEnd={() => setDraggedReferenceId(null)}
+                                                onKeyDown={(event) => {
+                                                    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+                                                    event.preventDefault();
+                                                    moveReferenceByOffset(reference.nodeId, event.key === "ArrowLeft" ? -1 : 1);
+                                                }}
+                                                onPointerDown={(event) => event.stopPropagation()}
+                                            >
+                                                <GripVertical className="size-3" />
+                                            </button>
+                                        ) : null}
+                                        <span className="canvas-node-reference-order" aria-hidden>
+                                            {index + 1}
                                         </span>
-                                    ) : null}
-                                </button>
-                                <button type="button" className="canvas-node-reference-label" title={`插入 @${reference.label}`} onClick={() => onInsert(reference)}>
-                                    <span className="opacity-55">@</span>
-                                    <span className="truncate">{reference.label}</span>
-                                </button>
-                                {onRemove ? (
-                                    <button
-                                        type="button"
-                                        className="canvas-node-reference-remove"
-                                        style={{ background: theme.toolbar.panel, borderColor: theme.node.stroke, color: theme.node.text }}
-                                        title="移除参考并删除连接"
-                                        aria-label={`移除参考 ${reference.label}`}
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            onRemove(reference);
-                                        }}
-                                        onPointerDown={(event) => event.stopPropagation()}
-                                    >
-                                        <X className="size-3" />
-                                    </button>
-                                ) : null}
-                            </span>
-                        );
-                    })}
-                </div>
-            </div>
+                                        <button
+                                            type="button"
+                                            className="canvas-node-reference-preview"
+                                            style={{ background: theme.toolbar.itemHover, color: theme.node.text, outlineColor: theme.node.activeStroke }}
+                                            title={canPreview ? `预览 ${reference.title}` : `插入 @${reference.label}`}
+                                            aria-label={canPreview ? `预览 ${reference.title}` : `插入 @${reference.label}`}
+                                            onClick={() => (canPreview ? setImagePreview(reference) : onInsert(reference))}
+                                        >
+                                            <ReferenceThumbnail reference={reference} />
+                                            {canPreview ? (
+                                                <span className="canvas-node-reference-preview-hint" aria-hidden="true">
+                                                    <Maximize2 className="size-3" />
+                                                </span>
+                                            ) : null}
+                                        </button>
+                                        <button type="button" className="canvas-node-reference-label" title={`插入 @${reference.label}`} onClick={() => onInsert(reference)}>
+                                            <span className="opacity-55">@</span>
+                                            <span className="truncate">{reference.label}</span>
+                                        </button>
+                                        {onRemove ? (
+                                            <button
+                                                type="button"
+                                                className="canvas-node-reference-remove"
+                                                style={{ background: theme.toolbar.panel, borderColor: theme.node.stroke, color: theme.node.text }}
+                                                title="移除参考并删除连接"
+                                                aria-label={`移除参考 ${reference.label}`}
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    onRemove(reference);
+                                                }}
+                                                onPointerDown={(event) => event.stopPropagation()}
+                                            >
+                                                <X className="size-3" />
+                                            </button>
+                                        ) : null}
+                                    </span>
+                                );
+                            })}
+                            {addSlot}
+                        </div>
+                    </div>
+                )}
+            </ReferenceStack>
             {imagePreview?.previewUrl ? (
                 <AntImage
                     src={imagePreview.previewUrl}

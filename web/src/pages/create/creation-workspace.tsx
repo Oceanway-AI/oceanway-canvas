@@ -2,7 +2,7 @@ import { ImageSizePicker } from "@/components/image-size-picker";
 import { ImageParameterFields } from "@/components/image-parameter-fields";
 import { PlatformNativeMediaSettings, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
 import { MediaParameterControls } from "@/components/media-parameter-controls";
-import { ReferenceSlot } from "@/components/reference-slot";
+import { FrameReferenceSlots, ReferenceSlot, ReferenceStack } from "@/components/reference-slot";
 import type { FrameRole } from "@/lib/media-reference-slots";
 import { nativeMediaProfile, nativeMediaSummary } from "@/lib/platform-native-media";
 import { imageResolutionUsesQuality, imageSizePresets } from "@/lib/image-size-presets";
@@ -227,8 +227,7 @@ export function CreationComposer(props: ComposerProps) {
     const attachmentTrackRef = useRef<HTMLUListElement>(null);
     const cardDragRef = useRef<{ startX: number; startY: number; moved: boolean } | null>(null);
     const suppressAttachmentClickRef = useRef(false);
-    const [trackState, setTrackState] = useState({ canScrollLeft: false, canScrollRight: false, isExpanded: true, isDragging: false });
-    const previousAttachmentCountRef = useRef(0);
+    const [trackState, setTrackState] = useState({ canScrollLeft: false, canScrollRight: false, isExpanded: false, isDragging: false });
     const interactionBusy = props.busy || props.referenceReplacementBusy;
     const modelAvailable = Boolean(props.model && (props.mode === "image" ? props.imageProfile : props.mode === "video" ? props.videoProfile : true));
     const canSubmit = modelAvailable && Boolean(props.prompt.trim()) && !props.missingReferenceImages && !interactionBusy;
@@ -305,10 +304,7 @@ export function CreationComposer(props: ComposerProps) {
         if (!isExpanded) setReferenceFilter("all");
     }, []);
     useEffect(() => {
-        const hadAttachments = previousAttachmentCountRef.current > 0;
         if (!props.attachments.length) setReferencePanelExpanded(false);
-        else if (!hadAttachments) setReferencePanelExpanded(true);
-        previousAttachmentCountRef.current = props.attachments.length;
         updateTrackScrollState();
     }, [props.attachments.length, setReferencePanelExpanded, updateTrackScrollState]);
     useEffect(() => {
@@ -320,10 +316,15 @@ export function CreationComposer(props: ComposerProps) {
     }, []);
     useEffect(() => {
         const frame = window.requestAnimationFrame(updateTrackScrollState);
-        return () => window.cancelAnimationFrame(frame);
+        const observer = new ResizeObserver(updateTrackScrollState);
+        if (attachmentTrackRef.current) observer.observe(attachmentTrackRef.current);
+        return () => {
+            window.cancelAnimationFrame(frame);
+            observer.disconnect();
+        };
     }, [referenceFilter, trackState.isExpanded, updateTrackScrollState, visibleAttachments.length]);
     const beginCardDrag = (event: PointerEvent<HTMLElement>) => {
-        if (event.button !== 0 || interactionBusy || !trackState.isExpanded) return;
+        if (event.button !== 0 || interactionBusy) return;
         if ((event.target as HTMLElement).closest(".creation-reference-card-remove")) return;
         cardDragRef.current = { startX: event.clientX, startY: event.clientY, moved: false };
     };
@@ -345,7 +346,7 @@ export function CreationComposer(props: ComposerProps) {
         if (!drag || drag.moved) return;
         if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) <= 4) return;
         drag.moved = true;
-        setTrackState((current) => ({ ...current, isDragging: true, isExpanded: true }));
+        setTrackState((current) => ({ ...current, isDragging: true }));
     };
     const previewAttachment = (type: "image" | "video", url: string) => {
         if (suppressAttachmentClickRef.current || cardDragRef.current?.moved) return;
@@ -392,13 +393,128 @@ export function CreationComposer(props: ComposerProps) {
                 <div className="creation-chat-editor">
                     <div className="studio-prompt-row">
                         {props.frameSlots?.length ? (
-                            <div className="studio-reference-slots">
+                            <FrameReferenceSlots filled={props.frameSlots.filter((slot) => slot.attachment).length}>
                                 {props.frameSlots.map(({ role, attachment }) => (
                                     <ReferenceSlot key={role} role={role} src={attachment?.previewUrl} disabled={interactionBusy} onPick={() => props.onOpenFrame?.(role)} onRemove={attachment ? () => props.onRemoveAttachment(attachment.id) : undefined} />
                                 ))}
-                            </div>
+                            </FrameReferenceSlots>
                         ) : referencesSupported && !props.attachments.length ? (
                             <ReferenceSlot label={props.mode === "image" ? "参考图" : "参考内容"} disabled={interactionBusy || !canAddMoreReferences} onPick={props.onOpenLibrary} title={addReferenceLabel} />
+                        ) : null}
+                        {props.attachments.length && !props.frameSlots?.length ? (
+                            <ReferenceStack count={props.attachments.length} pinned={trackState.isExpanded || trackState.isDragging}>
+                                {(spread) => (
+                                    <div className={`creation-reference-panel${spread ? " is-expanded" : ""}`} aria-busy={interactionBusy}>
+                                        {trackState.isExpanded ? (
+                                            <div className="creation-reference-panel-header">
+                                                <div className="creation-reference-filter-tabs" role="group" aria-label="筛选参考内容">
+                                                    {(
+                                                        [
+                                                            { id: "all", label: "全部", count: props.attachments.length },
+                                                            { id: "image", label: "图片", count: referenceCounts.image },
+                                                            { id: "video", label: "视频", count: referenceCounts.video },
+                                                            { id: "audio", label: "音频", count: referenceCounts.audio },
+                                                            { id: "file", label: "文件", count: referenceCounts.file },
+                                                        ] as const
+                                                    ).map((filter) => (
+                                                        <button key={filter.id} type="button" aria-pressed={referenceFilter === filter.id} className={referenceFilter === filter.id ? "is-active" : undefined} onClick={() => setReferenceFilter(filter.id)}>
+                                                            {filter.label}
+                                                            {filter.count ? ` (${filter.count})` : ""}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <div className="creation-reference-panel-actions">
+                                                    {props.attachments.length ? (
+                                                        <button type="button" onClick={props.onClearAttachments} disabled={interactionBusy}>
+                                                            清空全部素材
+                                                        </button>
+                                                    ) : null}
+                                                    <Tooltip title="收起素材面板">
+                                                        <button type="button" className="creation-reference-panel-collapse" onClick={() => setReferencePanelExpanded(false)} aria-label="收起素材面板">
+                                                            <Minimize2 aria-hidden="true" />
+                                                        </button>
+                                                    </Tooltip>
+                                                </div>
+                                            </div>
+                                        ) : null}
+                                        <div className="creation-reference-track-wrapper">
+                                            <div className="creation-reference-stack-shell">
+                                                {trackState.canScrollLeft ? (
+                                                    <button type="button" className="creation-reference-track-button is-left" onClick={() => scrollAttachmentTrack(-1)} aria-label="向左浏览参考内容" title="向左浏览参考内容">
+                                                        <ChevronLeft aria-hidden="true" />
+                                                    </button>
+                                                ) : null}
+                                                <Reorder.Group<CreationAttachment[]>
+                                                    as="ul"
+                                                    ref={attachmentTrackRef}
+                                                    className={`creation-reference-track${spread ? " is-expanded" : ""}${trackState.isDragging ? " is-dragging" : ""}${visibleAttachments.length ? "" : " is-empty"}`}
+                                                    axis="x"
+                                                    values={visibleAttachments}
+                                                    onReorder={reorderVisibleAttachments}
+                                                    layoutScroll
+                                                    role="list"
+                                                    aria-label="参考内容轨道"
+                                                    onScroll={updateTrackScrollState}
+                                                >
+                                                    {visibleAttachments.map((item) => (
+                                                        <Reorder.Item<CreationAttachment>
+                                                            key={item.id}
+                                                            value={item}
+                                                            layout="position"
+                                                            drag={spread && canDragReferences && !interactionBusy}
+                                                            className="creation-reference-stack-card"
+                                                            onPointerDown={beginCardDrag}
+                                                            onPointerMove={moveCardDrag}
+                                                            onPointerUp={endCardDrag}
+                                                            onPointerCancel={endCardDrag}
+                                                            onDragStart={() => {
+                                                                setDropTargetReferenceId(null);
+                                                                setTrackState((current) => ({ ...current, isDragging: true }));
+                                                            }}
+                                                            onDrag={(_, info) => {
+                                                                if (creationAttachmentKind(item) !== "image") return;
+                                                                const target = imageReferenceAtPoint(info.point.x, info.point.y);
+                                                                setDropTargetReferenceId(target?.attachmentId !== item.id ? target?.id || null : null);
+                                                            }}
+                                                            onDragEnd={(_, info) => {
+                                                                const target = creationAttachmentKind(item) === "image" ? imageReferenceAtPoint(info.point.x, info.point.y) : undefined;
+                                                                setDropTargetReferenceId(null);
+                                                                setTrackState((current) => ({ ...current, isDragging: false }));
+                                                                if (target?.attachmentId && target.attachmentId !== item.id) props.onReplaceAttachment(target.attachmentId, item);
+                                                            }}
+                                                        >
+                                                            <CreationAttachmentThumbnail item={item} onPreview={previewAttachment} onRemove={props.onRemoveAttachment} />
+                                                        </Reorder.Item>
+                                                    ))}
+                                                    {!visibleAttachments.length && props.attachments.length ? <li className="creation-reference-filter-empty">该类型暂无参考内容</li> : null}
+                                                    {referencesSupported ? (
+                                                        <li className="creation-reference-add-slot">
+                                                            <Tooltip title={addReferenceLabel}>
+                                                                <button type="button" className="creation-reference-add-button" onClick={props.onOpenLibrary} disabled={interactionBusy || !canAddMoreReferences} aria-label={addReferenceLabel}>
+                                                                    <Plus aria-hidden="true" />
+                                                                    <span>参考内容</span>
+                                                                </button>
+                                                            </Tooltip>
+                                                        </li>
+                                                    ) : null}
+                                                </Reorder.Group>
+                                                {trackState.canScrollRight ? (
+                                                    <button type="button" className="creation-reference-track-button is-right" onClick={() => scrollAttachmentTrack(1)} aria-label="向右浏览参考内容" title="向右浏览参考内容">
+                                                        <ChevronRight aria-hidden="true" />
+                                                    </button>
+                                                ) : null}
+                                                {spread && !trackState.isExpanded && props.attachments.length ? (
+                                                    <Tooltip title="查看全部">
+                                                        <button type="button" className="creation-reference-panel-expand" onClick={() => setReferencePanelExpanded(true)} aria-label={`查看全部 ${props.attachments.length} 个参考内容`} aria-expanded="false">
+                                                            <Maximize2 aria-hidden="true" />
+                                                        </button>
+                                                    </Tooltip>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </ReferenceStack>
                         ) : null}
                         <CanvasResourceMentionTextarea
                             ref={props.composerFocusRef}
@@ -423,117 +539,6 @@ export function CreationComposer(props: ComposerProps) {
                             }}
                         />
                     </div>
-                    {props.attachments.length && !props.frameSlots?.length ? (
-                        <div className={`creation-reference-panel${trackState.isExpanded ? " is-expanded" : ""}`} aria-busy={interactionBusy}>
-                            {trackState.isExpanded ? (
-                                <div className="creation-reference-panel-header">
-                                    <div className="creation-reference-filter-tabs" role="group" aria-label="筛选参考内容">
-                                        {(
-                                            [
-                                                { id: "all", label: "全部", count: props.attachments.length },
-                                                { id: "image", label: "图片", count: referenceCounts.image },
-                                                { id: "video", label: "视频", count: referenceCounts.video },
-                                                { id: "audio", label: "音频", count: referenceCounts.audio },
-                                                { id: "file", label: "文件", count: referenceCounts.file },
-                                            ] as const
-                                        ).map((filter) => (
-                                            <button key={filter.id} type="button" aria-pressed={referenceFilter === filter.id} className={referenceFilter === filter.id ? "is-active" : undefined} onClick={() => setReferenceFilter(filter.id)}>
-                                                {filter.label}
-                                                {filter.count ? ` (${filter.count})` : ""}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className="creation-reference-panel-actions">
-                                        {props.attachments.length ? (
-                                            <button type="button" onClick={props.onClearAttachments} disabled={interactionBusy}>
-                                                清空全部素材
-                                            </button>
-                                        ) : null}
-                                        <Tooltip title="收起素材面板">
-                                            <button type="button" className="creation-reference-panel-collapse" onClick={() => setReferencePanelExpanded(false)} aria-label="收起素材面板">
-                                                <Minimize2 aria-hidden="true" />
-                                            </button>
-                                        </Tooltip>
-                                    </div>
-                                </div>
-                            ) : null}
-                            <div className="creation-reference-track-wrapper">
-                                <div className="creation-reference-stack-shell">
-                                    {trackState.canScrollLeft ? (
-                                        <button type="button" className="creation-reference-track-button is-left" onClick={() => scrollAttachmentTrack(-1)} aria-label="向左浏览参考内容" title="向左浏览参考内容">
-                                            <ChevronLeft aria-hidden="true" />
-                                        </button>
-                                    ) : null}
-                                    <Reorder.Group<CreationAttachment[]>
-                                        as="ul"
-                                        ref={attachmentTrackRef}
-                                        className={`creation-reference-track${trackState.isExpanded ? " is-expanded" : ""}${trackState.isDragging ? " is-dragging" : ""}${visibleAttachments.length ? "" : " is-empty"}`}
-                                        axis="x"
-                                        values={visibleAttachments}
-                                        onReorder={reorderVisibleAttachments}
-                                        layoutScroll
-                                        role="list"
-                                        aria-label="参考内容轨道"
-                                        onScroll={updateTrackScrollState}
-                                    >
-                                        {visibleAttachments.map((item) => (
-                                            <Reorder.Item<CreationAttachment>
-                                                key={item.id}
-                                                value={item}
-                                                layout="position"
-                                                drag={trackState.isExpanded && canDragReferences && !interactionBusy}
-                                                className="creation-reference-stack-card"
-                                                onPointerDown={beginCardDrag}
-                                                onPointerMove={moveCardDrag}
-                                                onPointerUp={endCardDrag}
-                                                onPointerCancel={endCardDrag}
-                                                onDragStart={() => {
-                                                    setDropTargetReferenceId(null);
-                                                    setTrackState((current) => ({ ...current, isDragging: true, isExpanded: true }));
-                                                }}
-                                                onDrag={(_, info) => {
-                                                    if (creationAttachmentKind(item) !== "image") return;
-                                                    const target = imageReferenceAtPoint(info.point.x, info.point.y);
-                                                    setDropTargetReferenceId(target?.attachmentId !== item.id ? target?.id || null : null);
-                                                }}
-                                                onDragEnd={(_, info) => {
-                                                    const target = creationAttachmentKind(item) === "image" ? imageReferenceAtPoint(info.point.x, info.point.y) : undefined;
-                                                    setDropTargetReferenceId(null);
-                                                    setTrackState((current) => ({ ...current, isDragging: false, isExpanded: true }));
-                                                    if (target?.attachmentId && target.attachmentId !== item.id) props.onReplaceAttachment(target.attachmentId, item);
-                                                }}
-                                            >
-                                                <CreationAttachmentThumbnail item={item} onPreview={previewAttachment} onRemove={props.onRemoveAttachment} />
-                                            </Reorder.Item>
-                                        ))}
-                                        {!visibleAttachments.length && props.attachments.length ? <li className="creation-reference-filter-empty">该类型暂无参考内容</li> : null}
-                                        {referencesSupported ? (
-                                            <li className="creation-reference-add-slot">
-                                                <Tooltip title={addReferenceLabel}>
-                                                    <button type="button" className="creation-reference-add-button" onClick={props.onOpenLibrary} disabled={interactionBusy || !canAddMoreReferences} aria-label={addReferenceLabel}>
-                                                        <Plus aria-hidden="true" />
-                                                        <span>参考内容</span>
-                                                    </button>
-                                                </Tooltip>
-                                            </li>
-                                        ) : null}
-                                    </Reorder.Group>
-                                    {trackState.canScrollRight ? (
-                                        <button type="button" className="creation-reference-track-button is-right" onClick={() => scrollAttachmentTrack(1)} aria-label="向右浏览参考内容" title="向右浏览参考内容">
-                                            <ChevronRight aria-hidden="true" />
-                                        </button>
-                                    ) : null}
-                                    {!trackState.isExpanded && props.attachments.length ? (
-                                        <Tooltip title="查看全部">
-                                            <button type="button" className="creation-reference-panel-expand" onClick={() => setReferencePanelExpanded(true)} aria-label={`查看全部 ${props.attachments.length} 个参考内容`} aria-expanded="false">
-                                                <Maximize2 aria-hidden="true" />
-                                            </button>
-                                        </Tooltip>
-                                    ) : null}
-                                </div>
-                            </div>
-                        </div>
-                    ) : null}
                 </div>
             </div>
             <footer className="creation-chat-dock">
