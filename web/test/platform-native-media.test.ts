@@ -223,6 +223,10 @@ test("creation selects a published edit only for attached images and retains com
     expect(modelCompatibilityError(cfg, selected, { capability: "image", input })).toContain("0");
     expect(modelCompatibilityError(cfg, selected, { capability: "image", input: { ...input, imageCount: 17 }, useImageEditForReferences: true })).toContain("16");
     expect(nativeCreationSettings(cfg, selected, { nativeVariantId: "retired" }, true).settings.nativeVariantId).toBe("edit");
+    const cleared = nativeCreationSettings(cfg, selected, { nativeVariantId: "edit" }, false);
+    expect(nativeCreationModeOptions([generate, edit], edit, true)).toEqual([{ label: "图片参考", value: "edit" }]);
+    expect(cleared.referenceVariant?.id).toBe("edit");
+    expect(cleared.settings.nativeVariantId).toBe("generate");
     image.platform!.media_generation_profile!.variants = [generate, edit, { ...edit, id: "another" }];
     expect(nativeCreationSettings(cfg, selected, saved, true).settings.nativeVariantId).toBe("generate");
 });

@@ -10,6 +10,7 @@ export type CreationImagePreferences = {
     imageParameters?: string;
     nativeParameters?: string;
     nativeVariantId?: string;
+    nativeModeVariantId?: string;
     ratio?: string;
     quality?: string;
     imageResolution?: string;
@@ -52,6 +53,7 @@ function normalizeImagePreferences(value: unknown): CreationImagePreferences | u
     const preferences = {
         ...(nonEmptyString(raw.model) ? { model: raw.model } : {}),
         ...(nonEmptyString(raw.imageParameters) ? { imageParameters: raw.imageParameters } : {}),
+        ...(nonEmptyString(raw.nativeModeVariantId) ? { nativeModeVariantId: raw.nativeModeVariantId } : {}),
         ...(nonEmptyString(raw.nativeParameters) ? { nativeParameters: raw.nativeParameters } : {}),
         ...(nonEmptyString(raw.nativeVariantId) ? { nativeVariantId: raw.nativeVariantId } : {}),
         ...(nonEmptyString(raw.ratio) ? { ratio: raw.ratio } : {}),

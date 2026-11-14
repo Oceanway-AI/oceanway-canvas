@@ -50,11 +50,11 @@ function creationModeLabel(variant: NativeMediaVariant) {
     return "参考素材";
 }
 
-export function nativeCreationModeOptions(variants: NativeMediaVariant[], current: NativeMediaVariant | undefined, automaticVideo = false) {
+export function nativeCreationModeOptions(variants: NativeMediaVariant[], current: NativeMediaVariant | undefined, referenceModesOnly = false) {
     const modes = new Map<string, NativeMediaVariant>();
     for (const variant of variants) {
         const label = creationModeLabel(variant);
-        if (automaticVideo && label === "文生视频") continue;
+        if (referenceModesOnly && !variant.native_request_variant.native_reference_inputs?.some((ref) => ref.max_items !== 0)) continue;
         const existing = modes.get(label);
         if (!existing || variant.id === current?.id || (existing.id !== current?.id && existing.gateway_protocol !== current?.gateway_protocol && variant.gateway_protocol === current?.gateway_protocol)) {
             modes.set(label, variant);
@@ -116,12 +116,16 @@ export function nativeCreationSettings(config: AiConfig, model: string, saved: P
     const fallback = profile?.variants.find((v) => v.id === profile.defaultId) ?? profile?.variants[0];
     const base = nativeMediaDefaults(config, model, savedVariant || (!saved.nativeVariantId && fallback?.id === profile?.defaultId) ? saved : { nativeVariantId: fallback?.id });
     const variant = nativeMediaVariant(config, model, base.nativeVariantId);
-    let referenceVariant = nativeImageReferenceVariant(config, model, variant);
+    const preferred = profile?.variants.find((v) => v.id === saved.nativeModeVariantId) ?? variant;
+    let referenceVariant = nativeImageReferenceVariant(config, model, preferred);
     let requestVariant = hasReferences ? referenceVariant : variant;
+    if (!hasReferences && preferred?.gateway_protocol === "openai.image.edit") {
+        const generators = profile?.variants.filter((v) => v.gateway_protocol === "openai.image.generate" && !v.native_request_variant.native_reference_inputs?.some((ref) => ref.max_items !== 0));
+        if (generators?.length === 1) requestVariant = generators[0];
+    }
     const isVideo = variant?.gateway_protocol.endsWith(".video");
     if (variant && isVideo) {
-        const preferred = profile?.variants.find((v) => v.id === saved.nativeModeVariantId) ?? variant;
-        const video = nativeVideoComposerVariants(profile?.variants ?? [], preferred, preferred.id);
+        const video = nativeVideoComposerVariants(profile?.variants ?? [], preferred ?? variant, saved.nativeModeVariantId ?? savedVariant?.id);
         referenceVariant = video.reference;
         const text = video.text;
         requestVariant = (hasReferences ? referenceVariant : text) ?? referenceVariant ?? variant;

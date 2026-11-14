@@ -6,7 +6,7 @@ import { ImageSizeDock } from "@/components/image-size-dock";
 import { nativeImageSizePointers, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
 import { imageQualityLabel } from "@/lib/image-quality";
 import { NativeParameterInput, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
-import { creativeParameterLabel, nativeCreationModeOptions, nativeMediaVariantOptions, nativeParameterChoices, nativeParameterValues, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
+import { creativeParameterLabel, nativeCreationModeOptions, nativeParameterChoices, nativeParameterValues, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
 
 type Group = "生成模式" | "尺寸与分辨率" | "背景" | "画质" | "张数" | "时长" | "声音" | "更多参数";
@@ -57,8 +57,7 @@ export function MediaParameterControls({
     const variant = variants.find((v) => v.id === config.nativeVariantId);
     const modeVariant = variants.find((v) => v.id === modeVariantId) ?? variant;
     const image = mode === "image";
-    const modes = image && variant && !variant.workbench_parameters ? nativeMediaVariantOptions(variants) : nativeCreationModeOptions(variants, modeVariant, !image && !canvas);
-    const automaticImageMode = !canvas && image && variant?.workbench_parameters && variants.every((v) => ["openai.image.generate", "openai.image.edit"].includes(v.gateway_protocol));
+    const modes = nativeCreationModeOptions(variants, modeVariant, true);
     const modeLabel = modes.find((mode) => mode.value === modeVariant?.id)?.label ?? "选择模式";
     function menu(group: Group, label: string, icon: ReactNode, content: ReactNode) {
         return (
@@ -84,7 +83,7 @@ export function MediaParameterControls({
     }
     const modeMenu =
         modes.length > 0 &&
-        (!image || !variant || (!automaticImageMode && modes.length > 1)) &&
+        (!image || modes.length > 1) &&
         menu(
             "生成模式",
             modeLabel,

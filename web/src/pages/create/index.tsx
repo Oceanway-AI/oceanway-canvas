@@ -1377,7 +1377,15 @@ export default function CreatePage() {
         setVideoQuality(nextSettings.videoQuality);
         setCount(nextSettings.count);
         if (nextMode === "image")
-            rememberImageSettings({ model: item.model, ratio: nextSettings.ratio, quality: nextSettings.quality, count: nextSettings.count, nativeParameters: nextSettings.nativeParameters, nativeVariantId: nextSettings.nativeVariantId });
+            rememberImageSettings({
+                model: item.model,
+                ratio: nextSettings.ratio,
+                quality: nextSettings.quality,
+                count: nextSettings.count,
+                nativeParameters: nextSettings.nativeParameters,
+                nativeVariantId: nextSettings.nativeVariantId,
+                nativeModeVariantId: nextSettings.nativeVariantId,
+            });
         if (nextMode === "video")
             rememberVideoSettings({
                 model: item.model,
@@ -1547,17 +1555,14 @@ export default function CreatePage() {
         imageParameters,
         nativeParameters: nativeSettings.nativeParameters,
         nativeVariantId: nativeSettings.nativeVariantId,
-        nativeModeVariantId: mode === "video" ? nativeCreation?.referenceVariant?.id : undefined,
+        nativeModeVariantId: nativeCreation?.referenceVariant?.id,
         onNativeSettingsChange: (key: "nativeParameters" | "nativeVariantId", value: string) => {
-            if (mode === "video") {
-                if (key === "nativeVariantId") {
-                    clearAttachments();
-                    rememberVideoSettings({ model: selectedModel, nativeVariantId: value, nativeModeVariantId: value, nativeParameters: "{}" });
-                } else {
-                    rememberVideoSettings({ model: selectedModel, nativeVariantId: nativeSettings.nativeVariantId, nativeModeVariantId: nativeCreation?.referenceVariant?.id, nativeParameters: value });
-                }
+            const remember = mode === "video" ? rememberVideoSettings : rememberImageSettings;
+            if (key === "nativeVariantId") {
+                clearAttachments();
+                remember({ model: selectedModel, nativeVariantId: value, nativeModeVariantId: value, nativeParameters: "{}" });
             } else {
-                rememberImageSettings({ model: selectedModel, [key]: value, ...(key === "nativeVariantId" ? { nativeParameters: "{}" } : {}) });
+                remember({ model: selectedModel, nativeVariantId: nativeSettings.nativeVariantId, nativeModeVariantId: nativeCreation?.referenceVariant?.id, nativeParameters: value });
             }
         },
         setImageParameters: (value: string) => {
