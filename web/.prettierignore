@@ -12,3 +12,6 @@ bun.lock
 *.gif
 *.webp
 *.svg
+
+# Preserve the published account component and its checksum manifest byte for byte.
+/src/vendor/oceanway-account-v1/
