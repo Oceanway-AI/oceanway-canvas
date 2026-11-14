@@ -259,11 +259,12 @@ export default function CreatePage() {
         }),
         [attachments, config, preferredImageProfile, count, hasPrompt, imageResolution, imageParameters, mode, quality, ratio, seconds, videoQuality],
     );
-    const candidateModel = resolveCompatibleModel(config, preferredModel, modelRequirements) || preferredModel;
+    const selectedVideoProfile = mode === "video" ? nativeMediaProfile(config, preferredModel) : undefined;
+    const candidateModel = selectedVideoProfile ? preferredModel : resolveCompatibleModel(config, preferredModel, modelRequirements) || preferredModel;
     const selectedModel = availableModels.includes(candidateModel) ? candidateModel : "";
     const imageProfile = useMemo(() => (selectedModel ? modelCapabilityConfigFor(config, selectedModel).image : undefined), [config, selectedModel]);
     const videoProfile = useMemo(() => (selectedModel ? modelCapabilityConfigFor(config, selectedModel).video : undefined), [config, selectedModel]);
-    const nativeProfile = nativeMediaProfile(config, selectedModel);
+    const nativeProfile = selectedVideoProfile ?? nativeMediaProfile(config, selectedModel);
     const nativeSaved = mode === "video" ? savedNativePreferences.video : savedNativePreferences.image;
     const nativeCreation = nativeProfile
         ? nativeCreationSettings(
