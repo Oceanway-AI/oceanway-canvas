@@ -1,7 +1,7 @@
 import { ImageSizePicker } from "@/components/image-size-picker";
 import { ImageParameterFields } from "@/components/image-parameter-fields";
 import { PlatformNativeMediaSettings, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
-import { VideoParameterControls } from "./video-parameter-controls";
+import { MediaParameterControls } from "./media-parameter-controls";
 import { nativeMediaProfile, nativeMediaSummary } from "@/lib/platform-native-media";
 import { imageResolutionUsesQuality, imageSizePresets } from "@/lib/image-size-presets";
 import { createPortal } from "react-dom";
@@ -734,8 +734,8 @@ function GenerationSettingsMenu(props: ComposerProps) {
     const [open, setOpen] = useState(false);
     const nativeConfig = { ...props.config, model: props.model, nativeParameters: props.nativeParameters, nativeVariantId: props.nativeVariantId };
     const native = nativeMediaProfile(nativeConfig);
-    if (props.mode === "video" && native && props.onNativeSettingsChange) {
-        return <VideoParameterControls key={props.model} config={nativeConfig} variants={native.variants} onChange={props.onNativeSettingsChange} />;
+    if ((props.mode === "video" || props.mode === "image") && native && props.onNativeSettingsChange) {
+        return <MediaParameterControls key={props.model + ":" + props.nativeVariantId} mode={props.mode} config={nativeConfig} variants={native.variants} onChange={props.onNativeSettingsChange} />;
     }
     const activeQualityOptions = (props.imageProfile?.quality.values || []).map((value) => qualityOptions.find((item) => item.value === value) || { value, label: imageQualityLabel(value), description: "模型支持的质量/分辨率" });
     const qualityLabel = activeQualityOptions.find((item) => item.value === props.quality)?.label || qualityOptions.find((item) => item.value === props.quality)?.label || props.quality || "自动";
