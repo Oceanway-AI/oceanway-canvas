@@ -166,9 +166,73 @@
           "consumptionPreviewHTTPAtStudio": 400,
           "reason": "invalid_argument",
           "reasonText": "所选平台模型暂不可用，请刷新模型目录",
-          "createRequestSent": false
+          "createRequestSent": false,
+          "requestAtUTC": "2026-11-14T16:35:17.866Z",
+          "studioRoute": "POST /api/tasks/preview",
+          "code": 400,
+          "publishedVariant": "8a32fc21ab081af29273a248782b1ca287e92943e5ea3b4ca254316a2cb50a43",
+          "expectedPriceVersion": "47f083004ee9fa48adc9b7f7847eab75197caa144aeedac1708149544d914eae",
+          "type": "canvas_video",
+          "operation": "text_to_video",
+          "channel": "oceanway-platform",
+          "nativeParameters": {
+            "/duration": 4,
+            "/metadata/aspect_ratio": "16:9",
+            "/metadata/resolution": "720p"
+          },
+          "references": 0,
+          "walletCapSupplied": false,
+          "providerNativePreviewRequests": 0,
+          "rejectionBoundary": "Studio re-read the authoritative product catalog and did not find the exact selected config.model. This branch runs before variant, native parameters, price or wallet validation.",
+          "timelineUTC": [
+            "16:33:19 the browser downloaded the catalog that listed ch04",
+            "16:34:12 the catalog audit recorded a change for model:75 (ch04, enabled=true)",
+            "16:35:21 the provider product-models request returned 200; no provider native preview followed",
+            "16:37:49 and 16:37:50 subsequent capability draft and publication for model:75"
+          ]
         },
-        "finalVideoCancellation": "not observed for the changed video catalog; cancellation-and-editable-draft verified in the same canvas with the published image model"
+        "finalVideoCancellation": {
+          "atUTC": "2026-11-14T16:40:10.627Z",
+          "model": "doubao-seedance-2-0-mini-260615",
+          "channel": "oceanway-platform",
+          "variant": "69a75eb9b6a05af485b9435086d43285f8739f453bbffa494574578794038f34",
+          "priceVersion": "67beced01fe6b8f01a10e50957cde6fe5f25c1e8ef9b364846e2d131c5682512",
+          "nativeParameters": {
+            "/duration": 4,
+            "/metadata/aspect_ratio": "16:9",
+            "/metadata/generate_audio": true,
+            "/metadata/resolution": "720p"
+          },
+          "previewHTTP": 200,
+          "accountCommandBindingPresent": true,
+          "payer": "个人空间",
+          "estimate": "198.72",
+          "maximum": "198.72",
+          "unit": "✦",
+          "action": "取消",
+          "stateAfterCancel": "空视频节点",
+          "imageStillDraft": true,
+          "dialogClosed": true,
+          "promptPreservedAndEditable": true,
+          "generateEnabled": true,
+          "sizeAndDurationPreserved": true,
+          "countsBeforeAfter": {
+            "studioMediaTasks": [
+              9,
+              9
+            ],
+            "studioPlatformOperations": [
+              38,
+              38
+            ],
+            "personalWalletLedgerRows": [
+              703,
+              703
+            ],
+            "availableQuotaDelta": "0",
+            "paidCreateRequests": 0
+          }
+        }
       },
       "activeSampleNodes": 2,
       "publicHtmlAndEntryScriptHTTP": [
