@@ -259,6 +259,20 @@ func TestStudioReleaseSurfaceRejectsUnconnectedCapabilities(t *testing.T) {
 	}
 }
 
+func TestStudioPoseLibraryCatalogUsesPlatformIdentity(t *testing.T) {
+	f := newStudioFixture(t)
+	if err := f.db.Create(&model.PoseLibraryItem{ID: "standing", ExternalKey: "standing", GroupKey: "standing", Name: "自然站立", Status: model.PoseLibraryStatusReady, Enabled: true}).Error; err != nil {
+		t.Fatal(err)
+	}
+	f.request(t, "GET", "/api/pose-library/poses", "", "", 401)
+	f.request(t, "GET", "/api/pose-library/items/standing/image", "", "", 401)
+	list := f.request(t, "GET", "/api/pose-library/poses", "platform_session=alice", "", 200)
+	if !strings.Contains(list.Body.String(), "自然站立") {
+		t.Fatal("published pose missing from catalog")
+	}
+	f.request(t, "GET", "/api/admin/pose-library/items", "platform_session=alice", "", 501)
+}
+
 func TestStudioPlatformLoginCanvasPersistenceAndIsolation(t *testing.T) {
 	f := newStudioFixture(t)
 	f.rotate = true

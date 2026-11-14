@@ -151,6 +151,7 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 	RegisterStudioTaskRoutes(api, svc)
 	RegisterAgentRoutes(api, svc)
 	RegisterSkillRoutes(api, svc)
+	registerPoseLibraryCatalogRoutes(api, svc)
 	RegisterCanvasDataRoutes(api, svc)
 	RegisterCanvasRealtimeRoutes(api, svc)
 	// Public material delivery needs a distinct Platform sharing authorization.

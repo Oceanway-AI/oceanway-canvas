@@ -8,7 +8,7 @@ import { WorkspaceErrorState, WorkspaceNoResultsState, WorkspaceState } from "@/
 import { SegmentedControl } from "@/components/ui/base/segmented-control";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { copyPoseLibraryItems, listPoseLibrary, poseLibraryFileUrl, POSE_LIBRARY_MAX_USE, type PoseLibraryFacet, type PoseLibraryItem, type PoseLibraryPose } from "@/services/api/pose-library";
+import { adoptStudioPoseImages, copyPoseLibraryItems, listPoseLibrary, poseLibraryFileUrl, POSE_LIBRARY_MAX_USE, type PoseLibraryFacet, type PoseLibraryItem, type PoseLibraryPose } from "@/services/api/pose-library";
 import { resourceFileUrl, resourceStorageKey } from "@/services/api/resources";
 import { useUserStore } from "@/stores/use-user-store";
 
@@ -26,7 +26,8 @@ type Picked = { item: PoseLibraryItem; pose: PoseLibraryPose };
  */
 export function CanvasPoseLibraryModal({ open, onClose, onInsert }: { open: boolean; onClose: () => void; onInsert: (payloads: InsertAssetPayload[]) => Promise<unknown> }) {
     const { message } = App.useApp();
-    const isAdmin = useUserStore((state) => state.user?.role === "admin");
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const isAdmin = useUserStore((state) => !state.platformIdentity && state.user?.role === "admin");
     const userId = useUserStore((state) => state.user?.id);
     const [keyword, setKeyword] = useState("");
     const [system, setSystem] = useState(ALL);
@@ -111,8 +112,7 @@ export function CanvasPoseLibraryModal({ open, onClose, onInsert }: { open: bool
         setInserting(true);
         let payloads: InsertAssetPayload[];
         try {
-            // 先由后端把原图复制成当前用户的资源，画布节点和生成任务只引用自己的资源。
-            const copies = await copyPoseLibraryItems(selection.map(({ item }) => item.id));
+            const copies = platformIdentity ? await adoptStudioPoseImages(selection) : await copyPoseLibraryItems(selection.map(({ item }) => item.id));
             payloads = copies.map((copy) => ({
                 kind: "image",
                 dataUrl: resourceFileUrl(copy.resource.id),
