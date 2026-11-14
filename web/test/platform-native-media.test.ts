@@ -3,7 +3,7 @@ import { defaultConfig } from "@/stores/use-config-store";
 import { systemChannelModelChannels } from "@/lib/user-session";
 import { nativeCreationModeOptions, nativeCreationSettings, nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues } from "@/lib/platform-native-media";
 import { modelCompatibilityError, resolveModelGenerationDefaults } from "@/lib/model-selection";
-import { backendProviderConfig } from "@/services/api/generation-task";
+import { backendProviderConfig, prepareBackendGenerationTask } from "@/services/api/generation-task";
 import { buildNodeConfig } from "@/components/canvas/canvas-node-prompt-config";
 import { buildGenerationConfig } from "@/lib/canvas/canvas-project-generation";
 import { specFromConfig, generationSpecMetadata, synchronizeGenerationSpec } from "@/lib/canvas/generation-contract";
@@ -80,6 +80,7 @@ const model = {
     available: true,
     priceTiers: [],
     platform: {
+        price: { version: "fixture" },
         model_type: "video",
         media_generation_profile: {
             gateway_protocol: variant.gateway_protocol,
@@ -94,6 +95,22 @@ const channels = systemChannelModelChannels([{ id: "oceanway-platform", name: "O
 const selected = "oceanway-platform::" + model.modelKey;
 const config = { ...defaultConfig, channels, model: selected, videoModel: selected };
 const explicit = { "/duration": 4, "/resolution": "720p", "/seed": 0, "/generate_audio": false, "/metadata": null, "/extensions": ["TEXT", "IMAGE"] };
+
+test("task inputs preserve an explicitly picked tail frame, canvas frame bindings and ordered legacy attachments", async () => {
+    const frame = (id: string) => ({ id, name: id, type: "image/png", dataUrl: "", storageKey: "resource:" + id });
+    const first = frame("first");
+    const last = frame("last");
+    const options = { mode: "video" as const, prompt: "ocean", config: { ...config, nativeVariantId: "ark" } };
+    const tailOnly = await prepareBackendGenerationTask({ ...options, referenceImages: [{ ...last, role: "last_frame" }] });
+    expect(tailOnly.input?.referenceImages).toMatchObject([{ id: "last", role: "last_frame" }]);
+    const reversed = await prepareBackendGenerationTask({ ...options, referenceImages: [{ ...last, role: "reference" }, first], metadata: { videoEndFrameNodeId: last.id } });
+    expect(reversed.input?.referenceImages).toMatchObject([
+        { id: "first", role: "first_frame" },
+        { id: "last", role: "last_frame" },
+    ]);
+    const legacy = await prepareBackendGenerationTask({ ...options, referenceImages: [first, last] });
+    expect(legacy.input?.referenceImages).toEqual(reversed.input?.referenceImages);
+});
 
 test("native selection preserves exact values and ignores legacy video controls", () => {
     const settings = nativeMediaDefaults(config, selected, { nativeVariantId: "ark", nativeParameters: JSON.stringify(explicit) });

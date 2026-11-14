@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Popover } from "antd";
+import "./media-parameter-controls.css";
 import { Check, Clapperboard, Clock3, Image as ImageIcon, Layers, Monitor, Palette, SlidersHorizontal, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { ImageSizeDock } from "@/components/image-size-dock";
 import { nativeImageSizePointers, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
@@ -36,25 +37,25 @@ function display(value: unknown, group: Group) {
     return String(value);
 }
 
-export function MediaParameterControls({ mode, config, variants, onChange }: { mode: "image" | "video"; config: AiConfig; variants: NativeMediaVariant[]; onChange: (key: NativeMediaSettingKey, value: string) => void }) {
+export function MediaParameterControls({ mode, config, variants, onChange, canvas = false }: { mode: "image" | "video"; config: AiConfig; variants: NativeMediaVariant[]; onChange: (key: NativeMediaSettingKey, value: string) => void; canvas?: boolean }) {
     const [open, setOpen] = useState<Group | null>(null);
     const [sizeResetRevision, setSizeResetRevision] = useState(0);
     const variant = variants.find((v) => v.id === config.nativeVariantId);
     const image = mode === "image";
-    const modes = image && variant && !variant.workbench_parameters ? nativeMediaVariantOptions(variants) : nativeCreationModeOptions(variants, variant, !image);
-    const automaticImageMode = image && variant?.workbench_parameters && variants.every((v) => ["openai.image.generate", "openai.image.edit"].includes(v.gateway_protocol));
+    const modes = image && variant && !variant.workbench_parameters ? nativeMediaVariantOptions(variants) : nativeCreationModeOptions(variants, variant, !image && !canvas);
+    const automaticImageMode = !canvas && image && variant?.workbench_parameters && variants.every((v) => ["openai.image.generate", "openai.image.edit"].includes(v.gateway_protocol));
     const modeLabel = modes.find((mode) => mode.value === variant?.id)?.label ?? "选择模式";
     function menu(group: Group, label: string, icon: ReactNode, content: ReactNode) {
         return (
             <Popover
                 key={group}
                 trigger="click"
-                placement="bottomLeft"
+                placement={canvas ? "topLeft" : "bottomLeft"}
                 arrow={false}
                 open={open === group}
                 onOpenChange={(next) => setOpen((current) => (next ? group : current === group ? null : current))}
                 content={
-                    <div className="studio-video-menu" aria-label={group}>
+                    <div className="studio-video-menu" data-canvas-no-zoom data-canvas-wheel-scroll aria-label={group}>
                         {content}
                     </div>
                 }
@@ -67,7 +68,8 @@ export function MediaParameterControls({ mode, config, variants, onChange }: { m
         );
     }
     const modeMenu =
-        modes.length > 0 && (!image || !variant || (!automaticImageMode && modes.length > 1)) &&
+        modes.length > 0 &&
+        (!image || !variant || (!automaticImageMode && modes.length > 1)) &&
         menu(
             "生成模式",
             modeLabel,

@@ -4,6 +4,9 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { ChevronDown, Dice5, Image as ImageIcon, LoaderCircle, MessageSquare, Music2, Play, Video, Workflow as WorkflowIcon, AppWindow, SlidersHorizontal } from "lucide-react";
 
 import { Switch } from "@/components/ui/base/switch";
+import { MediaParameterControls } from "@/components/media-parameter-controls";
+import { ModelPicker } from "@/components/model-picker";
+import { nativeMediaProfile } from "@/lib/platform-native-media";
 
 import {
     configuredModelMatchesCapability,
@@ -129,6 +132,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
         ),
     };
     const config = buildNodeConfig(globalConfig, node, mode, requirements);
+    const native = workflowProvider === "model" && nativeMediaProfile(config);
     const defaultWorkflowCapability = normalizeRunningHubCapability(globalConfig.runningHub.capability);
     const selectedRunningHubWorkflow = globalConfig.runningHub.workflows.find(
         (item) => item.workflowId.trim() === node.metadata?.runningHubWorkflowId?.trim() && (!node.metadata?.runningHubWorkflowKind || runningHubWorkflowKind(item) === node.metadata.runningHubWorkflowKind),
@@ -282,7 +286,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                 <ChevronDown className="size-3.5 -rotate-90 opacity-45 transition-opacity duration-150 group-hover:opacity-80" />
             </button>
 
-            {mode === "video" && !simpleMode ? (
+            {mode === "video" && workflowProvider === "runninghub" && !simpleMode ? (
                 <div className="cursor-default" data-canvas-no-zoom onMouseDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
                     <div
                         className="flex h-9 min-w-0 items-center gap-2 rounded-lg border px-2 text-[var(--fs-label)]"
@@ -353,6 +357,20 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                                     onConfigChange(node.id, { runningHubWorkflowId: workflow?.workflowId, runningHubWorkflowKind: workflow?.kind, workflowParameters: {} });
                                 }}
                             />
+                        ) : native && (mode === "image" || mode === "video") ? (
+                            <div className="canvas-media-controls">
+                                <ModelPicker config={config} value={config.model} capability={mode} requirements={requirements} variant="creation" onChange={(model) => onConfigChange(node.id, { model })} />
+                                <MediaParameterControls
+                                    key={config.model + config.nativeVariantId}
+                                    canvas
+                                    mode={mode}
+                                    config={config}
+                                    variants={native.variants}
+                                    onChange={(key, value) =>
+                                        onConfigChange(node.id, key === "nativeVariantId" ? { nativeVariantId: value, nativeParameters: "{}", videoStartFrameNodeId: undefined, videoEndFrameNodeId: undefined } : { nativeParameters: value })
+                                    }
+                                />
+                            </div>
                         ) : null}
                     </div>
                 </div>

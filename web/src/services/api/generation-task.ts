@@ -3,6 +3,7 @@ import { createClientUUID } from "@/lib/client-id";
 import { normalizeAudioFormatForConfig, normalizeAudioVoiceForConfig } from "@/lib/audio-generation";
 import { imageParameterRequest } from "@/lib/image-parameters";
 import { nativeMediaProfile, nativeMediaVariant, nativeParameterValues } from "@/lib/platform-native-media";
+import { assignFrameSlots, publishedFrameRoles } from "@/lib/media-reference-slots";
 import { nativeImageSizeIssue } from "@/lib/platform-native-image-size";
 import { getMediaBlob } from "@/services/file-storage";
 import { getImageBlob } from "@/services/image-storage";
@@ -299,6 +300,17 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
     const workflow = resolveGenerationWorkflowExecution(config, mode);
     const logicalModelId = workflow ? "" : logicalModelIDForConfig(config);
     const platform = resolveModelChannel(config, config.model).modelCosts?.find((item) => item.model === modelOptionName(config.model))?.platform;
+    const frameRoles = !workflow && mode === "video" ? publishedFrameRoles(nativeMediaVariant(config)) : [];
+    let images = prepared.referenceImages;
+    if (frameRoles.length) {
+        const slots = assignFrameSlots(frameRoles, images, (image) => {
+            if (image.role === "first_frame" || image.role === "last_frame") return image.role;
+            if (image.id === metadata?.videoStartFrameNodeId) return "first_frame";
+            if (image.id === metadata?.videoEndFrameNodeId) return "last_frame";
+        });
+        if (images.length > slots.length) throw new Error("参考图片数量超过当前帧模式的上限");
+        images = slots.flatMap(({ role, attachment }) => (attachment ? [{ ...attachment, role }] : []));
+    }
     return {
         ...(projectId ? { projectId } : {}),
         type: `canvas_${mode}`,
@@ -316,7 +328,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
             capabilityOptions: logicalModelId ? logicalCapabilityOptions(config, mode) : undefined,
             textHistory: options.textHistory,
             ...(mode === "text" ? { textOptions: { stream: options.streamText !== false, ...(options.thinkingLevel ? { thinkingLevel: options.thinkingLevel } : {}) } } : {}),
-            referenceImages: prepared.referenceImages,
+            referenceImages: images,
             referenceVideos: prepared.referenceVideos,
             referenceAudios: prepared.referenceAudios,
             mask: prepared.mask,

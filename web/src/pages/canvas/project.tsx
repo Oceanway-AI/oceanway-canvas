@@ -136,6 +136,12 @@ import { isFrameNode } from "@/lib/canvas/canvas-frame";
 import { deriveStoryboardPipelineProgress } from "@/lib/canvas/canvas-storyboard-progress";
 import { CanvasOperationChangeToast, CanvasMergeStatusToast, CanvasUploadStatusToast } from "./canvas-project-feedback";
 import { getGenerationCount } from "@/lib/canvas/canvas-project-generation";
+import { applyNodeConfigPatch } from "@/lib/canvas/canvas-project-domain";
+import { canvasConnectionError } from "@/lib/canvas/canvas-connection-policy";
+import { resolveCanvasWorkflowProvider } from "@/lib/canvas/canvas-workflow";
+import { buildNodeConfig } from "@/components/canvas/canvas-node-prompt-config";
+import { nativeMediaProfile } from "@/lib/platform-native-media";
+import type { FrameRole } from "@/lib/media-reference-slots";
 import { canvasReferenceImageDimensions } from "@/lib/canvas/canvas-reference-image-size";
 import { cancelGenerationTask } from "@/services/api/task-center";
 import { CanvasTopBar, type CanvasProjectView } from "./canvas-project-top-bar";
@@ -1367,7 +1373,13 @@ function CanvasViewportPage() {
             const removedConnectionIds = new Set(previousConnections.filter((connection) => connection.fromNodeId === referenceNodeId && (connection.toNodeId === targetNodeId || connection.toNodeId === configNodeId)).map((connection) => connection.id));
             if (!removedConnectionIds.size) return;
             const nextConnections = previousConnections.filter((connection) => !removedConnectionIds.has(connection.id));
-            const nextNodes = applyCanvasConnectionPromptSync(previousNodes, previousConnections, previousNodes, nextConnections);
+            const clearedNodes = previousNodes.map((n) => {
+                if (n.id !== targetNodeId) return n;
+                const first = n.metadata?.videoStartFrameNodeId === referenceNodeId;
+                const last = n.metadata?.videoEndFrameNodeId === referenceNodeId;
+                return first || last ? applyNodeConfigPatch(n, { ...(first && { videoStartFrameNodeId: undefined }), ...(last && { videoEndFrameNodeId: undefined }) }) : n;
+            });
+            const nextNodes = applyCanvasConnectionPromptSync(previousNodes, previousConnections, clearedNodes, nextConnections);
             if (nextNodes !== previousNodes) {
                 nodesRef.current = nextNodes;
                 setNodes(nextNodes);
@@ -2266,10 +2278,48 @@ function CanvasViewportPage() {
         [effectiveConfig, message],
     );
 
+    const insertMediaReferences = useCallback(
+        async (targetId: string, items: InsertAssetPayload[], role?: FrameRole, replaceId?: string, variantId?: string) => {
+            const target = nodesRef.current.find((item) => item.id === targetId);
+            if (!target || target.metadata?.locked) throw new Error("无法修改该节点的参考素材");
+            if (!items.length || (role && (items.length !== 1 || items[0].kind !== "image"))) throw new Error("该帧需要选择一张图片");
+            const sources = await Promise.all(items.map((item, i) => createAssetPayloadNode(item, { x: target.position.x - 210, y: target.position.y + i * 240 })));
+            const previous = nodesRef.current;
+            const receiver = previous.find((item) => item.id === targetId);
+            if (!receiver || receiver.metadata?.locked) throw new Error("参考目标已变化");
+            const previousEdges = connectionsRef.current;
+            const configId = previousEdges.find((edge) => edge.fromNodeId === targetId && previous.some((n) => n.id === edge.toNodeId && n.type === CanvasNodeType.Config))?.toNodeId;
+            const replaced = replaceId && previousEdges.find((edge) => edge.fromNodeId === replaceId && (edge.toNodeId === targetId || edge.toNodeId === configId));
+            const usesConfigInputs = configId && previousEdges.some((edge) => edge.toNodeId === configId && edge.fromNodeId !== targetId);
+            const receiverId = replaced ? replaced.toNodeId : usesConfigInputs ? configId : targetId;
+            const edges = previousEdges.filter((edge) => edge !== replaced);
+            const patch = { ...(variantId && { nativeVariantId: variantId }), ...(role === "first_frame" && { videoStartFrameNodeId: sources[0]?.id }), ...(role === "last_frame" && { videoEndFrameNodeId: sources[0]?.id }) };
+            const nodes = [...previous.map((n) => (n.id === targetId && Object.keys(patch).length ? applyNodeConfigPatch(n, patch) : n)), ...sources];
+            for (const source of sources) {
+                const edge = { id: nanoid(), fromNodeId: source.id, toNodeId: receiverId };
+                const reason = canvasConnectionError(effectiveConfig, nodes, edges, edge);
+                if (reason) throw new Error(reason);
+                edges.push(edge);
+            }
+            const synced = applyCanvasConnectionPromptSync(previous, previousEdges, nodes, edges);
+            nodesRef.current = synced;
+            connectionsRef.current = edges;
+            setNodes(synced);
+            setConnections(edges);
+        },
+        [createAssetPayloadNode, effectiveConfig, nodesRef, connectionsRef, setNodes, setConnections],
+    );
+
     const renderCanvasNodePanel = useCallback(
         (panelNode: CanvasNodeData) => {
             if (panelNode.type === CanvasNodeType.Script || panelNode.type === CanvasNodeType.Drawing) return null;
-            return panelNode.type === CanvasNodeType.Config ? (
+            const mode = panelNode.metadata?.generationMode || "image";
+            const nativeConfigPanel =
+                panelNode.type === CanvasNodeType.Config &&
+                resolveCanvasWorkflowProvider(panelNode.metadata) === "model" &&
+                (mode === "image" || mode === "video") &&
+                nativeMediaProfile(buildNodeConfig(effectiveConfig, panelNode, mode, { capability: mode }));
+            return panelNode.type === CanvasNodeType.Config && !nativeConfigPanel ? (
                 <CanvasConfigComposer
                     nodeId={panelNode.id}
                     canvasId={projectId}
@@ -2309,6 +2359,7 @@ function CanvasViewportPage() {
                             return undefined;
                         }
                     }}
+                    onInsertMedia={insertMediaReferences}
                     onPromptChange={handleNodePromptChange}
                     onConfigChange={handleConfigNodeChange}
                     onGenerate={handleGenerateNode}
@@ -2346,6 +2397,7 @@ function CanvasViewportPage() {
             effectiveConfig,
             handleConfigNodeChange,
             handleGenerateNode,
+            insertMediaReferences,
             handleNodePromptChange,
             handleRemoveNodeReference,
             handleReorderNodeReferences,

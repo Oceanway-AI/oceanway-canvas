@@ -12,6 +12,7 @@ import { generationErrorCode, generationErrorMessage } from "@/lib/generation-er
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
 import { nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits } from "@/lib/platform-native-media";
+import { assignFrameSlots, publishedFrameRoles, type FrameRole } from "@/lib/media-reference-slots";
 import { creationResultAssetIds, creationResultResourceIds, type CreationCanvasSelection } from "@/lib/canvas/canvas-asset-handoff";
 import { loadCanvasResourceHandoffPayloads } from "@/services/canvas-resource-handoff";
 import { getActiveUserScope } from "@/lib/user-scope";
@@ -194,6 +195,7 @@ export default function CreatePage() {
     const [historyOpen, setHistoryOpen] = useState(false);
     const { openAuth } = useAuthEntry();
     const [libraryOpen, setLibraryOpen] = useState(false);
+    const [framePicker, setFramePicker] = useState<FrameRole | null>(null);
     const externalAssetSources = useExternalAssetSources(libraryOpen);
     const abortRef = useRef<AbortController | null>(null);
     const composerFocusRef = useRef<HTMLTextAreaElement>(null);
@@ -302,7 +304,12 @@ export default function CreatePage() {
             ? imageProfile?.references.maxImages || 0
             : 6;
     const requiredImages = mode === "image" ? nativeProfile?.variants.find((v) => v.id === nativeSettings.nativeVariantId)?.native_request_variant.native_reference_inputs?.find((ref) => ref.role === "reference_image")?.min_items || 0 : 0;
-    const missingReferenceImages = (modelRequirements.input?.imageCount || 0) < requiredImages;
+    const frameRoles = mode === "video" ? publishedFrameRoles(nativeCreation?.referenceVariant) : [];
+    const frameSlots = assignFrameSlots(frameRoles, splitCreationAttachments(attachments).referenceImages, (image) => image.role);
+    const missingFrame =
+        nativeSettings.nativeVariantId === nativeCreation?.referenceVariant?.id &&
+        frameSlots.find((slot) => !slot.attachment && nativeCreation?.referenceVariant?.native_request_variant.native_reference_inputs.some((ref) => ref.role === slot.role && (ref.min_items || 0) > 0));
+    const missingReferenceImages = Boolean(missingFrame) || (modelRequirements.input?.imageCount || 0) < requiredImages;
     const referenceImageSize = useMemo(() => {
         const imageAttachments = attachments.filter(isImageAttachment);
         if (imageAttachments.length !== 1) return undefined;
@@ -749,6 +756,19 @@ export default function CreatePage() {
             attachment: creationAttachmentFromImage(file, uploaded),
         };
     };
+    const applySelectedFrame = (items: CreationAttachment[]) => {
+        if (!framePicker) return false;
+        const target = frameSlots.find((slot) => slot.role === framePicker);
+        const image = splitCreationAttachments(items).referenceImages[0];
+        if (!target || !image) throw new Error("该帧需要选择一张图片");
+        if (frameSlots.some((slot) => slot.role !== framePicker && slot.attachment?.id === image.id)) throw new Error("该图片已用于另一帧");
+        const replacement = { ...image, role: framePicker };
+        if (target.attachment && target.attachment.id !== image.id) replaceAttachmentReference(target.attachment.id, replacement);
+        else if (!target.attachment) setAttachments((current) => [...current, replacement]);
+        setLibraryOpen(false);
+        setFramePicker(null);
+        return true;
+    };
     const addPlatformReferences = (items: InsertAssetPayload[]) => {
         const next: CreationAttachment[] = [];
         for (const item of items) {
@@ -762,6 +782,7 @@ export default function CreatePage() {
                 next.push({ ...common, type: item.mimeType || "audio/mpeg", url: item.url, previewUrl: item.url, durationMs: item.durationMs });
             }
         }
+        if (applySelectedFrame(next)) return;
         setAttachments((current) => {
             const candidates = [...current, ...next.filter((item) => !current.some((existing) => existing.storageKey === item.storageKey))];
             const result = mode === "video" && videoReferenceLimits ? reconcileCreationAttachmentLimits(candidates, [], videoReferenceLimits) : reconcileCreationAttachmentLimit(candidates, [], maxReferences);
@@ -794,6 +815,7 @@ export default function CreatePage() {
         const cachedIds = new Set(useAssetStore.getState().assets.map((asset) => asset.id));
         const uncachedAssetIds = pickedItems.filter((item) => item.asset && selected.has(item.id) && !cachedIds.has(item.id)).map((item) => item.id);
         if (uncachedAssetIds.length) await loadAssetsForUse(uncachedAssetIds);
+        if (applySelectedFrame(next)) return;
         setAttachments((current) => {
             const candidates = [...current.filter((item) => !next.some((candidate) => candidate.id === item.id)), ...next];
             const reconciled = mode === "video" && videoReferenceLimits ? reconcileCreationAttachmentLimits(candidates, [], videoReferenceLimits) : reconcileCreationAttachmentLimit(candidates, [], maxReferences);
@@ -910,7 +932,7 @@ export default function CreatePage() {
             return;
         }
         if (missingReferenceImages) {
-            toast.warning(`请添加至少 ${requiredImages} 张参考图`);
+            toast.warning(missingFrame ? `请添加${missingFrame.role === "first_frame" ? "首帧" : "尾帧"}图片` : `请添加至少 ${requiredImages} 张参考图`);
             releaseRetryLock();
             releaseSubmitGate();
             return;
@@ -931,7 +953,8 @@ export default function CreatePage() {
         const settings = { ratio, seconds, quality, videoQuality, count, ...nativeSettings };
         const references = selectedCreationReferences(text, mentionReferences);
         // 后端对图片和视频使用不同的参考字段；这里先拆分，避免媒体类型在写入任务时被误判。
-        const { referenceImages, referenceVideos, referenceAudios } = splitCreationAttachments(attachments);
+        const { referenceImages: images, referenceVideos, referenceAudios } = splitCreationAttachments(attachments);
+        const referenceImages = frameSlots.length ? frameSlots.flatMap(({ role, attachment }) => (attachment ? [{ ...attachment, role }] : [])) : images.map((image) => ({ ...image, role: undefined }));
         const videoOperation = inferVideoOperation({
             textCount: text ? 1 : 0,
             imageCount: referenceImages.length,
@@ -1488,7 +1511,15 @@ export default function CreatePage() {
         onReorderAttachments: reorderAttachments,
         onReplaceAttachment: replaceReferenceFromTrack,
         onReplaceReferenceFiles: replaceReferenceFromFiles,
-        onOpenLibrary: () => setLibraryOpen(true),
+        frameSlots,
+        onOpenFrame: (role: FrameRole) => {
+            setFramePicker(role);
+            setLibraryOpen(true);
+        },
+        onOpenLibrary: () => {
+            setFramePicker(null);
+            setLibraryOpen(true);
+        },
         onModeChange: selectMode,
         model: selectedModel,
         modelRequirements,
@@ -1712,15 +1743,20 @@ export default function CreatePage() {
                     {platformIdentity ? (
                         <PlatformMaterialPicker
                             open={libraryOpen}
-                            imageReferences={mode === "image"}
+                            imageReferences={mode === "image" || Boolean(framePicker)}
+                            multiple={!framePicker}
                             disabledReason={(kind) => creationLibraryDisabledReason(mode, kind, videoReferenceLimits)}
-                            onClose={() => setLibraryOpen(false)}
+                            onClose={() => {
+                                setLibraryOpen(false);
+                                setFramePicker(null);
+                            }}
                             onInsert={addPlatformReferences}
                         />
                     ) : (
                         <AssetLibraryPickerModal
                             remoteLibrary
                             acceptRemoteItems
+                            multiple={!framePicker}
                             remoteItemDisabledReason={(asset) => creationLibraryDisabledReason(mode, asset.kind, videoReferenceLimits)}
                             open={libraryOpen}
                             items={libraryItems}
@@ -1733,7 +1769,10 @@ export default function CreatePage() {
                                 onUpload: uploadLibraryAssets,
                                 external: { accept: "image/*", description: t("create.page.uploadHintEagle"), onUpload: (files, folderId) => externalAssetSources.uploadExternalFiles(files, folderId) },
                             }}
-                            onClose={() => setLibraryOpen(false)}
+                            onClose={() => {
+                                setLibraryOpen(false);
+                                setFramePicker(null);
+                            }}
                             onConfirm={handleLibrarySelect}
                         />
                     )}

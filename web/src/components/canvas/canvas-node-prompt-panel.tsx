@@ -4,6 +4,12 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { ArrowUp, ChevronDown, FileText, ImagePlus, LayoutList, LoaderCircle, Maximize2, Music2, SlidersHorizontal, Video, X, PenLine } from "lucide-react";
 
 import { ModelPicker } from "@/components/model-picker";
+import { MediaParameterControls } from "@/components/media-parameter-controls";
+import { ReferenceSlot } from "@/components/reference-slot";
+import { PlatformMaterialPicker } from "@/components/assets/platform-material-picker";
+import type { InsertAssetPayload } from "./asset-picker-modal";
+import { assignFrameSlots, publishedFrameRoles, type FrameRole } from "@/lib/media-reference-slots";
+import { nativeImageReferenceVariant, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
 import { modelOptionName, resolveModelChannel, selectableModelsByCapability, useEffectiveConfig } from "@/stores/use-config-store";
 import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
 import { canonicalGenerationMetadata, nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
@@ -73,6 +79,7 @@ type CanvasNodePromptPanelProps = {
     onClose?: () => void;
     onNodeMouseDown?: (event: ReactPointerEvent, nodeId: string) => void;
     onImageSettingsOpenChange?: (open: boolean) => void;
+    onInsertMedia?: (id: string, items: InsertAssetPayload[], role?: FrameRole, replaceId?: string, variantId?: string) => Promise<void>;
     workspaceMode?: CanvasWorkspaceMode;
     onListGenerate?: (nodeId: string, prompt: string) => void;
     /** 第一张上游参考图的尺寸；图片尺寸未由用户选择时按它的比例显示和生成。 */
@@ -112,6 +119,7 @@ export function CanvasNodePromptPanel({
     onClose,
     onNodeMouseDown,
     onImageSettingsOpenChange,
+    onInsertMedia,
     workspaceMode = "professional",
     onListGenerate,
     referenceImageSize,
@@ -124,7 +132,7 @@ export function CanvasNodePromptPanel({
     const promptOptimizerInstallation = usePluginStore((state) => state.installations.find((item) => item.manifest.id === PROMPT_OPTIMIZER_PLUGIN_ID));
     const promptOptimizerEnabled = usePluginStore((state) => state.pluginStates[PROMPT_OPTIMIZER_PLUGIN_ID]?.effectiveEnabled ?? Boolean(state.installations.find((item) => item.manifest.id === PROMPT_OPTIMIZER_PLUGIN_ID)?.enabled));
     const simpleMode = workspaceMode === "simple";
-    const mode = defaultMode(node.type);
+    const mode = node.type === CanvasNodeType.Config ? node.metadata?.generationMode || "image" : defaultMode(node.type);
     const showPromptTemplates = !simpleMode && mode !== "image";
     node = { ...node, metadata: canonicalGenerationMetadata(node, mode) };
     const hasTextContent = node.type === CanvasNodeType.Text && Boolean(node.metadata?.content?.trim());
@@ -202,6 +210,23 @@ export function CanvasNodePromptPanel({
         ),
     };
     const config = buildNodeConfig(globalConfig, node, mode, requirements, referenceImageSize);
+    const native = (mode === "image" || mode === "video") && nativeMediaProfile(config);
+    const variant = nativeMediaVariant(config);
+    const referenceVariant = mode === "image" ? nativeImageReferenceVariant(config, config.model, variant) : variant;
+    const limits = nativeMediaReferenceLimits(config, config.model, referenceVariant);
+    const frameRoles = publishedFrameRoles(referenceVariant);
+    const frameSlots = assignFrameSlots(
+        frameRoles,
+        activeReferences.filter((r) => r.kind === "image"),
+        (r) => (r.nodeId === node.metadata?.videoStartFrameNodeId ? "first_frame" : r.nodeId === node.metadata?.videoEndFrameNodeId ? "last_frame" : undefined),
+    );
+    const [pickSlot, setPickSlot] = useState<FrameRole | "reference" | null>(null);
+    const hasSlots = Boolean(onInsertMedia && native && limits && (limits.maxImages || limits.maxVideos || limits.maxAudios));
+    const fullKind = (kind: string) => {
+        if (!limits) return true;
+        const max = kind === "image" ? limits.maxImages : kind === "audio" ? limits.maxAudios : kind === "video" ? limits.maxVideos : 0;
+        return activeReferences.filter((r) => r.kind === kind || (kind === "image" && r.kind === "character")).length >= max;
+    };
     const profile = modelCapabilityConfigFor(config, config.model);
     const modelAvailable = selectableModelsByCapability(config, mode).includes(config.model) && (mode === "image" ? Boolean(profile.image) : mode === "video" ? Boolean(profile.video) : true);
     const resolvedRequirements: ModelRequirements = {
@@ -231,7 +256,7 @@ export function CanvasNodePromptPanel({
     const credits = routeQuote ? routeQuote.amountMicrocredits / 1_000_000 : configuredCredits;
     const activeReferenceCount = activeReferences.length;
     const videoFrameOptions = resolvedMentionReferences.filter((item) => item.active && item.kind === "image").map((item) => ({ nodeId: item.nodeId, label: item.label, title: item.title, previewUrl: item.previewUrl }));
-    const hasVideoPromptTools = mode === "video" && !simpleMode && videoFrameOptions.length > 0;
+    const hasVideoPromptTools = mode === "video" && !native && !simpleMode && videoFrameOptions.length > 0;
     const monochromeAccent = theme.node.activeStroke;
     const composerTokens = {
         "--canvas-composer-surface": theme.node.panel,
@@ -246,16 +271,18 @@ export function CanvasNodePromptPanel({
         color: theme.node.text,
         boxShadow: theme.node.shadow,
     } as CSSProperties;
-    const promptBounds = promptEditorBounds(false, activeReferenceCount > 0, fontSize);
-    const expandedPromptBounds = promptEditorBounds(true, activeReferenceCount > 0, fontSize);
-    const composerHeight = clampPromptHeight(manualPromptHeight ?? promptContentHeight + (activeReferenceCount ? PROMPT_REFERENCE_SHELF_HEIGHT : 0), promptBounds);
-    const expandedComposerHeight = clampPromptHeight(expandedPromptContentHeight + (activeReferenceCount ? PROMPT_REFERENCE_SHELF_HEIGHT : 0), expandedPromptBounds);
+    const hasShelf = hasSlots || activeReferenceCount > 0;
+    const promptBounds = promptEditorBounds(false, hasShelf, fontSize);
+    const expandedPromptBounds = promptEditorBounds(true, hasShelf, fontSize);
+    const composerHeight = clampPromptHeight(manualPromptHeight ?? promptContentHeight + (hasShelf ? PROMPT_REFERENCE_SHELF_HEIGHT : 0), promptBounds);
+    const expandedComposerHeight = clampPromptHeight(expandedPromptContentHeight + (hasShelf ? PROMPT_REFERENCE_SHELF_HEIGHT : 0), expandedPromptBounds);
     const measureExpandedModalSize = () => {
         const rect = expandedModalRef.current?.getBoundingClientRect();
         if (!rect?.width || !rect.height) return { width: PROMPT_EDITOR_MODAL_DEFAULT_WIDTH, height: PROMPT_EDITOR_MODAL_DEFAULT_HEIGHT };
         return { width: Math.round(rect.width), height: Math.round(rect.height) };
     };
-    const isSubmitDisabled = !modelAvailable || !prompt.trim();
+    const missingFrame = frameSlots.some((slot) => !slot.attachment && variant?.native_request_variant.native_reference_inputs.some((ref) => ref.role === slot.role && (ref.min_items || 0) > 0));
+    const isSubmitDisabled = !modelAvailable || !prompt.trim() || missingFrame;
     const canExpandPrompt = mode === "image" || mode === "video";
     const canOptimizePrompt = Boolean(promptOptimizerProvider) && canExpandPrompt;
     const isPortraitTexture = mode === "image" && Boolean(node.metadata?.portraitTexture);
@@ -503,7 +530,7 @@ export function CanvasNodePromptPanel({
     };
 
     const renderComposerControls = (expanded: boolean) =>
-        simpleMode ? (
+        simpleMode && !native ? (
             <div className="canvas-node-composer-footer">
                 <span className="min-w-0 truncate px-2 text-[var(--fs-tiny)]" style={{ color: theme.node.muted }}>
                     {!modelAvailable ? "当前模式暂无可用模型" : activeReferenceCount ? `已连接 ${activeReferenceCount} 个素材` : "将使用默认模型与参数"}
@@ -534,7 +561,7 @@ export function CanvasNodePromptPanel({
                         </span>
                     ) : null}
                 </div>
-                <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1">
+                <div className={native ? "canvas-media-controls" : "ml-auto flex min-w-0 shrink-0 items-center gap-1"}>
                     <ReferenceToolsPopover
                         canAutoMention={canAutoMention}
                         autoLinkEnabled={autoLinkEnabled}
@@ -589,6 +616,22 @@ export function CanvasNodePromptPanel({
                                 </span>
                             )}
                         </>
+                    ) : native && (mode === "image" || mode === "video") && modelAvailable ? (
+                        <>
+                            {mode === "image" && !simpleMode && (
+                                <CanvasCameraControlPopover cameraControl={node.metadata?.cameraControl} onCameraControlChange={(cameraControl) => onConfigChange(node.id, { cameraControl })} theme={theme} compact={!expanded} />
+                            )}
+                            <MediaParameterControls
+                                key={node.id + config.model + config.nativeVariantId}
+                                canvas
+                                mode={mode}
+                                config={config}
+                                variants={native.variants}
+                                onChange={(key, value) =>
+                                    onConfigChange(node.id, key === "nativeVariantId" ? { nativeVariantId: value, nativeParameters: "{}", videoStartFrameNodeId: undefined, videoEndFrameNodeId: undefined } : { nativeParameters: value })
+                                }
+                            />
+                        </>
                     ) : mode === "image" && modelAvailable ? (
                         // 图片模式下，显示相机配置与镜头配置
                         <>
@@ -618,16 +661,33 @@ export function CanvasNodePromptPanel({
         return (
             <>
                 <div className={fill ? "canvas-node-composer-editor flex-1" : "canvas-node-composer-editor"} style={fill ? { minHeight: bounds.min } : { height, ...(expanded ? { flexShrink: 0 } : null) }}>
-                    <ConnectedReferenceShelf
-                        targetNodeId={node.id}
-                        references={resolvedMentionReferences}
-                        theme={theme}
-                        onInsert={insertPromptReference}
-                        onRemove={(reference) => onRemoveReference?.(node.id, reference)}
-                        onReorder={onReorderReferences ? (orderedNodeIds) => onReorderReferences(node.id, orderedNodeIds) : undefined}
-                        onReplaceReference={onReplaceReference ? (oldReference, sourceNodeId) => onReplaceReference(node.id, oldReference, sourceNodeId) : undefined}
-                        onReplaceReferenceFiles={onReplaceReferenceFiles ? (oldReference, files) => onReplaceReferenceFiles(node.id, oldReference, files) : undefined}
-                    />
+                    <div className="studio-reference-slots">
+                        {hasSlots &&
+                            (frameSlots.length ? (
+                                frameSlots.map(({ role, attachment }) => (
+                                    <ReferenceSlot
+                                        key={role}
+                                        role={role}
+                                        src={attachment?.previewUrl}
+                                        disabled={isRunning || node.metadata?.locked}
+                                        onPick={() => setPickSlot(role)}
+                                        onRemove={attachment && onRemoveReference ? () => onRemoveReference(node.id, attachment) : undefined}
+                                    />
+                                ))
+                            ) : (
+                                <ReferenceSlot label={mode === "image" ? "参考图" : "参考内容"} onPick={() => setPickSlot("reference")} disabled={isRunning || node.metadata?.locked || ["image", "video", "audio"].every(fullKind)} />
+                            ))}
+                        <ConnectedReferenceShelf
+                            targetNodeId={node.id}
+                            references={resolvedMentionReferences.filter((r) => !frameSlots.some((slot) => slot.attachment?.id === r.id))}
+                            theme={theme}
+                            onInsert={insertPromptReference}
+                            onRemove={(reference) => onRemoveReference?.(node.id, reference)}
+                            onReorder={onReorderReferences ? (orderedNodeIds) => onReorderReferences(node.id, orderedNodeIds) : undefined}
+                            onReplaceReference={onReplaceReference ? (oldReference, sourceNodeId) => onReplaceReference(node.id, oldReference, sourceNodeId) : undefined}
+                            onReplaceReferenceFiles={onReplaceReferenceFiles ? (oldReference, files) => onReplaceReferenceFiles(node.id, oldReference, files) : undefined}
+                        />
+                    </div>
                     <CanvasResourceMentionTextarea
                         value={prompt}
                         readOnly={Boolean(node.metadata?.locked)}
@@ -672,6 +732,27 @@ export function CanvasNodePromptPanel({
             onApply={(nextPrompt) => updatePrompt(nextPrompt)}
         >
             <div className="canvas-node-composer" style={composerSurfaceStyle} onMouseDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()} onWheel={(event) => event.stopPropagation()}>
+                {pickSlot && onInsertMedia && (
+                    <PlatformMaterialPicker
+                        open
+                        multiple={pickSlot === "reference"}
+                        imageReferences={mode === "image" || pickSlot !== "reference"}
+                        disabledReason={(kind) => (pickSlot === "reference" && fullKind(kind) ? "当前模式不支持更多此类素材" : undefined)}
+                        onClose={() => setPickSlot(null)}
+                        onInsert={async (items) => {
+                            if (pickSlot === "reference" && limits) {
+                                for (const [kind, max] of [
+                                    ["image", limits.maxImages],
+                                    ["video", limits.maxVideos],
+                                    ["audio", limits.maxAudios],
+                                ] as const) {
+                                    if (items.filter((i) => i.kind === kind).length + activeReferences.filter((r) => r.kind === kind || (kind === "image" && r.kind === "character")).length > max) throw new Error("所选素材超过当前模式的参考数量上限");
+                                }
+                            }
+                            await onInsertMedia(node.id, items, pickSlot === "reference" ? undefined : pickSlot, frameSlots.find((s) => s.role === pickSlot)?.attachment?.nodeId, referenceVariant?.id !== variant?.id ? referenceVariant?.id : undefined);
+                        }}
+                    />
+                )}
                 {renderComposerHeader(false)}
 
                 {renderPromptEditor(false)}
