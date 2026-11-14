@@ -1,3 +1,5 @@
+import { useStudioAccount } from "@/hooks/use-studio-account";
+import { studioTaskUsageURL } from "@/services/api/studio-account";
 import { App, Button } from "antd";
 import { AlertCircle, Bug, Copy, Maximize2, RefreshCw, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -97,6 +99,7 @@ function TaskDetailContent({
     onCopy: (value: string) => void;
 }) {
     const { t } = useTranslation();
+    const { account } = useStudioAccount();
     const KindIcon = taskKindIcon(task);
     const active = isTaskActive(task);
     const failed = isTaskFailed(task);
@@ -223,6 +226,16 @@ function TaskDetailContent({
                                     <dd title={fact.value}>{fact.value}</dd>
                                 </div>
                             ))}
+                            {platformMedia && account?.usageUrl && (
+                                <div>
+                                    <dt>OceanWay 消费</dt>
+                                    <dd>
+                                        <a href={studioTaskUsageURL(account.usageUrl, task)} target="_blank" rel="noopener noreferrer">
+                                            {task.agentRunId ? "查看本轮 Agent 用量与流水 ↗" : "查看本次实际用量与流水 ↗"}
+                                        </a>
+                                    </dd>
+                                </div>
+                            )}
                             {creditsEnabled && task.billing ? (
                                 <div>
                                     <dt>{t("library.tasks.detail.billing")}</dt>

@@ -57,7 +57,8 @@ test("平台审批卡先报价、保留精确积分、批准时不混入可编�
         expect(quotes).toBe(1);
         expect(approvals).toBe(0);
         await act(async () => render(true));
-        expect(host.textContent).toContain("0.123456789");
+        expect(host.textContent).toContain("个人空间");
+        expect(host.textContent).toContain("✦ 0.123456789");
         expect(button("同意执行").disabled).toBe(false);
         await act(async () => button("同意执行").click());
         expect(approvals).toBe(1);

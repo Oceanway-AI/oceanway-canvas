@@ -198,7 +198,7 @@ test("Seedance picker prices all reference video seconds and withholds an incomp
         },
     ];
     const input = { videoCount: 2, textCount: 1, imageCount: 0, audioCount: 0, characterCount: 0 };
-    expect(render(undefined, { capability: "video", input: { ...input, videoDurationsMs: [1500, 2500] } })).toContain("≈ 163.296 积分/s");
+    expect(render(undefined, { capability: "video", input: { ...input, videoDurationsMs: [1500, 2500] } })).toContain("≈ ✦ 163.296/s");
     expect(render(undefined, { capability: "video", input: { ...input, videoDurationsMs: [1500] } })).toContain("暂时无法预估费用");
 });
 

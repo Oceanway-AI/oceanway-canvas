@@ -1,0 +1,180 @@
+/* Colors follow the host theme. Dimensions use the OceanWay Platform foundation. */
+.ow-account-bar,
+.ow-account-panel,
+.ow-account-avatar {
+  box-sizing: border-box;
+  font-family: var(--ow-font-ui, inherit);
+}
+.ow-account-bar {
+  display: inline-flex;
+  align-items: center;
+  column-gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--foreground, CanvasText);
+}
+.ow-account-control,
+.ow-account-user {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 32px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--ow-radius-small, 8px);
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-decoration: none;
+}
+.ow-account-user {
+  padding: 0;
+  border-radius: 50%;
+  flex: none;
+}
+.ow-account-brand {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  background: url("./oceanway-ai-app-micro.svg") center/contain no-repeat;
+}
+.ow-account-name,
+.ow-account-space span {
+  min-width: 0;
+  max-width: 10em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ow-account-name {
+  font-weight: 600;
+}
+.ow-account-space {
+  border-inline-start: 1px solid
+    var(--border, color-mix(in srgb, currentColor 16%, transparent));
+  border-radius: 0;
+}
+.ow-account-space:disabled {
+  opacity: 1;
+  color: inherit;
+}
+.ow-account-bar :is(a[href], button:enabled),
+.ow-account-panel :is(a[href], button:enabled) {
+  cursor: pointer;
+}
+.ow-account-bar :is(a[href], button:enabled):hover,
+.ow-account-panel :is(a[href], button:enabled):hover,
+.ow-account-panel [aria-current] {
+  background-color: color-mix(in srgb, currentColor 9%, transparent);
+}
+.ow-account-bar :focus-visible,
+.ow-account-panel :focus-visible {
+  outline: 2px solid var(--ring, currentColor);
+  outline-offset: 2px;
+}
+.ow-account-avatar {
+  width: var(--ow-avatar-size);
+  height: var(--ow-avatar-size);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, currentColor 11%, transparent);
+  color: inherit;
+  font-size: calc(var(--ow-avatar-size) * 0.44);
+  font-weight: 600;
+  line-height: 1;
+}
+.ow-account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ow-credit-amount {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.ow-account-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ow-account-panel {
+  position: fixed;
+  z-index: 1100;
+  width: min(270px, calc(100vw - 16px));
+  padding: 8px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+  display: grid;
+  gap: 2px;
+  border-radius: var(--ow-radius-card, 16px);
+  border: 1px solid
+    var(--border, color-mix(in srgb, currentColor 18%, transparent));
+  box-shadow: var(--ow-shadow-overlay, 0 12px 32px rgb(7 27 45 / 12%));
+  background: var(--popover, var(--ow-color-surface, Canvas));
+  color: var(--popover-foreground, var(--foreground, CanvasText));
+  font-size: 14px;
+  line-height: 1.4;
+}
+.ow-account-panel > strong,
+.ow-account-panel header,
+.ow-account-row {
+  padding: 6px 8px;
+}
+.ow-account-panel header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ow-account-panel a,
+.ow-account-panel button {
+  box-sizing: border-box;
+  display: block;
+  padding: 8px;
+  text-align: start;
+  border: 0;
+  border-radius: var(--ow-radius-small, 8px);
+  background: transparent;
+  text-decoration: none;
+  color: inherit;
+  font: inherit;
+}
+.ow-account-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ow-account-row > :last-child {
+  text-align: end;
+}
+.ow-account-bar[data-compact] .ow-account-name {
+  display: none;
+}
+.ow-account-bar[data-compact] .ow-account-space span {
+  max-width: 5.5em;
+}
+@media (max-width: 600px) {
+  .ow-account-bar {
+    gap: 2px;
+  }
+  .ow-account-name {
+    display: none;
+  }
+  .ow-account-space span {
+    max-width: 4.5em;
+  }
+  .ow-account-control {
+    padding-inline: 3px;
+  }
+}

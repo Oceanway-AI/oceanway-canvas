@@ -4,6 +4,7 @@ import { Clapperboard, CloudDownload, CopyPlus, Focus, FolderKanban, Home, Layou
 import { Button, Dropdown } from "antd";
 import { AntTooltip as Tooltip } from "@/components/ui/base/tooltip/ant-tooltip";
 
+import { StudioAccountBar } from "@/components/layout/studio-account-bar";
 import { WorkspaceCreditGiftMark } from "@/components/layout/workspace-credit-gift-mark";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
@@ -78,7 +79,8 @@ export function CanvasTopBar({
     const theme = canvasThemes[useCanvasThemeStore((state) => state.theme)];
     const dockStyle = canvasDockStyle(theme, theme.node.text);
     const user = useUserStore((state) => state.user);
-    const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const creditsEnabled = useUserStore((state) => !state.platformIdentity && state.features.creditsEnabled);
     const { availableMicrocredits, refreshing } = useWalletBalance(user?.id, creditsEnabled);
     const titleRef = useRef<HTMLDivElement>(null);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -224,6 +226,7 @@ export function CanvasTopBar({
                             </Button>
                         </Dropdown>
                     </CanvasTopBarTooltip>
+                    {user && platformIdentity && <StudioAccountBar compact />}
                     {user && creditsEnabled ? (
                         <CanvasTopBarTooltip label="打开积分中心">
                             <button

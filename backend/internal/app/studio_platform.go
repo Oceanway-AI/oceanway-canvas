@@ -75,6 +75,11 @@ func platformIdentityError(err error) error {
 	return NewAppError(503, "暂时无法验证登录状态，请稍后重试")
 }
 
+func (s *Service) studioUserID(platformID int) string {
+	subject := s.studioPlatform.Origin() + "\n" + strconv.Itoa(platformID)
+	return uuid.NewSHA1(uuid.NameSpaceURL, []byte(subject)).String()
+}
+
 func (s *Service) StudioCurrentUser(ctx context.Context, session platformclient.SessionContext) (*model.User, *platformclient.Response, error) {
 	if s.studioPlatform == nil {
 		return nil, nil, NewAppError(503, "Platform 尚未配置")
@@ -90,7 +95,7 @@ func (s *Service) StudioCurrentUser(ctx context.Context, session platformclient.
 		return nil, result.Response, Unauthorized("登录状态已失效")
 	}
 	subject := s.studioPlatform.Origin() + "\n" + strconv.Itoa(identity.User.ID)
-	id := uuid.NewSHA1(uuid.NameSpaceURL, []byte(subject)).String()
+	id := s.studioUserID(identity.User.ID)
 	now := time.Now()
 	user, err := s.repo.WithContext(ctx).SyncPlatformUser(model.User{
 		ID: id, Username: "platform_" + id, DisplayName: identity.User.DisplayName, Email: identity.User.Email,
@@ -103,6 +108,7 @@ func (s *Service) StudioCurrentUser(ctx context.Context, session platformclient.
 	// Role is derived from this response and is intentionally never persisted.
 	user.Username = identity.User.Username
 	user.PlatformAuthenticated = true
+	user.PlatformAvatarURL = identity.User.AvatarURL
 	user.PlatformSessionID = identity.Session.SID
 	for _, role := range identity.ProductRoles {
 		if role == "studio:admin" {

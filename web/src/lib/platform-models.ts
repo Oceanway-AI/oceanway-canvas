@@ -108,9 +108,14 @@ export function platformPriceRangesLabel(ranges: PlatformPriceRange[]) {
         .map((range) => {
             const amount = range.min === range.max ? range.min : `${range.min}–${range.max}`;
             const dimension = priceDimensionLabel(range.dimension);
-            return `${dimension ? `${dimension} ` : ""}${amount} 积分/${priceDenominator(range)}`;
+            return `${dimension ? `${dimension} ` : ""}✦ ${amount}/${priceDenominator(range)}`;
         })
         .join(" · ");
+}
+
+// Screen readers need a spoken currency name for published single amounts and ranges.
+export function spokenPlatformPrice(label: string) {
+    return label.replace(/✦ (-?\d+(?:\.\d+)?(?:–-?\d+(?:\.\d+)?)?)/g, "$1 OceanWay 积分");
 }
 
 export function platformModelPriceLabel(model: PlatformModel) {
@@ -128,7 +133,7 @@ export function platformPriceConditions(ranges: PlatformPriceRange[]) {
                         .map(([name, value]) => `${name}=${JSON.stringify(value)}`)
                         .join(", ") || "默认规格";
                 const dimension = priceDimensionLabel(range.dimension);
-                return `${condition.model_name} · ${spec} · ${dimension ? `${dimension} ` : ""}${condition.amount} 积分/${priceDenominator(range)} · ${condition.price_version}`;
+                return `${condition.model_name} · ${spec} · ${dimension ? `${dimension} ` : ""}✦ ${condition.amount}/${priceDenominator(range)} · ${condition.price_version}`;
             }),
         )
         .join("\n");
@@ -178,6 +183,6 @@ export function platformPriceLabel(price: PlatformPrice) {
     const labels: Record<string, string> = { input: "输入", output: "输出", cached: "缓存", cache_read: "缓存读取", cache_write: "缓存写入", price: "", fixed: "" };
     const rates = Object.entries(price.rates || {})
         .filter(([, value]) => typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value))
-        .map(([name, value]) => `${labels[name] ?? name} ${value} 积分/${unit}`.trim());
+        .map(([name, value]) => `${labels[name] ?? name} ✦ ${value}/${unit}`.trim());
     return rates.join(" · ") || "按实际规格报价";
 }

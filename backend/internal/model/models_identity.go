@@ -3,6 +3,7 @@ package model
 import "time"
 
 type User struct {
+	PlatformAvatarURL     string     `json:"avatarUrl,omitempty" gorm:"-"`
 	PlatformAuthenticated bool       `json:"-" gorm:"-"`
 	PlatformSessionID     string     `json:"-" gorm:"-"`
 	ID                    string     `json:"id" gorm:"primaryKey;size:36"`

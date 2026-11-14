@@ -7,7 +7,7 @@ import { ModelPickerPanel } from "@oceanway/model-picker";
 import { usePopoverAnchorAlign } from "@/hooks/use-popover-anchor-align";
 
 import { imageQualityLabel } from "@/lib/image-quality";
-import { platformModelPriceLabel, platformPriceRangesLabel, platformPriceConditions, platformFeatureSummaries, platformHealthLabel, platformHealthTone, type PlatformModelHealth } from "@/lib/platform-models";
+import { spokenPlatformPrice, platformModelPriceLabel, platformPriceRangesLabel, platformPriceConditions, platformFeatureSummaries, platformHealthLabel, platformHealthTone, type PlatformModelHealth } from "@/lib/platform-models";
 import { canvasThemes, type CanvasTheme } from "@/lib/canvas-theme";
 import { modelCapabilityConfigFor, videoDurationOptions } from "@/lib/model-capabilities";
 import { formatPriceRange, modelQuoteDescription, modelQuoteRequest, normalizeTierResolution, priceTierSummaryLabel, priceTiersForCurrentSelection, referenceVideoBillingLabel, tokenPriceRuleDescription } from "@/lib/model-pricing";
@@ -419,9 +419,9 @@ export function ModelLabel({
         const referenceSeconds = durations?.length === videoCount && durations.every((ms) => Number.isFinite(ms) && ms > 0) ? durations.reduce((sum, ms) => sum + ms, 0) / 1000 : undefined;
         const settings = videoPriceSettings(parameters, videoCount > 0, referenceSeconds);
         const estimate = seedanceDisplayPrice(platform, settings);
-        const price = estimate ? (estimate.state === "estimated" ? `≈ ${estimate.perSecond} 积分/s` : "暂时无法预估费用") : platformModelPriceLabel(platform);
+        const price = estimate ? (estimate.state === "estimated" ? `≈ ✦ ${estimate.perSecond}/s` : "暂时无法预估费用") : platformModelPriceLabel(platform);
         const details = [
-            estimate?.state === "estimated" ? `${estimate.ratio} · ${estimate.width} × ${estimate.height} × 24 × (${estimate.referenceSeconds} + ${estimate.seconds}) / 1024 ≈ ${estimate.tokens} Token · ${estimate.rate} 积分/百万 Token` : "",
+            estimate?.state === "estimated" ? `${estimate.ratio} · ${estimate.width} × ${estimate.height} × 24 × (${estimate.referenceSeconds} + ${estimate.seconds}) / 1024 ≈ ${estimate.tokens} Token · ✦ ${estimate.rate}/百万 Token` : "",
             platformPriceConditions(prices),
         ]
             .filter(Boolean)
@@ -434,7 +434,7 @@ export function ModelLabel({
                 <span className="canvas-model-picker-media-copy">
                     <span className="canvas-model-picker-media-heading">
                         <strong title={title}>{title}</strong>
-                        {showPrice && <ModelPrice price={{ kind: "estimate", label: price, title: details || price }} />}
+                        {showPrice && <ModelPrice price={{ kind: "estimate", platform: true, label: price, title: details || price }} />}
                         {platformStatus}
                     </span>
                     {title !== platform.model_name && <code title={platform.model_name}>{platform.model_name}</code>}
@@ -595,14 +595,14 @@ function formatDurationSummary(profile: NonNullable<ReturnType<typeof modelCapab
     return `${profile.duration.min || values[0]}-${profile.duration.max || values[values.length - 1]}s`;
 }
 
-type ModelMenuPrice = { kind: "tiers"; label: string; compactLabel: string; title: string } | { kind: "estimate"; label?: string; title?: string } | { kind: "fixed"; value: number; unit: "次" | "秒" };
+type ModelMenuPrice = { kind: "tiers"; label: string; compactLabel: string; title: string } | { kind: "estimate"; label?: string; title?: string; platform?: boolean } | { kind: "fixed"; value: number; unit: "次" | "秒" };
 
 function modelMenuPrice(config: AiConfig, model: string, capability?: ModelCapability, summary = false, requirements?: ModelRequirements): ModelMenuPrice | null | undefined {
     if (!model) return undefined;
     const channel = resolveModelChannel(config, model);
     const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
     if (!cost) return channel.scope === "system" ? null : undefined;
-    if (cost.platform) return { kind: "estimate", label: platformModelPriceLabel(cost.platform), title: platformPriceConditions(cost.platform.presentation?.price_summary || []) || "按实际规格取得 Platform 报价" };
+    if (cost.platform) return { kind: "estimate", platform: true, label: platformModelPriceLabel(cost.platform), title: platformPriceConditions(cost.platform.presentation?.price_summary || []) || "按实际规格取得 Platform 报价" };
     if (cost.pricePolicy === "channel") {
         const tiers = cost.logicalPriceTiers || [];
         if (!tiers.length) return null;
@@ -702,10 +702,10 @@ function ModelPrice({ price, quote, compact = false }: { price: ModelMenuPrice |
                     className="model-picker-price inline-flex shrink-0 items-center text-[var(--fs-tiny)] font-semibold"
                     tabIndex={price.title ? 0 : undefined}
                     title={price.title}
-                    aria-label={[price.label || "按量预估", price.title].filter(Boolean).join("；")}
+                    aria-label={spokenPlatformPrice([price.label || "按量预估", price.title].filter(Boolean).join("；"))}
                     onClick={(event) => event.stopPropagation()}
                 >
-                    <Coins className="model-picker-price-icon" aria-hidden="true" />
+                    {!price.platform && <Coins className="model-picker-price-icon" aria-hidden="true" />}
                     {price.label || "按量预估"}
                 </span>
             </Popover>
@@ -757,7 +757,8 @@ function GroupModelSummary({ config, group }: { config: AiConfig; group: ModelPi
             <PlatformHealthTrack health={group.platform?.health} />
             {price && (
                 <span className="truncate" title={platformPriceConditions(group.platform?.price_summary || [])}>
-                    {price}
+                    <span aria-hidden="true">{price}</span>
+                    <span className="sr-only">{spokenPlatformPrice(price)}</span>
                 </span>
             )}
         </span>

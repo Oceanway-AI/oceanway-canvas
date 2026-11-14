@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
 import { AuthLoginLink } from "@/components/auth/auth-login-link";
+import studioBrandMark from "@/vendor/oceanway-account-v1/oceanway-ai-app-micro.svg";
 import { BrandLogoFrame } from "@/components/brand/brand-logo";
 import { UserAvatar } from "@/components/layout/user-avatar";
 import { UserGroupAvatarRing, UserGroupBadge } from "@/components/layout/user-group-badge";
@@ -90,6 +91,7 @@ function WorkspaceSidebarProfile({ collapsed, user, onExpand, onCollapse }: { co
     const [menuOpen, setMenuOpen] = useState(false);
     const { t } = useTranslation();
     const userGroup = useUserStore((state) => state.userGroup);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
     const profileName = user?.displayName || user?.username || t("shell.guest");
 
     if (!user) {
@@ -100,6 +102,25 @@ function WorkspaceSidebarProfile({ collapsed, user, onExpand, onCollapse }: { co
                 </span>
                 {!collapsed ? <span>{t("shell.guest")}</span> : null}
             </AuthLoginLink>
+        );
+    }
+
+    if (platformIdentity) {
+        return (
+            <div className={cn("app-workspace-sidebar-profile-row", collapsed && "is-collapsed")}>
+                <Link to="/settings?section=profile" className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="Studio 设置">
+                    <UserAvatar user={user} className="app-workspace-sidebar-profile-avatar" />
+                    {!collapsed && (
+                        <span className="app-workspace-sidebar-profile-copy">
+                            <strong>{profileName}</strong>
+                            <span>Studio 设置</span>
+                        </span>
+                    )}
+                </Link>
+                <button type="button" className={cn("app-workspace-sidebar-collapse-toggle", collapsed && "is-collapsed")} aria-label={collapsed ? t("shell.expandSidebarMenu") : t("shell.collapseSidebar")} onClick={collapsed ? onExpand : onCollapse}>
+                    {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+                </button>
+            </div>
         );
     }
 
@@ -148,10 +169,14 @@ function WorkspaceSidebarProfile({ collapsed, user, onExpand, onCollapse }: { co
 
 function WorkspaceSwitcher({ collapsed, onNavigate }: { collapsed: boolean; onNavigate: () => void; onExpand: () => void; onCollapse: () => void }) {
     const appearance = useAppearanceStore((state) => state.appearance);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const brand = platformIdentity ? "OceanWay Studio" : appearance.brandName;
     const { t } = useTranslation();
     // 未上传自定义 Logo 时用内置取景框字形（与欢迎页、登录框、加载页同一个 /logo.svg），放在墨色实底方块里；
     // 自定义 Logo 的配色不可预知，改用中性浅底方块承托。
-    const mark = (
+    const mark = platformIdentity ? (
+        <img src={studioBrandMark} alt="" className="size-5" />
+    ) : (
         <BrandLogoFrame
             className={cn("app-workspace-brand-mark grid shrink-0 place-items-center", !appearance.logoConfigured && "is-builtin")}
             logoClassName="size-5 object-contain"
@@ -161,9 +186,9 @@ function WorkspaceSwitcher({ collapsed, onNavigate }: { collapsed: boolean; onNa
     );
     return (
         <div className={cn("app-workspace-sidebar-brand-row relative shrink-0", collapsed && "is-collapsed")}>
-            <Link to="/" onClick={onNavigate} className="app-workspace-sidebar-brand-button group" aria-label={t("shell.brandHome", { brand: appearance.brandName })}>
+            <Link to="/" onClick={onNavigate} className="app-workspace-sidebar-brand-button group" aria-label={t("shell.brandHome", { brand })}>
                 {mark}
-                {!collapsed ? <span className="app-workspace-brand-wordmark truncate">{appearance.brandName}</span> : null}
+                {!collapsed ? <span className="app-workspace-brand-wordmark truncate">{brand}</span> : null}
             </Link>
         </div>
     );
