@@ -16524,6 +16524,8 @@ html:not(.dark) .app-workspace-shell.is-creation-workspace .app-workspace-stage 
     margin: 0;
     list-style: none;
     padding: var(--space-1) var(--space-half);
+    /* 首张卡片绕底边旋转，左上角会向左伸出约 9px。 */
+    padding-inline-start: var(--space-3);
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-behavior: smooth;
