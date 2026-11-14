@@ -419,7 +419,9 @@ export function generationWorkflowMetadata(config: AiConfig): Pick<CanvasNodeMet
     };
 }
 
-export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | undefined, mode: CanvasNodeGenerationMode, requirements?: ModelRequirements, displayOnly = false, referenceImage?: ImageDimensions): AiConfig {
+export type CanvasGenerationConfig = AiConfig & { nativeModeVariantId?: string };
+
+export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | undefined, mode: CanvasNodeGenerationMode, requirements?: ModelRequirements, displayOnly = false, referenceImage?: ImageDimensions): CanvasGenerationConfig {
     const generationSpec = node ? readNodeGenerationSpec(node) : undefined;
     const selection = generationSpec?.mode === mode ? generationSpec.modelSelection : undefined;
     const selectedModel = resolveGenerationSelection(config, selection);
@@ -524,14 +526,18 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
             : {};
     // Keep the node's chosen slot layout while resolving parameters against the request that its connected inputs will use.
     const input = requirements?.input;
-    if (node && input && generationDefaults.nativeVariantId && workflowProvider === "model") {
-        const selected = node.metadata?.nativeModeVariantId || node.metadata?.nativeVariantId;
-        const preferred = nativeMediaVariant(config, model, selected || generationDefaults.nativeVariantId);
+    let nativeModeVariantId: string | undefined;
+    if (node && input && generationDefaults.nativeVariantId && workflowProvider === "model" && (mode === "video" || mode === "image")) {
+        const metadata = node.metadata;
+        const profile = nativeMediaProfile(config, model);
+        const saved = profile?.variants.find((v) => v.id === (metadata?.nativeModeVariantId || metadata?.nativeVariantId));
+        // A retired contract can still have a first/last frame explicitly bound to a node.
+        const boundRoles = [metadata?.videoStartFrameNodeId && "first_frame", metadata?.videoEndFrameNodeId && "last_frame"].filter(Boolean);
+        const frames = !saved && mode === "video" && boundRoles.length ? profile?.variants.find((v) => boundRoles.every((role) => publishedFrameRoles(v).some((r) => r === role))) : undefined;
         const hasReferences = Boolean(input.imageCount || input.videoCount || input.audioCount || input.characterCount);
-        const explicitTextVideo = mode === "video" && selected && preferred && !preferred.native_request_variant.native_reference_inputs.some((ref) => ref.max_items !== 0);
-        if (preferred && !explicitTextVideo && (mode === "video" || (mode === "image" && hasReferences))) {
-            Object.assign(generationDefaults, nativeCreationSettings(config, model, { nativeVariantId: node.metadata?.nativeVariantId, nativeParameters: node.metadata?.nativeParameters, nativeModeVariantId: selected }, hasReferences).settings);
-        }
+        const creation = nativeCreationSettings(config, model, { nativeVariantId: metadata?.nativeVariantId, nativeParameters: metadata?.nativeParameters, nativeModeVariantId: frames?.id ?? saved?.id }, hasReferences);
+        Object.assign(generationDefaults, creation.settings);
+        nativeModeVariantId = creation.referenceVariant?.id;
     }
     const modeCapability = mode === "video" || mode === "audio" ? mode : "image";
     const runningHubCapability = normalizeRunningHubCapability(selectedRunningHubWorkflow?.capability, normalizeRunningHubCapability(config.runningHub.capability));
@@ -560,6 +566,7 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
         imageParameters: generationDefaults.imageParameters ?? requestedConfig.imageParameters,
         nativeParameters: generationDefaults.nativeParameters,
         nativeVariantId: generationDefaults.nativeVariantId,
+        nativeModeVariantId,
         size: generationDefaults.size ?? requestedConfig.size,
         transparentBackground: generationDefaults.transparentBackground || (requestedConfig.transparentBackground === "true" ? "true" : "false"),
         videoSeconds: generationDefaults.videoSeconds ?? requestedConfig.videoSeconds,

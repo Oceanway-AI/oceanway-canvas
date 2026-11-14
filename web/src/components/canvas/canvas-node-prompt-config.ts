@@ -3,7 +3,7 @@
 import { type CanvasNodeData, type CanvasNodeMetadata, CanvasNodeType } from "@/types/canvas";
 import { type AiConfig, defaultConfig } from "@/stores/use-config-store";
 import type { ModelRequirements } from "@/lib/model-selection";
-import { buildGenerationConfig } from "@/lib/canvas/canvas-project-generation";
+import { buildGenerationConfig, type CanvasGenerationConfig } from "@/lib/canvas/canvas-project-generation";
 import type { ImageDimensions } from "@/lib/canvas/canvas-reference-image-size";
 import type { CanvasAudioSettingKey } from "./canvas-audio-settings-popover";
 import type { CanvasNodeGenerationMode } from "./canvas-node-prompt-panel";
@@ -19,7 +19,7 @@ export function defaultMode(type: CanvasNodeData["type"]): CanvasNodeGenerationM
     return type === CanvasNodeType.Text || type === CanvasNodeType.Skill ? "text" : type === CanvasNodeType.Video ? "video" : type === CanvasNodeType.Audio ? "audio" : "image";
 }
 
-export function buildNodeConfig(globalConfig: AiConfig, node: CanvasNodeData, mode: CanvasNodeGenerationMode, requirements: ModelRequirements, referenceImage?: ImageDimensions): AiConfig {
+export function buildNodeConfig(globalConfig: AiConfig, node: CanvasNodeData, mode: CanvasNodeGenerationMode, requirements: ModelRequirements, referenceImage?: ImageDimensions): CanvasGenerationConfig {
     const config = buildGenerationConfig(globalConfig, node, mode, requirements, true, referenceImage);
     if (mode !== "audio") return config;
     return {
@@ -52,9 +52,9 @@ export function videoConfigPatch(key: keyof AiConfig, value: string) {
     return { [key]: value };
 }
 
-export function nativeCanvasParameterPatch(config: AiConfig, mode: "video" | "image", selectedMode: string | undefined, key: "nativeVariantId" | "nativeParameters", value: string): Partial<CanvasNodeMetadata> {
-    if (key === "nativeVariantId") return { nativeModeVariantId: mode === "video" ? value : undefined, nativeVariantId: value, nativeParameters: undefined, videoStartFrameNodeId: undefined, videoEndFrameNodeId: undefined };
-    return { nativeModeVariantId: mode === "video" ? selectedMode : undefined, nativeVariantId: config.nativeVariantId, nativeParameters: value };
+export function nativeCanvasParameterPatch(config: AiConfig, selectedMode: string | undefined, key: "nativeVariantId" | "nativeParameters", value: string): Partial<CanvasNodeMetadata> {
+    if (key === "nativeVariantId") return { nativeModeVariantId: value, nativeVariantId: value, nativeParameters: undefined, videoStartFrameNodeId: undefined, videoEndFrameNodeId: undefined };
+    return { nativeModeVariantId: selectedMode, nativeVariantId: config.nativeVariantId, nativeParameters: value };
 }
 
 export function audioConfigPatch(key: CanvasAudioSettingKey, value: string) {

@@ -134,10 +134,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
     };
     const config = buildNodeConfig(globalConfig, node, mode, requirements);
     const native = workflowProvider === "model" && nativeMediaProfile(config);
-    const selectedMode =
-        node.metadata?.nativeModeVariantId ||
-        node.metadata?.nativeVariantId ||
-        (mode === "video" && native && !inputSummary.imageCount && !inputSummary.videoCount && !inputSummary.audioCount && !inputSummary.characterCount ? native.defaultId : config.nativeVariantId);
+    const selectedMode = config.nativeModeVariantId ?? config.nativeVariantId;
     const defaultWorkflowCapability = normalizeRunningHubCapability(globalConfig.runningHub.capability);
     const selectedRunningHubWorkflow = globalConfig.runningHub.workflows.find(
         (item) => item.workflowId.trim() === node.metadata?.runningHubWorkflowId?.trim() && (!node.metadata?.runningHubWorkflowKind || runningHubWorkflowKind(item) === node.metadata.runningHubWorkflowKind),
@@ -393,8 +390,8 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                                     mode={mode}
                                     config={config}
                                     variants={native.variants}
-                                    modeVariantId={mode === "video" ? selectedMode : undefined}
-                                    onChange={(key, value) => onConfigChange(node.id, nativeCanvasParameterPatch(config, mode, selectedMode, key, value))}
+                                    modeVariantId={selectedMode}
+                                    onChange={(key, value) => onConfigChange(node.id, nativeCanvasParameterPatch(config, selectedMode, key, value))}
                                 />
                             </div>
                         ) : null}
@@ -646,7 +643,7 @@ function WorkflowSelectedLabel({ kind, label }: { kind: "app" | "workflow"; labe
     );
 }
 
-function buildNodeConfig(globalConfig: AiConfig, node: CanvasNodeData, mode: CanvasGenerationMode, requirements: ModelRequirements): AiConfig {
+function buildNodeConfig(globalConfig: AiConfig, node: CanvasNodeData, mode: CanvasGenerationMode, requirements: ModelRequirements): ReturnType<typeof buildModelNodeConfig> {
     node = { ...node, metadata: canonicalGenerationMetadata(node, mode) };
     const workflowProvider = mode === "text" ? "model" : resolveCanvasWorkflowProvider(node.metadata);
     if (workflowProvider === "model") return buildModelNodeConfig(globalConfig, node, mode, requirements);

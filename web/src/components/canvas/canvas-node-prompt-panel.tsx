@@ -9,7 +9,7 @@ import { ReferenceSlot } from "@/components/reference-slot";
 import { PlatformMaterialPicker } from "@/components/assets/platform-material-picker";
 import type { InsertAssetPayload } from "./asset-picker-modal";
 import { assignFrameSlots, publishedFrameRoles, type FrameRole } from "@/lib/media-reference-slots";
-import { nativeCreationSettings, nativeImageReferenceVariant, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
+import { nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
 import { modelOptionName, resolveModelChannel, selectableModelsByCapability, useEffectiveConfig } from "@/stores/use-config-store";
 import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
 import { canonicalGenerationMetadata, nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
@@ -212,9 +212,8 @@ export function CanvasNodePromptPanel({
     const config = buildNodeConfig(globalConfig, node, mode, requirements, referenceImageSize);
     const native = (mode === "image" || mode === "video") && nativeMediaProfile(config);
     const variant = nativeMediaVariant(config);
-    const selectedMode =
-        node.metadata?.nativeModeVariantId || node.metadata?.nativeVariantId || (mode === "video" && native && !activeReferences.some((r) => ["image", "audio", "video", "character"].includes(r.kind)) ? native.defaultId : config.nativeVariantId);
-    const referenceVariant = mode === "image" ? nativeImageReferenceVariant(config, config.model, variant) : nativeMediaVariant(config, config.model, selectedMode);
+    const selectedMode = config.nativeModeVariantId ?? config.nativeVariantId;
+    const referenceVariant = nativeMediaVariant(config, config.model, selectedMode);
     const limits = nativeMediaReferenceLimits(config, config.model, referenceVariant);
     const frameRoles = publishedFrameRoles(referenceVariant);
     const frameSlots = assignFrameSlots(
@@ -630,8 +629,8 @@ export function CanvasNodePromptPanel({
                                 mode={mode}
                                 config={config}
                                 variants={native.variants}
-                                modeVariantId={mode === "video" ? selectedMode : undefined}
-                                onChange={(key, value) => onConfigChange(node.id, nativeCanvasParameterPatch(config, mode, selectedMode, key, value))}
+                                modeVariantId={selectedMode}
+                                onChange={(key, value) => onConfigChange(node.id, nativeCanvasParameterPatch(config, selectedMode, key, value))}
                             />
                         </>
                     ) : mode === "image" && modelAvailable ? (

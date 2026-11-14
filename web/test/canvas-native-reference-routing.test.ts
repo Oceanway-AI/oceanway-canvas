@@ -29,6 +29,14 @@ function videoVariant(frames: boolean) {
         },
     };
 }
+const omni = {
+    ...videoVariant(false),
+    id: "omni",
+    native_request_variant: {
+        ...videoVariant(false).native_request_variant,
+        native_reference_inputs: ["reference_image", "reference_video", "reference_audio"].map((role) => ({ id: role, pointer: "/content", transport: "content-array", role, max_items: 3 })),
+    },
+};
 const published = (modelKey: string) =>
     ({
         id: modelKey,
@@ -38,7 +46,7 @@ const published = (modelKey: string) =>
         protocol: "volcengine-ark-video",
         available: true,
         priceTiers: [],
-        platform: { model_type: "video", price: { version: "test-price" }, media_generation_profile: { gateway_protocol: "modelark.video", default_variant: "text", variants: [videoVariant(false), videoVariant(true)] } },
+        platform: { model_type: "video", price: { version: "test-price" }, media_generation_profile: { gateway_protocol: "modelark.video", default_variant: "text", variants: [videoVariant(false), videoVariant(true), omni] } },
     }) as unknown as PublicChannelModel;
 const channels = systemChannelModelChannels([{ id: "oceanway-platform", name: "Studio", displayName: "Studio", models: [published("other"), published("selected")] }]);
 channels[0].modelCosts![1].logicalModelId = "saved-logical";
@@ -56,7 +64,7 @@ test.each([CanvasNodeType.Video, CanvasNodeType.Config])("%s keeps its model and
     expect(editor.model).toBe(selected.model);
     expect(editor.nativeVariantId).toBe("text");
     const values = { "/ratio": "9:16", "/generate_audio": false, "/resolution": "480p" };
-    node = applyNodeConfigPatch(node, nativeCanvasParameterPatch(editor, "video", "frames", "nativeParameters", JSON.stringify(values)));
+    node = applyNodeConfigPatch(node, nativeCanvasParameterPatch(editor, "frames", "nativeParameters", JSON.stringify(values)));
     node = JSON.parse(JSON.stringify(node));
     const draft = buildGenerationConfig(config, node, "video", { capability: "video", input: empty });
     const textTask = await prepareBackendGenerationTask({ mode: "video", prompt: "镜头", config: draft });
@@ -90,10 +98,16 @@ test.each([CanvasNodeType.Video, CanvasNodeType.Config])("%s keeps its model and
         { storageKey: "resource:first", role: "first_frame" },
         { storageKey: "resource:tail", role: "last_frame" },
     ]);
-    const explicitText = applyNodeConfigPatch(node, nativeCanvasParameterPatch(requestConfig, "video", "frames", "nativeVariantId", "text"));
-    const incompatible = buildGenerationConfig(config, explicitText, "video", { capability: "video", input });
-    expect(incompatible.nativeVariantId).toBe("text");
-    expect(modelCompatibilityError(incompatible, incompatible.model, { capability: "video", input })).not.toBe("");
+    for (const oldVariant of ["text", "retired", undefined]) {
+        const restored = makeNode("restored", type, { model: selected.model, generationMode: "video", nativeVariantId: oldVariant });
+        const blank = buildNodeConfig(config, restored, "video", { capability: "video", input: empty });
+        expect(blank).toMatchObject({ nativeModeVariantId: "omni", nativeVariantId: "text" });
+        const connected = buildGenerationConfig(config, restored, "video", { capability: "video", input });
+        expect(connected).toMatchObject({ nativeModeVariantId: "omni", nativeVariantId: "omni" });
+        expect(modelCompatibilityError(connected, connected.model, { capability: "video", input })).toBe("");
+    }
+    const retiredFrames = makeNode("saved-frames", type, { model: selected.model, generationMode: "video", nativeVariantId: "retired", videoEndFrameNodeId: last.id });
+    expect(buildGenerationConfig(config, retiredFrames, "video", { capability: "video", input })).toMatchObject({ nativeModeVariantId: "frames", nativeVariantId: "frames" });
 });
 
 test("an image configuration with a plain prompt includes attached media in the immediate and saved batch input", () => {
