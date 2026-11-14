@@ -66,6 +66,8 @@ func TestStudioRetainedBindingReadsRecycledFile(t *testing.T) {
 func TestStudioMaterialsUploadAdoptRecoverAndAccess(t *testing.T) {
 	f := newStudioFixture(t)
 	asset := studioMaterialFixtureAsset()
+	asset.File.Width, asset.File.Height = 320, 640
+
 	var creates, completes, bindCreates, confirms, accesses int
 	var command string
 	var binding *platformclient.Binding
@@ -166,6 +168,16 @@ func TestStudioMaterialsUploadAdoptRecoverAndAccess(t *testing.T) {
 	}
 	_ = json.Unmarshal(w.Body.Bytes(), &done)
 	res := done.Data.Resource
+	if res.Width != 320 || res.Height != 640 {
+		t.Fatal("sealed upload lost original dimensions")
+	}
+	if err := f.db.Model(&model.Resource{}).Where("id = ?", res.ID).Updates(map[string]any{"width": 0, "height": 0}).Error; err != nil {
+		t.Fatal(err)
+	}
+	w = f.request(t, "GET", path, "platform_session=alice", "", 200)
+	if err := json.Unmarshal(w.Body.Bytes(), &done); err != nil || done.Data.Resource.Width != 320 || done.Data.Resource.Height != 640 {
+		t.Fatal("original GET upload status did not refresh its owned binding")
+	}
 	if res.ID == "" || res.Status != model.ResourceStatusReady || res.Provider != "platform" || res.PublicURL != "" || res.ObjectKey != "" {
 		t.Fatalf("invalid adopted resource: %+v", res)
 	}

@@ -112,8 +112,8 @@ func RegisterStudioMaterialRoutes(api *gin.RouterGroup, svc *service.Service) {
 			failService(c, err)
 			return
 		}
-		data, err := svc.StudioResource(c.Request.Context(), user.ID, c.Param("id"))
-		studioMaterialReply(c, gin.H{"resource": data}, nil, err)
+		data, response, err := svc.StudioResourceWithMetadata(c.Request.Context(), user.ID, c.Param("id"), platformintegration.Session(c.Request))
+		studioMaterialReply(c, gin.H{"resource": data}, response, err)
 	})
 	api.GET("/resources/:id/file", func(c *gin.Context) {
 		user, err := currentUser(c, svc)

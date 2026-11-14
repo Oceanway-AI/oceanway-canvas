@@ -180,6 +180,12 @@ func (c *studioMaterialCall) uploadResult(u *model.StudioMaterialUpload, result 
 			out.Resource, err = c.s.repo.WithContext(c.ctx).ResourceForUser(c.userID, id)
 			if errors.Is(err, gorm.ErrRecordNotFound) || err == nil && out.Resource.Status != model.ResourceStatusReady {
 				out.Resource, err = nil, nil
+			} else if err == nil {
+				var ref *model.StudioMaterialReference
+				ref, err = c.s.repo.WithContext(c.ctx).StudioMaterialReference(c.userID, id)
+				if err == nil {
+					err = c.s.reconcileStudioOriginal(c.ctx, out.Resource, *result.Asset, *ref)
+				}
 			}
 		}
 		if err != nil {
@@ -242,6 +248,7 @@ func (c *studioMaterialCall) adopt(a platformclient.Asset, meta StudioResourceMe
 	}
 	now := time.Now()
 	ref := model.StudioMaterialReference{ResourceID: id, UserID: c.userID, AssetID: a.AssetID, VersionID: a.Version.VersionID, FileID: a.File.FileID, OwnerID: a.Owner.ID, SHA256: a.File.SHA256, ByteLength: a.File.ByteLength, CreatedAt: now, UpdatedAt: now}
+	meta = meta.withOriginal(originalStudioMetadata(a))
 	resource := model.Resource{ID: id, UserID: c.userID, Provider: "platform", Kind: kind, Status: model.ResourceStatusPending, MimeType: a.File.ContentType, Size: size, Width: meta.Width, Height: meta.Height, DurationMs: meta.DurationMs, CreatedAt: now, UpdatedAt: now}
 	repo := c.s.repo.WithContext(c.ctx)
 	if err := repo.CreateStudioMaterialResource(ref, resource); err != nil {
@@ -249,6 +256,9 @@ func (c *studioMaterialCall) adopt(a platformclient.Asset, meta StudioResourceMe
 	}
 	saved, err := repo.ResourceForUser(c.userID, id)
 	if err != nil {
+		return nil, err
+	}
+	if err := c.s.reconcileStudioOriginal(c.ctx, saved, a, ref); err != nil {
 		return nil, err
 	}
 	if saved.Status == model.ResourceStatusReady {
@@ -304,8 +314,7 @@ func (s *Service) StudioResource(ctx context.Context, userID, id string) (*model
 	return resource, nil
 }
 
-// Library entries carry display metadata from an existing Studio resource, when
-// available. Listing another product's asset must never create a Studio binding.
+// Project measured original-file metadata for all library entries and refresh existing bindings in place.
 type studioLibraryAsset struct {
 	platformclient.Asset
 	StudioResourceMeta
@@ -323,18 +332,19 @@ func (s *Service) StudioMaterialAssets(ctx context.Context, userID string, sessi
 	for i, asset := range result.Data.Items {
 		ids[i] = studioMaterialResourceID(userID, asset)
 	}
-	resources, err := s.repo.WithContext(ctx).ResourcesForUserIDs(userID, ids)
+	bound, err := s.repo.WithContext(ctx).StudioBoundMaterialResources(userID, ids)
 	if err != nil {
 		return page, result.Response, err
 	}
-	meta := make(map[string]StudioResourceMeta, len(resources))
-	for _, r := range resources {
-		if r.Status == model.ResourceStatusReady && r.Provider == "platform" {
-			meta[r.ID] = StudioResourceMeta{Width: r.Width, Height: r.Height, DurationMs: r.DurationMs}
-		}
-	}
 	for i, asset := range result.Data.Items {
-		page.Items = append(page.Items, studioLibraryAsset{Asset: asset, StudioResourceMeta: meta[ids[i]]})
+		meta := originalStudioMetadata(asset)
+		if row, ok := bound[ids[i]]; ok {
+			if err := s.reconcileStudioOriginal(ctx, &row.Resource, asset, row.Reference); err != nil {
+				return page, result.Response, err
+			}
+			meta = StudioResourceMeta{Width: row.Resource.Width, Height: row.Resource.Height, DurationMs: row.Resource.DurationMs}
+		}
+		page.Items = append(page.Items, studioLibraryAsset{Asset: asset, StudioResourceMeta: meta})
 	}
 	return page, result.Response, nil
 }

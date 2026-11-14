@@ -84,3 +84,58 @@ func (r *Repository) SetStudioMaterialBinding(userID, resourceID, bindingID stri
 func (r *Repository) ReadyStudioMaterialResource(userID, resourceID string) error {
 	return r.db.Model(&model.Resource{}).Where("id = ? AND user_id = ? AND provider = ?", resourceID, userID, "platform").Update("status", model.ResourceStatusReady).Error
 }
+
+// Fetch both halves of the immutable identity for the current library page.
+type StudioBoundMaterialResource struct {
+	Reference model.StudioMaterialReference `gorm:"embedded;embeddedPrefix:bound_"`
+	Resource  model.Resource                `gorm:"embedded"`
+}
+
+func (r *Repository) StudioBoundMaterialResources(userID string, ids []string) (map[string]StudioBoundMaterialResource, error) {
+	out := make(map[string]StudioBoundMaterialResource)
+	if len(ids) == 0 {
+		return out, nil
+	}
+	var rows []StudioBoundMaterialResource
+	err := r.db.Table("resources AS r").
+		Select(`r.id, r.user_id, r.kind, r.mime_type, r.width, r.height, r.duration_ms,
+		       ref.asset_id AS bound_asset_id, ref.version_id AS bound_version_id, ref.file_id AS bound_file_id,
+		       ref.owner_id AS bound_owner_id, ref.sha256 AS bound_sha256, ref.byte_length AS bound_byte_length`).
+		Joins("JOIN studio_material_references AS ref ON ref.resource_id = r.id AND ref.user_id = r.user_id").
+		Where("r.user_id = ? AND r.id IN ? AND ref.binding_id <> '' AND r.provider = ? AND r.status = ?", userID, ids, "platform", model.ResourceStatusReady).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		out[row.Resource.ID] = row
+	}
+	return out, nil
+}
+
+func (r *Repository) UpdateStudioOriginalMetadata(resource *model.Resource, width, height int, duration int64) error {
+	// Independent fields may arrive on different reads. An incomplete or stale
+	// observation must never overwrite an already-known pair or duration with zero.
+	columns := map[string]any{}
+	if width > 0 && height > 0 {
+		columns["width"] = width
+		columns["height"] = height
+	}
+	if duration > 0 {
+		columns["duration_ms"] = duration
+	}
+	if len(columns) == 0 {
+		return nil
+	}
+	var written model.Resource
+	result := r.db.Model(&written).Clauses(clause.Returning{Columns: []clause.Column{{Name: "width"}, {Name: "height"}, {Name: "duration_ms"}}}).
+		Where("user_id = ? AND id = ? AND provider = ?", resource.UserID, resource.ID, "platform").UpdateColumns(columns)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return gorm.ErrRecordNotFound
+	}
+	resource.Width, resource.Height, resource.DurationMs = written.Width, written.Height, written.DurationMs
+	return nil
+}

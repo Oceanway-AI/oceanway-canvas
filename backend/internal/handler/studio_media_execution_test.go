@@ -52,6 +52,11 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	recoveryStates := []string{"UNKNOWN", "NOT_START", "SUBMITTED", "QUEUED", "IN_PROGRESS", "SUCCESS"}
 	var binding *platformclient.Binding
 	asset := platformclient.Asset{AssetID: "asset_output", Owner: platformclient.MaterialOwner{Kind: "account", ID: "101"}, Kind: kind, State: "ready", Version: platformclient.AssetVersion{AssetID: "asset_output", VersionID: "version_original", FileID: "file_original"}, File: platformclient.AssetFile{FileID: "file_original", SHA256: strings.Repeat("b", 64), ByteLength: "12", ContentType: contentType, State: "ready"}}
+	asset.File.Width, asset.File.Height = 720, 1280
+	if kind == "video" {
+		asset.File.DurationMs = 4074
+	}
+
 	f.execution = func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		respond := func(v any) { _ = json.NewEncoder(w).Encode(v) }
@@ -158,6 +163,14 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	if !strings.Contains(w.Body.String(), "succeeded") || !strings.Contains(w.Body.String(), "resource:") {
 		t.Fatalf("output not adopted: %s", w.Body.String())
 	}
+	var generated model.Resource
+	if err := f.db.First(&generated, "id = ?", binding.TargetID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if generated.Width != asset.File.Width || generated.Height != asset.File.Height || generated.DurationMs != asset.File.DurationMs {
+		t.Fatalf("generated resource lost the fixed original metadata: %dx%d / %dms", generated.Width, generated.Height, generated.DurationMs)
+	}
+
 	if withReference {
 		var task model.Task
 		if err := f.db.First(&task, "id = ?", created.Data.ID).Error; err != nil {
