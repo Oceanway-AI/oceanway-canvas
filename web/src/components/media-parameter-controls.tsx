@@ -6,7 +6,7 @@ import { ImageSizeDock } from "@/components/image-size-dock";
 import { nativeImageSizePointers, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
 import { imageQualityLabel } from "@/lib/image-quality";
 import { NativeParameterInput, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
-import { creativeParameterLabel, nativeCreationModeOptions, nativeMediaVariantOptions, nativeParameterValues, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
+import { creativeParameterLabel, nativeCreationModeOptions, nativeMediaVariantOptions, nativeParameterChoices, nativeParameterValues, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
 
 type Group = "生成模式" | "尺寸与分辨率" | "背景" | "画质" | "张数" | "时长" | "声音" | "更多参数";
@@ -22,7 +22,7 @@ function fieldGroup([pointer, field]: Field, image: boolean): Group {
         return "更多参数";
     }
     if (["seconds", "duration", "durationseconds"].includes(key || "")) return "时长";
-    if (["audio", "generateaudio", "withaudio"].includes(key || "") && (field.type === "boolean" || field.enum?.every((v) => typeof v === "boolean"))) return "声音";
+    if (["audio", "generateaudio", "withaudio", "enableaudio", "audioenabled"].includes(key || "") && (field.type === "boolean" || typeof field.const === "boolean" || field.enum?.every((v) => typeof v === "boolean"))) return "声音";
     return "更多参数";
 }
 
@@ -37,14 +37,29 @@ function display(value: unknown, group: Group) {
     return String(value);
 }
 
-export function MediaParameterControls({ mode, config, variants, onChange, canvas = false }: { mode: "image" | "video"; config: AiConfig; variants: NativeMediaVariant[]; onChange: (key: NativeMediaSettingKey, value: string) => void; canvas?: boolean }) {
+export function MediaParameterControls({
+    mode,
+    config,
+    variants,
+    modeVariantId,
+    onChange,
+    canvas = false,
+}: {
+    mode: "image" | "video";
+    config: AiConfig;
+    variants: NativeMediaVariant[];
+    modeVariantId?: string;
+    onChange: (key: NativeMediaSettingKey, value: string) => void;
+    canvas?: boolean;
+}) {
     const [open, setOpen] = useState<Group | null>(null);
     const [sizeResetRevision, setSizeResetRevision] = useState(0);
     const variant = variants.find((v) => v.id === config.nativeVariantId);
+    const modeVariant = variants.find((v) => v.id === modeVariantId) ?? variant;
     const image = mode === "image";
-    const modes = image && variant && !variant.workbench_parameters ? nativeMediaVariantOptions(variants) : nativeCreationModeOptions(variants, variant, !image && !canvas);
+    const modes = image && variant && !variant.workbench_parameters ? nativeMediaVariantOptions(variants) : nativeCreationModeOptions(variants, modeVariant, !image && !canvas);
     const automaticImageMode = !canvas && image && variant?.workbench_parameters && variants.every((v) => ["openai.image.generate", "openai.image.edit"].includes(v.gateway_protocol));
-    const modeLabel = modes.find((mode) => mode.value === variant?.id)?.label ?? "选择模式";
+    const modeLabel = modes.find((mode) => mode.value === modeVariant?.id)?.label ?? "选择模式";
     function menu(group: Group, label: string, icon: ReactNode, content: ReactNode) {
         return (
             <Popover
@@ -81,14 +96,14 @@ export function MediaParameterControls({ mode, config, variants, onChange, canva
                         className="studio-video-option"
                         key={option.value}
                         type="button"
-                        aria-pressed={option.value === variant?.id}
+                        aria-pressed={option.value === modeVariant?.id}
                         onClick={() => {
-                            if (option.value !== variant?.id) onChange("nativeVariantId", option.value);
+                            if (option.value !== modeVariant?.id) onChange("nativeVariantId", option.value);
                             setOpen(null);
                         }}
                     >
                         {option.label}
-                        {option.value === variant?.id && <Check size={15} />}
+                        {option.value === modeVariant?.id && <Check size={15} />}
                     </button>
                 ))}
             </>,
@@ -142,22 +157,7 @@ export function MediaParameterControls({ mode, config, variants, onChange, canva
                 {sizePicker && <ImageSizeDock key={sizeResetRevision} variant={variant} values={values} onChange={(next) => onChange("nativeParameters", JSON.stringify(next))} />}
                 {items.map(([key, field]) => {
                     const label = creativeParameterLabel(key, field.title);
-                    let choices = field.enum;
-                    if (Object.hasOwn(field, "const")) choices = [field.const];
-                    if (
-                        !choices &&
-                        (group === "时长" || group === "张数") &&
-                        field.type === "integer" &&
-                        typeof field.minimum === "number" &&
-                        typeof field.maximum === "number" &&
-                        Number.isInteger(field.minimum) &&
-                        Number.isInteger(field.maximum) &&
-                        field.maximum >= field.minimum &&
-                        field.maximum - field.minimum <= 60
-                    ) {
-                        const min = field.minimum;
-                        choices = Array.from({ length: field.maximum - min + 1 }, (_, i) => min + i).filter((n) => !field.multipleOf || n % Number(field.multipleOf) === 0);
-                    }
+                    const choices = nativeParameterChoices(field, group === "时长" || group === "张数");
                     return (
                         <section key={key}>
                             <strong>{label}</strong>

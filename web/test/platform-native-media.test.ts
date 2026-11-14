@@ -138,6 +138,35 @@ test("selected protocol owns reference capacity without merging alternatives", (
     expect(nativeMediaReferenceLimits({ ...config, nativeVariantId: "other" })?.maxImages).toBe(0);
 });
 
+test("video draft keeps the selected reference mode while controls and submission follow the effective request", () => {
+    const frames = {
+        ...variant,
+        defaults: { "/ratio": "adaptive", "/duration": 4 },
+        specifications_schema: { properties: { "/ratio": { const: "adaptive" }, "/duration": { type: "integer", minimum: 4, maximum: 10, multipleOf: 2 } } },
+        workbench_parameters: ["/ratio", "/duration"],
+    };
+    const text = {
+        ...frames,
+        id: "text",
+        defaults: { "/ratio": "16:9", "/duration": 5, "/generate_audio": true },
+        specifications_schema: { properties: { "/ratio": { enum: ["16:9", "9:16"] }, "/duration": { enum: [5, 6, 15] }, "/generate_audio": { type: "boolean" } } },
+        workbench_parameters: ["/ratio", "/duration", "/generate_audio"],
+        native_request_variant: { ...frames.native_request_variant, native_reference_inputs: [] },
+    };
+    const video = { ...model, platform: { ...model.platform, media_generation_profile: { gateway_protocol: frames.gateway_protocol, default_variant: frames.id, variants: [frames, text] } } } as PublicChannelModel;
+    const cfg = { ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OW", displayName: "OW", models: [video] }]) };
+    const initial = nativeCreationSettings(cfg, selected, {}, false);
+    expect(JSON.parse(initial.settings.nativeParameters)).toEqual(text.defaults);
+    const edited = { nativeModeVariantId: frames.id, nativeVariantId: text.id, nativeParameters: JSON.stringify({ "/ratio": "9:16", "/duration": 6, "/generate_audio": false }) };
+    const saved = normalizeCreationComposerPreferences({ video: edited }).video!;
+    const empty = nativeCreationSettings(cfg, selected, saved, false);
+    expect(empty.referenceVariant?.id).toBe(frames.id);
+    expect(backendProviderConfig({ ...cfg, ...empty.settings }, "video")).toMatchObject({ nativeVariantId: text.id, nativeParameters: JSON.parse(edited.nativeParameters) });
+    const attached = nativeCreationSettings(cfg, selected, saved, true);
+    expect(backendProviderConfig({ ...cfg, ...attached.settings }, "video")).toMatchObject({ nativeVariantId: frames.id, nativeParameters: { "/ratio": "adaptive", "/duration": 6 } });
+    expect(JSON.parse(nativeCreationSettings(cfg, selected, { ...saved, nativeParameters: '{"/duration":5}' }, true).settings.nativeParameters)).toEqual(frames.defaults);
+});
+
 test("saved canvas, editor and executor submit the same native parameters", () => {
     const configured = { ...config, nativeVariantId: "ark", nativeParameters: JSON.stringify(explicit) };
     const spec = specFromConfig("video", "ocean", configured, []);

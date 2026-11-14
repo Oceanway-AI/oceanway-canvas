@@ -20,6 +20,7 @@ export type CreationVideoPreferences = {
     model?: string;
     nativeParameters?: string;
     nativeVariantId?: string;
+    nativeModeVariantId?: string;
     ratio?: string;
     seconds?: string;
     videoQuality?: string;
@@ -68,6 +69,7 @@ function normalizeVideoPreferences(value: unknown): CreationVideoPreferences | u
         ...(nonEmptyString(raw.model) ? { model: raw.model } : {}),
         ...(nonEmptyString(raw.nativeParameters) ? { nativeParameters: raw.nativeParameters } : {}),
         ...(nonEmptyString(raw.nativeVariantId) ? { nativeVariantId: raw.nativeVariantId } : {}),
+        ...(nonEmptyString(raw.nativeModeVariantId) ? { nativeModeVariantId: raw.nativeModeVariantId } : {}),
         ...(nonEmptyString(raw.ratio) ? { ratio: raw.ratio } : {}),
         ...(nonEmptyString(raw.seconds) ? { seconds: raw.seconds } : {}),
         ...(nonEmptyString(raw.videoQuality) ? { videoQuality: raw.videoQuality } : {}),

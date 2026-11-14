@@ -1378,7 +1378,15 @@ export default function CreatePage() {
         if (nextMode === "image")
             rememberImageSettings({ model: item.model, ratio: nextSettings.ratio, quality: nextSettings.quality, count: nextSettings.count, nativeParameters: nextSettings.nativeParameters, nativeVariantId: nextSettings.nativeVariantId });
         if (nextMode === "video")
-            rememberVideoSettings({ model: item.model, ratio: nextSettings.ratio, seconds: nextSettings.seconds, videoQuality: nextSettings.videoQuality, nativeParameters: nextSettings.nativeParameters, nativeVariantId: nextSettings.nativeVariantId });
+            rememberVideoSettings({
+                model: item.model,
+                ratio: nextSettings.ratio,
+                seconds: nextSettings.seconds,
+                videoQuality: nextSettings.videoQuality,
+                nativeParameters: nextSettings.nativeParameters,
+                nativeVariantId: nextSettings.nativeVariantId,
+                nativeModeVariantId: nextSettings.nativeVariantId,
+            });
     };
 
     const retryFailedMessage = async (item: CreationMessage, index: number) => {
@@ -1537,10 +1545,19 @@ export default function CreatePage() {
         setImageResolution: setComposerImageResolution,
         imageParameters,
         nativeParameters: nativeSettings.nativeParameters,
-        nativeVariantId: mode === "video" ? (nativeCreation?.referenceVariant?.id ?? nativeSettings.nativeVariantId) : nativeSettings.nativeVariantId,
+        nativeVariantId: nativeSettings.nativeVariantId,
+        nativeModeVariantId: mode === "video" ? nativeCreation?.referenceVariant?.id : undefined,
         onNativeSettingsChange: (key: "nativeParameters" | "nativeVariantId", value: string) => {
-            const remember = mode === "video" ? rememberVideoSettings : rememberImageSettings;
-            remember({ model: selectedModel, [key]: value, ...(key === "nativeVariantId" ? { nativeParameters: "{}" } : {}) });
+            if (mode === "video") {
+                if (key === "nativeVariantId") {
+                    clearAttachments();
+                    rememberVideoSettings({ model: selectedModel, nativeVariantId: value, nativeModeVariantId: value, nativeParameters: "{}" });
+                } else {
+                    rememberVideoSettings({ model: selectedModel, nativeVariantId: nativeSettings.nativeVariantId, nativeModeVariantId: nativeCreation?.referenceVariant?.id, nativeParameters: value });
+                }
+            } else {
+                rememberImageSettings({ model: selectedModel, [key]: value, ...(key === "nativeVariantId" ? { nativeParameters: "{}" } : {}) });
+            }
         },
         setImageParameters: (value: string) => {
             setImageParameters(value);

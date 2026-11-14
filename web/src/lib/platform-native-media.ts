@@ -24,6 +24,7 @@ export type NativeMediaVariant = {
     native_request_variant: {
         id?: string;
         protocol: string;
+        method?: string;
         path: string;
         modes: string[];
         request_schema: Record<string, unknown>;
@@ -101,7 +102,7 @@ export function nativeImageReferenceVariant(config: AiConfig, model: string, cur
 }
 
 export function nativeVideoComposerVariants(variants: NativeMediaVariant[], base: NativeMediaVariant, preferredId?: string) {
-    const siblings = variants.filter((v) => v.gateway_protocol === base.gateway_protocol && v.native_request_variant.path === base.native_request_variant.path);
+    const siblings = variants.filter((v) => v.gateway_protocol === base.gateway_protocol && v.native_request_variant.path === base.native_request_variant.path && v.native_request_variant.method === base.native_request_variant.method);
     const references = siblings.filter((v) => creationModeLabel(v) !== "文生视频");
     return {
         reference: references.find((v) => v.id === preferredId) ?? references.find((v) => creationModeLabel(v) === "全能参考") ?? references.find((v) => v.id === base.id) ?? references[0],
@@ -109,7 +110,7 @@ export function nativeVideoComposerVariants(variants: NativeMediaVariant[], base
     };
 }
 
-export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId">, hasReferences: boolean) {
+export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId"> & { nativeModeVariantId?: string }, hasReferences: boolean) {
     const profile = nativeMediaProfile(config, model);
     const savedVariant = profile?.variants.find((v) => v.id === saved.nativeVariantId);
     const fallback = profile?.variants.find((v) => v.id === profile.defaultId) ?? profile?.variants[0];
@@ -117,20 +118,35 @@ export function nativeCreationSettings(config: AiConfig, model: string, saved: P
     const variant = nativeMediaVariant(config, model, base.nativeVariantId);
     let referenceVariant = nativeImageReferenceVariant(config, model, variant);
     let requestVariant = hasReferences ? referenceVariant : variant;
-    if (variant?.gateway_protocol.endsWith(".video")) {
-        const video = nativeVideoComposerVariants(profile?.variants ?? [], variant, savedVariant?.id);
+    const isVideo = variant?.gateway_protocol.endsWith(".video");
+    if (variant && isVideo) {
+        const preferred = profile?.variants.find((v) => v.id === saved.nativeModeVariantId) ?? variant;
+        const video = nativeVideoComposerVariants(profile?.variants ?? [], preferred, preferred.id);
         referenceVariant = video.reference;
         const text = video.text;
         requestVariant = (hasReferences ? referenceVariant : text) ?? referenceVariant ?? variant;
     }
     if (!requestVariant || !variant || requestVariant.id === variant.id) return { settings: base, referenceVariant };
     const values = nativeParameterValues(requestVariant);
-    const previous = nativeParameterObject(base.nativeParameters);
+    // An untouched video draft uses the request variant's defaults, even when its upload slots belong to another mode.
+    const previous = isVideo ? (savedVariant ? nativeParameterObject(saved.nativeParameters) : {}) : nativeParameterObject(base.nativeParameters);
     for (const [key, field] of Object.entries(requestVariant.specifications_schema.properties)) {
-        if ((!requestVariant.workbench_parameters || requestVariant.workbench_parameters.includes(key)) && Object.hasOwn(previous, key) && JSON.stringify(field) === JSON.stringify(variant.specifications_schema.properties[key]))
-            values[key] = previous[key];
+        if (requestVariant.workbench_parameters && !requestVariant.workbench_parameters.includes(key)) continue;
+        if (!Object.hasOwn(previous, key)) continue;
+        const value = previous[key];
+        if (JSON.stringify(field) === JSON.stringify(variant.specifications_schema.properties[key]) || (isVideo && nativeParameterChoices(field)?.includes(value))) values[key] = value;
     }
     return { settings: { nativeVariantId: requestVariant.id, nativeParameters: JSON.stringify(values) }, referenceVariant };
+}
+
+export function nativeParameterChoices(field: NativeSchemaField, includeRange = true): unknown[] | undefined {
+    if (Object.hasOwn(field, "const")) return [field.const];
+    if (field.enum) return field.enum;
+    if (!includeRange || field.type !== "integer" || typeof field.minimum !== "number" || typeof field.maximum !== "number") return undefined;
+    const min = Math.ceil(field.minimum);
+    const max = Math.floor(field.maximum);
+    if (!Number.isSafeInteger(min) || !Number.isSafeInteger(max) || max < min || max - min > 60) return undefined;
+    return Array.from({ length: max - min + 1 }, (_, i) => min + i).filter((n) => !field.multipleOf || n % Number(field.multipleOf) === 0);
 }
 
 export function nativeMediaReferenceLimits(config: AiConfig, model = config.model, variant = nativeMediaVariant(config, model)) {
