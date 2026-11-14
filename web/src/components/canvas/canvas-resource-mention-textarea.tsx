@@ -32,6 +32,7 @@ import { observeCanvasEditorWheelZoom } from "@/lib/canvas/canvas-wheel-intent";
 export { TOOL_ICON_MAP } from "./canvas-mention-chips";
 
 type MentionState = {
+    trigger: "@" | "/";
     start: number;
     end: number;
     query: string;
@@ -76,6 +77,8 @@ type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "onS
     onReferenceFilesDrop?: (reference: CanvasResourceReference, files: File[]) => void;
     autoLinkEnabled?: boolean;
     mentionMenuLabels?: { connected?: string; search?: string };
+    /** 默认提示中的两个快捷入口。已有模板菜单的画布节点自行处理斜杠。 */
+    promptShortcuts?: "skills" | "templates";
 };
 
 // 回车提交语义由调用方决定：false 只在 ⌘/Ctrl+Enter 提交，"both" 两种都提交；Shift+Enter 始终换行。
@@ -107,6 +110,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
         onReferenceFilesDrop,
         autoLinkEnabled = false,
         mentionMenuLabels,
+        promptShortcuts,
         actionsRef,
         ...props
     },
@@ -145,15 +149,15 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
     const availableReferences = useMemo(() => [...(onSelectReference ? mentionCanvasReferences : activeMentionCanvasReferences), ...assetReferences], [onSelectReference, mentionCanvasReferences, activeMentionCanvasReferences, assetReferences]);
     // 只在有查询词时使用；空查询时菜单按连线节点、技能和素材库分类分组展示。
     const mentionQuery = mention?.query.trim().toLowerCase() || "";
-    const filteredReferences = useMemo(
-        () => (mentionQuery ? availableReferences.filter((item) => `${item.label} ${item.title} ${item.kind} ${item.category || ""} ${item.text || ""}`.toLowerCase().includes(mentionQuery)) : []),
-        [availableReferences, mentionQuery],
-    );
+    const skillsOnly = mention?.trigger === "/";
+    const skillReferences = useMemo(() => availableReferences.filter((item) => item.kind === "skill"), [availableReferences]);
+    const candidates = skillsOnly ? skillReferences : availableReferences;
+    const filteredReferences = useMemo(() => (mentionQuery ? candidates.filter((item) => `${item.label} ${item.title} ${item.kind} ${item.category || ""} ${item.text || ""}`.toLowerCase().includes(mentionQuery)) : []), [candidates, mentionQuery]);
     const activeReferences = useMemo(() => {
         if (!highlightLabels) return [];
         return [...activeCanvasReferences, ...assetReferences.filter((item) => value.includes(canvasResourceMentionToken(item)))];
     }, [activeCanvasReferences, assetReferences, highlightLabels, value]);
-    const useRichEditor = Boolean(activeReferences.length);
+    const useRichEditor = activeReferences.some((item) => !promptShortcuts || item.kind !== "skill" || value.includes(canvasResourceMentionToken(item)));
     const showRichPlaceholder = useRichEditor && compositionValue === null && splitMentionText(value, activeReferences).every((part) => part.type === "mention" || !part.text.trim());
     useLayoutEffect(() => {
         const container = containerRef.current;
@@ -339,7 +343,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
     // 菜单处理过的按键不再冒泡：弹窗在 window 上监听 Esc，放大编辑里返回上一层或关菜单时不能把弹窗一起关掉。
     const handleMentionKeyDown = (event: KeyboardEvent<HTMLElement>) => {
         if (!mention || event.nativeEvent.isComposing || composingRef.current || event.keyCode === 229) return false;
-        if (!mentionKeyboardRef.current?.handleKeyDown(event)) return false;
+        if (!mentionKeyboardRef.current?.handleKeyDown(event) && !(promptShortcuts && event.key === "Enter" && !event.shiftKey)) return false;
         event.preventDefault();
         event.stopPropagation();
         return true;
@@ -349,13 +353,15 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
         if (readOnly) return;
         setAutoLinkCursor(cursor);
         const prefix = nextValue.slice(0, cursor);
-        const match = /@([^\s@,.;:!?，。；：！？、)\]}】）]*)$/.exec(prefix);
-        if (!match || !availableReferences.length) {
+        const at = /@([^\s@,.;:!?，。；：！？、)\]}】）]*)$/.exec(prefix);
+        const slash = promptShortcuts === "skills" && /(?:^|\s)\/([\p{L}\p{N}_-]*)$/u.exec(prefix);
+        const match = slash || at;
+        if (!match || (!availableReferences.length && !promptShortcuts)) {
             closeMention();
             return;
         }
-        const nextMention = { start: match.index, end: cursor, query: match[1] };
-        const isSameMention = mention?.start === nextMention.start && mention.end === nextMention.end && mention.query === nextMention.query;
+        const nextMention: MentionState = { start: cursor - match[1].length - 1, end: cursor, query: match[1], trigger: slash ? "/" : "@" };
+        const isSameMention = mention?.start === nextMention.start && mention.end === nextMention.end && mention.query === nextMention.query && mention.trigger === nextMention.trigger;
         if (!isSameMention) setMention(nextMention);
     };
 
@@ -467,14 +473,30 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
         caretColor: style?.color || theme.node.text,
     } as CSSProperties;
     const menuAnchor = useRichEditor ? editorRef.current : textareaRef.current;
+    const hintLead = props.placeholder?.replace(/[。，\s]+$/u, "");
+    const hint = promptShortcuts && `${hintLead ? hintLead + "。" : ""}用 @ 引用素材，或用 / 选择技能。`;
+    const showHint = Boolean(hint && !value && compositionValue === null);
+    const shortcutHint = showHint ? (
+        <div className={`prompt-shortcut-hint ${className || ""}`} style={{ ...style, color: "var(--ocean-air-text-muted)" }}>
+            {hintLead && hintLead + "。"}用{" "}
+            <button type="button" aria-label="引用素材" disabled={readOnly} onMouseDown={(event) => event.preventDefault()} onClick={() => insertTextAtSelection("@")}>
+                @
+            </button>{" "}
+            引用素材，或用{" "}
+            <button type="button" aria-label="选择技能" disabled={readOnly} onMouseDown={(event) => event.preventDefault()} onClick={() => insertTextAtSelection("/")}>
+                /
+            </button>{" "}
+            选择技能。
+        </div>
+    ) : null;
     const menu =
-        !readOnly && mention && availableReferences.length && menuAnchor ? (
+        !readOnly && mention && menuAnchor ? (
             <MentionMenu
                 // 换到另一个 @ 时重置分类和高亮。
-                key={mention.start}
+                key={`${mention.trigger}${mention.start}`}
                 anchor={menuAnchor}
-                connectedReferences={activeMentionCanvasReferences}
-                assetReferences={assetReferences}
+                connectedReferences={skillsOnly ? skillReferences : activeMentionCanvasReferences}
+                assetReferences={skillsOnly ? [] : assetReferences}
                 filteredReferences={filteredReferences}
                 query={mention.query}
                 cursorOffset={mention.end}
@@ -483,7 +505,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
                 onQueryChange={(query) => setMention((current) => (current ? { ...current, query } : current))}
                 onClose={closeMention}
                 onSelect={insertReference}
-                labels={mentionMenuLabels}
+                labels={skillsOnly ? { search: "搜索技能", empty: mention.query ? "没有匹配的技能" : "暂无已添加的技能" } : mentionMenuLabels}
             />
         ) : null;
 
@@ -495,8 +517,8 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
                     role="textbox"
                     aria-multiline="true"
                     aria-label={props["aria-label"]}
-                    aria-placeholder={props.placeholder}
-                    data-placeholder={showRichPlaceholder ? props.placeholder : undefined}
+                    aria-placeholder={hint || props.placeholder}
+                    data-placeholder={showRichPlaceholder && !showHint ? props.placeholder : undefined}
                     aria-disabled={props.disabled}
                     aria-readonly={readOnly}
                     contentEditable={!props.disabled && !props.readOnly}
@@ -608,7 +630,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
                         onKeyDown?.(event as unknown as React.KeyboardEvent<HTMLTextAreaElement>);
                     }}
                     onKeyUp={(event) => {
-                        syncEditableMentionFromSelection();
+                        if (event.key !== "Escape") syncEditableMentionFromSelection();
                         props.onKeyUp?.(event as unknown as React.KeyboardEvent<HTMLTextAreaElement>);
                     }}
                     onMouseDown={(event) => props.onMouseDown?.(event as unknown as React.MouseEvent<HTMLTextAreaElement>)}
@@ -654,6 +676,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
                         props.onBlur?.(event as unknown as React.FocusEvent<HTMLTextAreaElement>);
                     }}
                 ></div>
+                {shortcutHint}
                 {autoLinkSuggestion}
                 {menu}
                 {hoverPreview.target && !previewReference ? <MentionHoverPreview target={hoverPreview.target} /> : null}
@@ -666,6 +689,8 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
         <div ref={containerRef} data-canvas-no-zoom className={`relative w-full min-h-0 overflow-hidden ${containerClassName || "h-full"}`}>
             <textarea
                 {...props}
+                placeholder={showHint ? undefined : props.placeholder}
+                aria-placeholder={hint || props.placeholder}
                 ref={(node) => {
                     textareaRef.current = node;
                     if (typeof forwardedRef === "function") forwardedRef(node);
@@ -760,6 +785,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
                     props.onBlur?.(event);
                 }}
             />
+            {shortcutHint}
             {autoLinkSuggestion}
             {menu}
         </div>

@@ -15297,6 +15297,33 @@ html:not(.dark) .creation-chat-reference:hover:not(:disabled) {
 .creation-chat-mention-container {
     min-height: 76px;
 }
+.prompt-shortcut-hint {
+    position: absolute;
+    inset: 0;
+    z-index: 11;
+    pointer-events: none;
+    user-select: none;
+}
+.prompt-shortcut-hint button {
+    pointer-events: auto;
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.45em;
+    height: 1.45em;
+    vertical-align: baseline;
+    padding: 0 var(--space-half);
+    border: 1px solid var(--ocean-air-border-strong);
+    border-radius: var(--r-sm);
+    background: var(--button-tonal-bg);
+    color: inherit;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+}
+.prompt-shortcut-hint button:is(:hover, :focus-visible) {
+    color: var(--ocean-air-primary);
+    background: var(--button-tonal-hover-bg);
+}
 .creation-chat-mention-editor {
     display: block;
     width: 100%;

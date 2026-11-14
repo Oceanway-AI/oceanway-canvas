@@ -272,7 +272,6 @@ export function CreationComposer(props: ComposerProps) {
     const showWorkingSpinner = interactionBusy || (props.generationActive && !canSubmit);
     const showWorkingGlow = props.generationActive && !canSubmit;
     const placeholder = props.mode === "text" ? "描述你的故事、角色或想继续讨论的创意" : props.mode === "image" ? "描述画面、人物、场景、构图与风格" : "描述镜头内容、运动、光线与节奏";
-    const emptyPlaceholder = "输入你的镜头、画面或故事。也可以添加参考图开始创作";
     const referencesSupported = props.mode === "text" || props.maxReferences > 0;
     const canAddMoreReferences = referencesSupported && props.attachments.length < props.maxReferences;
     const addReferenceLabel = interactionBusy ? (props.referenceReplacementBusy ? "正在替换参考图" : "生成中暂不能添加参考内容") : canAddMoreReferences ? "添加更多参考内容" : `已达到当前模型的参考内容上限（${props.maxReferences} 个）`;
@@ -528,8 +527,9 @@ export function CreationComposer(props: ComposerProps) {
                             containerClassName="creation-chat-mention-container"
                             className="creation-chat-mention-editor creation-scrollbar"
                             style={{ color: "var(--creation-text)" }}
-                            placeholder={props.placeholderOverride || (props.variant === "empty" ? emptyPlaceholder : placeholder)}
-                            aria-label="创作提示词，可使用 @ 引用当前参考内容或技能；回车发送，Shift+回车换行"
+                            promptShortcuts="skills"
+                            placeholder={props.placeholderOverride || placeholder}
+                            aria-label="创作提示词，回车发送，Shift+回车换行"
                             spellCheck
                             disabled={interactionBusy}
                             activeDropReferenceId={dropTargetReferenceId}

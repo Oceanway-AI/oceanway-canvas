@@ -61,7 +61,7 @@ export function MentionMenu({
     labels,
 }: {
     /** 非画布场景（如图片区域）复用菜单时替换分组名和搜索提示。 */
-    labels?: { connected?: string; search?: string };
+    labels?: { connected?: string; search?: string; empty?: string };
     anchor: HTMLElement;
     connectedReferences: CanvasResourceReference[];
     assetReferences: CanvasResourceReference[];
@@ -265,7 +265,7 @@ export function MentionMenu({
                     <small>{entries.length}</small>
                 </button>
             ) : null}
-            {entries.length ? visibleSections.map(renderSection) : <div className="canvas-resource-mention-empty">{t("canvasB.mention.noMatches")}</div>}
+            {entries.length ? visibleSections.map(renderSection) : <div className="canvas-resource-mention-empty">{labels?.empty ?? t("canvasB.mention.noMatches")}</div>}
         </div>
     );
 

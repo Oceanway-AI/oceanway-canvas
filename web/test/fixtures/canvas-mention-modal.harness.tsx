@@ -16,6 +16,56 @@ const { serializeEditableValue } = await import("../../src/components/canvas/can
 const { getNineGridMenuItems } = await import("../../src/components/canvas/canvas-image-toolbar-tools");
 afterAll(() => dom.happyDOM.abort());
 
+test("生成框的占位快捷键打开素材或技能菜单，只将选中的引用写入提示词", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    const references: CanvasResourceReference[] = [
+        { id: "image", nodeId: "image", kind: "image", label: "图片1", active: true },
+        { id: "skill", nodeId: "skill", kind: "skill", label: "分镜", active: true },
+    ];
+    let value = "";
+    const render = () =>
+        root.render(
+            <CanvasResourceMentionTextarea
+                promptShortcuts="skills"
+                value={value}
+                references={references}
+                placeholder="描述画面"
+                onChange={(next) => {
+                    value = next;
+                    render();
+                }}
+            />,
+        );
+    try {
+        await act(async () => render());
+        for (const [label, symbol] of [
+            ["引用素材", "@"],
+            ["选择技能", "/"],
+        ]) {
+            expect(value).toBe("");
+            await act(async () => host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!.click());
+            expect(value).toBe(symbol);
+            const menu = document.querySelector("[data-canvas-resource-mention-menu]")!;
+            expect(menu.textContent).toContain("分镜");
+            if (symbol === "@") {
+                expect(menu.textContent).toContain("图片1");
+                await act(async () => host.querySelector('[role="textbox"]')!.dispatchEvent(new dom.KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+                value = "";
+                await act(async () => render());
+            } else {
+                expect(menu.textContent).not.toContain("图片1");
+                await act(async () => menu.querySelector<HTMLButtonElement>("button.is-skill")!.click());
+                expect(value).toBe(canvasResourceMentionToken(references[1]) + " ");
+            }
+        }
+    } finally {
+        await act(async () => root.unmount());
+        host.remove();
+    }
+});
+
 for (const inModal of [true, false]) {
     test(`${inModal ? "放大" : "普通"}编辑器在故事板标签后显示占位提示，输入正文后隐藏且不写入内容`, async () => {
         const host = document.createElement("div");
