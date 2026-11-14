@@ -1,0 +1,762 @@
+{
+  "environment": "isolated W7, user-owned blank test canvas only",
+  "exercised_routes": [
+    "Console account login/logout",
+    "Studio /create",
+    "Studio /canvas/[A-canvas]"
+  ],
+  "observed_at": "2026-11-14T17:10:15.891519+00:00",
+  "runs": {
+    "native": {
+      "B_canvas": {
+        "events": [
+          {
+            "UTC": "2026-11-14T16:47:31.819000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:47:31.819000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:47:31.829000+00:00",
+            "focus": true,
+            "name": "pageshow",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:47:36.059000+00:00",
+            "focus": false,
+            "name": "blur",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:47:36.060000+00:00",
+            "focus": false,
+            "name": "visibilitychange",
+            "visibility": "hidden"
+          },
+          {
+            "UTC": "2026-11-14T16:47:41.594000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "hidden"
+          },
+          {
+            "UTC": "2026-11-14T16:47:41.596000+00:00",
+            "focus": true,
+            "name": "visibilitychange",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": "B",
+        "summaryActor": "B",
+        "summaryStatus": 200,
+        "visibility": "visible"
+      },
+      "B_open_canvas": {
+        "canvasDisplaysOldTitle": true,
+        "hidden": false,
+        "oldAvatarOrIdentityVisible": false,
+        "privateCanvasReadStatus": 404,
+        "route": "/canvas/[A-canvas]"
+      },
+      "B_open_workbench_correct": true,
+      "B_workbench": {
+        "events": [
+          {
+            "UTC": "2026-11-14T16:47:22.208000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:47:24.337000+00:00",
+            "focus": true,
+            "name": "pageshow",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:47:30.454000+00:00",
+            "focus": false,
+            "name": "blur",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:47:30.454000+00:00",
+            "focus": false,
+            "name": "visibilitychange",
+            "visibility": "hidden"
+          },
+          {
+            "UTC": "2026-11-14T16:47:40.806000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "hidden"
+          },
+          {
+            "UTC": "2026-11-14T16:47:40.808000+00:00",
+            "focus": true,
+            "name": "visibilitychange",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": "B",
+        "summaryActor": "B",
+        "summaryStatus": 200,
+        "visibility": "visible"
+      },
+      "after_canvas_reload_old_title": true,
+      "after_logout_canvas_clear": null,
+      "after_logout_canvas_status": null,
+      "after_logout_workbench_clear": true,
+      "after_workbench_reload_B": true,
+      "finance_requests": 0,
+      "logout_workbench": {
+        "events": [
+          {
+            "UTC": "2026-11-14T16:48:03.837000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:48:03.849000+00:00",
+            "focus": true,
+            "name": "pageshow",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:48:04.625000+00:00",
+            "focus": false,
+            "name": "blur",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:48:04.626000+00:00",
+            "focus": false,
+            "name": "visibilitychange",
+            "visibility": "hidden"
+          },
+          {
+            "UTC": "2026-11-14T16:48:05.081000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "hidden"
+          },
+          {
+            "UTC": "2026-11-14T16:48:05.082000+00:00",
+            "focus": true,
+            "name": "visibilitychange",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": null,
+        "summaryActor": null,
+        "summaryStatus": 401,
+        "visibility": "visible"
+      },
+      "response_actors": [
+        [
+          "A",
+          "f2416fdcd4d43ba2",
+          "ae3b407568ba1861",
+          "0",
+          false
+        ],
+        [
+          "B",
+          "1e4f4cefe2ca1658",
+          "875b9b77f4d7ee2a",
+          "0",
+          false
+        ]
+      ],
+      "run_utc": "2026-11-14T16:47:14.268Z",
+      "success": false
+    },
+    "native-fixed": {
+      "A_final_signout_cleared_canvas": true,
+      "A_original_canvas_preserved": true,
+      "A_reentered_same_account": true,
+      "B_canvas": {
+        "events": [
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:08:48.750000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:08:48.750000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": true,
+            "name": "pageshow",
+            "utc": "2026-11-14T17:08:48.764000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": false,
+            "name": "blur",
+            "utc": "2026-11-14T17:08:52.413000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": false,
+            "name": "visibilitychange",
+            "utc": "2026-11-14T17:08:52.415000+00:00",
+            "visibility": "hidden"
+          },
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:08:56.720000+00:00",
+            "visibility": "hidden"
+          },
+          {
+            "focus": true,
+            "name": "visibilitychange",
+            "utc": "2026-11-14T17:08:56.721000+00:00",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": null,
+        "summaryActor": "B",
+        "summaryStatus": 200,
+        "visibility": "visible"
+      },
+      "B_open_canvas": {
+        "canvasDisplaysOldTitle": false,
+        "hidden": true,
+        "oldAvatarOrIdentityVisible": false,
+        "privateCanvasReadStatus": 404,
+        "route": "/canvas/[A-canvas]"
+      },
+      "B_open_workbench_correct": true,
+      "B_workbench": {
+        "events": [
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:08:38.657000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": true,
+            "name": "pageshow",
+            "utc": "2026-11-14T17:08:41.351000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": false,
+            "name": "blur",
+            "utc": "2026-11-14T17:08:47.089000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": false,
+            "name": "visibilitychange",
+            "utc": "2026-11-14T17:08:47.090000+00:00",
+            "visibility": "hidden"
+          },
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:08:56.030000+00:00",
+            "visibility": "hidden"
+          },
+          {
+            "focus": true,
+            "name": "visibilitychange",
+            "utc": "2026-11-14T17:08:56.032000+00:00",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": "B",
+        "summaryActor": "B",
+        "summaryStatus": 200,
+        "visibility": "visible"
+      },
+      "after_canvas_reload_old_title": false,
+      "after_logout_canvas_clear": true,
+      "after_logout_canvas_status": 401,
+      "after_logout_workbench_clear": true,
+      "after_workbench_reload_B": true,
+      "failure_stage": null,
+      "finance_requests": 0,
+      "logout_workbench": {
+        "events": [
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:09:02.044000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": true,
+            "name": "pageshow",
+            "utc": "2026-11-14T17:09:02.055000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": false,
+            "name": "blur",
+            "utc": "2026-11-14T17:09:02.980000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": false,
+            "name": "visibilitychange",
+            "utc": "2026-11-14T17:09:02.980000+00:00",
+            "visibility": "hidden"
+          },
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:09:03.616000+00:00",
+            "visibility": "hidden"
+          },
+          {
+            "focus": true,
+            "name": "visibilitychange",
+            "utc": "2026-11-14T17:09:03.618000+00:00",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": null,
+        "summaryActor": null,
+        "summaryStatus": 401,
+        "visibility": "visible"
+      },
+      "response_actors": [
+        [
+          "A",
+          "f2416fdcd4d43ba2",
+          "ae3b407568ba1861",
+          "0",
+          false
+        ],
+        [
+          "B",
+          "1e4f4cefe2ca1658",
+          "875b9b77f4d7ee2a",
+          "0",
+          false
+        ]
+      ],
+      "run_utc": "2026-11-14T17:08:29.711Z",
+      "success": true,
+      "timeline": [
+        {
+          "step": "console A login",
+          "utc": "2026-11-14T17:08:37.966Z"
+        },
+        {
+          "step": "A workbench reads its personal summary",
+          "utc": "2026-11-14T17:08:47.088Z"
+        },
+        {
+          "step": "A blank canvas saved and displayed its own account",
+          "utc": "2026-11-14T17:08:52.410Z"
+        },
+        {
+          "step": "console A session logged out",
+          "utc": "2026-11-14T17:08:52.836Z"
+        },
+        {
+          "step": "console B login",
+          "utc": "2026-11-14T17:08:55.713Z"
+        },
+        {
+          "step": "already-open workbench switch measured",
+          "utc": "2026-11-14T17:08:56.714Z"
+        },
+        {
+          "step": "private canvas denial and rendered contents measured",
+          "utc": "2026-11-14T17:08:58.944Z"
+        },
+        {
+          "step": "console B session logged out",
+          "utc": "2026-11-14T17:09:03.603Z"
+        },
+        {
+          "step": "logged-out workbench rendering measured, anonymous summary returns 401",
+          "utc": "2026-11-14T17:09:04.174Z"
+        },
+        {
+          "step": "console A login",
+          "utc": "2026-11-14T17:09:07.336Z"
+        },
+        {
+          "step": "A can reopen the same blank canvas after B signs out",
+          "utc": "2026-11-14T17:09:08.817Z"
+        },
+        {
+          "step": "console A session logged out",
+          "utc": "2026-11-14T17:09:09.200Z"
+        }
+      ]
+    },
+    "windows": {
+      "B_canvas": {
+        "events": [
+          {
+            "UTC": "2026-11-14T16:49:59.048000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:49:59.048000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:49:59.060000+00:00",
+            "focus": true,
+            "name": "pageshow",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:50:03.517000+00:00",
+            "focus": false,
+            "name": "blur",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:50:25.766000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": null,
+        "summaryActor": "B",
+        "summaryStatus": 200,
+        "visibility": "visible"
+      },
+      "B_open_canvas": {
+        "canvasDisplaysOldTitle": false,
+        "hidden": true,
+        "oldAvatarOrIdentityVisible": false,
+        "privateCanvasReadStatus": 404,
+        "route": "/canvas/[A-canvas]"
+      },
+      "B_open_workbench_correct": false,
+      "B_workbench": {
+        "events": [
+          {
+            "UTC": "2026-11-14T16:49:48.514000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:49:51.681000+00:00",
+            "focus": true,
+            "name": "pageshow",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:49:57.020000+00:00",
+            "focus": false,
+            "name": "blur",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:50:07.562000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": "A",
+        "summaryActor": "B",
+        "summaryStatus": 200,
+        "visibility": "visible"
+      },
+      "after_canvas_reload_old_title": false,
+      "after_logout_canvas_clear": null,
+      "after_logout_canvas_status": null,
+      "after_logout_workbench_clear": false,
+      "after_workbench_reload_B": true,
+      "finance_requests": 0,
+      "logout_workbench": {
+        "events": [
+          {
+            "UTC": "2026-11-14T16:50:28.019000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:50:28.030000+00:00",
+            "focus": true,
+            "name": "pageshow",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:50:28.824000+00:00",
+            "focus": false,
+            "name": "blur",
+            "visibility": "visible"
+          },
+          {
+            "UTC": "2026-11-14T16:50:29.227000+00:00",
+            "focus": true,
+            "name": "focus",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": "B",
+        "summaryActor": null,
+        "summaryStatus": 401,
+        "visibility": "visible"
+      },
+      "response_actors": [
+        [
+          "A",
+          "f2416fdcd4d43ba2",
+          "ae3b407568ba1861",
+          "0",
+          false
+        ],
+        [
+          "B",
+          "1e4f4cefe2ca1658",
+          "875b9b77f4d7ee2a",
+          "0",
+          false
+        ]
+      ],
+      "run_utc": "2026-11-14T16:49:39.135Z",
+      "success": false
+    },
+    "windows-fixed": {
+      "A_final_signout_cleared_canvas": true,
+      "A_original_canvas_preserved": true,
+      "A_reentered_same_account": true,
+      "B_canvas": {
+        "events": [
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:09:39.915000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:09:39.915000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": true,
+            "name": "pageshow",
+            "utc": "2026-11-14T17:09:39.927000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": false,
+            "name": "blur",
+            "utc": "2026-11-14T17:09:43.670000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:09:48.771000+00:00",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": null,
+        "summaryActor": "B",
+        "summaryStatus": 200,
+        "visibility": "visible"
+      },
+      "B_open_canvas": {
+        "canvasDisplaysOldTitle": false,
+        "hidden": true,
+        "oldAvatarOrIdentityVisible": false,
+        "privateCanvasReadStatus": 404,
+        "route": "/canvas/[A-canvas]"
+      },
+      "B_open_workbench_correct": true,
+      "B_workbench": {
+        "events": [
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:09:29.150000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": true,
+            "name": "pageshow",
+            "utc": "2026-11-14T17:09:31.486000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": false,
+            "name": "blur",
+            "utc": "2026-11-14T17:09:37.609000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:09:47.695000+00:00",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": "B",
+        "summaryActor": "B",
+        "summaryStatus": 200,
+        "visibility": "visible"
+      },
+      "after_canvas_reload_old_title": false,
+      "after_logout_canvas_clear": true,
+      "after_logout_canvas_status": 401,
+      "after_logout_workbench_clear": true,
+      "after_workbench_reload_B": true,
+      "failure_stage": null,
+      "finance_requests": 0,
+      "logout_workbench": {
+        "events": [
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:09:53.793000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": true,
+            "name": "pageshow",
+            "utc": "2026-11-14T17:09:53.807000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": false,
+            "name": "blur",
+            "utc": "2026-11-14T17:09:54.729000+00:00",
+            "visibility": "visible"
+          },
+          {
+            "focus": true,
+            "name": "focus",
+            "utc": "2026-11-14T17:09:55.489000+00:00",
+            "visibility": "visible"
+          }
+        ],
+        "focus": true,
+        "screenAccount": null,
+        "summaryActor": null,
+        "summaryStatus": 401,
+        "visibility": "visible"
+      },
+      "response_actors": [
+        [
+          "A",
+          "f2416fdcd4d43ba2",
+          "ae3b407568ba1861",
+          "0",
+          false
+        ],
+        [
+          "B",
+          "1e4f4cefe2ca1658",
+          "875b9b77f4d7ee2a",
+          "0",
+          false
+        ]
+      ],
+      "run_utc": "2026-11-14T17:09:17.324Z",
+      "success": true,
+      "timeline": [
+        {
+          "step": "console A login",
+          "utc": "2026-11-14T17:09:28.317Z"
+        },
+        {
+          "step": "A workbench reads its personal summary",
+          "utc": "2026-11-14T17:09:37.605Z"
+        },
+        {
+          "step": "A blank canvas saved and displayed its own account",
+          "utc": "2026-11-14T17:09:43.659Z"
+        },
+        {
+          "step": "console A session logged out",
+          "utc": "2026-11-14T17:09:44.026Z"
+        },
+        {
+          "step": "console B login",
+          "utc": "2026-11-14T17:09:47.392Z"
+        },
+        {
+          "step": "already-open workbench switch measured",
+          "utc": "2026-11-14T17:09:48.765Z"
+        },
+        {
+          "step": "private canvas denial and rendered contents measured",
+          "utc": "2026-11-14T17:09:50.770Z"
+        },
+        {
+          "step": "console B session logged out",
+          "utc": "2026-11-14T17:09:55.477Z"
+        },
+        {
+          "step": "logged-out workbench rendering measured, anonymous summary returns 401",
+          "utc": "2026-11-14T17:09:56.114Z"
+        },
+        {
+          "step": "console A login",
+          "utc": "2026-11-14T17:09:59.220Z"
+        },
+        {
+          "step": "A can reopen the same blank canvas after B signs out",
+          "utc": "2026-11-14T17:10:00.695Z"
+        },
+        {
+          "step": "console A session logged out",
+          "utc": "2026-11-14T17:10:01.058Z"
+        }
+      ]
+    }
+  },
+  "source": "dedicated Chrome for Testing profile, Playwright over CDP noDefaults=true",
+  "test_canvas_created": 1,
+  "test_canvas_tag": "c28cf34a6887",
+  "test_subjects": {
+    "avatar_images_present": false,
+    "both_balances_points": "0",
+    "distinguishable": "display name, server user ID, personal workspace ID",
+    "main_acceptance_session_used": false,
+    "ordinary_seed_accounts": 2
+  },
+  "versions": {
+    "after_web": "09b95dc",
+    "before_web": "16406ea",
+    "unchanged_studio_api": "ac185ac"
+  }
+}
