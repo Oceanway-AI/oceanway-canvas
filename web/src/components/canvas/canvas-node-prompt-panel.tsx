@@ -9,7 +9,7 @@ import { ReferenceSlot } from "@/components/reference-slot";
 import { PlatformMaterialPicker } from "@/components/assets/platform-material-picker";
 import type { InsertAssetPayload } from "./asset-picker-modal";
 import { assignFrameSlots, publishedFrameRoles, type FrameRole } from "@/lib/media-reference-slots";
-import { nativeImageReferenceVariant, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
+import { nativeCreationSettings, nativeImageReferenceVariant, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
 import { modelOptionName, resolveModelChannel, selectableModelsByCapability, useEffectiveConfig } from "@/stores/use-config-store";
 import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
 import { canonicalGenerationMetadata, nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
@@ -19,7 +19,7 @@ import { CanvasPromptFontSizeControl } from "./canvas-prompt-font-size-control";
 import { CreditSymbol, requestCreditCost } from "@/constant/credits";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { modelQuoteDescription, modelQuoteRequest } from "@/lib/model-pricing";
-import { modelRequestOptions, defaultImageParamsForModel, type ModelRequirements } from "@/lib/model-selection";
+import { modelCompatibilityError, modelRequestOptions, defaultImageParamsForModel, type ModelRequirements } from "@/lib/model-selection";
 import { referenceImageSizeSelection, type ImageDimensions } from "@/lib/canvas/canvas-reference-image-size";
 import { navigateToSettings } from "@/lib/settings-navigation";
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
@@ -57,7 +57,7 @@ import { useResolvedCanvasResourceReferences } from "./use-resolved-canvas-resou
 import { quoteModel, type LogicalModelQuote } from "@/services/api/logical-models";
 import { ConnectedReferenceShelf, ReferenceToolsPopover, referenceShelfHeading } from "./canvas-node-prompt-references";
 import { PromptModalResizeHandle, PromptResizeHandle, clampExpandedModalSize, clampPromptHeight, estimatePromptContentHeight, promptEditorBounds } from "./canvas-node-prompt-resize";
-import { audioConfigPatch, buildNodeConfig, defaultMode, modeDisplayName, promptPlaceholder, videoConfigPatch } from "./canvas-node-prompt-config";
+import { audioConfigPatch, buildNodeConfig, defaultMode, modeDisplayName, nativeCanvasParameterPatch, promptPlaceholder, videoConfigPatch } from "./canvas-node-prompt-config";
 
 export { buildNodeConfig } from "./canvas-node-prompt-config";
 
@@ -79,7 +79,7 @@ type CanvasNodePromptPanelProps = {
     onClose?: () => void;
     onNodeMouseDown?: (event: ReactPointerEvent, nodeId: string) => void;
     onImageSettingsOpenChange?: (open: boolean) => void;
-    onInsertMedia?: (id: string, items: InsertAssetPayload[], role?: FrameRole, replaceId?: string, variantId?: string) => Promise<void>;
+    onInsertMedia?: (id: string, items: InsertAssetPayload[], role?: FrameRole, replaceId?: string, settings?: Pick<CanvasNodeMetadata, "nativeVariantId" | "nativeParameters">) => Promise<void>;
     workspaceMode?: CanvasWorkspaceMode;
     onListGenerate?: (nodeId: string, prompt: string) => void;
     /** 第一张上游参考图的尺寸；图片尺寸未由用户选择时按它的比例显示和生成。 */
@@ -212,7 +212,9 @@ export function CanvasNodePromptPanel({
     const config = buildNodeConfig(globalConfig, node, mode, requirements, referenceImageSize);
     const native = (mode === "image" || mode === "video") && nativeMediaProfile(config);
     const variant = nativeMediaVariant(config);
-    const referenceVariant = mode === "image" ? nativeImageReferenceVariant(config, config.model, variant) : variant;
+    const selectedMode =
+        node.metadata?.nativeModeVariantId || node.metadata?.nativeVariantId || (mode === "video" && native && !activeReferences.some((r) => ["image", "audio", "video", "character"].includes(r.kind)) ? native.defaultId : config.nativeVariantId);
+    const referenceVariant = mode === "image" ? nativeImageReferenceVariant(config, config.model, variant) : nativeMediaVariant(config, config.model, selectedMode);
     const limits = nativeMediaReferenceLimits(config, config.model, referenceVariant);
     const frameRoles = publishedFrameRoles(referenceVariant);
     const frameSlots = assignFrameSlots(
@@ -282,7 +284,8 @@ export function CanvasNodePromptPanel({
         return { width: Math.round(rect.width), height: Math.round(rect.height) };
     };
     const missingFrame = frameSlots.some((slot) => !slot.attachment && variant?.native_request_variant.native_reference_inputs.some((ref) => ref.role === slot.role && (ref.min_items || 0) > 0));
-    const isSubmitDisabled = !modelAvailable || !prompt.trim() || missingFrame;
+    const incompatibleReference = native && modelCompatibilityError(config, config.model, requirements);
+    const isSubmitDisabled = !modelAvailable || !prompt.trim() || missingFrame || Boolean(incompatibleReference);
     const canExpandPrompt = mode === "image" || mode === "video";
     const canOptimizePrompt = Boolean(promptOptimizerProvider) && canExpandPrompt;
     const isPortraitTexture = mode === "image" && Boolean(node.metadata?.portraitTexture);
@@ -514,7 +517,7 @@ export function CanvasNodePromptPanel({
                 }
                 onClick={() => (expanded ? submitExpandedPrompt() : submit())}
                 aria-label={actionLabel}
-                title={routeQuote ? modelQuoteDescription(routeQuote) : actionLabel}
+                title={incompatibleReference || (missingFrame ? "请补齐当前模式要求的帧" : routeQuote ? modelQuoteDescription(routeQuote) : actionLabel)}
             >
                 {showCost ? (
                     <span className="canvas-node-composer-submit-cost">
@@ -627,9 +630,8 @@ export function CanvasNodePromptPanel({
                                 mode={mode}
                                 config={config}
                                 variants={native.variants}
-                                onChange={(key, value) =>
-                                    onConfigChange(node.id, key === "nativeVariantId" ? { nativeVariantId: value, nativeParameters: "{}", videoStartFrameNodeId: undefined, videoEndFrameNodeId: undefined } : { nativeParameters: value })
-                                }
+                                modeVariantId={mode === "video" ? selectedMode : undefined}
+                                onChange={(key, value) => onConfigChange(node.id, nativeCanvasParameterPatch(config, mode, selectedMode, key, value))}
                             />
                         </>
                     ) : mode === "image" && modelAvailable ? (
@@ -749,7 +751,8 @@ export function CanvasNodePromptPanel({
                                     if (items.filter((i) => i.kind === kind).length + activeReferences.filter((r) => r.kind === kind || (kind === "image" && r.kind === "character")).length > max) throw new Error("所选素材超过当前模式的参考数量上限");
                                 }
                             }
-                            await onInsertMedia(node.id, items, pickSlot === "reference" ? undefined : pickSlot, frameSlots.find((s) => s.role === pickSlot)?.attachment?.nodeId, referenceVariant?.id !== variant?.id ? referenceVariant?.id : undefined);
+                            const settings = mode === "image" && referenceVariant?.id !== variant?.id ? nativeCreationSettings(config, config.model, config, true).settings : undefined;
+                            await onInsertMedia(node.id, items, pickSlot === "reference" ? undefined : pickSlot, frameSlots.find((s) => s.role === pickSlot)?.attachment?.nodeId, settings);
                         }}
                     />
                 )}

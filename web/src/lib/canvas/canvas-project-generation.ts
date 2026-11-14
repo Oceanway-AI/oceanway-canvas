@@ -5,7 +5,8 @@ import { resolveImageUrl, uploadImage } from "@/services/image-storage";
 import { resolveMediaUrl, resolveVideoMediaUrl } from "@/services/file-storage";
 import { resourceIdFromStorageKey } from "@/services/api/resources";
 import { NODE_DEFAULT_SIZE } from "@/constant/canvas";
-import { nativeMediaReferenceLimits } from "@/lib/platform-native-media";
+import { nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
+import { assignFrameSlots, publishedFrameRoles } from "@/lib/media-reference-slots";
 import { normalizeVideoDuration, normalizeVideoResolution } from "@/lib/video-generation-options";
 import { modelCapabilityConfigFor, workflowFieldCurrentValue, workflowFieldHasStoredValue, workflowFieldKey, workflowFieldRandomKey, workflowFieldSubmissionValue, workflowOutputSizeValue, workflowVideoFieldsFromJson } from "@/lib/model-capabilities";
 import { modelRequestOptions, resolveCompatibleModel, resolveModelGenerationDefaults, resolveVideoOperation, type ModelGenerationDefaults, type ModelRequirements } from "@/lib/model-selection";
@@ -18,7 +19,7 @@ import type { CanvasNodeGenerationMode } from "@/components/canvas/canvas-node-p
 import { CanvasNodeType, type CanvasAssistantSession, type CanvasConnection, type CanvasImageGenerationType, type CanvasNodeData, type CanvasNodeMetadata, type CanvasVideoEditOperation } from "@/types/canvas";
 import type { ReferenceImage } from "@/types/image";
 import type { ReferenceAudio, ReferenceVideo } from "@/types/media";
-import { generationSpecMetadata, readNodeGenerationSpec, resolveGenerationSelection } from "@/lib/canvas/generation-contract";
+import { canonicalGenerationMetadata, generationSpecMetadata, readNodeGenerationSpec, resolveGenerationSelection } from "@/lib/canvas/generation-contract";
 import { withReferenceImageSize, type ImageDimensions } from "@/lib/canvas/canvas-reference-image-size";
 
 export async function runBackendCanvasGenerationTask(
@@ -330,13 +331,18 @@ export function buildVideoGenerationMetadata(
     },
     config?: AiConfig,
 ): CanvasNodeMetadata {
-    const metadata = node?.metadata;
+    const metadata = node ? canonicalGenerationMetadata(node, "video") : undefined;
     const referenceImageIds = new Set((context?.referenceImages || []).map((image) => image.id));
     // 工作流视频把已连接媒体交给字段映射处理，不再把历史首尾帧选择当成硬约束。
     // 工作流视频把已连接媒体交给字段映射处理，不再把历史首尾帧选择当成硬约束。
     const workflowVideo = node?.type === CanvasNodeType.Config && (config?.taskWorkflowProvider === "runninghub" || isCanvasWorkflowProvider(metadata));
     const startFrame = workflowVideo ? undefined : requireConnectedVideoFrame(metadata?.videoStartFrameNodeId, "首帧", referenceImageIds);
     const endFrame = workflowVideo ? undefined : requireConnectedVideoFrame(metadata?.videoEndFrameNodeId, "尾帧", referenceImageIds);
+    const variant = !workflowVideo && config ? nativeMediaVariant(config) : undefined;
+    const slots = assignFrameSlots(publishedFrameRoles(variant), context?.referenceImages ?? [], (image) => (image.id === startFrame ? "first_frame" : image.id === endFrame ? "last_frame" : image.role));
+    for (const slot of slots) {
+        if (!slot.attachment && variant?.native_request_variant.native_reference_inputs.some((ref) => ref.role === slot.role && (ref.min_items || 0) > 0)) throw new Error(`请添加${slot.role === "first_frame" ? "首帧" : "尾帧"}图片`);
+    }
     return {
         ...(config ? generationWorkflowMetadata(config) : {}),
         videoEditOperation: resolveVideoEditOperation(node, context),
@@ -474,7 +480,8 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
     // 避免旧 metadata.model 不支持当前尺寸导致生成时被 normalize 回退。
     const liveOptions = modelRequestOptions(requestedConfig, mode);
     const baseRequirements = requirements?.capability ? { ...requirements, options: { ...liveOptions, ...(requirements.options || {}) } } : { capability: mode, options: liveOptions };
-    const model = workflowProvider === "model" ? resolveCompatibleModel(config, preferredModel, imageSize ? { ...baseRequirements, imageSize } : baseRequirements) || preferredModel : preferredModel;
+    const useModelGroup = workflowProvider === "model" && !nativeMediaProfile(config, preferredModel);
+    const model = useModelGroup ? resolveCompatibleModel(config, preferredModel, imageSize ? { ...baseRequirements, imageSize } : baseRequirements) || preferredModel : preferredModel;
     const generationDefaults: Partial<ModelGenerationDefaults> =
         workflowProvider === "model"
             ? resolveModelGenerationDefaults(
@@ -515,6 +522,17 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
                   },
               )
             : {};
+    // Keep the node's chosen slot layout while resolving parameters against the request that its connected inputs will use.
+    const input = requirements?.input;
+    if (node && input && generationDefaults.nativeVariantId && workflowProvider === "model") {
+        const selected = node.metadata?.nativeModeVariantId || node.metadata?.nativeVariantId;
+        const preferred = nativeMediaVariant(config, model, selected || generationDefaults.nativeVariantId);
+        const hasReferences = Boolean(input.imageCount || input.videoCount || input.audioCount || input.characterCount);
+        const explicitTextVideo = mode === "video" && selected && preferred && !preferred.native_request_variant.native_reference_inputs.some((ref) => ref.max_items !== 0);
+        if (preferred && !explicitTextVideo && (mode === "video" || (mode === "image" && hasReferences))) {
+            Object.assign(generationDefaults, nativeCreationSettings(config, model, { nativeVariantId: node.metadata?.nativeVariantId, nativeParameters: node.metadata?.nativeParameters, nativeModeVariantId: selected }, hasReferences).settings);
+        }
+    }
     const modeCapability = mode === "video" || mode === "audio" ? mode : "image";
     const runningHubCapability = normalizeRunningHubCapability(selectedRunningHubWorkflow?.capability, normalizeRunningHubCapability(config.runningHub.capability));
     const runningHub = {
@@ -584,7 +602,7 @@ function applyWorkflowParameterValues(fields: WorkflowFieldMapping[] | undefined
 
 // 与首次生成同一来源：模型能力声明了参考音频上限才带参考音频，不按协议 ID 或模型名判断。
 export function supportsVideoReferenceAudio(config: AiConfig) {
-    return (modelCapabilityConfigFor(config, config.model).video?.references.maxAudios ?? 0) > 0;
+    return (nativeMediaReferenceLimits(config)?.maxAudios ?? modelCapabilityConfigFor(config, config.model).video?.references.maxAudios ?? 0) > 0;
 }
 
 export function resetInterruptedGeneration(nodes: CanvasNodeData[]) {

@@ -3,6 +3,7 @@ import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { App } from "antd";
 
 import { buildNodeGenerationContext, hydrateNodeGenerationContext } from "@/components/canvas/canvas-node-generation";
+import { nativeMediaReferenceLimits } from "@/lib/platform-native-media";
 import { nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
 import { imageLayerProviderMetadata, layerDecompositionConfig, supportsExperimentalLayerExtraction, supportsLayerDecomposition } from "@/lib/canvas/canvas-image-layers";
 import { imageLayerOutputSize, imageLayerRemovalPrompt } from "@/lib/canvas/canvas-image-layer-plan";
@@ -281,11 +282,15 @@ export function useCanvasGenerationRetry({
             try {
                 const promptOnly = retryMode === "video";
                 const contextAssets = await loadPromptMentionedAssets(retryContextPrompt);
-                const baseContext = buildNodeGenerationContext(sourceNode.id, nodesRef.current, connectionsRef.current, retryContextPrompt, contextAssets, promptOnly);
+                const baseContext = buildNodeGenerationContext(sourceNode.id, nodesRef.current, connectionsRef.current, retryContextPrompt, contextAssets, promptOnly, retryMode === "image" && Boolean(generationConfig.nativeVariantId));
+                if (retryMode === "video" && generationConfig.nativeVariantId) {
+                    const input = { textCount: baseContext.textCount, imageCount: baseContext.imageCount, videoCount: baseContext.videoCount, audioCount: baseContext.audioCount, characterCount: baseContext.characterReferences.length };
+                    generationConfig = { ...buildGenerationConfig(effectiveConfig, generationSourceNode, "video", { capability: "video", input }), count: "1" };
+                }
                 rawContext =
                     hasSavedImageMetadata && !baseContext.characterReferences.length
                         ? null
-                        : await hydrateNodeGenerationContext(baseContext, projectId, domainProjectId, retryMode, retryMode === "video" && supportsVideoReferenceAudio(generationConfig), !promptOnly, undefined, false);
+                        : await hydrateNodeGenerationContext(baseContext, projectId, domainProjectId, retryMode, retryMode === "video" && supportsVideoReferenceAudio(generationConfig), !promptOnly, nativeMediaReferenceLimits(generationConfig), false);
             } catch (error) {
                 const failure = generationFailureMetadata(error, retryPromptSource);
                 message.error(failure.errorDetails);

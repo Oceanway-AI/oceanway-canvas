@@ -195,6 +195,12 @@ export function generationSpecMetadata(spec: GenerationSpec): CanvasNodeMetadata
         result[field.node] = value === undefined ? undefined : field.node === "count" ? value : String(value);
     }
     if (spec.modelSelection?.kind === "channel") result.model = encodeChannelModel(spec.modelSelection.channelId, spec.modelSelection.modelKey);
+    if (spec.mode === "video") {
+        for (const binding of spec.referenceBindings) {
+            if (binding.nodeId && binding.role === "first-frame") result.videoStartFrameNodeId = binding.nodeId;
+            if (binding.nodeId && binding.role === "last-frame") result.videoEndFrameNodeId = binding.nodeId;
+        }
+    }
     return result as CanvasNodeMetadata;
 }
 
@@ -204,6 +210,23 @@ export function synchronizeGenerationSpec(node: CanvasNodeData, patch: Partial<C
     const current = readNodeGenerationSpec(node);
     if (!current) return { ...node, metadata };
     const next: GenerationSpec = { ...current, options: { ...current.options } };
+    if (next.mode === "video") {
+        for (const [field, role] of [
+            ["videoStartFrameNodeId", "first-frame"],
+            ["videoEndFrameNodeId", "last-frame"],
+        ] as const) {
+            if (!Object.hasOwn(patch, field)) continue;
+            const nodeId = patch[field];
+            next.referenceBindings = next.referenceBindings.filter((binding) => binding.role !== role || binding.nodeId === nodeId);
+            if (!nodeId) continue;
+            const existing = next.referenceBindings.find((binding) => binding.nodeId === nodeId && binding.mediaType === "image");
+            if (existing) next.referenceBindings = next.referenceBindings.map((binding) => (binding === existing ? { ...binding, role } : binding));
+            else {
+                const order = next.referenceBindings.reduce((highest, binding) => Math.max(highest, binding.order), -1) + 1;
+                next.referenceBindings.push({ id: `node:${nodeId}`, nodeId, mediaType: "image", role, order, resolution: "latest" });
+            }
+        }
+    }
     for (const field of GENERATION_OPTION_FIELDS) {
         if (!(field.modes as readonly string[]).includes(current.mode) || !Object.prototype.hasOwnProperty.call(patch, field.node)) continue;
         const value = patch[field.node as keyof CanvasNodeMetadata];

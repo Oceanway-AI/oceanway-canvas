@@ -1,13 +1,10 @@
 // 节点生成配置的默认值与补丁：按节点类型推导生成模式，合并全局模型配置。纯函数。
 
-import { type CanvasNodeData, CanvasNodeType } from "@/types/canvas";
-import { Video } from "lucide-react";
+import { type CanvasNodeData, type CanvasNodeMetadata, CanvasNodeType } from "@/types/canvas";
 import { type AiConfig, defaultConfig } from "@/stores/use-config-store";
-import { type ModelRequirements, resolveCompatibleModel, resolveModelGenerationDefaults } from "@/lib/model-selection";
-import { canonicalGenerationMetadata } from "@/lib/canvas/generation-contract";
-import { resolveCanvasGenerationModel } from "@/lib/canvas/canvas-project-generation";
-import { withReferenceImageSize, type ImageDimensions } from "@/lib/canvas/canvas-reference-image-size";
-import { normalizeVideoDuration, normalizeVideoResolution } from "@/lib/video-generation-options";
+import type { ModelRequirements } from "@/lib/model-selection";
+import { buildGenerationConfig } from "@/lib/canvas/canvas-project-generation";
+import type { ImageDimensions } from "@/lib/canvas/canvas-reference-image-size";
 import type { CanvasAudioSettingKey } from "./canvas-audio-settings-popover";
 import type { CanvasNodeGenerationMode } from "./canvas-node-prompt-panel";
 
@@ -23,71 +20,10 @@ export function defaultMode(type: CanvasNodeData["type"]): CanvasNodeGenerationM
 }
 
 export function buildNodeConfig(globalConfig: AiConfig, node: CanvasNodeData, mode: CanvasNodeGenerationMode, requirements: ModelRequirements, referenceImage?: ImageDimensions): AiConfig {
-    node = { ...node, metadata: canonicalGenerationMetadata(node, mode) };
-    const defaultModel = mode === "image" ? globalConfig.imageModel : mode === "video" ? globalConfig.videoModel : mode === "audio" ? globalConfig.audioModel : globalConfig.textModel;
-    const fallbackModel = mode === "image" ? defaultConfig.imageModel : mode === "video" ? defaultConfig.videoModel : mode === "audio" ? defaultConfig.audioModel : defaultConfig.textModel;
-    const preferredModel = resolveCanvasGenerationModel(globalConfig, node.metadata?.model, mode) || resolveCanvasGenerationModel(globalConfig, defaultModel, mode) || fallbackModel;
-    // 与 buildGenerationConfig 使用同一规则，面板显示的尺寸就是提交的尺寸。
-    if (mode === "image") node = withReferenceImageSize(globalConfig, node, preferredModel, referenceImage);
-    const model = resolveCompatibleModel(globalConfig, preferredModel, mode === "image" ? { ...requirements, imageSize: node.metadata?.size || globalConfig.size || defaultConfig.size } : requirements) || preferredModel;
-    const defaults = resolveModelGenerationDefaults(
-        globalConfig,
-        model,
-        mode === "image" ? "image" : mode === "video" ? "video" : undefined,
-        mode === "image"
-            ? {
-                  size: node.metadata?.size,
-                  imageResolution: node.metadata?.imageResolution,
-                  imageParameters: node.metadata?.imageParameters,
-                  nativeParameters: node.metadata?.nativeParameters,
-                  nativeVariantId: node.metadata?.nativeVariantId,
-                  quality: node.metadata?.quality,
-                  transparentBackground: node.metadata?.transparentBackground,
-                  videoWatermark: node.metadata?.watermark,
-                  count: String(node.metadata?.count || globalConfig.canvasImageCount || globalConfig.count || defaultConfig.count),
-              }
-            : {
-                  size: node.metadata?.size,
-                  videoSeconds: node.metadata?.seconds,
-                  nativeParameters: node.metadata?.nativeParameters,
-                  nativeVariantId: node.metadata?.nativeVariantId,
-                  vquality: node.metadata?.vquality,
-                  videoGenerateAudio: node.metadata?.generateAudio,
-                  videoWatermark: node.metadata?.watermark,
-              },
-        {
-            size: globalConfig.size || defaultConfig.size,
-            imageResolution: globalConfig.imageResolution || defaultConfig.imageResolution,
-            imageParameters: globalConfig.imageParameters ?? "{}",
-            quality: globalConfig.quality || defaultConfig.quality,
-            transparentBackground: globalConfig.transparentBackground || defaultConfig.transparentBackground,
-            count: String(globalConfig.canvasImageCount || globalConfig.count || defaultConfig.count),
-            videoSeconds: globalConfig.videoSeconds || defaultConfig.videoSeconds,
-            vquality: globalConfig.vquality || defaultConfig.vquality,
-            videoGenerateAudio: globalConfig.videoGenerateAudio || defaultConfig.videoGenerateAudio,
-            videoWatermark: globalConfig.videoWatermark || defaultConfig.videoWatermark,
-        },
-    );
+    const config = buildGenerationConfig(globalConfig, node, mode, requirements, true, referenceImage);
+    if (mode !== "audio") return config;
     return {
-        ...globalConfig,
-        model,
-        quality: defaults.quality ?? globalConfig.quality ?? defaultConfig.quality,
-        imageResolution: defaults.imageResolution ?? globalConfig.imageResolution ?? defaultConfig.imageResolution,
-        imageParameters: defaults.imageParameters ?? globalConfig.imageParameters ?? "{}",
-        nativeParameters: defaults.nativeParameters,
-        nativeVariantId: defaults.nativeVariantId,
-        size: defaults.size ?? globalConfig.size ?? defaultConfig.size,
-        transparentBackground: defaults.transparentBackground ?? "false",
-        videoSeconds: defaults.videoSeconds ?? normalizeVideoDuration(globalConfig.videoSeconds ?? defaultConfig.videoSeconds),
-        vquality: defaults.vquality ?? normalizeVideoResolution(globalConfig.vquality || defaultConfig.vquality),
-        videoGenerateAudio: defaults.videoGenerateAudio ?? globalConfig.videoGenerateAudio ?? defaultConfig.videoGenerateAudio,
-        videoWatermark: defaults.videoWatermark ?? globalConfig.videoWatermark ?? defaultConfig.videoWatermark,
-        audioVoice: node.metadata?.audioVoice ?? globalConfig.audioVoice ?? defaultConfig.audioVoice,
-        audioFormat: node.metadata?.audioFormat || globalConfig.audioFormat || defaultConfig.audioFormat,
-        audioSpeed: node.metadata?.audioSpeed || globalConfig.audioSpeed || defaultConfig.audioSpeed,
-        audioLanguage: node.metadata?.audioLanguage || globalConfig.audioLanguage || defaultConfig.audioLanguage,
-        audioDialect: node.metadata?.audioDialect || globalConfig.audioDialect || defaultConfig.audioDialect,
-        audioInstructions: node.metadata?.audioInstructions || globalConfig.audioInstructions || defaultConfig.audioInstructions,
+        ...config,
         audioEmotionControlMethod: node.metadata?.audioEmotionControlMethod || globalConfig.audioEmotionControlMethod || defaultConfig.audioEmotionControlMethod,
         audioEmotionRandom: node.metadata?.audioEmotionRandom || globalConfig.audioEmotionRandom || defaultConfig.audioEmotionRandom,
         audioEmotionHappy: node.metadata?.audioEmotionHappy || globalConfig.audioEmotionHappy || defaultConfig.audioEmotionHappy,
@@ -98,7 +34,6 @@ export function buildNodeConfig(globalConfig: AiConfig, node: CanvasNodeData, mo
         audioEmotionMelancholic: node.metadata?.audioEmotionMelancholic || globalConfig.audioEmotionMelancholic || defaultConfig.audioEmotionMelancholic,
         audioEmotionSurprised: node.metadata?.audioEmotionSurprised || globalConfig.audioEmotionSurprised || defaultConfig.audioEmotionSurprised,
         audioEmotionCalm: node.metadata?.audioEmotionCalm || globalConfig.audioEmotionCalm || defaultConfig.audioEmotionCalm,
-        count: defaults.count ?? String(node.metadata?.count || (mode === "image" ? globalConfig.canvasImageCount || globalConfig.count : globalConfig.count) || defaultConfig.count),
     };
 }
 
@@ -115,6 +50,11 @@ export function videoConfigPatch(key: keyof AiConfig, value: string) {
     if (key === "videoWatermark") return { watermark: value };
     if (key === "videoArkPrivateAssetUpload") return { arkPrivateAssetUpload: value };
     return { [key]: value };
+}
+
+export function nativeCanvasParameterPatch(config: AiConfig, mode: "video" | "image", selectedMode: string | undefined, key: "nativeVariantId" | "nativeParameters", value: string): Partial<CanvasNodeMetadata> {
+    if (key === "nativeVariantId") return { nativeModeVariantId: mode === "video" ? value : undefined, nativeVariantId: value, nativeParameters: undefined, videoStartFrameNodeId: undefined, videoEndFrameNodeId: undefined };
+    return { nativeModeVariantId: mode === "video" ? selectedMode : undefined, nativeVariantId: config.nativeVariantId, nativeParameters: value };
 }
 
 export function audioConfigPatch(key: CanvasAudioSettingKey, value: string) {

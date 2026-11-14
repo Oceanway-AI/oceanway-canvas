@@ -6,7 +6,9 @@ import { ChevronDown, Dice5, Image as ImageIcon, LoaderCircle, MessageSquare, Mu
 import { Switch } from "@/components/ui/base/switch";
 import { MediaParameterControls } from "@/components/media-parameter-controls";
 import { ModelPicker } from "@/components/model-picker";
-import { nativeMediaProfile } from "@/lib/platform-native-media";
+import { nativeMediaProfile, nativeMediaVariant } from "@/lib/platform-native-media";
+import { assignFrameSlots, publishedFrameRoles } from "@/lib/media-reference-slots";
+import { buildNodeConfig as buildModelNodeConfig, nativeCanvasParameterPatch } from "./canvas-node-prompt-config";
 
 import {
     configuredModelMatchesCapability,
@@ -21,10 +23,9 @@ import {
     type RunningHubWorkflowKind,
 } from "@/stores/use-config-store";
 import { canvasThemes } from "@/lib/canvas-theme";
-import { normalizeVideoDuration, normalizeVideoResolution } from "@/lib/video-generation-options";
+import { normalizeVideoDuration } from "@/lib/video-generation-options";
 import {
     defaultModelCapabilityConfig,
-    modelCapabilityConfigFor,
     normalizeImageValue,
     normalizeVideoValue,
     workflowFieldChoiceValues,
@@ -43,7 +44,7 @@ import {
     workflowVideoFieldsFromJson,
     type WorkflowVideoFieldLike,
 } from "@/lib/model-capabilities";
-import { defaultImageParamsForModel, modelCompatibilityError, modelRequestOptions, resolveCompatibleModel, resolveModelGenerationDefaults, type ModelRequirements } from "@/lib/model-selection";
+import { modelCompatibilityError, modelRequestOptions, type ModelRequirements } from "@/lib/model-selection";
 import { resolveCanvasWorkflowProvider } from "@/lib/canvas/canvas-workflow";
 import { canonicalGenerationMetadata, nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
 import type { CanvasAudioSettingKey } from "./canvas-audio-settings-popover";
@@ -56,7 +57,7 @@ import { Select } from "@/components/ui/base/select";
 type CanvasConfigNodePanelProps = {
     node: CanvasNodeData;
     isRunning: boolean;
-    inputSummary: { textCount: number; imageCount: number; videoCount: number; audioCount: number; characterCount: number };
+    inputSummary: { textCount: number; imageCount: number; videoCount: number; audioCount: number; characterCount: number; imageNodeIds: string[] };
     onConfigChange: (nodeId: string, patch: Partial<CanvasNodeMetadata>) => void;
     onGenerate: (nodeId: string) => void;
     onComposerToggle: () => void;
@@ -133,6 +134,10 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
     };
     const config = buildNodeConfig(globalConfig, node, mode, requirements);
     const native = workflowProvider === "model" && nativeMediaProfile(config);
+    const selectedMode =
+        node.metadata?.nativeModeVariantId ||
+        node.metadata?.nativeVariantId ||
+        (mode === "video" && native && !inputSummary.imageCount && !inputSummary.videoCount && !inputSummary.audioCount && !inputSummary.characterCount ? native.defaultId : config.nativeVariantId);
     const defaultWorkflowCapability = normalizeRunningHubCapability(globalConfig.runningHub.capability);
     const selectedRunningHubWorkflow = globalConfig.runningHub.workflows.find(
         (item) => item.workflowId.trim() === node.metadata?.runningHubWorkflowId?.trim() && (!node.metadata?.runningHubWorkflowKind || runningHubWorkflowKind(item) === node.metadata.runningHubWorkflowKind),
@@ -193,8 +198,17 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
     const hasAnyInput = Boolean(inputSummary.textCount || inputSummary.imageCount || inputSummary.videoCount || inputSummary.audioCount || inputSummary.characterCount);
     const hasComposerContent = Boolean(nodeGenerationPrompt(node).trim());
     const workflowParameterError = firstWorkflowParameterError(dynamicWorkflowFields, node.metadata?.workflowParameters || {});
+    const variant = native ? nativeMediaVariant(config) : undefined;
+    const frames = assignFrameSlots(
+        publishedFrameRoles(variant),
+        inputSummary.imageNodeIds.map((id) => ({ id })),
+        ({ id }) => (id === node.metadata?.videoStartFrameNodeId ? "first_frame" : id === node.metadata?.videoEndFrameNodeId ? "last_frame" : undefined),
+    );
+    const missingFrame = frames.find((slot) => !slot.attachment && variant?.native_request_variant.native_reference_inputs.some((ref) => ref.role === slot.role && (ref.min_items || 0) > 0));
     const capabilityError =
         workflowParameterError ||
+        (missingFrame && `请添加${missingFrame.role === "first_frame" ? "首帧" : "尾帧"}图片`) ||
+        (native && modelCompatibilityError(config, config.model, requirements)) ||
         (workflowProvider === "runninghub"
             ? !workflowProviderPluginEnabled(runtimeStatuses, "runninghub")
                 ? "RunningHub 工作流插件未启用"
@@ -224,7 +238,20 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                             size="small"
                             className="canvas-config-mode !rounded-md !p-0.5"
                             value={mode}
-                            onChange={(value) => onConfigChange(node.id, { generationMode: value as CanvasGenerationMode, runningHubWorkflowId: undefined, runningHubWorkflowKind: undefined, workflowParameters: {} })}
+                            onChange={(value) =>
+                                onConfigChange(node.id, {
+                                    generationMode: value as CanvasGenerationMode,
+                                    model: undefined,
+                                    nativeVariantId: undefined,
+                                    nativeModeVariantId: undefined,
+                                    nativeParameters: undefined,
+                                    videoStartFrameNodeId: undefined,
+                                    videoEndFrameNodeId: undefined,
+                                    runningHubWorkflowId: undefined,
+                                    runningHubWorkflowKind: undefined,
+                                    workflowParameters: {},
+                                })
+                            }
                             options={[
                                 {
                                     value: "image",
@@ -366,9 +393,8 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                                     mode={mode}
                                     config={config}
                                     variants={native.variants}
-                                    onChange={(key, value) =>
-                                        onConfigChange(node.id, key === "nativeVariantId" ? { nativeVariantId: value, nativeParameters: "{}", videoStartFrameNodeId: undefined, videoEndFrameNodeId: undefined } : { nativeParameters: value })
-                                    }
+                                    modeVariantId={mode === "video" ? selectedMode : undefined}
+                                    onChange={(key, value) => onConfigChange(node.id, nativeCanvasParameterPatch(config, mode, selectedMode, key, value))}
                                 />
                             </div>
                         ) : null}
@@ -695,86 +721,6 @@ function buildNodeConfig(globalConfig: AiConfig, node: CanvasNodeData, mode: Can
         audioEmotionSurprised: node.metadata?.audioEmotionSurprised || globalConfig.audioEmotionSurprised || defaultConfig.audioEmotionSurprised,
         audioEmotionCalm: node.metadata?.audioEmotionCalm || globalConfig.audioEmotionCalm || defaultConfig.audioEmotionCalm,
         count: normalizedImage?.count || String(node.metadata?.count || (mode === "image" ? globalConfig.canvasImageCount || globalConfig.count : globalConfig.count) || defaultConfig.count),
-    };
-}
-
-function buildModelNodeConfig(globalConfig: AiConfig, node: CanvasNodeData, mode: CanvasGenerationMode, requirements: ModelRequirements): AiConfig {
-    node = { ...node, metadata: canonicalGenerationMetadata(node, mode) };
-    const defaultModel = mode === "image" ? globalConfig.imageModel : mode === "video" ? globalConfig.videoModel : mode === "audio" ? globalConfig.audioModel : globalConfig.textModel;
-    const fallbackModel = mode === "image" ? defaultConfig.imageModel : mode === "video" ? defaultConfig.videoModel : mode === "audio" ? defaultConfig.audioModel : defaultConfig.textModel;
-    const storedModel = node.metadata?.model;
-    const preferredModel = storedModel && configuredModelMatchesCapability(globalConfig, storedModel, mode) ? storedModel : defaultModel && configuredModelMatchesCapability(globalConfig, defaultModel, mode) ? defaultModel : fallbackModel;
-    const model = resolveCompatibleModel(globalConfig, preferredModel, mode === "image" ? { ...requirements, imageSize: node.metadata?.size || globalConfig.size || defaultConfig.size } : requirements) || preferredModel;
-    const generationDefaults = resolveModelGenerationDefaults(
-        globalConfig,
-        model,
-        mode === "image" ? "image" : mode === "video" ? "video" : undefined,
-        mode === "image"
-            ? {
-                  size: node.metadata?.size,
-                  imageResolution: node.metadata?.imageResolution,
-                  imageParameters: node.metadata?.imageParameters,
-                  nativeParameters: node.metadata?.nativeParameters,
-                  nativeVariantId: node.metadata?.nativeVariantId,
-                  quality: node.metadata?.quality,
-                  transparentBackground: node.metadata?.transparentBackground,
-                  count: String(node.metadata?.count || globalConfig.canvasImageCount || globalConfig.count || defaultConfig.count),
-              }
-            : {
-                  size: node.metadata?.size,
-                  videoSeconds: node.metadata?.seconds,
-                  nativeParameters: node.metadata?.nativeParameters,
-                  nativeVariantId: node.metadata?.nativeVariantId,
-                  vquality: node.metadata?.vquality,
-                  videoGenerateAudio: node.metadata?.generateAudio,
-                  videoWatermark: node.metadata?.watermark,
-              },
-        {
-            size: globalConfig.size || defaultConfig.size,
-            imageResolution: globalConfig.imageResolution || defaultConfig.imageResolution,
-            imageParameters: globalConfig.imageParameters ?? "{}",
-            quality: globalConfig.quality || defaultConfig.quality,
-            transparentBackground: globalConfig.transparentBackground || defaultConfig.transparentBackground,
-            count: String(globalConfig.canvasImageCount || globalConfig.count || defaultConfig.count),
-            videoSeconds: globalConfig.videoSeconds || defaultConfig.videoSeconds,
-            vquality: globalConfig.vquality || defaultConfig.vquality,
-            videoGenerateAudio: globalConfig.videoGenerateAudio || defaultConfig.videoGenerateAudio,
-            videoWatermark: globalConfig.videoWatermark || defaultConfig.videoWatermark,
-        },
-    );
-    const videoProfile = mode === "video" ? modelCapabilityConfigFor(globalConfig, model).video! : undefined;
-    return {
-        ...globalConfig,
-        taskWorkflowProvider: "model",
-        model,
-        quality: generationDefaults.quality || globalConfig.quality || defaultConfig.quality,
-        imageResolution: generationDefaults.imageResolution || globalConfig.imageResolution || defaultConfig.imageResolution,
-        imageParameters: generationDefaults.imageParameters ?? globalConfig.imageParameters ?? "{}",
-        nativeParameters: generationDefaults.nativeParameters,
-        nativeVariantId: generationDefaults.nativeVariantId,
-        size: generationDefaults.size ?? globalConfig.size ?? defaultConfig.size,
-        transparentBackground: generationDefaults.transparentBackground || "false",
-        videoSeconds: generationDefaults.videoSeconds ?? normalizeVideoDuration(globalConfig.videoSeconds || defaultConfig.videoSeconds),
-        vquality: generationDefaults.vquality ?? normalizeVideoResolution(globalConfig.vquality || defaultConfig.vquality),
-        videoGenerateAudio: videoProfile?.generateAudio.supported ? (generationDefaults.videoGenerateAudio ?? String(videoProfile.generateAudio.default)) : "false",
-        videoWatermark: videoProfile?.watermark.supported ? (generationDefaults.videoWatermark ?? String(videoProfile.watermark.default)) : "false",
-        audioVoice: node.metadata?.audioVoice ?? globalConfig.audioVoice ?? defaultConfig.audioVoice,
-        audioFormat: node.metadata?.audioFormat || globalConfig.audioFormat || defaultConfig.audioFormat,
-        audioSpeed: node.metadata?.audioSpeed || globalConfig.audioSpeed || defaultConfig.audioSpeed,
-        audioLanguage: node.metadata?.audioLanguage || globalConfig.audioLanguage || defaultConfig.audioLanguage,
-        audioDialect: node.metadata?.audioDialect || globalConfig.audioDialect || defaultConfig.audioDialect,
-        audioInstructions: node.metadata?.audioInstructions || globalConfig.audioInstructions || defaultConfig.audioInstructions,
-        audioEmotionControlMethod: node.metadata?.audioEmotionControlMethod || globalConfig.audioEmotionControlMethod || defaultConfig.audioEmotionControlMethod,
-        audioEmotionRandom: node.metadata?.audioEmotionRandom || globalConfig.audioEmotionRandom || defaultConfig.audioEmotionRandom,
-        audioEmotionHappy: node.metadata?.audioEmotionHappy || globalConfig.audioEmotionHappy || defaultConfig.audioEmotionHappy,
-        audioEmotionAngry: node.metadata?.audioEmotionAngry || globalConfig.audioEmotionAngry || defaultConfig.audioEmotionAngry,
-        audioEmotionSad: node.metadata?.audioEmotionSad || globalConfig.audioEmotionSad || defaultConfig.audioEmotionSad,
-        audioEmotionAfraid: node.metadata?.audioEmotionAfraid || globalConfig.audioEmotionAfraid || defaultConfig.audioEmotionAfraid,
-        audioEmotionDisgusted: node.metadata?.audioEmotionDisgusted || globalConfig.audioEmotionDisgusted || defaultConfig.audioEmotionDisgusted,
-        audioEmotionMelancholic: node.metadata?.audioEmotionMelancholic || globalConfig.audioEmotionMelancholic || defaultConfig.audioEmotionMelancholic,
-        audioEmotionSurprised: node.metadata?.audioEmotionSurprised || globalConfig.audioEmotionSurprised || defaultConfig.audioEmotionSurprised,
-        audioEmotionCalm: node.metadata?.audioEmotionCalm || globalConfig.audioEmotionCalm || defaultConfig.audioEmotionCalm,
-        count: generationDefaults.count || String(node.metadata?.count || (mode === "image" ? globalConfig.canvasImageCount || globalConfig.count : globalConfig.count) || defaultConfig.count),
     };
 }
 

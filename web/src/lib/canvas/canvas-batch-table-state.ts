@@ -125,6 +125,6 @@ export function prepareCanvasBatchTableGeneration({
     };
     const nodeById = new Map(nextNodes.map((node) => [node.id, node]));
     // A failure in any row discards this candidate, including previously prepared rows.
-    const preparedTargets = targets.map((target) => ({ ...target, inputSnapshot: createCanvasBatchInputSnapshot(nodeById.get(target.nodeId)!, nextNodes, nextConnections, assets) }));
+    const preparedTargets = targets.map((target) => ({ ...target, inputSnapshot: createCanvasBatchInputSnapshot(nodeById.get(target.nodeId)!, nextNodes, nextConnections, assets, mergedConfig) }));
     return { nodes: nextNodes, connections: nextConnections, targets: preparedTargets };
 }

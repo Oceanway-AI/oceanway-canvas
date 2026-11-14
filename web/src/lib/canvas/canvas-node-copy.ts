@@ -162,6 +162,14 @@ export function isolateCopiedNodeMetadata(node: CanvasNodeData, idMap: ReadonlyM
     metadata.referenceAssetNodeIds = node.metadata?.referenceAssetNodeIds?.map((nodeId) => remapReference(nodeId, idMap)).filter((nodeId): nodeId is string => Boolean(nodeId));
     metadata.videoStartFrameNodeId = remapReferenceId(node.metadata?.videoStartFrameNodeId, idMap);
     metadata.videoEndFrameNodeId = remapReferenceId(node.metadata?.videoEndFrameNodeId, idMap);
+    if (metadata.generationSpec?.referenceBindings.length) {
+        metadata.generationSpec = {
+            ...metadata.generationSpec,
+            referenceBindings: metadata.generationSpec.referenceBindings.map((binding) =>
+                binding.nodeId ? { ...binding, nodeId: remapReferenceId(binding.nodeId, idMap), id: binding.id === `node:${binding.nodeId}` ? `node:${remapReferenceId(binding.nodeId, idMap)}` : binding.id } : binding,
+            ),
+        };
+    }
     metadata.previsPreviewNodeId = remapReference(node.metadata?.previsPreviewNodeId, idMap);
     metadata.previsDepthNodeId = remapReference(node.metadata?.previsDepthNodeId, idMap);
     metadata.previsDepthVideoNodeId = remapReference(node.metadata?.previsDepthVideoNodeId, idMap);

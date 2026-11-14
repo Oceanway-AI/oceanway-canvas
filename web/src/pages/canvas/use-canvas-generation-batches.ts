@@ -80,8 +80,11 @@ export function useCanvasGenerationBatches({ projectId, projectLoaded, nodes, no
                     const node = nodeById.get(target.nodeId);
                     if (!node) throw new Error(translate("canvasPage.batches.targetMissingRegenerate"));
                     return {
-                        id: nanoid(), ...target, status: "waiting" as const, retryCount: 0,
-                        inputSnapshot: mode === "batch_image" ? target.inputSnapshot ?? createCanvasBatchInputSnapshot(node, nodesRef.current, connectionsRef.current, assets) : undefined,
+                        id: nanoid(),
+                        ...target,
+                        status: "waiting" as const,
+                        retryCount: 0,
+                        inputSnapshot: mode === "batch_image" ? (target.inputSnapshot ?? createCanvasBatchInputSnapshot(node, nodesRef.current, connectionsRef.current, assets, effectiveConfig)) : undefined,
                     };
                 });
             } catch (error) {
@@ -114,7 +117,7 @@ export function useCanvasGenerationBatches({ projectId, projectLoaded, nodes, no
             );
             return batch.id;
         },
-        [assets, connectionsRef, message, nodesRef, projectId, setNodes],
+        [assets, connectionsRef, effectiveConfig, message, nodesRef, projectId, setNodes],
     );
 
     const reconcileBatches = useCallback(() => {

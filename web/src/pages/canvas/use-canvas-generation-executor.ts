@@ -180,19 +180,14 @@ export function useCanvasGenerationExecutor({
                         const contextPrompt = editingTextNode ? buildTextRewritePrompt(sourceTextContent, prompt) : generationPrompt;
                         // 批量快照已在入队时解析过引用；其余路径先补齐提示词引用的素材，再用最新列表解析。
                         const contextAssets = options?.inputSnapshot ? assets : await loadPromptMentionedAssets(contextPrompt);
-                        const baseContext = resolveCanvasBatchInputContext(options?.inputSnapshot, () => buildNodeGenerationContext(
-                            nodeId,
-                            nodesRef.current,
-                            connectionsRef.current,
-                            contextPrompt,
-                            contextAssets,
-                            promptOnly,
-                        ));
+                        const baseContext = resolveCanvasBatchInputContext(options?.inputSnapshot, () =>
+                            buildNodeGenerationContext(nodeId, nodesRef.current, connectionsRef.current, contextPrompt, contextAssets, promptOnly, mode === "image" && Boolean(generationConfig.nativeVariantId)),
+                        );
                         const requirements = generationModelRequirements(mode, baseContext, sourceNode, generationConfig, true);
                         generationConfig = buildGenerationConfig(effectiveConfig, sourceNode, mode, requirements, false, referenceImageSize);
                         const compatibilityError = usesWorkflowProvider ? "" : modelCompatibilityError(generationConfig, generationConfig.model, requirements);
                         if (compatibilityError) throw new Error(translate("canvasPage.generation.modelIncompatible", { error: compatibilityError }));
-                        const referenceLimits = usesWorkflowProvider ? undefined : modelGroupReferenceLimits(effectiveConfig, generationConfig.model, mode, requirements);
+                        const referenceLimits = usesWorkflowProvider ? undefined : modelGroupReferenceLimits(generationConfig, generationConfig.model, mode, requirements);
                         rawGenerationContext = await hydrateNodeGenerationContext(baseContext, projectId, domainProjectId, mode, mode === "video" && Boolean(referenceLimits?.maxAudios), !promptOnly, referenceLimits, false);
                         const hydratedRequirements = generationModelRequirements(mode, rawGenerationContext, sourceNode, generationConfig);
                         generationConfig = buildGenerationConfig(effectiveConfig, sourceNode, mode, hydratedRequirements, false, referenceImageSize);

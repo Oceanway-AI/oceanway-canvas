@@ -288,6 +288,11 @@ const NODE_MODEL_GENERATION_PARAMS: ReadonlyArray<keyof CanvasNodeMetadata> = [
     "seconds",
     "vquality",
     "generateAudio",
+    "nativeParameters",
+    "nativeVariantId",
+    "nativeModeVariantId",
+    "videoStartFrameNodeId",
+    "videoEndFrameNodeId",
     "watermark",
     "audioVoice",
     "audioFormat",
@@ -429,6 +434,7 @@ export function expandStoryboardTextMentions(prompt: string, references: CanvasR
 
 export function getInputSummary(inputs: NodeGenerationInput[]) {
     return {
+        imageNodeIds: inputs.filter((input) => input.type === "image").map((input) => input.nodeId),
         textCount: inputs.filter((input) => input.type === "text").length,
         imageCount: inputs.filter((input) => input.type === "image").length,
         videoCount: inputs.filter((input) => input.type === "video").length,

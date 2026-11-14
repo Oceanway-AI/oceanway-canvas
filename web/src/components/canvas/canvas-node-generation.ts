@@ -70,7 +70,7 @@ export type NodeGenerationInput = {
     character?: CharacterGenerationReference;
 };
 
-export function buildNodeGenerationContext(nodeId: string, nodes: CanvasNodeData[], connections: CanvasConnection[], prompt: string, assets: Asset[], promptOnly = false): NodeGenerationContext {
+export function buildNodeGenerationContext(nodeId: string, nodes: CanvasNodeData[], connections: CanvasConnection[], prompt: string, assets: Asset[], promptOnly = false, includeConnectedMedia = false): NodeGenerationContext {
     const pendingConversion = findPendingMediaConversionInput(nodeId, nodes, connections);
     if (pendingConversion) {
         const status = pendingConversion.metadata?.mediaConversion?.status;
@@ -96,7 +96,7 @@ export function buildNodeGenerationContext(nodeId: string, nodes: CanvasNodeData
     // 豆包音频按连线决定纯文本、参考音频或参考图片，不能因为提示词里没有逐个 @ 就丢掉已连接素材。
     const includeConnectedAudioMedia = Boolean(sourceNode && getNodeGenerationMode(sourceNode) === "audio");
     if ((promptOnly && hasConnectedMedia) || (sourceNode ? Boolean(nodeGenerationPrompt(sourceNode).trim()) && (sourceNode.type === CanvasNodeType.Config || isWorkflowSource) : false) || hasExplicitResourceMention) {
-        const autoIncludeWorkflowMedia = isWorkflowSource || includeConnectedAudioMedia;
+        const autoIncludeWorkflowMedia = isWorkflowSource || includeConnectedAudioMedia || includeConnectedMedia;
         return buildComposerGenerationContext(
             mentionInputs,
             prompt,

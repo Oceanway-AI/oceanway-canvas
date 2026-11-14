@@ -142,6 +142,7 @@ import { resolveCanvasWorkflowProvider } from "@/lib/canvas/canvas-workflow";
 import { buildNodeConfig } from "@/components/canvas/canvas-node-prompt-config";
 import { nativeMediaProfile } from "@/lib/platform-native-media";
 import type { FrameRole } from "@/lib/media-reference-slots";
+import { canonicalGenerationMetadata } from "@/lib/canvas/generation-contract";
 import { canvasReferenceImageDimensions } from "@/lib/canvas/canvas-reference-image-size";
 import { cancelGenerationTask } from "@/services/api/task-center";
 import { CanvasTopBar, type CanvasProjectView } from "./canvas-project-top-bar";
@@ -1375,8 +1376,9 @@ function CanvasViewportPage() {
             const nextConnections = previousConnections.filter((connection) => !removedConnectionIds.has(connection.id));
             const clearedNodes = previousNodes.map((n) => {
                 if (n.id !== targetNodeId) return n;
-                const first = n.metadata?.videoStartFrameNodeId === referenceNodeId;
-                const last = n.metadata?.videoEndFrameNodeId === referenceNodeId;
+                const metadata = canonicalGenerationMetadata(n, "video");
+                const first = metadata.videoStartFrameNodeId === referenceNodeId;
+                const last = metadata.videoEndFrameNodeId === referenceNodeId;
                 return first || last ? applyNodeConfigPatch(n, { ...(first && { videoStartFrameNodeId: undefined }), ...(last && { videoEndFrameNodeId: undefined }) }) : n;
             });
             const nextNodes = applyCanvasConnectionPromptSync(previousNodes, previousConnections, clearedNodes, nextConnections);
@@ -2279,7 +2281,7 @@ function CanvasViewportPage() {
     );
 
     const insertMediaReferences = useCallback(
-        async (targetId: string, items: InsertAssetPayload[], role?: FrameRole, replaceId?: string, variantId?: string) => {
+        async (targetId: string, items: InsertAssetPayload[], role?: FrameRole, replaceId?: string, settings?: Pick<CanvasNodeMetadata, "nativeVariantId" | "nativeParameters">) => {
             const target = nodesRef.current.find((item) => item.id === targetId);
             if (!target || target.metadata?.locked) throw new Error("无法修改该节点的参考素材");
             if (!items.length || (role && (items.length !== 1 || items[0].kind !== "image"))) throw new Error("该帧需要选择一张图片");
@@ -2293,7 +2295,7 @@ function CanvasViewportPage() {
             const usesConfigInputs = configId && previousEdges.some((edge) => edge.toNodeId === configId && edge.fromNodeId !== targetId);
             const receiverId = replaced ? replaced.toNodeId : usesConfigInputs ? configId : targetId;
             const edges = previousEdges.filter((edge) => edge !== replaced);
-            const patch = { ...(variantId && { nativeVariantId: variantId }), ...(role === "first_frame" && { videoStartFrameNodeId: sources[0]?.id }), ...(role === "last_frame" && { videoEndFrameNodeId: sources[0]?.id }) };
+            const patch = { ...settings, ...(role === "first_frame" && { videoStartFrameNodeId: sources[0]?.id }), ...(role === "last_frame" && { videoEndFrameNodeId: sources[0]?.id }) };
             const nodes = [...previous.map((n) => (n.id === targetId && Object.keys(patch).length ? applyNodeConfigPatch(n, patch) : n)), ...sources];
             for (const source of sources) {
                 const edge = { id: nanoid(), fromNodeId: source.id, toNodeId: receiverId };

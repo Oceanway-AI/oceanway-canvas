@@ -1,13 +1,16 @@
 import { buildNodeGenerationContext, type NodeGenerationContext } from "@/components/canvas/canvas-node-generation";
 import { canvasGenerationInputPrompt } from "@/lib/canvas/canvas-generation-input-prompt";
-import { nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
+import { canonicalGenerationMetadata, nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
+import { buildGenerationConfig } from "@/lib/canvas/canvas-project-generation";
+import type { AiConfig } from "@/stores/use-config-store";
 import type { Asset } from "@/stores/use-asset-store";
 import type { CanvasBatchInputSnapshot, CanvasConnection, CanvasNodeData } from "@/types/canvas";
 
 /** Snapshot locators and compiled text, never the entire canvas or decoded image bytes. */
-export function createCanvasBatchInputSnapshot(node: CanvasNodeData, nodes: CanvasNodeData[], connections: CanvasConnection[], assets: Asset[]): CanvasBatchInputSnapshot {
+export function createCanvasBatchInputSnapshot(node: CanvasNodeData, nodes: CanvasNodeData[], connections: CanvasConnection[], assets: Asset[], config?: AiConfig): CanvasBatchInputSnapshot {
     const prompt = nodeGenerationPrompt(node).trim();
-    const context = buildNodeGenerationContext(node.id, nodes, connections, canvasGenerationInputPrompt(node, "image", prompt), assets);
+    const variantId = config ? buildGenerationConfig(config, node, "image").nativeVariantId : canonicalGenerationMetadata(node, "image").nativeVariantId;
+    const context = buildNodeGenerationContext(node.id, nodes, connections, canvasGenerationInputPrompt(node, "image", prompt), assets, false, Boolean(variantId));
     const referenceImages = context.referenceImages.map((image) => {
         if (!image.storageKey && /^(data:|blob:)/i.test(image.dataUrl || image.url || "")) {
             throw new Error(`参考图「${image.name}」尚未保存为资源，请完成保存后重新提交批量任务`);
