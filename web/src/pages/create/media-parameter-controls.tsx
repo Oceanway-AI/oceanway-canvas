@@ -1,14 +1,14 @@
 import { useState, type ReactNode } from "react";
 import { Popover } from "antd";
-import { Check, Clapperboard, Clock3, Image as ImageIcon, Layers, Monitor, SlidersHorizontal, Sparkles, Volume2, VolumeX } from "lucide-react";
-import { PlatformNativeImageSize } from "@/components/platform-native-image-size";
+import { Check, Clapperboard, Clock3, Image as ImageIcon, Layers, Monitor, Palette, SlidersHorizontal, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { ImageSizeDock } from "@/components/image-size-dock";
 import { nativeImageSizePointers, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
 import { imageQualityLabel } from "@/lib/image-quality";
 import { NativeParameterInput, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
 import { creativeParameterLabel, nativeCreationModeOptions, nativeMediaVariantOptions, nativeParameterValues, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
 
-type Group = "生成模式" | "尺寸与分辨率" | "画质" | "张数" | "时长" | "声音" | "更多参数";
+type Group = "生成模式" | "尺寸与分辨率" | "背景" | "画质" | "张数" | "时长" | "声音" | "更多参数";
 type Field = [string, NativeSchemaField];
 
 function fieldGroup([pointer, field]: Field, image: boolean): Group {
@@ -16,6 +16,7 @@ function fieldGroup([pointer, field]: Field, image: boolean): Group {
     if (["size", "width", "height", "ratio", "aspectratio", "resolution", "videosize", "imagesize"].includes(key || "")) return "尺寸与分辨率";
     if (image) {
         if (key === "quality") return "画质";
+        if (key === "background") return "背景";
         if (["n", "candidatecount", "numimages", "numoutputs"].includes(key || "")) return "张数";
         return "更多参数";
     }
@@ -30,6 +31,8 @@ function display(value: unknown, group: Group) {
     if (group === "时长" && Number.isFinite(Number(value))) return String(value) + "秒";
     if (group === "张数") return String(value) + " 张";
     if (group === "画质") return imageQualityLabel(String(value));
+    if (group === "背景" && value === "transparent") return "透明";
+    if (group === "背景" && value === "opaque") return "不透明";
     return String(value);
 }
 
@@ -58,27 +61,25 @@ export function MediaParameterControls({ mode, config, variants, onChange }: { m
             >
                 <button type="button" className="creation-chat-control studio-video-trigger" aria-label={group + "：" + label} aria-expanded={open === group} title={group + "：" + label}>
                     {icon}
-                    <span>{label}</span>
+                    <span>{image && label === "自动" && (group === "背景" || group === "画质") ? group : label}</span>
                 </button>
             </Popover>
         );
     }
     const modeMenu =
-        modes.length > 0 &&
+        modes.length > 0 && (!image || !variant || (!automaticImageMode && modes.length > 1)) &&
         menu(
             "生成模式",
             modeLabel,
             image ? <ImageIcon /> : <Clapperboard />,
             <>
                 <strong>生成模式</strong>
-                {automaticImageMode && <p className="text-xs">根据参考图自动选择模式</p>}
                 {modes.map((option) => (
                     <button
                         className="studio-video-option"
                         key={option.value}
                         type="button"
                         aria-pressed={option.value === variant?.id}
-                        disabled={Boolean(automaticImageMode)}
                         onClick={() => {
                             if (option.value !== variant?.id) onChange("nativeVariantId", option.value);
                             setOpen(null);
@@ -136,7 +137,7 @@ export function MediaParameterControls({ mode, config, variants, onChange }: { m
             summary,
             icon,
             <>
-                {sizePicker && <PlatformNativeImageSize key={sizeResetRevision} variant={variant} values={values} onChange={(next) => onChange("nativeParameters", JSON.stringify(next))} />}
+                {sizePicker && <ImageSizeDock key={sizeResetRevision} variant={variant} values={values} onChange={(next) => onChange("nativeParameters", JSON.stringify(next))} />}
                 {items.map(([key, field]) => {
                     const label = creativeParameterLabel(key, field.title);
                     let choices = field.enum;
@@ -167,7 +168,7 @@ export function MediaParameterControls({ mode, config, variants, onChange }: { m
                                             aria-pressed={values[key] === value}
                                             onClick={() => {
                                                 update(key, value);
-                                                if (group === "时长" || group === "画质" || group === "张数") setOpen(null);
+                                                if (group === "时长" || group === "画质" || group === "背景" || group === "张数") setOpen(null);
                                             }}
                                         >
                                             {display(value, group)}
@@ -203,8 +204,9 @@ export function MediaParameterControls({ mode, config, variants, onChange }: { m
         <>
             {modeMenu}
             {parameterMenu("尺寸与分辨率", <Monitor />)}
-            {image && parameterMenu("画质", <Sparkles />)}
             {image && parameterMenu("张数", <Layers />)}
+            {image && parameterMenu("背景", <Palette />)}
+            {image && parameterMenu("画质", <Sparkles />)}
             {parameterMenu("时长", <Clock3 />)}
             {switchable && (
                 <button type="button" role="switch" aria-checked={Boolean(sound)} aria-label="生成声音" className="creation-chat-control" onClick={() => update(audio[0], !sound)}>
