@@ -1,0 +1,49 @@
+{
+  "services": {
+    "platform": {
+      "revision": "8a21f481fdf35bc1c06fea269186a92cdbafc234",
+      "image": "sha256:0ede6adeb2e91f35434080d8d568032229504cb4c509e2168fff78e36023a010",
+      "pid1_sha256": "7ce59f74cc8eb44282a7cc90ba80a020bce9483ec5e0600c58045ff9cd17a1b2"
+    },
+    "material-worker": {
+      "revision": "8a21f481fdf35bc1c06fea269186a92cdbafc234",
+      "image": "sha256:35f2ca32134166dc86148dd3d5f7811fd8fa4163f8cd705dc681a0083d418d34",
+      "pid1_sha256": "1be1db252da8fb26ddb42c52a5d16eb1f7ad02159e6d5feb6932f4bf8453f1de"
+    }
+  },
+  "public_https_18447": true,
+  "single_writer": true,
+  "before_and_after_groups_equal": {
+    "tasks": true,
+    "operations": true,
+    "relay_attempts": true,
+    "ledger": true,
+    "funding": true,
+    "wallets": true,
+    "authorizations": true,
+    "product_keys": true,
+    "originals": true,
+    "assets": true,
+    "versions": true,
+    "bindings": true,
+    "variants": true,
+    "archive_jobs": true,
+    "generations": true,
+    "source_channels": true,
+    "model_connections": true,
+    "reserved_unknown": true,
+    "sessions": true
+  },
+  "original_samples_equal": true,
+  "changed_containers": [
+    "oceanway-w7-test-material-worker-1",
+    "oceanway-w7-test-platform-1"
+  ],
+  "host_nginx_equal": true,
+  "quiesced_restore": {
+    "matched_tables": 163,
+    "restored_rows_and_samples_exact": true,
+    "bytes": 12401313,
+    "sha256": "d4d5ff93dcca691bfa9d77365f98e09204ee6888835fd95c4e7d8d117a990501"
+  }
+}
