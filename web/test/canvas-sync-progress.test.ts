@@ -48,6 +48,8 @@ const setRemote = (id, project) => { if (id === "canvas") { fixture.remote = pro
 export const useCanvasStore = createStore((set, get) => ({ projects: [], openProject: id => get().projects.find(project => project.id === id) }));
 export const useAssetStore = createStore(() => ({ assets: [] }));
 export const getActiveUserScope = () => fixture.scope;
+export const hasLocalCanvasCreation = id => fixture.data.has("local-create:" + id);
+export const clearLocalCanvasCreation = id => fixture.data.delete("local-create:" + id);
 export const localForageStorageForScope = () => ({ getItem: async key => fixture.data.get(key) ?? null, setItem: async (key, value) => { await fixture.saveHook?.(key, value); if (fixture.setError) throw fixture.setError; fixture.data.set(key, value); }, removeItem: async key => { fixture.data.delete(key); } });
 export async function flushCanvasStorePersistence() { fixture.flushes++; const hook = fixture.beforeFlush; fixture.beforeFlush = undefined; hook?.(); if (fixture.flushError) throw fixture.flushError; }
 export const flushAssetStorePersistence = async () => {};
@@ -139,7 +141,7 @@ copySource("stores/use-sync-progress-store.ts", "progress.ts");
 copySource("services/user-data-sync.ts", "sync.ts");
 const sync: typeof import("@/services/user-data-sync") = await import(join(dir, "sync.ts"));
 const { useSyncProgressStore }: typeof import("@/stores/use-sync-progress-store") = await import(join(dir, "progress.ts"));
-const { fixture, useCanvasStore, useAssetStore, ApiError, setLeaseClient } = await import(stubPath);
+const { fixture, useCanvasStore, useAssetStore, useUserStore, ApiError, setLeaseClient } = await import(stubPath);
 const { canvasContentHash } = await import(join(dir, "content.ts"));
 sync.installRemoteUserDataAutoSync();
 // Independent module state/storage/session, sharing only the server fixture.
@@ -454,6 +456,50 @@ afterAll(() => {
 });
 
 describe("定向保存与旧 journal 的真实同步集成", () => {
+    for (const status of [401, 403, 404]) {
+        test(`平台读取返回 ${status} 后未证实归属的 revision=0 缓存不能进入编辑器`, async () => {
+            useUserStore.setState({ platformIdentity: true });
+            try {
+                const project = { ...base(), id: "unknown-cached-owner", revision: 0 };
+                useCanvasStore.setState({ projects: [project] });
+                fixture.manualTimers = true;
+                fixture.readHook = async () => {
+                    throw new ApiError("access denied", { status });
+                };
+                let restored = false;
+                await expect(
+                    sync.loadCanvasProjectForEditing(project.id, {
+                        onLoad: () => {
+                            restored = true;
+                        },
+                    }),
+                ).rejects.toThrow("access denied");
+                expect(restored).toBe(false);
+                expect(fixture.writes).toHaveLength(0);
+                expect(useCanvasStore.getState().openProject(project.id)).toBe(project);
+            } finally {
+                useUserStore.setState({ platformIdentity: false });
+            }
+        });
+    }
+
+    test("平台 404 时保留本人尚未上传且已记录创建来源的草稿", async () => {
+        useUserStore.setState({ platformIdentity: true });
+        try {
+            const project = { ...base(), id: "authored-local", revision: 0 };
+            fixture.data.set("local-create:" + project.id, true);
+            useCanvasStore.setState({ projects: [project] });
+            fixture.manualTimers = true;
+            fixture.readHook = async () => {
+                throw new ApiError("missing", { status: 404 });
+            };
+            expect(await sync.loadCanvasProjectForEditing(project.id)).toBe(project);
+            expect(fixture.writes).toHaveLength(0);
+        } finally {
+            useUserStore.setState({ platformIdentity: false });
+        }
+    });
+
     test("素材上传失败只暂停引用它的画布，其他画布仍保存完成", async () => {
         fixture.manualTimers = true;
         const asset = { id: "asset", kind: "text", title: "Asset", data: { content: "Original" }, metadata: {}, createdAt: "2026-01-01", updatedAt: "2026-01-01" };
