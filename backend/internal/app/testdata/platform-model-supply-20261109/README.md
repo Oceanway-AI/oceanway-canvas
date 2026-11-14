@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | image-published.json | 3a7c041e65c099d45d881a3e47478546746e62e947a50cbae3b642ec33fa067b | HTTP 200、allowed=true，但 combination_supported=false / output_mapping_unverified；必须拒绝创建 |
 | video-published.json | d89fc68646c3c48d581468a0564d3087d4b7ad857a86d4a196bfabfb26f9b053 | ready、allowed=true、combination_supported=true；仅表示合成配置预览获准 |
-| studio-projection.json | fab641a9ec3ea01256bb21ff447be65a11c1b3701e4b6e7fbeea670993e6cafb | 上述模型经 Studio 正式 SDK Models 与目录投影生成，供前端同源测试读取 |
+| studio-projection.json | 98579912acb5851dd31b811fa054d7007172a952a5ca7bfdb70702c2bca48063 | 上述模型经 Studio 正式 SDK Models 与目录投影生成，供前端同源测试读取 |
 
 `TestStudioPlatformPublishedFixtureConsumption` 校验 SDK 目录、原生正文与提供方预览的对应关系、三版本、拒绝回执和互斥变体。`web/test/platform-model-supply-fixture.test.tsx` 直接读取 Go 投影，验证原控件、任务参数和丢回执后只查同 command。更新投影前必须核查合同差异，再运行：
 

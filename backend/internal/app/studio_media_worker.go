@@ -137,7 +137,15 @@ func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, exec
 		if err != nil {
 			return s.deferStudioMediaArchive(task, &platformclient.MaterialError{Code: "product_save_failed", Message: "原素材已保存，产品引用登记暂未完成。", Category: "platform", Source: "product", Stage: "product_save"})
 		}
-		media = append(media, map[string]any{"dataUrl": "/api/resources/" + resource.ID + "/file", "storageKey": "resource:" + resource.ID, "mimeType": resource.MimeType, "bytes": resource.Size})
+		item := map[string]any{"dataUrl": "/api/resources/" + resource.ID + "/file", "storageKey": "resource:" + resource.ID, "mimeType": resource.MimeType, "bytes": resource.Size}
+		measured := originalStudioMetadata(a)
+		if measured.Width > 0 && measured.Height > 0 {
+			item["width"], item["height"] = measured.Width, measured.Height
+		}
+		if measured.DurationMs > 0 {
+			item["durationMs"] = measured.DurationMs
+		}
+		media = append(media, item)
 	}
 	result := map[string]any{"mode": envelope.Selection.Kind}
 	if envelope.Selection.Kind == "image" {

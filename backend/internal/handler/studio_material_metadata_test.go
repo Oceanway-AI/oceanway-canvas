@@ -35,6 +35,7 @@ func TestStudioOriginalFileMetadataReconcilesOwnedResources(t *testing.T) {
 	}
 	width, height, duration := 640, 320, int64(4064)
 	detailStatus := http.StatusOK
+	partialResponse := false
 	fileID := newAsset.File.FileID
 	extra := studioMaterialFixtureAsset()
 	extra.AssetID, extra.Version.AssetID = "unbound", "unbound"
@@ -49,6 +50,11 @@ func TestStudioOriginalFileMetadataReconcilesOwnedResources(t *testing.T) {
 			details++
 			if detailStatus != http.StatusOK {
 				w.WriteHeader(detailStatus)
+				return
+			}
+			if partialResponse {
+				w.Header().Set("Content-Length", "1000")
+				_, _ = w.Write([]byte(`{"asset_id":`))
 				return
 			}
 			if r.URL.Query().Get("version_id") != "version_1" {
@@ -142,6 +148,9 @@ func TestStudioOriginalFileMetadataReconcilesOwnedResources(t *testing.T) {
 	detailStatus = http.StatusUnauthorized
 	f.request(t, "GET", "/api/resources/"+id, cookie, "", 401)
 	detailStatus = http.StatusOK
+	partialResponse = true
+	check("interrupted response preserves the stored resource", read("GET", "/api/resources/"+id, ""), meta{})
+	partialResponse = false
 	width, height, duration = 640, 320, 4064
 	check("recovered provider fills original resource", read("GET", "/api/resources/"+id, ""), want)
 	reset()

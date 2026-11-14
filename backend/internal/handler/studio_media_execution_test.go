@@ -15,7 +15,7 @@ import (
 )
 
 func TestStudioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T) {
-	for _, kind := range []string{"image", "video", "video_const"} {
+	for _, kind := range []string{"image", "video", "video_const", "video_pending_metadata"} {
 		t.Run(kind, func(t *testing.T) { studioMediaFreezesQuoteAndRecoversFixedOutput(t, kind) })
 	}
 }
@@ -30,7 +30,8 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 		kind = "image"
 	}
 	fixedResolution := kind == "video_const"
-	if fixedResolution {
+	pendingMetadata := kind == "video_pending_metadata"
+	if fixedResolution || pendingMetadata {
 		kind = "video"
 	}
 	f := newStudioFixture(t)
@@ -52,9 +53,11 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	recoveryStates := []string{"UNKNOWN", "NOT_START", "SUBMITTED", "QUEUED", "IN_PROGRESS", "SUCCESS"}
 	var binding *platformclient.Binding
 	asset := platformclient.Asset{AssetID: "asset_output", Owner: platformclient.MaterialOwner{Kind: "account", ID: "101"}, Kind: kind, State: "ready", Version: platformclient.AssetVersion{AssetID: "asset_output", VersionID: "version_original", FileID: "file_original"}, File: platformclient.AssetFile{FileID: "file_original", SHA256: strings.Repeat("b", 64), ByteLength: "12", ContentType: contentType, State: "ready"}}
-	asset.File.Width, asset.File.Height = 720, 1280
-	if kind == "video" {
-		asset.File.DurationMs = 4074
+	if !pendingMetadata {
+		asset.File.Width, asset.File.Height = 720, 1280
+		if kind == "video" {
+			asset.File.DurationMs = 4074
+		}
 	}
 
 	f.execution = func(w http.ResponseWriter, r *http.Request) {
@@ -169,6 +172,32 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	}
 	if generated.Width != asset.File.Width || generated.Height != asset.File.Height || generated.DurationMs != asset.File.DurationMs {
 		t.Fatalf("generated resource lost the fixed original metadata: %dx%d / %dms", generated.Width, generated.Height, generated.DurationMs)
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+	var result struct {
+		Images []map[string]any
+		Video  map[string]any
+	}
+	if err := json.Unmarshal([]byte(created.Data.ResultJSON), &result); err != nil {
+		t.Fatal(err)
+	}
+	output := result.Video
+	if kind == "image" {
+		if len(result.Images) != 1 {
+			t.Fatalf("unexpected image output count: %d", len(result.Images))
+		}
+		output = result.Images[0]
+	}
+	if output["storageKey"] != "resource:"+generated.ID {
+		t.Fatalf("task result lost its fixed resource: %v", output)
+	}
+	for field, expected := range map[string]int64{"width": int64(asset.File.Width), "height": int64(asset.File.Height), "durationMs": asset.File.DurationMs} {
+		value, present := output[field]
+		if (expected > 0 && value != float64(expected)) || (expected == 0 && present) {
+			t.Errorf("task output %s = %v (present %v), original measurement = %d", field, value, present, expected)
+		}
 	}
 
 	if withReference {

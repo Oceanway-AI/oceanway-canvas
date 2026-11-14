@@ -1,6 +1,8 @@
 [
   {
     "platform": {
+      "model_series": "GPT",
+      "logical_model": "gpt-image-2",
       "id": 3,
       "model_name": "gpt-image-2",
       "model_type": "image",
@@ -377,6 +379,7 @@
   },
   {
     "platform": {
+      "logical_model": "doubao-seedance-2-0-fast-260128",
       "id": 2,
       "model_name": "doubao-seedance-2-0-fast-260128",
       "model_type": "video",
