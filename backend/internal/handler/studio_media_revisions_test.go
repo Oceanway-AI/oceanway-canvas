@@ -66,7 +66,10 @@ func TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization(t *testin
 			}
 			raw, _ := json.Marshal(body)
 			request := string(raw)
-			if path == "/api/tasks" {
+			if scenario == "empty_limit" || scenario == "null_limit" {
+				// The decoder rejects malformed limits before either route can use a preview receipt.
+				f.request(t, "POST", "/api/tasks/preview", "platform_session=alice", request, http.StatusBadRequest)
+			} else if path == "/api/tasks" {
 				eventual := quote
 				quote = published
 				request = studioBindPreview(t, f, "platform_session=alice", request)
