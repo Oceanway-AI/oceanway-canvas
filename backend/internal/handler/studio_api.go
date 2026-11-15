@@ -150,6 +150,7 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 	RegisterAssetLibraryRoutes(api, svc)
 	RegisterStudioTaskRoutes(api, svc)
 	RegisterAgentRoutes(api, svc)
+	registerAgentMemoryDocumentRoutes(api, svc)
 	RegisterSkillRoutes(api, svc)
 	registerPoseLibraryCatalogRoutes(api, svc)
 	RegisterCanvasDataRoutes(api, svc)
