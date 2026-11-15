@@ -259,6 +259,27 @@ func TestStudioReleaseSurfaceRejectsUnconnectedCapabilities(t *testing.T) {
 	}
 }
 
+func TestStudioPersonalMemoryPersistsForPlatformUser(t *testing.T) {
+	f := newStudioFixture(t)
+	const path = "/api/agent/memory"
+	const owner = "platform_session=alice"
+	const body = `{"revision":1,"entries":[{"section":"user","text":"分镜说明使用短句"}]}`
+	f.request(t, "GET", path, "", "", 401)
+	f.request(t, "PUT", path, "", body, 401)
+	f.request(t, "PUT", path, owner, body, 200)
+	read := f.request(t, "GET", path, owner, "", 200)
+	if !strings.Contains(read.Body.String(), "分镜说明使用短句") {
+		t.Fatal("saved memory missing on subsequent request")
+	}
+	f.request(t, "PUT", path, owner, body, 409)
+	for _, route := range []string{path, path + "/revisions"} {
+		other := f.request(t, "GET", route, "platform_session=bob", "", 200)
+		if strings.Contains(other.Body.String(), "分镜说明使用短句") {
+			t.Fatal("another user could read the saved memory")
+		}
+	}
+}
+
 func TestStudioPoseLibraryCatalogUsesPlatformIdentity(t *testing.T) {
 	f := newStudioFixture(t)
 	if err := f.db.Create(&model.PoseLibraryItem{ID: "standing", ExternalKey: "standing", GroupKey: "standing", Name: "自然站立", Status: model.PoseLibraryStatusReady, Enabled: true}).Error; err != nil {
