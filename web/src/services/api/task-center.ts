@@ -4,6 +4,7 @@ import { consumeTaskTextStream, createTaskTextStreamParser, type TaskTextStreamE
 import { recordDiagnosticEvent } from "@/services/diagnostics/client-diagnostics";
 import { observeGenerationTaskStatus, observeGenerationTaskStatuses } from "@/services/generation-completion-tracker";
 import { getActiveUserScope } from "@/lib/user-scope";
+import { useUserStore } from "@/stores/use-user-store";
 import { submitPlatformTask } from "@/services/platform-task-submission";
 
 export type { BackendEnvelope } from "@/services/api/request";
@@ -134,7 +135,16 @@ export type TaskLog = {
 
 export type CreateTaskInput = {
     commandId?: string;
-    platform?: { variantId?: string; expectedPriceVersion: string; expectedCapabilityRevision?: string; expectedConnectionRevision?: number; walletMaxPoints?: string; billingPreference?: "wallet-fallback" | "only-benefits" };
+    platform?: {
+        variantId?: string;
+        previewUserId?: string;
+        previewBinding?: string;
+        expectedPriceVersion: string;
+        expectedCapabilityRevision?: string;
+        expectedConnectionRevision?: number;
+        walletMaxPoints?: string;
+        billingPreference?: "wallet-fallback" | "only-benefits";
+    };
     projectId?: string;
     type?: string;
     operation?: string;
@@ -146,11 +156,15 @@ export type CreateTaskInput = {
 };
 export function createGenerationTask(input: CreateTaskInput) {
     return submitPlatformTask(input, {
-        confirmBudget: confirmPlatformBudget,
         preview: (body) => http.post("/tasks/preview", body),
         create: (body) => http.post<GenerationTask>("/tasks", body),
-        recover: (commandId) => http.get<GenerationTask>(`/tasks/by-command/${encodeURIComponent(commandId)}`),
-        scope: getActiveUserScope,
+        recover: (commandId, expectedUserId) => http.get<GenerationTask>(`/tasks/by-command/${encodeURIComponent(commandId)}`, { params: { expectedUserId } }),
+        scope: () => {
+            const { user, platformIdentity } = useUserStore.getState();
+            const storageScope = getActiveUserScope();
+            if (!platformIdentity) return input.platform ? "" : storageScope;
+            return user?.id === storageScope ? user.id : "";
+        },
     }).then((task) => {
         recordDiagnosticEvent({ level: "info", category: "task", message: "任务已创建", taskId: task.id, projectId: task.projectId });
         observeGenerationTaskStatus(task);
@@ -668,4 +682,3 @@ function notifyCanvasTaskCreated(task: GenerationTask) {
     if (typeof window === "undefined" || !task.projectId) return;
     window.dispatchEvent(new CustomEvent("canvas:task-created", { detail: { task } }));
 }
-import { confirmPlatformBudget } from "@/services/platform-budget-confirmation";

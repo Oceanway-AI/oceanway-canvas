@@ -20,25 +20,33 @@ import (
 )
 
 type studioExecutionEnvelope struct {
-	Task        model.Task                                  `json:"task"`
-	Selection   platformintegration.ModelSelection          `json:"selection"`
-	RequestID   string                                      `json:"requestId"`
-	ContentType string                                      `json:"contentType"`
-	Body        []byte                                      `json:"body"`
-	Consumption *platformclient.MediaConsumptionConstraints `json:"consumption,omitempty"`
-	AgentRunID  string                                      `json:"agentRunId,omitempty"`
-	Catalog     []platformclient.Model                      `json:"catalog,omitempty"`
+	Task               model.Task                                  `json:"task"`
+	Selection          platformintegration.ModelSelection          `json:"selection"`
+	RequestID          string                                      `json:"requestId"`
+	ContentType        string                                      `json:"contentType"`
+	Body               []byte                                      `json:"body"`
+	Consumption        *platformclient.MediaConsumptionConstraints `json:"consumption,omitempty"`
+	ActualUsageBilling bool                                        `json:"actualUsageBilling,omitempty"`
+	AgentRunID         string                                      `json:"agentRunId,omitempty"`
+	Catalog            []platformclient.Model                      `json:"catalog,omitempty"`
 }
 
 func studioTaskID(userID, commandID string) string {
 	return uuid.NewSHA1(uuid.NameSpaceURL, []byte("studio-task\n"+userID+"\n"+commandID)).String()
 }
 
-func (s *Service) StudioTaskByCommand(userID, commandID string) (*model.Task, error) {
+func (s *Service) StudioTaskByCommand(userID, commandID, expectedUserID string) (*model.Task, error) {
 	if !studioMaterialID.MatchString(commandID) {
 		return nil, BadAuthRequest("任务命令标识无效")
 	}
-	return s.Task(userID, studioTaskID(userID, commandID))
+	if expectedUserID != "" && expectedUserID != userID {
+		return nil, studioPreviewAccountChanged()
+	}
+	task, err := s.Task(userID, studioTaskID(userID, commandID))
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, NotFound("未找到原任务")
+	}
+	return task, err
 }
 
 func (s *Service) StudioCreateTask(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest) (*model.Task, *platformclient.Response, error) {
@@ -54,8 +62,20 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 	if strings.HasPrefix(req.Operation, "cloud_agent") && req.admission == nil {
 		return nil, response, BadAuthRequest("Agent 任务必须通过 Agent 接口创建")
 	}
+	hasReceipt := req.Platform != nil && (req.Platform.PreviewUserID != "" || req.Platform.PreviewBinding != "")
+	intentRequest := req
+	if hasReceipt {
+		if err := s.verifyStudioPreviewAccount(userID, req); err != nil {
+			return nil, response, err
+		}
+		// The receipt authenticates this request, not the stored creative intent.
+		// Old commands remain recoverable with or without a refreshed receipt.
+		options := *req.Platform
+		options.PreviewUserID, options.PreviewBinding = "", ""
+		intentRequest.Platform = &options
+	}
 	id := studioTaskID(userID, req.CommandID)
-	intent, err := json.Marshal(req)
+	intent, err := json.Marshal(intentRequest)
 	if err != nil {
 		return nil, response, BadAuthRequest("任务输入无效")
 	}
@@ -73,6 +93,9 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 			return task, response, e
 		}
 	} else {
+		if !hasReceipt && (req.Type == "canvas_image" || req.Type == "canvas_video") {
+			return nil, response, studioPreviewAccountChanged()
+		}
 		if err := s.ensureTaskProjectActive(userID, req.ProjectID); err != nil {
 			return nil, response, err
 		}
@@ -102,7 +125,10 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 			return nil, response, e
 		}
 		task := model.Task{ID: id, UserID: userID, ProjectID: req.ProjectID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: publicInput, Status: model.TaskStatusQueued, Stage: "等待平台任务调度", TraceID: req.TraceID, RequestID: req.RequestID, WorkbenchKind: workbenchKindFromTaskInput(req.Input, req.Type)}
-		envelope := studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, ContentType: "application/json", Body: body, Consumption: consumption}
+		envelope := studioExecutionEnvelope{
+			Task: task, Selection: selected, RequestID: "studio-" + id, ContentType: "application/json", Body: body,
+			Consumption: consumption, ActualUsageBilling: consumption != nil && consumption.WalletMaxPoints == "",
+		}
 		encoded, e := s.encryptStudioValue(envelope)
 		if e != nil {
 			return nil, response, e
@@ -119,7 +145,7 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 	if err := s.decryptStudioValue(existing.EnvelopeEncrypted, &envelope); err != nil {
 		return nil, response, err
 	}
-	if envelope.Selection.Kind != "text" && !studioMediaConsumptionValid(envelope.Consumption) {
+	if envelope.Selection.Kind != "text" && !envelope.validMediaConsumption() {
 		return nil, response, NewAppError(409, "原媒体消费版本未冻结，请重新确认报价")
 	}
 	grant, err := s.studioPlatform.Client.IssueExecution(ctx, session, id)

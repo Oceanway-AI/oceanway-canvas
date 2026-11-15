@@ -22,7 +22,7 @@ export function StudioAccountBar({ compact = false }: { compact?: boolean }) {
             .then(async (session) => {
                 if (!active || session.user?.id === userId || useUserStore.getState().user?.id !== userId) return;
                 const { applyUserSession } = await import("@/lib/user-session");
-                if (active && useUserStore.getState().user?.id === userId) await applyUserSession(session);
+                if (active && useUserStore.getState().hydrated && useUserStore.getState().user?.id === userId) await applyUserSession(session);
             })
             .catch(() => undefined);
         return () => {

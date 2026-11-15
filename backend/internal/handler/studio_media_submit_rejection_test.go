@@ -63,7 +63,8 @@ func TestStudioMediaInitialRejectionRequiresOriginalNoExecutionReceipt(t *testin
 				}
 			}
 			raw, _ := json.Marshal(studioRevisionBody())
-			w := f.request(t, "POST", "/api/tasks", "platform_session=alice", string(raw), 200)
+			bound := studioBindPreview(t, f, "platform_session=alice", string(raw))
+			w := f.request(t, "POST", "/api/tasks", "platform_session=alice", bound, 200)
 			var created struct {
 				Data model.Task `json:"data"`
 			}
@@ -154,7 +155,8 @@ func TestStudioMediaCachedUnknownRecoversOriginalFailure(t *testing.T) {
 				}
 			}
 			raw, _ := json.Marshal(studioRevisionBody())
-			w := f.request(t, "POST", "/api/tasks", "platform_session=alice", string(raw), 200)
+			bound := studioBindPreview(t, f, "platform_session=alice", string(raw))
+			w := f.request(t, "POST", "/api/tasks", "platform_session=alice", bound, 200)
 			var created struct {
 				Data model.Task `json:"data"`
 			}

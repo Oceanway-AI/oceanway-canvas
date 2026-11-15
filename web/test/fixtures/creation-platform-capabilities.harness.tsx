@@ -206,9 +206,13 @@ for (const logical of [true, false]) {
     });
 }
 
-test("原生视频真实生成按钮保留4秒720p参数，价格版本变化时不创建任务", async () => {
+test.each([
+    ["有效报价，一次点击提交且没有钱包上限", "new-token-price"],
+    ["价格版本变化，未创建任务", "changed-price"],
+])("原生视频生成按钮保留4秒720p参数：%s", async (_scenario, priceVersion) => {
     const { systemChannelModelChannels } = await import("@/lib/user-session");
     const { setActiveUserScope } = await import("@/lib/user-scope");
+    const { PlatformBudgetConfirmationHost } = await import("@/components/layout/platform-budget-confirmation");
     const name = "doubao-seedance-2-0-fast-260128";
     const selected = `oceanway-platform::${name}`;
     const channels = systemChannelModelChannels([
@@ -245,25 +249,36 @@ test("原生视频真实生成按钮保留4秒720p参数，价格版本变化时
             ],
         },
     ]);
-    setActiveUserScope("direct-video-button");
+    const userId = `direct-video-button-${priceVersion}`;
+    setActiveUserScope(userId);
     useConfigStore.setState({ config: { ...defaultConfig, channels, model: selected, videoModel: selected, videoModels: [selected], imageModels: [], textModels: [] } });
     useUserStore.setState({
         platformIdentity: true,
         hydrated: true,
         features: { ...useUserStore.getState().features, creditsEnabled: false },
-        user: { id: "direct-video-button", username: "fixture", displayName: "Fixture", role: "user", status: "active" },
+        user: { id: userId, username: "fixture", displayName: "Fixture", role: "user", status: "active" },
     });
     useCreationPreferencesStore.setState({ preferences: { mode: "video", video: { ratio: "16:9", seconds: "4", videoQuality: "720" } }, hydrated: true });
     writeCreationConversationSnapshot(getActiveUserScope(), [{ id: "direct", title: "Direct", messages: [], updatedAt: "2026-11-08T00:00:00Z" }]);
     const adapter = apiClient.defaults.adapter;
     const requests: Array<{ method?: string; url?: string; body: Record<string, unknown> }> = [];
+    const task = { id: "direct-video", type: "canvas_video", status: "queued", progress: 0 };
+    const currentPrice = priceVersion === "new-token-price";
     apiClient.defaults.adapter = async (config) => {
         if (config.url === "/public/inspirations/feed") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { enabled: false, entries: [], categories: {} } } };
         if (config.method === "get" && config.url === "/canvas-projects") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: [] } };
         if (config.method === "get" && config.url === "/materials/assets") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { items: [], total: "0" } } };
+        if (currentPrice && config.method === "get" && config.url === `/tasks/${task.id}`) return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: task } };
         requests.push({ method: config.method, url: config.url, body: JSON.parse(config.data || "{}") });
+        if (currentPrice && config.method === "post" && config.url === "/tasks") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: task } };
         if (config.method !== "post" || config.url !== "/tasks/preview") throw new Error(`Unexpected request: ${config.method} ${config.url}`);
-        return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { allowed: true, combination_supported: true, price_version: "changed-price", wallet_points: "0.123456789" } } };
+        return {
+            config,
+            headers: {},
+            status: 200,
+            statusText: "OK",
+            data: { code: 0, data: { allowed: true, combination_supported: true, previewUserId: userId, previewBinding: "binding", price_version: priceVersion, capability_revision: "a".repeat(64), connection_revision: 7, wallet_points: "0.123456789" } },
+        };
     };
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const host = document.createElement("div");
@@ -274,6 +289,7 @@ test("原生视频真实生成按钮保留4秒720p参数，价格版本变化时
             root.render(
                 <QueryClientProvider client={client}>
                     <App>
+                        <PlatformBudgetConfirmationHost />
                         <MemoryRouter>
                             <CreatePage />
                         </MemoryRouter>
@@ -290,18 +306,95 @@ test("原生视频真实生成按钮保留4秒720p参数，价格版本变化时
         expect(submit.disabled).toBe(false);
         expect(requests).toEqual([]);
         await act(async () => submit.click());
-        for (let i = 0; i < 100 && !host.textContent?.includes("平台未批准当前参数或额度"); i++) await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
-        expect(requests).toHaveLength(1);
+        const settled = () => (currentPrice ? requests.some((item) => item.url === "/tasks") : host.textContent?.includes("平台未批准当前参数或额度"));
+        for (let i = 0; i < 100 && !settled(); i++) await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+        expect(requests.map((item) => item.url)).toEqual(currentPrice ? ["/tasks/preview", "/tasks"] : ["/tasks/preview"]);
         expect(requests[0]).toMatchObject({
             method: "post",
             url: "/tasks/preview",
             body: { type: "canvas_video", model: selected, platform: { expectedPriceVersion: "new-token-price" }, input: { config: { channelId: "oceanway-platform", model: name, size: "16:9", videoSeconds: "4", vquality: "720p" } } },
         });
-        expect(host.textContent).toContain("平台未批准当前参数或额度");
+        expect(requests[0].body.platform).not.toHaveProperty("walletMaxPoints");
+        if (currentPrice) {
+            expect(requests[1].method).toBe("post");
+            expect(requests[1].body).toEqual({ ...requests[0].body, platform: { previewUserId: userId, previewBinding: "binding", expectedPriceVersion: priceVersion, expectedCapabilityRevision: "a".repeat(64), expectedConnectionRevision: 7 } });
+            expect(document.querySelector('[role="dialog"]')).toBeNull();
+        } else {
+            expect(host.textContent).toContain("平台未批准当前参数或额度");
+        }
     } finally {
         await act(async () => root.unmount());
         host.remove();
         client.clear();
         apiClient.defaults.adapter = adapter;
+    }
+});
+
+test.each(["canvas_image", "canvas_video"])("%s previews and submits directly without a spending ceiling", async (type) => {
+    const { createGenerationTask } = await import("@/services/api/task-center");
+    const { http } = await import("@/services/api/request");
+    const { spyOn } = await import("bun:test");
+    const { setActiveUserScope } = await import("@/lib/user-scope");
+    const oldState = useUserStore.getState();
+    const oldScope = getActiveUserScope();
+    const alice = { id: "direct-media-test-user", username: "alice", displayName: "Alice", role: "user", status: "active" } as const;
+    setActiveUserScope(alice.id);
+    useUserStore.setState({ platformIdentity: true, user: alice });
+    const input = { prompt: "ocean", type, commandId: "direct-media", platform: { expectedPriceVersion: "p1" } };
+    const quote = { previewUserId: alice.id, previewBinding: "bound-quote", capability_revision: "a".repeat(64), connection_revision: 7, price_version: "p1", wallet_points: "0.1234567890123456789", allowed: true, combination_supported: true };
+    const post = spyOn(http, "post").mockResolvedValueOnce(quote).mockResolvedValueOnce({ id: "media", type, status: "queued" });
+    try {
+        const result = await createGenerationTask(input);
+        expect(result.id).toBe("media");
+        expect(post.mock.calls).toEqual([
+            ["/tasks/preview", input],
+            ["/tasks", { ...input, platform: { previewUserId: alice.id, previewBinding: "bound-quote", expectedPriceVersion: "p1", expectedCapabilityRevision: quote.capability_revision, expectedConnectionRevision: 7 } }],
+        ]);
+    } finally {
+        post.mockRestore();
+        useUserStore.setState(oldState);
+        setActiveUserScope(oldScope);
+    }
+});
+
+test("direct submission binds the displayed account, including when storage or cookies change before recovery", async () => {
+    const { createGenerationTask } = await import("@/services/api/task-center");
+    const { ApiError } = await import("@/services/api/request");
+    const { setActiveUserScope } = await import("@/lib/user-scope");
+    const oldState = useUserStore.getState();
+    const oldScope = getActiveUserScope();
+    const oldAdapter = apiClient.defaults.adapter;
+    const alice = { id: "original-fixture-user", username: "alice", displayName: "Alice", role: "user", status: "active" } as const;
+    const input = () => ({ commandId: "original-fixture-command", type: "canvas_image", prompt: "fixture", platform: { expectedPriceVersion: "p1", walletMaxPoints: "1" } });
+    const quote = { price_version: "p1", capability_revision: "c".repeat(64), connection_revision: 2, wallet_points: "1", allowed: true, combination_supported: true, previewUserId: alice.id, previewBinding: "fixture-binding" };
+    const paths: string[] = [];
+    let expectedRecoveryUser: string | undefined;
+    try {
+        apiClient.defaults.adapter = async (config) => {
+            paths.push(config.url ?? "");
+            if (config.url === "/tasks/preview") return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: quote } };
+            if (config.url === "/tasks") throw new Error("lost response");
+            if (config.url === "/tasks/by-command/original-fixture-command") {
+                expectedRecoveryUser = config.params?.expectedUserId;
+                throw new ApiError("账号已切换", { status: 409, reason: "studio_preview_account_changed" });
+            }
+            throw new Error("unexpected route");
+        };
+        setActiveUserScope(alice.id);
+        useUserStore.setState({ platformIdentity: false, user: null });
+        await expect(createGenerationTask(input())).rejects.toThrow("账号已切换");
+        expect(paths).toEqual([]);
+        useUserStore.setState({ platformIdentity: true, user: alice });
+        setActiveUserScope("different-fixture-user");
+        await expect(createGenerationTask(input())).rejects.toThrow("账号已切换");
+        expect(paths).toEqual([]);
+        setActiveUserScope(alice.id);
+        await expect(createGenerationTask(input())).rejects.toThrow("账号已切换");
+        expect(expectedRecoveryUser).toBe(alice.id);
+        expect(paths).toEqual(["/tasks/preview", "/tasks", "/tasks/by-command/original-fixture-command"]);
+    } finally {
+        apiClient.defaults.adapter = oldAdapter;
+        useUserStore.setState(oldState);
+        setActiveUserScope(oldScope);
     }
 });

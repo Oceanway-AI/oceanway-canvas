@@ -25,6 +25,10 @@ func TestStudioMediaTaskRetainsReferenceInputs(t *testing.T) {
 }
 
 func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
+	walletMax := "1.23456789"
+	if kind == "image" || kind == "video" {
+		walletMax = ""
+	}
 	withReference := kind == "image_reference"
 	if withReference {
 		kind = "image"
@@ -68,7 +72,7 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 			previews++
 			var in platformclient.PreviewRequest
 			_ = json.NewDecoder(r.Body).Decode(&in)
-			if in.Request.ExpectedPriceVersion != "price-1" || len(in.Request.NativeRequest) == 0 {
+			if in.Request.ExpectedPriceVersion != "price-1" || in.Request.WalletMaxPoints != walletMax || len(in.Request.NativeRequest) == 0 {
 				t.Error("preview lost native authority")
 			}
 			previewBody = append([]byte(nil), in.Request.NativeRequest...)
@@ -100,8 +104,11 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 				raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get("X-Platform-Media-Consumption"))
 				var cap platformclient.MediaConsumptionConstraints
 				_ = json.Unmarshal(raw, &cap)
-				if cap.WalletMaxPoints != "1.23456789" || cap.ExpectedPriceVersion != "price-1" || cap.ExpectedCapabilityRevision != strings.Repeat("a", 64) || cap.ExpectedConnectionRevision != 7 {
+				if cap.WalletMaxPoints != walletMax || cap.ExpectedPriceVersion != "price-1" || cap.ExpectedCapabilityRevision != strings.Repeat("a", 64) || cap.ExpectedConnectionRevision != 7 {
 					t.Error("exact quote/ceiling/capability/connection lost")
+				}
+				if walletMax == "" && strings.Contains(string(raw), `"wallet_max_points"`) {
+					t.Errorf("ordinary generation sent a wallet ceiling: %s", raw)
 				}
 				w.WriteHeader(503)
 			case strings.HasPrefix(r.URL.Path, "/internal/relay/media-requests/"):
@@ -144,10 +151,14 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 		body = `{"commandId":"video-intent","type":"canvas_video","operation":"text_to_video","prompt":"cat","model":"doubao-seedance-2-0-fast-260128","platform":{"expectedPriceVersion":"price-1","walletMaxPoints":"1.23456789"},"input":{"mode":"video","config":{"channelId":"oceanway-platform","model":"doubao-seedance-2-0-fast-260128","videoSeconds":"4","vquality":"720p","size":"16:9","videoGenerateAudio":"false","videoWatermark":"false"}}}`
 	}
 	body = strings.Replace(body, `"walletMaxPoints":`, `"expectedCapabilityRevision":"`+strings.Repeat("a", 64)+`","expectedConnectionRevision":7,"walletMaxPoints":`, 1)
+	if walletMax == "" {
+		body = strings.Replace(body, `,"walletMaxPoints":"1.23456789"`, "", 1)
+	}
 	if withReference {
 		body = strings.Replace(body, `"input":{`, `"input":{"referenceImages":[{"storageKey":"resource:retained-input","url":"https://cdn.test/not-persisted?signature=private"}],`, 1)
 	}
-	f.request(t, "POST", "/api/tasks/preview", "platform_session=alice", body, 200)
+	raw := body
+	body = studioBindPreview(t, f, "platform_session=alice", raw)
 	w := f.request(t, "POST", "/api/tasks", "platform_session=alice", body, 200)
 	var created struct {
 		Data model.Task `json:"data"`
@@ -156,6 +167,9 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	for i := 0; i < 8; i++ {
 		if err := f.svc.ProcessNextTask(); err != nil {
 			t.Fatal(err)
+		}
+		if i == 0 && submits != 1 {
+			t.Fatalf("worker did not reach the Platform media submit route: wallet ceiling %q, submits %d", walletMax, submits)
 		}
 		f.db.Model(&model.Task{}).Where("id = ?", created.Data.ID).Update("next_poll_at", time.Now().Add(-time.Second))
 		if i == 1 {
@@ -222,20 +236,21 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	if submits != 1 || previews != 2 || reads != len(recoveryStates) || binds != 1 {
 		t.Fatalf("duplicate lifecycle: submit=%d preview=%d read=%d binds=%d", submits, previews, reads, binds)
 	}
-	invalid := strings.Replace(body, kind+"-intent", "invalid-size", 1)
+	invalid := studioBindPreview(t, f, "platform_session=alice", strings.Replace(raw, kind+"-intent", "invalid-size", 1))
 	if kind == "image" {
 		invalid = strings.Replace(invalid, "square", "unsupported", 1)
 	} else {
 		invalid = strings.Replace(invalid, "720p", "720", 1)
 	}
 	f.request(t, "POST", "/api/tasks", "platform_session=alice", invalid, 400)
-	f.request(t, "POST", "/api/tasks", "platform_session=alice", strings.Replace(strings.Replace(body, kind+"-intent", "stale-price", 1), "price-1", "old-price", 1), 409)
+	stale := studioBindPreview(t, f, "platform_session=alice", strings.Replace(raw, kind+"-intent", "stale-price", 1))
+	f.request(t, "POST", "/api/tasks", "platform_session=alice", strings.Replace(stale, "price-1", "old-price", 1), 409)
 	// Neither invalid parameters nor a new catalog version may re-dispatch the
 	// original request, whose fixed Resource remains readable.
 	f.catalog = strings.ReplaceAll(f.catalog, "price-1", "price-2")
 	f.request(t, "POST", "/api/tasks/preview", "platform_session=alice", body, 409)
 	f.request(t, "GET", "/api/tasks/"+created.Data.ID, "platform_session=alice", "", 200)
-	if submits != 1 || previews != 2 {
+	if submits != 1 || previews != 4 {
 		t.Fatal("invalid/stale request reached the upstream")
 	}
 }

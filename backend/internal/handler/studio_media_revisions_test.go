@@ -19,13 +19,14 @@ func studioRevisionBody() map[string]any {
 }
 
 func TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization(t *testing.T) {
-	for _, scenario := range []string{"request_capability", "request_connection", "preview_capability", "preview_connection", "preview_malformed", "changed_capability", "changed_connection"} {
+	for _, scenario := range []string{"request_capability", "request_connection", "empty_limit", "null_limit", "preview_capability", "preview_connection", "preview_malformed", "changed_capability", "changed_connection"} {
 		t.Run(scenario, func(t *testing.T) {
 			f := newStudioFixture(t)
 			f.catalog = studioRevisionCatalog
 			body := studioRevisionBody()
 			options := body["platform"].(map[string]any)
 			quote := platformclient.ConsumptionPreview{CapabilityRevision: strings.Repeat("a", 64), ConnectionRevision: 7, Model: "image-model", ModelType: "image", PriceVersion: "price-1", WalletPoints: "0.123456789", Allowed: true, CombinationSupported: true}
+			published := quote
 			want, path := 409, "/api/tasks"
 			switch scenario {
 			case "request_capability":
@@ -33,6 +34,12 @@ func TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization(t *testin
 				want = 400
 			case "request_connection":
 				delete(options, "expectedConnectionRevision")
+				want = 400
+			case "empty_limit":
+				options["walletMaxPoints"] = ""
+				want = 400
+			case "null_limit":
+				options["walletMaxPoints"] = nil
 				want = 400
 			case "preview_capability":
 				quote.CapabilityRevision = ""
@@ -58,7 +65,17 @@ func TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization(t *testin
 				_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": quote})
 			}
 			raw, _ := json.Marshal(body)
-			f.request(t, "POST", path, "platform_session=alice", string(raw), want)
+			request := string(raw)
+			if scenario == "empty_limit" || scenario == "null_limit" {
+				// The decoder rejects malformed limits before either route can use a preview receipt.
+				f.request(t, "POST", "/api/tasks/preview", "platform_session=alice", request, http.StatusBadRequest)
+			} else if path == "/api/tasks" {
+				eventual := quote
+				quote = published
+				request = studioBindPreview(t, f, "platform_session=alice", request)
+				quote = eventual
+			}
+			f.request(t, "POST", path, "platform_session=alice", request, want)
 			for _, table := range []any{&model.Task{}, &model.StudioExecution{}, &model.BillingOrder{}} {
 				var count int64
 				if err := f.db.Model(table).Count(&count).Error; err != nil || count != 0 {
@@ -127,13 +144,14 @@ func TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions(t *testing.T) {
 				}
 			}
 			raw, _ := json.Marshal(studioRevisionBody())
-			f.request(t, "POST", "/api/tasks", "platform_session=alice", string(raw), 503)
+			bound := studioBindPreview(t, f, "platform_session=alice", string(raw))
+			f.request(t, "POST", "/api/tasks", "platform_session=alice", bound, 503)
 			if changed == "capability" {
 				capability = strings.Repeat("b", 64)
 			} else {
 				connection = 8
 			}
-			f.request(t, "POST", "/api/tasks", "platform_session=alice", string(raw), 200)
+			f.request(t, "POST", "/api/tasks", "platform_session=alice", bound, 200)
 			for i := 0; i < 3; i++ {
 				f.db.Model(&model.Task{}).Where("id = ?", taskID).Update("next_poll_at", time.Now().Add(-time.Second))
 				if err := f.svc.ProcessNextTask(); err != nil {
@@ -144,7 +162,7 @@ func TestStudioMediaAuthorizationRecoveryKeepsOriginalRevisions(t *testing.T) {
 			if !strings.Contains(w.Body.String(), `"status":"failed"`) {
 				t.Fatalf("revision rejection did not settle original task: %s", w.Body.String())
 			}
-			if quotes != 1 || issues != 2 || submits != 1 || recovers != 1 {
+			if quotes != 2 || issues != 2 || submits != 1 || recovers != 1 {
 				t.Fatalf("new preview/authority/request on recovery: %d/%d/%d/%d", quotes, issues, submits, recovers)
 			}
 		})

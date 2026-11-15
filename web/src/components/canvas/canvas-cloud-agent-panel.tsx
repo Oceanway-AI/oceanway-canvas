@@ -243,7 +243,8 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
     useEffect(() => {
         if (curationState.curation?.enabled) setSkillTag("all");
     }, [curationState.curation?.enabled]);
-    const [busy, setBusy] = useState(false);
+    const [submittingFromRunId, setSubmittingFromRunId] = useState<string | null>(null);
+    const busy = submittingFromRunId !== null;
     const [approvalSubmitting, setApprovalSubmitting] = useState(false);
     const [undoStates, setUndoStates] = useState<Record<string, AgentCanvasUndoState>>({});
     const undoRequestsRef = useRef(new Set<string>());
@@ -583,24 +584,8 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         },
         [busy, conversationScope, historyHydrated, installedSkillIds, pendingHydrated, running],
     );
-    const status = run?.status || "idle";
-    const statusLabel =
-        // 服务端 queued 是等待执行资源，叫「等待启动」，与输入框的排队消息区分开。
-        status === "waiting_approval"
-            ? "等待审批"
-            : status === "queued"
-              ? "等待启动"
-              : status === "running"
-                ? "运行中"
-                : status === "completed"
-                  ? "已完成"
-                  : status === "failed"
-                    ? "异常"
-                    : status === "cancelled"
-                      ? "已停止"
-                      : status === "rejected"
-                        ? "已拒绝"
-                        : "待命";
+    const status = submittingFromRunId === (run?.id || "") ? "submitting" : run?.status || "idle";
+    const statusLabel = { idle: "待命", submitting: "正在发送", queued: "等待启动", running: "运行中", waiting_approval: "等待审批", completed: "已完成", failed: "异常", cancelled: "已停止", rejected: "已拒绝" }[status];
     // 状态色走语义 token（皮肤和明暗主题自动适配）；停止、拒绝、待命用次要文字色。
     const statusColor = status === "failed" ? "var(--status-error)" : status === "waiting_approval" ? "var(--status-warning)" : status === "running" || status === "queued" ? "var(--status-success)" : theme.node.muted;
 
@@ -786,7 +771,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         replayCursorRef.current = { runId: "", seq: 0 };
         setRestoredModel(null);
         pendingSubmission.current = null;
-        setBusy(false);
+        setSubmittingFromRunId(null);
         presetApplyingRef.current = null;
         setPresetApplyingId("");
         setConversations([]);
@@ -1114,7 +1099,23 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                 }
                 setMessages((current) => (current.some((item) => item.id === `stream-error-${run.id}`) ? current.filter((item) => item.id !== `stream-error-${run.id}`) : current));
                 setContextUsage((current) => reduceAgentContextUsage(current, event));
-                applyAgentEvent(event, setMessages, setRun, setApproval);
+                // 新消息已经乐观显示时，上一轮的重放仍应写在它所属的轮次内。
+                const pending = pendingSubmission.current;
+                const nextUserId = pending?.parentRunId === run.id ? pending.messageId || `user-${pending.key}` : undefined;
+                applyAgentEvent(
+                    event,
+                    nextUserId
+                        ? (update) =>
+                              setMessages((current) => {
+                                  const boundary = current.findIndex((message) => message.id === nextUserId);
+                                  const previous = boundary < 0 ? current : current.slice(0, boundary);
+                                  const updated = typeof update === "function" ? update(previous) : update;
+                                  return boundary < 0 ? updated : [...updated, ...current.slice(boundary)];
+                              })
+                        : setMessages,
+                    setRun,
+                    setApproval,
+                );
                 canvasSyncRef.current?.receive(event);
                 // 采用到短剧改的是短剧数据而不是画布：刷新短剧侧栏、过期标记与制作台缓存。
                 if (event.type === "tool_completed" && event.payload?.toolName === "drama_adopt_canvas_media") void appQueryClient.invalidateQueries({ queryKey: ["drama"] });
@@ -1420,7 +1421,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         if (!value || busy || (run && connectionStatus !== "connected" && !pendingRequest?.request) || submissionRequestRef.current || !historyHydrated || !pendingHydrated || currentScope.current !== conversationScope) return "skipped";
         const scope = conversationScope;
         submissionRequestRef.current = true;
-        setBusy(true);
+        setSubmittingFromRunId(run?.id || "");
         if (outboxItem) updateOutbox(scope, (current) => updateAgentOutboxItem(current, outboxItem.id, { status: "dispatching", error: undefined }));
         let accepted = false;
         let requestSent = false;
@@ -1630,7 +1631,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         } finally {
             submissionRequestRef.current = false;
             if (outboxItem && !outboxReleased) updateOutbox(scope, (current) => (current.items.some((entry) => entry.id === outboxItem.id && entry.status === "dispatching") ? updateAgentOutboxItem(current, outboxItem.id, { status: "queued" }) : current));
-            if (accountIsCurrent() && currentScope.current === scope) setBusy(false);
+            if (accountIsCurrent() && currentScope.current === scope) setSubmittingFromRunId(null);
         }
     };
 
@@ -1850,7 +1851,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         presetApplyingRef.current = null;
         setPresetApplyingId("");
         setPendingHydrated(true);
-        setBusy(false);
+        setSubmittingFromRunId(null);
         pendingSubmission.current = null;
         approvalRequestRef.current = null;
         setApprovalSubmitting(false);
@@ -1902,7 +1903,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         presetApplyingRef.current = null;
         setPresetApplyingId("");
         setPendingHydrated(false);
-        setBusy(false);
+        setSubmittingFromRunId(null);
         pendingSubmission.current = null;
         approvalRequestRef.current = null;
         setApprovalSubmitting(false);

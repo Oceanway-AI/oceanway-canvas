@@ -423,6 +423,8 @@ function upsertRunFailure(current: CloudAgentChatMessage[], event: AgentEvent, t
     const message: CloudAgentChatMessage = { id, role: "error", ...agentErrorPresentation(text), errorSeverity: "error" };
     // 失败事件和终态快照描述的是同一次失败；重放时同时收敛已缓存的事件行。
     const next = current.filter((item) => item.role !== "error" || item.id !== event.eventId || item.id === id);
+    // 旧 Pi 事件只有内部 error 字段，公开原因随终态快照到达。
+    if (event.type === "run_failed" && !text.trim()) return next;
     const index = next.findIndex((item) => item.id === id);
     if (index < 0) return [...next, message];
     const previous = next[index];

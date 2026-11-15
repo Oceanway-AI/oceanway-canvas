@@ -61,9 +61,9 @@ func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
 			failService(c, err)
 			return
 		}
-		task, err := svc.StudioTaskByCommand(user.ID, c.Param("command"))
+		task, err := svc.StudioTaskByCommand(user.ID, c.Param("command"), c.Query("expectedUserId"))
 		if err != nil {
-			fail(c, http.StatusNotFound, err)
+			failService(c, err)
 			return
 		}
 		ok(c, task)

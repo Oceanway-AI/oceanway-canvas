@@ -1,5 +1,7 @@
-const ACTIVE_USER_SCOPE_KEY = "yingce:active-user-scope";
+export const ACTIVE_USER_SCOPE_KEY = "yingce:active-user-scope";
 const GUEST_SCOPE = "guest";
+// Only this tab’s authenticated session may switch its persistence namespace.
+let tabUserScope: string | undefined;
 let userScopedPersistenceSuppressionDepth = 0;
 
 export function withUserScopedPersistenceSuppressed<T>(operation: () => T) {
@@ -17,12 +19,13 @@ export function isUserScopedPersistenceSuppressed() {
 
 export function getActiveUserScope() {
     if (typeof window === "undefined") return GUEST_SCOPE;
-    return window.localStorage.getItem(ACTIVE_USER_SCOPE_KEY) || GUEST_SCOPE;
+    return tabUserScope ?? GUEST_SCOPE;
 }
 
 export function setActiveUserScope(userId?: string | null) {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(ACTIVE_USER_SCOPE_KEY, userId || GUEST_SCOPE);
+    tabUserScope = userId || GUEST_SCOPE;
+    window.localStorage.setItem(ACTIVE_USER_SCOPE_KEY, tabUserScope);
 }
 
 export function scopedStorageKey(name: string, scope = getActiveUserScope()) {

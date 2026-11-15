@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import localforage from "localforage";
+import { setActiveUserScope } from "@/lib/user-scope";
 
 import { apiClient } from "@/services/api/request";
 import { materializeGenerationTaskAssets } from "@/services/project-asset-sync";
@@ -71,6 +72,7 @@ function installStorage() {
 
 beforeEach(async () => {
     installStorage();
+    setActiveUserScope(scope);
     storageValues.set(scopeStorageKey(ASSET_STORE_KEY), JSON.stringify({ state: { assets: [] }, version: 0, storageRevision: 0, tombstones: { assets: {} } }));
     withAssetStorePersistenceSuppressed(() => useAssetStore.setState({ assets: [] }));
     await flushAssetStorePersistence();
@@ -90,6 +92,7 @@ afterEach(async () => {
     localforage.getItem = originalGetItem;
     localforage.setItem = originalSetItem;
     localforage.removeItem = originalRemoveItem;
+    setActiveUserScope(null);
     if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
     else delete (globalThis as { window?: unknown }).window;
 });

@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 
 import type { InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import type { AssetLibraryPickerItem } from "@/components/assets/asset-library-picker-modal";
+import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation";
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
@@ -997,7 +998,15 @@ export default function CreatePage() {
         const boundTaskIds = new Set<string>();
         const boundTaskIdsByBatchIndex = new Map<number, string>();
         const boundTasks = new Map<string, GenerationTask>();
+        const holdDraftForPreview = platformIdentity && (mode === "image" || mode === "video");
+        const clearSubmittedDraft = () => {
+            if (activeIdRef.current !== originConversationId || getActiveUserScope() !== activeConversationScope) return;
+            setPrompt("");
+            setAttachments([]);
+            setDraftReferences([]);
+        };
         const bindTask = (task: GenerationTask) => {
+            if (holdDraftForPreview && !boundTaskIds.size) clearSubmittedDraft();
             if (typeof task.clientContext?.batchIndex === "number") boundTaskIdsByBatchIndex.set(task.clientContext.batchIndex, task.id);
             boundTaskIds.add(task.id);
             activeGenerationTaskIdsRef.current.add(task.id);
@@ -1030,9 +1039,7 @@ export default function CreatePage() {
             updatedAt: new Date().toISOString(),
             messages: [...conversation.messages, userMessage, assistantMessage],
         }));
-        setPrompt("");
-        setAttachments([]);
-        setDraftReferences([]);
+        if (!holdDraftForPreview) clearSubmittedDraft();
         setBusy(true);
         const controller = new AbortController();
         const requestLifecycle = runtime.beginGenerationConsumer(controller.signal);
@@ -1146,7 +1153,8 @@ export default function CreatePage() {
                 if (!resultUrls.length) {
                     // 只要有一张图是“页面没跟上”而不是后端确认失败，就交给恢复监听继续跟进，而不是整条判失败。
                     const reasons = [...taskFailures, ...resourceFailures].map((entry) => entry.reason);
-                    const reason = reasons.find((candidate) => !runtime.isGenerationTaskTerminalError(candidate)) ?? reasons[0];
+                    const failures = reasons.filter((candidate) => !(candidate instanceof PlatformBudgetDeclined));
+                    const reason = failures.find((candidate) => !runtime.isGenerationTaskTerminalError(candidate)) ?? failures[0] ?? reasons[0];
                     throw reason instanceof Error ? reason : new Error(t("create.page.noImageResult"));
                 }
                 if (failedCount) toast.warning(t("create.page.imagesPartiallyGenerated", { done: resultUrls.length, failed: failedCount }));
@@ -1191,6 +1199,15 @@ export default function CreatePage() {
             }
             updateOriginAssistant((item) => ({ ...item, status: "done" }));
         } catch (error) {
+            if (error instanceof PlatformBudgetDeclined && !boundTaskIds.size) {
+                if (getActiveUserScope() !== activeConversationScope) return;
+                updateActive((conversation) => {
+                    const messages = conversation.messages.filter((item) => item.id !== userMessage.id && item.id !== assistantMessage.id);
+                    return { ...conversation, title: messages.length ? conversation.title : activeConversation.title, messages };
+                });
+                return;
+            }
+            if (holdDraftForPreview && !boundTaskIds.size && abortRef.current === controller) clearSubmittedDraft();
             if (runtime.isGenerationTaskCancelled(error, requestLifecycle.signal)) {
                 updateOriginAssistant((item) => ({ ...item, status: "cancelled", content: t("create.status.stopped") }));
                 return;

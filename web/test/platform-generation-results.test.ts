@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import localforage from "localforage";
+import { Storage } from "happy-dom";
+import { getActiveUserScope, setActiveUserScope } from "@/lib/user-scope";
 import { apiClient } from "@/services/api/request";
 import { clearResourceAccessCache } from "@/services/api/resources";
 import type { GenerationTask } from "@/services/api/task-center";
@@ -23,7 +25,7 @@ const originalSet = localforage.setItem;
 const originalRemove = localforage.removeItem;
 const initialProjects = useCanvasStore.getState().projects;
 const initialIdentity = useUserStore.getState().platformIdentity;
-let scope = "platform-generation-a";
+let previousScope: string;
 let requests: string[];
 let status = "ready";
 let provider = "platform";
@@ -32,7 +34,7 @@ let duringRead: (() => void) | undefined;
 let values: Map<string, unknown>;
 
 beforeEach(() => {
-    scope = "platform-generation-a";
+    previousScope = getActiveUserScope();
     requests = [];
     status = "ready";
     provider = "platform";
@@ -47,7 +49,8 @@ beforeEach(() => {
     localforage.removeItem = (async (key: string) => {
         values.delete(key);
     }) as typeof originalRemove;
-    Object.defineProperty(globalThis, "window", { configurable: true, value: { localStorage: { getItem: () => scope }, setTimeout, clearTimeout } });
+    Object.defineProperty(globalThis, "window", { configurable: true, value: { localStorage: new Storage(), setTimeout, clearTimeout } });
+    setActiveUserScope("platform-generation-a");
     clearResourceAccessCache();
     useUserStore.setState({ platformIdentity: true });
     apiClient.defaults.adapter = async (config) => {
@@ -64,7 +67,7 @@ beforeEach(() => {
             data: {
                 code: responseCode,
                 msg: "资源不存在或已失效",
-                data: { resource: { id, userId: scope, kind: id.startsWith("image") ? "image" : "video", provider, status, width: 640, height: 360, size: 10, mimeType: id.startsWith("image") ? "image/png" : "video/mp4" } },
+                data: { resource: { id, userId: getActiveUserScope(), kind: id.startsWith("image") ? "image" : "video", provider, status, width: 640, height: 360, size: 10, mimeType: id.startsWith("image") ? "image/png" : "video/mp4" } },
             },
         };
     };
@@ -78,6 +81,7 @@ afterEach(() => {
     localforage.getItem = originalGet;
     localforage.setItem = originalSet;
     localforage.removeItem = originalRemove;
+    setActiveUserScope(previousScope);
     if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
     else delete (globalThis as { window?: unknown }).window;
 });
@@ -174,7 +178,7 @@ test("缺少固定资源或类型不符不降级到下载签名 URL/旧 Asset", 
 test("校验期间切换账号或取消，不能完成节点消费", async () => {
     const input = task("video");
     duringRead = () => {
-        scope = "platform-generation-b";
+        setActiveUserScope("platform-generation-b");
     };
     await expect(
         consumeGenerationTaskNode(input, "node", 0, () => {
@@ -206,7 +210,8 @@ test("原生 Pi 已写回的 Platform 节点可直接准备持久化，不要求
 });
 
 test("真实画布消费先持久化固定引用，清空内存后仍能恢复全部图片", async () => {
-    scope = "platform-generation-durable";
+    const scope = "platform-generation-durable";
+    setActiveUserScope(scope);
     const projectId = useCanvasStore.getState().createProject("平台输出");
     const input = { ...task(), projectId };
     const nodesRef = { current: [node(input)] };
@@ -273,7 +278,7 @@ test("转入画布必须重新验证资源，删除、越权及账号切换不�
     await expect(loadCanvasResourceHandoffPayloads(["image-0"])).rejects.toThrow("资源不存在");
     responseCode = 0;
     duringRead = () => {
-        scope = "another-user";
+        setActiveUserScope("another-user");
     };
     await expect(loadCanvasResourceHandoffPayloads(["image-0"])).rejects.toMatchObject({ name: "AbortError" });
     await expect(loadCanvasResourceHandoffPayloads(["../private"])).rejects.toThrow("无效的素材引用");

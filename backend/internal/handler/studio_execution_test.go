@@ -105,8 +105,8 @@ func TestStudioTextExecutionRecoversOriginalWithoutResubmission(t *testing.T) {
 			if !strings.Contains(w.Body.String(), "recovered text") || !strings.Contains(w.Body.String(), "inspect_canvas") {
 				t.Fatalf("native result/tools lost: %s; submits=%d recovers=%d", w.Body.String(), submits, recovers)
 			}
-			if strings.Contains(w.Body.String(), "exa_private") || strings.Contains(w.Body.String(), "fixture.secret") {
-				t.Fatal("execution authority exposed")
+			if strings.Contains(w.Body.String(), "exa_private") || strings.Contains(w.Body.String(), "fixture.secret") || strings.Contains(w.Body.String(), "text_submit_http_503") {
+				t.Fatal("successful recovery exposed execution authority or a stale rejection")
 			}
 			f.request(t, "GET", "/api/tasks/"+id, "platform_session=bob", "", 404)
 			if submits != 1 || recovers != 1 {
@@ -168,4 +168,99 @@ func TestStudioUnknownOriginalIsNeverResentAndAuthorizationCanResume(t *testing.
 	}
 	f.request(t, "POST", "/api/tasks", "platform_session=alice", strings.Replace(body, `"commandId":"unknown-1"`, `"commandId":"unsafe","provider":"external"`, 1), 400)
 	f.request(t, "POST", "/api/tasks", "platform_session=alice", strings.Replace(body, `"channelId":"oceanway-platform"`, `"channelId":"oceanway-platform","apiKey":"forbidden"`, 1), 409)
+}
+
+func TestStudioTextFailureWaitsForMatchingOriginalAndKeepsSafeReason(t *testing.T) {
+	for _, tc := range []struct{ name, rejection, wantCode, wantMessage, wantOutcome string }{
+		{"model", `{"success":false,"code":"PLATFORM_MODEL_UNAVAILABLE","message":"private-fixture"}`, "PLATFORM_MODEL_UNAVAILABLE", "所选模型当前不可用", "rejected"},
+		{"load", `{"error":{"code":"system_memory_overloaded","message":"private-fixture"}}`, "system_memory_overloaded", "平台当前繁忙", "rejected"},
+		{"unclassified", `{"error":{"code":"private-fixture","message":"private-fixture"}}`, "text_submit_http_503", "平台服务暂时不可用", "rejected"},
+		{"invalid-result", `{"error":{"code":"system_memory_overloaded"}}`, "text_response_invalid", "平台原响应没有可用内容", "submitted"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newStudioFixture(t)
+			f.catalog = `{"success":true,"data":{"items":[{"model_name":"m","model_type":"text","invocation_status":"published_text","supported_protocols":["anthropic-messages"],"price":{"status":"available","version":"p1"}}]}}`
+			var requestID, fingerprint string
+			submits, reads := 0, 0
+			f.execution = func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch {
+				case r.URL.Path == "/api/platform/v1/execution-authorizations":
+					var in map[string]string
+					_ = json.NewDecoder(r.Body).Decode(&in)
+					_ = json.NewEncoder(w).Encode(map[string]any{"authorization_id": "exa_text", "product": "studio", "task_reference": in["task_reference"], "expires_at": time.Now().Add(time.Hour).Unix()})
+				case strings.HasSuffix(r.URL.Path, "/release"):
+					w.WriteHeader(http.StatusNoContent)
+				case r.Method == http.MethodPost && r.URL.Path == "/internal/relay/messages":
+					submits++
+					requestID = r.Header.Get("X-Platform-Text-Request-Id")
+					body, _ := io.ReadAll(r.Body)
+					fingerprint = fmt.Sprintf("%x", sha256.Sum256(append([]byte("anthropic-messages\x00"), body...)))
+					w.WriteHeader(http.StatusServiceUnavailable)
+					_, _ = io.WriteString(w, tc.rejection)
+				case r.Method == http.MethodGet && r.URL.Path == "/internal/relay/text-requests/"+requestID:
+					reads++
+					receipt := map[string]any{"version": "oceanway.text-request.v1", "request_id": requestID, "protocol": "anthropic-messages", "fingerprint": fingerprint, "ready": false, "status": "failed"}
+					switch reads {
+					case 1:
+						receipt["status"] = "pending"
+					case 2:
+						receipt["fingerprint"] = "another-body"
+					case 3:
+						receipt["protocol"] = "openai-chat"
+					case 4:
+						receipt["version"] = "unrecognized.text.v2"
+					case 5:
+						if tc.wantOutcome == "submitted" {
+							receipt["status"], receipt["ready"], receipt["response"] = "ready", true, json.RawMessage(`{"content":[]}`)
+						}
+					}
+					_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": receipt})
+				default:
+					t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}
+			w := f.request(t, "POST", "/api/tasks", "platform_session=alice", `{"commandId":"text-failure","type":"canvas_text","operation":"text","prompt":"hello","model":"m","input":{"config":{"channelId":"oceanway-platform","model":"m"}}}`, 200)
+			var created struct{ Data model.Task }
+			if err := json.Unmarshal(w.Body.Bytes(), &created); err != nil || created.Data.ID == "" {
+				t.Fatal("missing task ID")
+			}
+			for i := 0; i <= 5; i++ {
+				if err := f.svc.ProcessNextTask(); err != nil {
+					t.Fatal(err)
+				}
+				var task model.Task
+				if err := f.db.First(&task, "id = ?", created.Data.ID).Error; err != nil {
+					t.Fatal(err)
+				}
+				if strings.Contains(task.Error+task.ExecutionDiagnosticJSON, "private-fixture") {
+					t.Fatal("stored a private rejection detail")
+				}
+				if i == 5 {
+					var diagnostic model.TaskExecutionDiagnostic
+					if err := json.Unmarshal([]byte(task.ExecutionDiagnosticJSON), &diagnostic); err != nil || diagnostic.Code != tc.wantCode || diagnostic.SubmissionOutcome != tc.wantOutcome || diagnostic.SafeMessage != task.Error || task.Status != model.TaskStatusFailed || !strings.Contains(task.Error, tc.wantMessage) {
+						t.Fatalf("confirmed failure: status=%s message=%q diagnostic=%s", task.Status, task.Error, task.ExecutionDiagnosticJSON)
+					}
+					final := f.request(t, "GET", "/api/tasks/"+created.Data.ID, "platform_session=alice", "", 200)
+					if !strings.Contains(final.Body.String(), tc.wantMessage) || strings.Contains(final.Body.String(), "private-fixture") {
+						t.Fatal("task API did not return only the public reason")
+					}
+					break
+				}
+				if task.Status != model.TaskStatusRunning || task.Error != "" {
+					t.Fatalf("before matching receipt (%d): status=%s error=%q", i, task.Status, task.Error)
+				}
+				if i == 0 {
+					f.restart()
+				}
+				if err := f.db.Model(&task).Update("next_poll_at", time.Now().Add(-time.Second)).Error; err != nil {
+					t.Fatal(err)
+				}
+			}
+			if submits != 1 || reads != 5 {
+				t.Fatalf("submissions=%d recoveries=%d", submits, reads)
+			}
+		})
+	}
 }

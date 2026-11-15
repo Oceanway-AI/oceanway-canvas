@@ -12,7 +12,7 @@ import { creationVideoConfig } from "../src/pages/create/creation-generation-con
 import { prepareBackendGenerationTask } from "../src/services/api/generation-task";
 import { submitPlatformTask } from "../src/services/platform-task-submission";
 import type { PublicChannelModel } from "../src/services/api/logical-models";
-import type { GenerationTask } from "../src/services/api/task-center";
+import type { CreateTaskInput, GenerationTask } from "../src/services/api/task-center";
 
 const channels = systemChannelModelChannels([{ id: "oceanway-platform", name: "OceanWay", displayName: "OceanWay", models: projections as PublicChannelModel[] }]);
 
@@ -33,21 +33,13 @@ test("actual provider publication through Studio projection keeps one variant an
     expect(request.input?.config).toMatchObject({ model: model.modelKey, videoSeconds: "6", vquality: "720p" });
     expect(request.input?.config).not.toHaveProperty("tokens");
     expect(request.input?.config).not.toHaveProperty("video_input");
-    let creates = 0;
+    const submissions: CreateTaskInput[] = [];
     let recoveries = 0;
     const task = await submitPlatformTask(request, {
         scope: () => "fixture-user",
-        preview: async () => videoEvidence.preview,
-        confirmBudget: async () => "1",
+        preview: async () => ({ ...videoEvidence.preview, previewUserId: "fixture-user", previewBinding: "bound-quote" }),
         create: async (frozen) => {
-            creates++;
-            expect(frozen.platform).toEqual({
-                expectedPriceVersion: videoEvidence.preview.price_version,
-                expectedCapabilityRevision: videoEvidence.preview.capability_revision,
-                expectedConnectionRevision: videoEvidence.preview.connection_revision,
-                walletMaxPoints: "1",
-            });
-            expect(frozen.input).toEqual(request.input);
+            submissions.push(frozen);
             throw new Error("lost response");
         },
         recover: async (command) => {
@@ -57,7 +49,15 @@ test("actual provider publication through Studio projection keeps one variant an
         },
     });
     expect(task.id).toBe("same-task");
-    expect([creates, recoveries]).toEqual([1, 1]);
+    expect([submissions.length, recoveries]).toEqual([1, 1]);
+    expect(submissions[0].platform).toEqual({
+        previewUserId: "fixture-user",
+        previewBinding: "bound-quote",
+        expectedPriceVersion: videoEvidence.preview.price_version,
+        expectedCapabilityRevision: videoEvidence.preview.capability_revision,
+        expectedConnectionRevision: videoEvidence.preview.connection_revision,
+    });
+    expect(submissions[0].input).toEqual(request.input);
 });
 
 test("provider image 200 preview with unverified outputs creates no task", async () => {
@@ -73,7 +73,7 @@ test("provider image 200 preview with unverified outputs creates no task", async
     try {
         await submitPlatformTask(request, {
             scope: () => "fixture-user",
-            preview: async () => imageEvidence.preview,
+            preview: async () => ({ ...imageEvidence.preview, previewUserId: "fixture-user", previewBinding: "bound-quote" }),
             create: async () => {
                 creates++;
                 return { id: "unexpected" } as GenerationTask;

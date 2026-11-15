@@ -112,3 +112,88 @@ for (const knownInMemory of [false, true]) {
         }
     });
 }
+
+test("a visible Studio window confirms focus against the live session and never persists the old tab into another user's scope", async () => {
+    invalidateAuthSessionCache();
+    const alice = { ...user, id: "fixture-alice" },
+        bob = { ...user, id: "fixture-bob" };
+    let actual = alice,
+        reads = 0;
+    const previous = apiClient.defaults.adapter;
+    apiClient.defaults.adapter = async (config) => {
+        if (config.url === "/auth/session") reads++;
+        return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: config.url === "/auth/session" ? { provider: "platform", user: actual } : { source: "platform", channels: [] } } };
+    };
+    const host = document.createElement("div");
+    const root = createRoot(host);
+    const flush = () =>
+        act(async () => {
+            await new Promise((r) => setTimeout(r, 45));
+        });
+    try {
+        await act(async () =>
+            root.render(
+                <AuthSessionHydrator>
+                    <span>private workspace</span>
+                </AuthSessionHydrator>,
+            ),
+        );
+        await flush();
+        expect(getActiveUserScope()).toBe(alice.id);
+        actual = bob;
+        window.localStorage.setItem("yingce:active-user-scope", bob.id);
+        expect(getActiveUserScope()).toBe(alice.id);
+        scopedLocalStorage.setItem("draft-ownership", "belongs-to-alice");
+        expect(window.localStorage.getItem("draft-ownership:user:" + bob.id)).toBeNull();
+        await act(async () => {
+            window.dispatchEvent(new dom.Event("focus"));
+            window.dispatchEvent(new dom.Event("pageshow"));
+        });
+        await flush();
+        expect(useUserStore.getState().user?.id).toBe(bob.id);
+        expect(getActiveUserScope()).toBe(bob.id);
+        expect(reads).toBe(2);
+        // A delayed response from an earlier foreground transition must not switch back to Alice.
+        let releaseLate!: () => void;
+        const late = new Promise<void>((resolve) => {
+            releaseLate = resolve;
+        });
+        let started = false;
+        const immediate = apiClient.defaults.adapter as (config: import("axios").InternalAxiosRequestConfig) => Promise<import("axios").AxiosResponse>;
+        apiClient.defaults.adapter = async (config) => {
+            if (config.url === "/auth/session" && !started) {
+                started = true;
+                await late;
+                return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { provider: "platform", user: alice } } };
+            }
+            return immediate(config);
+        };
+        await act(async () => {
+            window.dispatchEvent(new dom.Event("focus"));
+        });
+        expect(started).toBe(true);
+        await act(async () => {
+            window.dispatchEvent(new dom.StorageEvent("storage", { key: "yingce:active-user-scope", newValue: bob.id }));
+        });
+        await flush();
+        releaseLate();
+        await flush();
+        expect(useUserStore.getState().user?.id).toBe(bob.id);
+        expect(reads).toBe(3);
+        const { ApiError } = await import("@/services/api/request");
+        apiClient.defaults.adapter = async () => {
+            throw new ApiError("登录已失效", { status: 401 });
+        };
+        await act(async () => {
+            window.dispatchEvent(new dom.Event("focus"));
+        });
+        await flush();
+        expect(useUserStore.getState().user).toBeNull();
+        expect(getActiveUserScope()).toBe("guest");
+    } finally {
+        await act(async () => root.unmount());
+        apiClient.defaults.adapter = previous;
+        invalidateAuthSessionCache();
+        resetRemoteUserDataSync();
+    }
+});

@@ -1,3 +1,5 @@
+import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation";
+import { restoreCanvasBudgetDraft } from "@/lib/canvas/canvas-task-state";
 import { translate } from "@/i18n";
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { App } from "antd";
@@ -185,6 +187,10 @@ export function useCanvasGenerationRetry({
                     // 刷新后的手动恢复一次只发起一项付费调用，后续去背景由用户继续。
                     setNodes((current) => current.map((item) => item.id === node.id && item.metadata?.layerExtraction?.phase === "background-removal-required" ? { ...item, metadata: { ...item.metadata, status: "error", errorDetails: translate("canvasPage.retry.needsBackgroundRemoval") } } : item));
                 } catch (error) {
+                    if (error instanceof PlatformBudgetDeclined) {
+                        setNodes((current) => current.map((item) => item.id === node.id ? restoreCanvasBudgetDraft(item, node) : item));
+                        return;
+                    }
                     if (controller.signal.aborted || isGenerationCanceled(error)) return;
                     const details = error instanceof Error ? error.message : translate("canvasPage.retry.layerRetryFailed");
                     message.error(details);
@@ -230,6 +236,10 @@ export function useCanvasGenerationRetry({
                         { bindTask: (task) => { retryTaskId = task.id; bindGenerationTask(node.id, task); }, consumeTask: (task) => applyGenerationTaskResult(node.id, task) },
                     );
                 } catch (error) {
+                    if (error instanceof PlatformBudgetDeclined) {
+                        setNodes((current) => current.map((item) => item.id === node.id ? restoreCanvasBudgetDraft(item, node) : item));
+                        return;
+                    }
                     if (controller.signal.aborted || isGenerationCanceled(error)) return;
                     const details = error instanceof Error ? error.message : translate("canvasPage.retry.enhanceFailed");
                     message.error(details);
@@ -576,6 +586,10 @@ export function useCanvasGenerationRetry({
                     },
                 });
             } catch (error) {
+                if (error instanceof PlatformBudgetDeclined) {
+                    setNodes((current) => current.map((item) => item.id === node.id ? restoreCanvasBudgetDraft(item, node) : item));
+                    return;
+                }
                 if (isGenerationCanceled(error)) return;
                 const failure = generationFailureMetadata(error, retryPromptSource);
                 message.error(failure.errorDetails);

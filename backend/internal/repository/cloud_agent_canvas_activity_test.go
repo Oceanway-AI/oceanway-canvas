@@ -88,7 +88,9 @@ func testCanvasAgentHistoryPlan(t *testing.T, db *gorm.DB) {
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		for i := range 1000 {
 			id := fmt.Sprintf("pi-history-%d", i)
-			if err := tx.Create(&model.Task{ID: id, UserID: "history", ProjectID: "history-canvas", Operation: "cloud_agent", Status: model.TaskStatusTextReplay}).Error; err != nil {
+			// Historical runs already have a checkpoint. Seeding their final state
+			// keeps this plan independent of snapshots held by parallel PG tests.
+			if err := tx.Create(&model.Task{ID: id, UserID: "history", ProjectID: "history-canvas", Operation: "cloud_agent", Status: model.TaskStatusTextReplay, AgentExecutionReady: true}).Error; err != nil {
 				return err
 			}
 			if err := New(tx).EnsureCloudAgent(&model.CloudAgentExecution{ID: id, UserID: "history", Status: "completed"}); err != nil {
@@ -103,8 +105,7 @@ func testCanvasAgentHistoryPlan(t *testing.T, db *gorm.DB) {
 	if err != nil || activity != nil {
 		t.Fatalf("history occupancy: %+v %v", activity, err)
 	}
-	// Clear dead reservation-index entries created by the insert/checkpoint
-	// fixture sequence before testing the steady-state historical read plan.
+	// Refresh planner statistics for the historical and active rows.
 	analyze := "ANALYZE"
 	if db.Dialector.Name() == "postgres" {
 		analyze = "VACUUM ANALYZE tasks"

@@ -3,7 +3,7 @@ import { markAgentCanvasEntrance } from "@/lib/canvas/agent-canvas-entrance";
 import { agentCanvasFocusTargets, type AgentCanvasFocus } from "@/lib/canvas/agent-canvas-focus";
 import { mergeAgentCanvasEditor } from "@/lib/canvas/agent-canvas-patch";
 import { rebaseCanvasLocalEdits } from "@/lib/canvas/canvas-sync-rebase";
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { App } from "antd";
 import { useNavigate } from "react-router";
 
@@ -14,7 +14,17 @@ import { normalizeCanvasNodeTimestamps } from "@/lib/canvas/canvas-node-timestam
 import { canvasPersistentNodes } from "@/lib/canvas/canvas-persistent-nodes";
 import { hydrateAssistantImages, resetInterruptedGeneration } from "@/lib/canvas/canvas-project-generation";
 import { listAddedSkills, type Skill } from "@/services/api/skills";
-import { createCanvasProjectWithRemoteSync, deleteCanvasProjectsWithRemoteSync, loadCanvasProjectForEditing, saveRemoteUserDataNow, prepareCanvasForCloudAction, subscribeAgentCanvasRefresh, refreshCanvasAfterAgent } from "@/services/user-data-sync";
+import {
+    createCanvasProjectWithRemoteSync,
+    deleteCanvasProjectsWithRemoteSync,
+    isPendingLocalCanvas,
+    loadCanvasProjectForEditing,
+    saveRemoteUserDataNow,
+    prepareCanvasForCloudAction,
+    subscribeAgentCanvasRefresh,
+    refreshCanvasAfterAgent,
+} from "@/services/user-data-sync";
+import { ApiError } from "@/services/api/request";
 import { getCanvasSyncStatus } from "@/services/api/user-data";
 import { canvasEditLeases } from "@/services/canvas-edit-leases";
 import { startCanvasSyncPolling } from "@/services/canvas-sync-polling";
@@ -24,6 +34,7 @@ import { waitForCanvasSync } from "@/lib/canvas/sync-recovery";
 import { flushCanvasStorePersistence, useCanvasStore, type CanvasProject } from "@/stores/canvas/use-canvas-store";
 import { useCanvasThemeStore } from "@/stores/canvas/use-canvas-theme-store";
 import { useSyncProgressStore } from "@/stores/use-sync-progress-store";
+import { useDocumentTitleStore } from "@/stores/use-document-title-store";
 import { useUserStore } from "@/stores/use-user-store";
 import type { CanvasAssistantSession, CanvasConnection, CanvasNodeData, ViewportTransform } from "@/types/canvas";
 import type { CanvasHistorySnapshot } from "./use-canvas-history";
@@ -93,6 +104,7 @@ export function useCanvasProjectLifecycle({
     const navigate = useNavigate();
     const hydrated = useCanvasStore((state) => state.hydrated);
     const sessionHydrated = useUserStore((state) => state.hydrated);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
     const userId = useUserStore((state) => state.user?.id);
     const openProject = useCanvasStore((state) => state.openProject);
     const updateProject = useCanvasStore((state) => state.updateProject);
@@ -111,6 +123,30 @@ export function useCanvasProjectLifecycle({
         return persistentNodesRef.current;
     }, [nodes]);
     const editorReadyRef = useRef(false);
+    const accessDeniedRef = useRef(false);
+    const closeDeniedCanvas = useCallback(
+        (error: unknown) => {
+            if (!platformIdentity || !(error instanceof ApiError) || ![401, 403, 404].includes(error.status ?? 0)) return false;
+            accessDeniedRef.current = true;
+            editorReadyRef.current = false;
+            observedContentRef.current = null;
+            setNodes([]);
+            setConnections([]);
+            setChatSessions([]);
+            setActiveChatId(null);
+            setProjectLoaded(false);
+            setLoadError(error.message);
+            return true;
+        },
+        [platformIdentity, setNodes, setConnections, setChatSessions, setActiveChatId, setProjectLoaded],
+    );
+
+    useLayoutEffect(() => {
+        if (!projectLoaded || !userId) return;
+        const { setOpenCanvas } = useDocumentTitleStore.getState();
+        setOpenCanvas({ id: projectId, userId });
+        return () => setOpenCanvas(null);
+    }, [projectLoaded, projectId, userId]);
 
     useEffect(() => {
         if (!hydrated || !sessionHydrated) return;
@@ -125,8 +161,9 @@ export function useCanvasProjectLifecycle({
             setLoadError("");
             observedContentRef.current = null;
         }
+        accessDeniedRef.current = false;
         const applyRestoredProject = (targetProject: CanvasProject) => {
-            if (cancelled) return;
+            if (cancelled || accessDeniedRef.current) return;
             const fallbackTheme = useCanvasThemeStore.getState().theme;
             const restoredAppearance = targetProject.appearance ? normalizeCanvasAppearance(targetProject.appearance, fallbackTheme) : canvasAppearanceForTheme(fallbackTheme);
             const initialNodes = normalizeCanvasNodeTimestamps(resetInterruptedGeneration(targetProject.nodes), {
@@ -162,13 +199,18 @@ export function useCanvasProjectLifecycle({
             setProjectLoaded(true);
         };
 
+        const cachedProject = useCanvasStore.getState().projects.find((p) => p.id === projectId);
         const load = async () => {
-            const cachedProject = useCanvasStore.getState().projects.find((p) => p.id === projectId);
-            if (cachedProject) {
-                // 本地已有该画布的持久化缓存：先以本地数据秒开渲染，彻底消除白屏与等待
+            if (cachedProject && (!platformIdentity || navigator.onLine === false || isPendingLocalCanvas(cachedProject))) {
+                // Local-only drafts and offline work can open from the authenticated tab's cache.
                 applyRestoredProject(cachedProject);
             }
-            const loadedProject = await waitForCanvasSync(loadCanvasProjectForEditing(projectId, { onLoad: applyRestoredProject }));
+            const read = loadCanvasProjectForEditing(projectId, { onLoad: applyRestoredProject }).catch((error) => {
+                // A definitive read can arrive after the local offline deadline.
+                if (!cancelled) closeDeniedCanvas(error);
+                throw error;
+            });
+            const loadedProject = await waitForCanvasSync(read);
             if (cancelled) return;
             if (!loadedProject) {
                 if (!cachedProject) navigate("/canvas", { replace: true });
@@ -195,7 +237,8 @@ export function useCanvasProjectLifecycle({
                 if (cancelled) return;
             })
             .catch((error) => {
-                if (cancelled) return;
+                if (cancelled || accessDeniedRef.current) return;
+                if (platformIdentity && cachedProject && !editorReadyRef.current && (!(error instanceof ApiError) || error.retryable)) applyRestoredProject(cachedProject);
                 useSyncProgressStore.getState().setProjectProgress(projectId, {
                     phase: "pending",
                     errorKind: "network",
@@ -209,7 +252,27 @@ export function useCanvasProjectLifecycle({
         return () => {
             cancelled = true;
         };
-    }, [hydrated, sessionHydrated, loadAttempt, message, navigate, openProject, projectId, resetHistory, setActiveChatId, setBackgroundMode, setCanvasAppearance, setChatSessions, setConnections, setNodes, setShowImageInfo, setViewport]);
+    }, [
+        hydrated,
+        sessionHydrated,
+        platformIdentity,
+        userId,
+        loadAttempt,
+        closeDeniedCanvas,
+        message,
+        navigate,
+        openProject,
+        projectId,
+        resetHistory,
+        setActiveChatId,
+        setBackgroundMode,
+        setCanvasAppearance,
+        setChatSessions,
+        setConnections,
+        setNodes,
+        setShowImageInfo,
+        setViewport,
+    ]);
 
     useEffect(() => {
         if (!projectLoaded) return;
@@ -350,7 +413,12 @@ export function useCanvasProjectLifecycle({
             async (signal) => {
                 if (scope !== getActiveUserScope()) return;
                 const token = canvasEditLeases.statusToken(projectId);
-                const status = await getCanvasSyncStatus(projectId, signal);
+                const status = await getCanvasSyncStatus(projectId, signal).catch((error) => {
+                    const local = useCanvasStore.getState().openProject(projectId);
+                    const unuploaded = error instanceof ApiError && error.status === 404 && local && isPendingLocalCanvas(local);
+                    if (!signal.aborted && scope === getActiveUserScope() && !unuploaded) closeDeniedCanvas(error);
+                    throw error;
+                });
                 if (signal.aborted || scope !== getActiveUserScope()) return;
                 agentActive = Boolean(status.agent);
                 canvasEditLeases.status(projectId, status, token);
@@ -373,10 +441,10 @@ export function useCanvasProjectLifecycle({
             stop();
             clearInterval(leaseTimer);
         };
-    }, [projectId, projectLoaded, sessionHydrated, userId]);
+    }, [projectId, projectLoaded, sessionHydrated, userId, closeDeniedCanvas]);
 
     useEffect(() => {
-        if (!projectLoaded || historyPausedRef.current) return;
+        if (!projectLoaded || !editorReadyRef.current || historyPausedRef.current || (platformIdentity && getActiveUserScope() !== userId)) return;
         const snapshot = { nodes: persistentNodes, connections, chatSessions, activeChatId, canvasAppearance, backgroundMode, showImageInfo };
         if (!observedContentRef.current || sameCanvasHistorySnapshot(observedContentRef.current, snapshot)) return;
         observedContentRef.current = snapshot;
@@ -385,27 +453,28 @@ export function useCanvasProjectLifecycle({
         // 远端结果投影到编辑器不是一次本地编辑，避免改写时间戳并触发反向保存。
         if (stored && sameCanvasPatch(stored, patch)) return;
         updateProject(projectId, patch);
-    }, [activeChatId, backgroundMode, canvasAppearance, chatSessions, connections, historyPausedRef, persistentNodes, projectId, projectLoaded, showImageInfo, updateProject]);
+    }, [activeChatId, backgroundMode, canvasAppearance, chatSessions, connections, historyPausedRef, persistentNodes, projectId, projectLoaded, showImageInfo, updateProject, platformIdentity, userId]);
 
     useEffect(() => {
         if (!projectLoaded) return;
         if (viewportSaveTimerRef.current) clearTimeout(viewportSaveTimerRef.current);
         viewportSaveTimerRef.current = setTimeout(() => {
+            if (!editorReadyRef.current || (platformIdentity && getActiveUserScope() !== userId)) return;
             updateProject(projectId, { viewport: viewportRef.current });
             viewportSaveTimerRef.current = null;
         }, 500);
         return () => {
             if (viewportSaveTimerRef.current) clearTimeout(viewportSaveTimerRef.current);
         };
-    }, [projectId, projectLoaded, updateProject, viewport, viewportRef]);
+    }, [projectId, projectLoaded, updateProject, viewport, viewportRef, platformIdentity, userId]);
 
     useEffect(
         () => () => {
-            if (!projectLoaded) return;
+            if (!projectLoaded || !editorReadyRef.current || (platformIdentity && getActiveUserScope() !== userId)) return;
             if (viewportSaveTimerRef.current) clearTimeout(viewportSaveTimerRef.current);
             updateProject(projectId, { viewport: viewportRef.current });
         },
-        [projectId, projectLoaded, updateProject, viewportRef],
+        [projectId, projectLoaded, updateProject, viewportRef, platformIdentity, userId],
     );
 
     const createAndOpenProject = useCallback(() => {

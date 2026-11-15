@@ -15,7 +15,7 @@ import { assetForRemoteSync } from "@/lib/asset-remote-sync";
 import type { Asset } from "@/stores/use-asset-store";
 import { flushAssetStorePersistence, getGenerationAssetDefaults, useAssetStore } from "@/stores/use-asset-store";
 import type { CanvasProject } from "@/stores/canvas/use-canvas-store";
-import { flushCanvasStorePersistence, useCanvasStore } from "@/stores/canvas/use-canvas-store";
+import { clearLocalCanvasCreation, flushCanvasStorePersistence, hasLocalCanvasCreation, useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useSyncProgressStore } from "@/stores/use-sync-progress-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { useCanvasHistoryStore } from "@/stores/canvas/use-canvas-history-store";
@@ -304,6 +304,17 @@ function liveCanvasIfUnchanged(id: string, snapshot: CanvasProject | null | unde
     return live && sameCanvasContent(live, snapshot) ? live : undefined;
 }
 
+export function isPendingLocalCanvas(project: CanvasProject) {
+    if (project.revision !== 0 || project.remoteContentHash || acknowledgedProjects.has(project.id)) return false;
+    return hasLocalCanvasCreation(project.id) || pendingMutationCreatesCanvas(pendingCanvasMutations.get(project.id));
+}
+
+function confirmRemoteCanvas(id: string) {
+    verifiedProjects.add(id);
+    remoteDeletedProjects.delete(id);
+    clearLocalCanvasCreation(id);
+}
+
 export async function loadCanvasProjectForEditing(id: string, options: { onLoad?: (project: CanvasProject) => void } = {}) {
     const mode = "normal";
     const existing = remoteProjectLoadPromises.get(id);
@@ -320,7 +331,7 @@ export async function loadCanvasProjectForEditing(id: string, options: { onLoad?
         requireRemoteUserDataBaseline();
         const journal = pendingCanvasMutations.get(id);
         const pendingLocal = useCanvasStore.getState().openProject(id);
-        if (journal && pendingLocal) {
+        if (journal && pendingLocal && (!useUserStore.getState().platformIdentity || isPendingLocalCanvas(pendingLocal) || verifiedProjects.has(id) || navigator.onLine === false)) {
             options.onLoad?.(pendingLocal);
             scheduleRemoteUserDataSync();
             return pendingLocal;
@@ -339,9 +350,13 @@ export async function loadCanvasProjectForEditing(id: string, options: { onLoad?
         } catch (error) {
             if (epoch !== sessionEpoch) throw new Error("账号已切换，请重新打开画布");
             const local = useCanvasStore.getState().openProject(id);
-            if (error instanceof ApiError && error.status === 404 && local?.revision === 0) {
+            if (error instanceof ApiError && error.status === 404 && local?.revision === 0 && (!useUserStore.getState().platformIdentity || isPendingLocalCanvas(local))) {
                 options.onLoad?.(local);
                 return local;
+            }
+            if (useUserStore.getState().platformIdentity && error instanceof ApiError && [401, 403, 404].includes(error.status ?? 0)) {
+                remoteDeletedProjects.add(id);
+                verifiedProjects.delete(id);
             }
             throw error;
         }
@@ -389,7 +404,7 @@ export async function loadCanvasProjectForEditing(id: string, options: { onLoad?
             options.onLoad?.(merged);
             useCanvasStore.setState((state) => ({ projects: state.projects.map((item) => (item.id === id ? merged : item)) }));
             acknowledgedProjects.set(id, { ...remote, remoteContentHash: hash });
-            verifiedProjects.add(id);
+            confirmRemoteCanvas(id);
             await flushCanvasStorePersistence();
             await persistConfirmedCanvasBaselines();
             useSyncProgressStore.getState().setProjectProgress(id, { phase: "pending", cloudRevision: remote.revision, pendingChanges: 1, message: "保留本地未确认操作，等待自动重放" });
@@ -402,7 +417,7 @@ export async function loadCanvasProjectForEditing(id: string, options: { onLoad?
         const project = { ...remote, viewport: currentLive?.viewport || local?.viewport || remote.viewport || { x: 0, y: 0, k: 1 }, remoteContentHash: hash };
         options.onLoad?.(project);
         acknowledgedProjects.set(id, { ...remote, viewport: project.viewport, remoteContentHash: hash });
-        verifiedProjects.add(id);
+        confirmRemoteCanvas(id);
         useCanvasStore.setState((state) => ({ projects: local ? state.projects.map((item) => (item.id === id ? project : item)) : [...state.projects, project] }));
         await flushCanvasStorePersistence();
         await persistConfirmedCanvasBaselines();
@@ -480,7 +495,7 @@ export async function refreshCanvasAfterAgent(id: string, source: "sync" | "agen
             throw error;
         }
         acknowledgedProjects.set(id, { ...project, viewport: projected.viewport, remoteContentHash: hash });
-        verifiedProjects.add(id);
+        confirmRemoteCanvas(id);
         useCanvasStore.setState((state) => ({ projects: [...state.projects.filter((candidate) => candidate.id !== id), projected] }));
         await flushCanvasStorePersistence();
         await persistConfirmedCanvasBaselines();
@@ -527,7 +542,7 @@ export async function applyAgentCanvasPatches(id: string, patches: AgentCanvasPa
             for (const listener of agentCanvasListeners) listener(projected, current);
         }
         acknowledgedProjects.set(id, remote);
-        verifiedProjects.add(id);
+        confirmRemoteCanvas(id);
         if (projected === current) return current;
         useCanvasStore.setState((state) => ({ projects: state.projects.map((project) => (project.id === id ? projected : project)) }));
         await persistConfirmedCanvasBaselines();
@@ -1434,7 +1449,7 @@ async function reconcileCanvasLocalEdits(id: string, rejected?: PendingCanvasMut
     acknowledgedProjects.set(id, acknowledged);
     await persistConfirmedCanvasBaselines();
     ensureSession();
-    verifiedProjects.add(id);
+    confirmRemoteCanvas(id);
     unbasedProjects.delete(id);
     const latest = useCanvasStore.getState().openProject(id);
     const pending = pendingCanvasMutations.has(id) || Boolean(latest && !sameCanvasContent(remote, latest));
@@ -1755,7 +1770,7 @@ async function saveRemoteUserDataBatch(uploaded: Map<string, string>, options: {
             await flushCanvasStorePersistence();
             requireCurrentSession();
             acknowledgedProjects.set(source.id, acknowledged);
-            verifiedProjects.add(source.id);
+            confirmRemoteCanvas(source.id);
             await persistConfirmedCanvasBaselines();
             requireCurrentSession();
             pendingCanvasMutations.delete(source.id);

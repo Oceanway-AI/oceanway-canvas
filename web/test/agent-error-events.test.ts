@@ -32,6 +32,7 @@ function reduceEvents(events: AgentEvent[], initial: CloudAgentChatMessage[] = [
 }
 
 test("failure event and terminal snapshot update a single error with the public reason", () => {
+    expect(reduceEvents([failed])).toEqual([]);
     const messages = reduceEvents([failed, status]);
     expect(messages).toHaveLength(1);
     expect(messages[0]).toMatchObject({ id: "terminal-ag-test-run", role: "error", text: failureMessage, errorSeverity: "error" });

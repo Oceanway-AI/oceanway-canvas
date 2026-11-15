@@ -14,7 +14,7 @@ import (
 func (s *Service) processStudioMedia(ctx context.Context, task *model.Task, execution *model.StudioExecution, envelope studioExecutionEnvelope, exec platformclient.ExecutionContext) error {
 	// An old prepared request cannot invent revisions. Submitted requests must
 	// still recover the original outcome, even when their old envelope lacks them.
-	if execution.State == "prepared" && !studioMediaConsumptionValid(envelope.Consumption) {
+	if execution.State == "prepared" && !envelope.validMediaConsumption() {
 		return s.failStudioTask(task, "原媒体消费版本未冻结，未提交生成请求")
 	}
 	var receipt platformclient.MediaRecovery

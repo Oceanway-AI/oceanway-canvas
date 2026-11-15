@@ -1,3 +1,5 @@
+import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation";
+import { restoreCanvasBudgetDraft } from "@/lib/canvas/canvas-task-state";
 import { nanoid } from "nanoid";
 
 import { NODE_DEFAULT_SIZE } from "@/constant/canvas";
@@ -137,6 +139,9 @@ export async function executeVideoGeneration({
                 consumeTask: (task) => applyGenerationTaskResult(videoId, task),
             },
         );
+    } catch (error) {
+        if (!(error instanceof PlatformBudgetDeclined)) throw error;
+        setNodes((current) => current.map((node) => (node.id === videoId ? restoreCanvasBudgetDraft(node, reuseSourceNode ? sourceNode : undefined) : node)));
     } finally {
         finishGenerationRequest(videoId, controller);
     }
