@@ -9,8 +9,7 @@ export class PlatformBudgetDeclined extends Error {
 export type PlatformBudgetConfirmation = (estimate: string, title: string) => Promise<string | null>;
 let confirmBudget: PlatformBudgetConfirmation | undefined;
 
-// A single app-level dialog host serves native generation and Agent quotation.
-// No request, task or authorization is created by this presentation bridge.
+// The Agent media approval flow uses this dialog to collect its spending limit.
 export function installPlatformBudgetConfirmation(handler: PlatformBudgetConfirmation) {
     confirmBudget = handler;
     return () => {
@@ -22,9 +21,12 @@ export function confirmPlatformBudget(estimate: string, title: string) {
     return confirmBudget(estimate, title);
 }
 
+export function validPlatformPoints(value: unknown): value is string {
+    return typeof value === "string" && value.length <= 128 && /^(0|[1-9]\d*)(\.\d+)?$/.test(value);
+}
+
 export function validPlatformBudget(maximum: string, estimate: string) {
-    const decimal = /^(0|[1-9]\d*)(\.\d+)?$/;
-    if (maximum.length > 128 || estimate.length > 128 || !decimal.test(maximum) || !decimal.test(estimate)) return false;
+    if (!validPlatformPoints(maximum) || !validPlatformPoints(estimate)) return false;
     const [a, af = ""] = maximum.split(".");
     const [b, bf = ""] = estimate.split(".");
     const digits = Math.max(af.length, bf.length);

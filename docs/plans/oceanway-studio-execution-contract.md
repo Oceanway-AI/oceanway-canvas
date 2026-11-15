@@ -1,5 +1,11 @@
 # Studio 执行与恢复合同
 
+## 普通图片和视频按实际用量结算
+
+用户在创作页和画布点击生成后，Studio 获取报价并校验模型、连接和价格版本，随后在同一命令中提交一次。普通生成省略单次钱包上限。平台按该模型的价格规则预留资金，取得实际用量或完成数量后结算，执行账户的余额、权益和团队规则。Agent 独立审批以及历史任务沿用各自冻结的额度。缺少旧授权信息的任务不能在恢复时改为按实补差。
+
+Studio 固定使用正式发布的 `platformclient/v0.2.0-rc.4`（`ef6383337588`）。部署顺序为 Platform 服务、结算 worker、Studio。下方日期章节记录当时的契约与验证结果。
+
 ## rc.7 原生媒体消费（2026-11-11）
 
 当前 SDK 固定为 `platformclient/v0.1.0-rc.7`，发行提交 `9ed3fd9d6478ba04e8a55a190ce83908a395b8fa`，无本地 replace。下文 W7/rc.6 章节保留对应历史证据；新 Gateway 原生 profile 使用本节合同。
@@ -36,7 +42,7 @@ Worker 持有效 OAC 租约，以条件写把 prepared 改为 submitted，成功
 
 文本只使用 SDK 非流式 ChatCompletions / Responses / Messages；将最终结果接回 OAC 回放/SSE，保留工具调用和思考签名。上游成功正文先加密落盘，随后解析并与业务结果原子完成。空输出或格式错误保留原响应，不能自动重新收费。失败仅依据原请求的明确终态。
 
-图片/视频冻结原生 JSON，以同一 JSON 做 PreviewMedia 和 SubmitMedia；必须验证 allowed、combination_supported、price_version 与明确 wallet_max_points。参数按所选发布变体校验，不合并其他变体。平台负责扣费与精确价格计算，本地不预占/退款。
+图片和视频使用同一份原生 JSON 调用 PreviewMedia 和 SubmitMedia。Studio 校验 allowed、combination_supported 和冻结的能力、连接、价格版本。仅在请求显式指定钱包上限时校验 wallet_max_points。参数按所选发布变体校验，扣费与精确价格计算由 Platform 负责。
 
 ## 素材与 Agent
 

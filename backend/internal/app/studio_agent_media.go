@@ -359,7 +359,7 @@ func (s *Service) DecideStudioAgentMedia(userID, runID, approvalID, decision, re
 	if prepared.Quote.ID != quoteID {
 		return creationConflict("审批报价身份不匹配")
 	}
-	if !studioMediaConsumptionValid(prepared.Envelope.Consumption) {
+	if !prepared.Envelope.validMediaConsumption() {
 		return creationConflict("原媒体消费版本未冻结，请重新确认报价")
 	}
 	body, err := s.studioMediaBody(context.Background(), userID, prepared.Request, prepared.Envelope.Selection)
