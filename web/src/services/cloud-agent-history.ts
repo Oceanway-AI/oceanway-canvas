@@ -180,6 +180,8 @@ export function mergeCloudAgentConversation(local: CloudAgentConversation, remot
     const identity = cloudAgentConversationServerId(local);
     // 旧浏览器缓存没有 conversationId 时，只能通过同一个已确认 run ID 认领，不能按文本或本地 ID 猜测。
     if (identity ? identity !== cloudAgentConversationServerId(remote) : !local.run || !remote.runs?.some((run) => run.id === local.run?.id)) throw new Error("Agent 对话归属不一致，已保留原本地对话");
+    // 列表请求可能早于续发开始、晚于子轮次返回。revision 和事件游标只能在同一轮内比较。
+    if (local.run && remote.run && local.run.id !== remote.run.id && (local.run.parentId === remote.run.id || local.runs?.some((run) => run.id === remote.run?.id)) && !remote.runs?.some((run) => run.id === local.run?.id)) return local;
     const byId = new Map(local.messages.map((message) => [message.id, message]));
     const submittedUserIds = new Map((remote.runs || []).filter((run) => run.idempotencyKey).map((run) => [`user-${run.id}`, `user-${run.idempotencyKey}`]));
     const consumed = new Set<string>();

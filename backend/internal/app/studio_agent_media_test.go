@@ -20,7 +20,7 @@ import (
 const studioAgentMediaFixtureCatalog = `{"success":true,"data":{"items":[{"model_name":"pi-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}},{"model_name":"image-model","model_type":"image","invocation_status":"available","price":{"status":"available","version":"price-1"},"media_generation_profile":{"default_variant":"generate","variants":[{"id":"generate","protocol":"openai-images","operation":"generate","method":"POST","path":"/images/generations","defaults":{"n":1,"size":"1:1"},"specifications_schema":{"type":"object","additionalProperties":false,"properties":{"n":{"type":"integer","enum":[1]},"size":{"type":"string","enum":["1:1"]}},"required":["n","size"]},"parameter_bindings":{"n":"n","size":"size"}}]}}]}}`
 
 func TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority(t *testing.T) {
-	for _, scenario := range []string{"approve", "image_parameters", "video_const", "video_const_default", "video_const_invalid", "expired", "changed_canvas", "reject", "stopped", "missing_preview_capability", "missing_preview_connection", "missing_prepared_capability", "missing_prepared_connection", "changed_capability", "changed_connection", "missing_recovery_version", "missing_queued_capability", "missing_queued_connection", "submitted_legacy"} {
+	for _, scenario := range []string{"approve", "image_parameters", "video_const", "video_const_default", "video_const_invalid", "expired", "changed_canvas", "reject", "stopped", "missing_preview_capability", "missing_preview_connection", "missing_prepared_capability", "missing_prepared_connection", "missing_prepared_wallet_max", "changed_capability", "changed_connection", "missing_recovery_version", "missing_queued_capability", "missing_queued_connection", "missing_queued_wallet_max", "submitted_legacy"} {
 		t.Run(scenario, func(t *testing.T) { studioPiMediaApprovalScenario(t, scenario) })
 	}
 }
@@ -332,15 +332,18 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 		run, _ = s.repo.CloudAgent("user", view.ID)
 		state, _ = cloudAgentDecode(run)
 		switch scenario {
-		case "missing_prepared_capability", "missing_prepared_connection":
+		case "missing_prepared_capability", "missing_prepared_connection", "missing_prepared_wallet_max":
 			var prepared studioAgentMediaPrepared
 			if err := s.decryptStudioValue(state.Approval.StudioPreparedEncrypted, &prepared); err != nil {
 				t.Fatal(err)
 			}
-			if scenario == "missing_prepared_capability" {
+			switch scenario {
+			case "missing_prepared_capability":
 				prepared.Envelope.Consumption.ExpectedCapabilityRevision = ""
-			} else {
+			case "missing_prepared_connection":
 				prepared.Envelope.Consumption.ExpectedConnectionRevision = 0
+			case "missing_prepared_wallet_max":
+				prepared.Envelope.Consumption.WalletMaxPoints = ""
 			}
 			state.Approval.StudioPreparedEncrypted, err = s.encryptStudioValue(prepared)
 			if err != nil {
@@ -446,6 +449,8 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 			frozen.Consumption = nil
 		} else if scenario == "missing_queued_capability" {
 			frozen.Consumption.ExpectedCapabilityRevision = ""
+		} else if scenario == "missing_queued_wallet_max" {
+			frozen.Consumption.WalletMaxPoints = ""
 		} else {
 			frozen.Consumption.ExpectedConnectionRevision = 0
 		}

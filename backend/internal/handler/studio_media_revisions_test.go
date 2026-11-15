@@ -19,7 +19,7 @@ func studioRevisionBody() map[string]any {
 }
 
 func TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization(t *testing.T) {
-	for _, scenario := range []string{"request_capability", "request_connection", "preview_capability", "preview_connection", "preview_malformed", "changed_capability", "changed_connection"} {
+	for _, scenario := range []string{"request_capability", "request_connection", "empty_limit", "null_limit", "preview_capability", "preview_connection", "preview_malformed", "changed_capability", "changed_connection"} {
 		t.Run(scenario, func(t *testing.T) {
 			f := newStudioFixture(t)
 			f.catalog = studioRevisionCatalog
@@ -34,6 +34,12 @@ func TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization(t *testin
 				want = 400
 			case "request_connection":
 				delete(options, "expectedConnectionRevision")
+				want = 400
+			case "empty_limit":
+				options["walletMaxPoints"] = ""
+				want = 400
+			case "null_limit":
+				options["walletMaxPoints"] = nil
 				want = 400
 			case "preview_capability":
 				quote.CapabilityRevision = ""
@@ -60,7 +66,10 @@ func TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization(t *testin
 			}
 			raw, _ := json.Marshal(body)
 			request := string(raw)
-			if path == "/api/tasks" {
+			if scenario == "empty_limit" || scenario == "null_limit" {
+				// The decoder rejects malformed limits before either route can use a preview receipt.
+				f.request(t, "POST", "/api/tasks/preview", "platform_session=alice", request, http.StatusBadRequest)
+			} else if path == "/api/tasks" {
 				eventual := quote
 				quote = published
 				request = studioBindPreview(t, f, "platform_session=alice", request)

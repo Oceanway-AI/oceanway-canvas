@@ -325,6 +325,42 @@ test("旧轮次结束后仍发现手机新轮次，电脑下一条消息使用�
     }
 });
 
+test("失败后续发立即显示正在发送，迟到的上一轮错误留在新输入之前", async () => {
+    const parent = { ...makeRun("first", "failed"), failureMessage: "上一轮模型暂时不可用" };
+    const initial = chat("original", parent);
+    initial.messages = initial.messages.slice(0, 1);
+    const mounted = await mount(initial, [initial]);
+    let accept!: (value: { run: AgentRun }) => void;
+    try {
+        sendOverride = () => new Promise((resolve) => (accept = resolve));
+        await act(async () => composer.onPromptChange("再问一条"));
+        await act(async () => {
+            composer.onSubmit();
+            await settle();
+        });
+        expect(sent).toEqual(["first"]);
+        expect(header.statusLabel).toBe("正在发送");
+        await act(async () => {
+            subscriptions.at(-1)!.event({ eventId: "parent-failure", runId: parent.id, seq: 5, type: "run_failed", payload: { text: parent.failureMessage }, createdAt: parent.updatedAt });
+        });
+        expect(conversationUI.messages.map((message: any) => message.role)).toEqual(["user", "error", "user"]);
+        expect(conversationUI.messages.at(-1).text).toBe("再问一条");
+        await act(async () => {
+            accept({ run: { ...makeRun("second", "running"), parentId: parent.id } });
+            await settle();
+        });
+        expect(header.statusLabel).toBe("运行中");
+        expect(subscriptions.at(-1)?.id).toBe("second");
+        remote = [{ ...initial }];
+        await focus();
+        expect(header.statusLabel).toBe("运行中");
+        expect(subscriptions.at(-1)?.id).toBe("second");
+        expect(sent).toEqual(["first"]);
+    } finally {
+        await mounted.close();
+    }
+});
+
 test("云端发现不能替换未提交草稿，明确新建后不会重新接回旧会话", async () => {
     const initial = { ...chat("phone-draft", null), draft: "尚未发送的草稿" };
     const mounted = await mount(initial, [chat("server", makeRun("desktop"))]);

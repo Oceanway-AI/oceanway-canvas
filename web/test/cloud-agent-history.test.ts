@@ -40,6 +40,16 @@ function client(overrides: Partial<CloudAgentHistoryClient> = {}): CloudAgentHis
 }
 
 describe("Agent cloud conversation history", () => {
+    test("a late history response ending at an older failed turn preserves the active descendant", () => {
+        const first = run("first", { status: "failed", failureMessage: "第一轮失败", revision: 8 });
+        const second = run("second", { parentId: first.id });
+        const third = run("third", { parentId: second.id, status: "running" });
+        const active = projectCloudAgentConversation(conversationId, [first, second, third]);
+        const stale = projectCloudAgentConversation(conversationId, [first]);
+        expect(mergeCloudAgentConversation(active, stale)).toEqual(active);
+        expect(mergeCloudAgentConversation(stale, active).run?.id).toBe(third.id);
+    });
+
     test("restores every run page and every event page from the first event", async () => {
         const reads: Array<{ id: string; seq: number; fromStart?: boolean }> = [];
         const restored = await loadCloudAgentConversation(conversationId, {

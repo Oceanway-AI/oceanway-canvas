@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
@@ -13,6 +14,15 @@ import (
 )
 
 func TestStudioLegacyMediaAuthorizationRejectsMissingFrozenRevisions(t *testing.T) {
+	rejectLegacyMediaBeforeAuthorization(t, platformclient.MediaConsumptionConstraints{ExpectedPriceVersion: "p1", WalletMaxPoints: "1"})
+}
+
+func TestStudioLegacyMediaAuthorizationRejectsMissingWalletLimit(t *testing.T) {
+	rejectLegacyMediaBeforeAuthorization(t, platformclient.MediaConsumptionConstraints{ExpectedPriceVersion: "p1", ExpectedCapabilityRevision: strings.Repeat("a", 64), ExpectedConnectionRevision: 7})
+}
+
+func rejectLegacyMediaBeforeAuthorization(t *testing.T, consumption platformclient.MediaConsumptionConstraints) {
+	t.Helper()
 	s, db, _, _ := creationTestService(t)
 	if err := db.AutoMigrate(&model.StudioExecution{}); err != nil {
 		t.Fatal(err)
@@ -20,7 +30,7 @@ func TestStudioLegacyMediaAuthorizationRejectsMissingFrozenRevisions(t *testing.
 	req := CreateTaskRequest{CommandID: "legacy-media", Type: "canvas_image", Prompt: "cat"}
 	intent, _ := json.Marshal(req)
 	id := studioTaskID("user", req.CommandID)
-	envelope := studioExecutionEnvelope{Task: model.Task{ID: id, UserID: "user"}, Selection: platformintegration.ModelSelection{Kind: "image"}, Consumption: &platformclient.MediaConsumptionConstraints{ExpectedPriceVersion: "p1", WalletMaxPoints: "1"}}
+	envelope := studioExecutionEnvelope{Task: model.Task{ID: id, UserID: "user"}, Selection: platformintegration.ModelSelection{Kind: "image"}, Consumption: &consumption}
 	encoded, err := s.encryptStudioValue(envelope)
 	if err != nil {
 		t.Fatal(err)

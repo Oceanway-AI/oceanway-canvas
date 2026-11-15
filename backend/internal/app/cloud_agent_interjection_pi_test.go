@@ -428,6 +428,10 @@ func TestCloudAgentPiInterjectionsDroppedOnTerminalPaths(t *testing.T) {
 		if run.Status != "failed" || len(state.PendingInterjections) != 0 || !agentHasEvent(state, "user_interjection_dropped") {
 			t.Fatalf("失败收尾没有退回插话: status=%s pending=%+v", run.Status, state.PendingInterjections)
 		}
+		failure := state.Events[len(state.Events)-1]
+		if failure.Type != "run_failed" || failure.Payload["text"] != run.FailureMessage || run.FailureMessage != "模型调用失败" {
+			t.Fatalf("首条失败事件与终态的公开原因不一致: %+v", failure)
+		}
 	})
 	t.Run("cancelled", func(t *testing.T) {
 		s, _, root := interjectionPiRoot(t)

@@ -49,6 +49,7 @@ beforeEach(async () => {
             localStorage: {
                 getItem: (key: string) => disk.get(key) ?? null,
                 setItem: (key: string, value: string) => disk.set(key, value),
+                removeItem: (key: string) => disk.delete(key),
             },
             addEventListener: () => {},
             removeEventListener: () => {},

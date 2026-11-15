@@ -1,38 +1,32 @@
 import { describe, expect, test } from "bun:test";
-import { isGenerationTaskCancelled } from "../src/services/api/generation-task";
-import { ApiError } from "../src/services/api/request";
 import { submitPlatformTask } from "../src/services/platform-task-submission";
 import type { CreateTaskInput, GenerationTask } from "../src/services/api/task-center";
+import { ApiError } from "../src/services/api/request";
 
 describe("Platform task submission", () => {
-    test("video requires explicit maximum confirmation and freezes it on the original command", async () => {
-        let confirms = 0;
-        const input: CreateTaskInput = { type: "canvas_video", prompt: "ocean", platform: { expectedPriceVersion: "p1" } };
-        await submitPlatformTask(input, {
+    test("a video request with an explicit ceiling keeps that ceiling when the create response is lost", async () => {
+        const input: CreateTaskInput = { type: "canvas_video", prompt: "ocean", platform: { expectedPriceVersion: "p1", walletMaxPoints: "250" } };
+        let posted: CreateTaskInput | undefined;
+        const result = await submitPlatformTask(input, {
             scope: () => "alice",
             preview: async () => ({ previewUserId: "alice", previewBinding: "bound-quote", capability_revision: "a".repeat(64), connection_revision: 7, price_version: "p1", wallet_points: "198.72", allowed: true, combination_supported: true }),
-            confirmBudget: async (estimate: string) => {
-                confirms++;
-                expect(estimate).toBe("198.72");
-                return "250";
-            },
             create: async (body) => {
-                expect(body.platform?.walletMaxPoints).toBe("250");
+                posted = body;
                 throw new Error("lost");
             },
             recover: async () => ({ id: "original" }) as GenerationTask,
         });
-        expect(confirms).toBe(1);
+        expect(posted?.platform?.walletMaxPoints).toBe("250");
+        expect(result.id).toBe("original");
     });
-    test.each([null, "-1", "NaN", "198.7199999999999999999"])("video refuses canceled or insufficient maximum %j before creating a task", async (maximum) => {
+    test.each(["", "-1", "NaN", "198.7199999999999999999"])("video refuses invalid or insufficient explicit maximum %j before creating a task", async (maximum) => {
         let posted = 0;
         await expect(
             submitPlatformTask(
-                { type: "canvas_video", platform: { expectedPriceVersion: "p1" } },
+                { type: "canvas_video", prompt: "ocean", platform: { expectedPriceVersion: "p1", walletMaxPoints: maximum } },
                 {
                     scope: () => "alice",
                     preview: async () => ({ previewUserId: "alice", previewBinding: "bound-quote", capability_revision: "a".repeat(64), connection_revision: 7, price_version: "p1", wallet_points: "198.72", allowed: true, combination_supported: true }),
-                    confirmBudget: async () => maximum,
                     create: async () => {
                         posted++;
                         return { id: "bad" } as GenerationTask;
@@ -41,12 +35,8 @@ describe("Platform task submission", () => {
                         throw new Error("must not recover");
                     },
                 },
-            ).catch((error) => {
-                expect(isGenerationTaskCancelled(error)).toBe(maximum === null);
-                if (maximum !== null) expect(error.message).toContain("最高消费");
-                throw error;
-            }),
-        ).rejects.toThrow(maximum === null ? "取消" : "最高消费");
+            ),
+        ).rejects.toThrow();
         expect(posted).toBe(0);
     });
     test.each([
@@ -80,8 +70,8 @@ describe("Platform task submission", () => {
     });
     test("lost media create response retains original preview revisions and only queries its command", async () => {
         let previews = 0,
-            creates = 0,
             recoveries = 0;
+        const submissions: CreateTaskInput[] = [];
         const input: CreateTaskInput = { commandId: "frozen-media", prompt: "cat", type: "canvas_image", platform: { expectedPriceVersion: "p1" } };
         const result = await submitPlatformTask(input, {
             scope: () => "alice",
@@ -90,8 +80,7 @@ describe("Platform task submission", () => {
                 return { previewUserId: "alice", previewBinding: "bound-quote", capability_revision: "a".repeat(64), connection_revision: 7, price_version: "p1", wallet_points: "0.123456789", allowed: true, combination_supported: true };
             },
             create: async (body) => {
-                creates++;
-                expect(body.platform).toEqual({ previewUserId: "alice", previewBinding: "bound-quote", expectedPriceVersion: "p1", expectedCapabilityRevision: "a".repeat(64), expectedConnectionRevision: 7, walletMaxPoints: "0.123456789" });
+                submissions.push(body);
                 throw new Error("lost receipt");
             },
             recover: async (command, expectedUserId) => {
@@ -102,37 +91,8 @@ describe("Platform task submission", () => {
             },
         });
         expect(result.id).toBe("original");
-        expect([previews, creates, recoveries]).toEqual([1, 1, 1]);
-    });
-    test("media freezes the exact decimal quote as its ceiling before submit", async () => {
-        let posted = 0;
-        const result = await submitPlatformTask(
-            { prompt: "cat", type: "canvas_image", platform: { expectedPriceVersion: "p1" } },
-            {
-                scope: () => "alice",
-                preview: async () => ({
-                    previewUserId: "alice",
-                    previewBinding: "bound-quote",
-                    capability_revision: "a".repeat(64),
-                    connection_revision: 7,
-                    price_version: "p1",
-                    wallet_points: "0.1234567890123456789",
-                    allowed: true,
-                    combination_supported: true,
-                }),
-                create: async (input) => {
-                    posted++;
-                    expect(input.platform?.walletMaxPoints).toBe("0.1234567890123456789");
-                    expect(input.platform).toMatchObject({ expectedCapabilityRevision: "a".repeat(64), expectedConnectionRevision: 7 });
-                    return { id: "media" } as GenerationTask;
-                },
-                recover: async () => {
-                    throw new Error("not needed");
-                },
-            },
-        );
-        expect(posted).toBe(1);
-        expect(result.id).toBe("media");
+        expect([previews, submissions.length, recoveries]).toEqual([1, 1, 1]);
+        expect(submissions[0].platform).toEqual({ previewUserId: "alice", previewBinding: "bound-quote", expectedPriceVersion: "p1", expectedCapabilityRevision: "a".repeat(64), expectedConnectionRevision: 7 });
     });
     test("a stale quote never creates a paid task", async () => {
         let posted = 0;
@@ -202,16 +162,12 @@ describe("Platform task submission", () => {
     const mediaInput = (): CreateTaskInput => ({ type: "canvas_image", prompt: "fixture", platform: { expectedPriceVersion: "p1" } });
     const offer = { previewUserId: "alice", previewBinding: "bound-quote", price_version: "p1", capability_revision: "a".repeat(64), connection_revision: 7, wallet_points: "1", allowed: true, combination_supported: true };
 
-    test.each([{ previewUserId: "bob" }, { previewUserId: "" }, { previewBinding: "" }])("refuses another account or an unbound quote before showing a budget: %j", async (changed) => {
+    test.each([{ previewUserId: "bob" }, { previewUserId: "" }, { previewBinding: "" }])("refuses another account or an unbound quote before creating a task: %j", async (changed) => {
         const calls: string[] = [];
         await expect(
             submitPlatformTask(mediaInput(), {
                 scope: () => "alice",
                 preview: async () => ({ ...offer, ...changed }),
-                confirmBudget: async () => {
-                    calls.push("confirm");
-                    return "1";
-                },
                 create: async () => {
                     calls.push("create");
                     return { id: "invalid" } as GenerationTask;
@@ -225,17 +181,16 @@ describe("Platform task submission", () => {
         expect(calls).toEqual([]);
     });
 
-    test("an explicit server account change during confirmation never queries another account's command", async () => {
+    test("an explicit server account change after preview never queries another account's command", async () => {
         const calls: string[] = [];
         let cookie = "alice";
         const rejected = new ApiError("账号已切换", { status: 409, reason: "studio_preview_account_changed" });
         await expect(
             submitPlatformTask(mediaInput(), {
                 scope: () => "alice",
-                preview: async () => offer,
-                confirmBudget: async () => {
+                preview: async () => {
                     cookie = "bob";
-                    return "1";
+                    return offer;
                 },
                 create: async (body) => {
                     calls.push("create");
