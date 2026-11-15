@@ -105,6 +105,42 @@ func (r *Repository) SubmitStudioExecution(task *model.Task) (bool, error) {
 	return changed, err
 }
 
+// Serialize retry reservation and dispatch with cancellation and replacement
+// of the active Pi step. Querying an already submitted request needs no such gate.
+func (r *Repository) WithActiveStudioAgentStep(task *model.Task, fn func(*Repository) error) (bool, error) {
+	active := false
+	err := r.Transaction(func(repo *Repository) error {
+		var parent model.CloudAgentExecution
+		row := repo.db.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id").
+			Where("id = ? AND user_id = ? AND active_task_id = ? AND status IN ? AND cleanup_pending = ?", task.AgentRunID, task.UserID, task.ID, []string{"queued", "running"}, false).
+			Limit(1).Find(&parent)
+		if row.Error != nil || row.RowsAffected == 0 {
+			return row.Error
+		}
+		active = true
+		return fn(repo)
+	})
+	return active, err
+}
+
+func (r *Repository) PrepareStudioAgentTextRetry(task *model.Task, previous, next string, delay time.Duration) (bool, error) {
+	return r.WithActiveStudioAgentStep(task, func(repo *Repository) error {
+		if err := repo.DeferRunningTaskForProviderPoll(task.ID, task.LeaseOwner, "平台确认本次未执行，等待重试", delay); err != nil {
+			return err
+		}
+		updated := repo.db.Model(&model.StudioExecution{}).
+			Where("task_id = ? AND user_id = ? AND state = ? AND envelope_encrypted = ? AND response_encrypted = ''", task.ID, task.UserID, "submitted", previous).
+			Updates(map[string]any{"state": "prepared", "envelope_encrypted": next})
+		if updated.Error != nil {
+			return updated.Error
+		}
+		if updated.RowsAffected != 1 {
+			return ErrTaskStateConflict
+		}
+		return repo.UpdateTaskExecutionDiagnostic(task.UserID, task.ID, "")
+	})
+}
+
 func (r *Repository) SaveStudioExecutionResponse(task *model.Task, encrypted string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		lock := taskLeaseWriter(tx.Model(&model.Task{}), task.LeaseOwner).Where("id = ? AND status = ?", task.ID, model.TaskStatusRunning).Update("updated_at", time.Now())

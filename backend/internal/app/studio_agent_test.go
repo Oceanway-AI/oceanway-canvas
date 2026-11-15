@@ -2,8 +2,11 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os/exec"
@@ -137,6 +140,8 @@ func testStudioPiRuntimeToolRoundTrip(t *testing.T, media bool) {
 	var bodies []map[string]any
 	issues, releases := 0, 0
 	mediaSubmits, mediaRecovers, quotes := 0, 0, 0
+	var rejectedID, rejectedFingerprint string
+	rejectionReads := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		mu.Lock()
@@ -170,12 +175,26 @@ func testStudioPiRuntimeToolRoundTrip(t *testing.T, media bool) {
 		case strings.HasPrefix(r.URL.Path, "/internal/relay/media-requests/"):
 			mediaRecovers++
 			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": platformclient.MediaRecovery{Version: "oceanway.media-request.v1", RequestID: strings.TrimPrefix(r.URL.Path, "/internal/relay/media-requests/"), Status: "FAILURE", NoExecution: true}})
+		case rejectedID != "" && r.URL.Path == "/internal/relay/text-requests/"+rejectedID:
+			rejectionReads++
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": platformclient.TextRecovery{Version: "oceanway.text-request.v1", RequestID: rejectedID, TaskID: "text_fixture", Protocol: "openai-chat", Fingerprint: rejectedFingerprint, Status: "failed"}})
 		case r.URL.Path == "/internal/relay/chat/completions":
 			if r.Header.Get("X-Platform-Execution-Authorization") != "exa_native_pi" || r.Header.Get("Cookie") != "" {
 				t.Error("incorrect Pi worker authority")
 			}
+			raw, _ := io.ReadAll(r.Body)
+			requestID := r.Header.Get("X-Platform-Text-Request-Id")
+			if !media && rejectedID == "" {
+				rejectedID = requestID
+				rejectedFingerprint = fmt.Sprintf("%x", sha256.Sum256(append([]byte("openai-chat\x00"), raw...)))
+				w.WriteHeader(http.StatusServiceUnavailable)
+				return
+			}
+			if !media && (requestID == rejectedID || rejectionReads != 1) {
+				t.Error("Pi submitted without definitive recovery of the previous request")
+			}
 			var body map[string]any
-			_ = json.NewDecoder(r.Body).Decode(&body)
+			_ = json.Unmarshal(raw, &body)
 			bodies = append(bodies, body)
 			if len(bodies) == 1 && media {
 				args, _ := json.Marshal(map[string]any{"mode": "image", "channelId": StudioPlatformChannelID, "channelModelKey": "image-model", "prompt": "a green square", "size": "1:1", "title": "图片草稿", "referenceNodeIds": []string{}})

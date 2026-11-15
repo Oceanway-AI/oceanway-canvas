@@ -23,6 +23,7 @@ type studioExecutionEnvelope struct {
 	Task               model.Task                                  `json:"task"`
 	Selection          platformintegration.ModelSelection          `json:"selection"`
 	RequestID          string                                      `json:"requestId"`
+	TextRetries        int                                         `json:"textRetries,omitempty"`
 	ContentType        string                                      `json:"contentType"`
 	Body               []byte                                      `json:"body"`
 	Consumption        *platformclient.MediaConsumptionConstraints `json:"consumption,omitempty"`
