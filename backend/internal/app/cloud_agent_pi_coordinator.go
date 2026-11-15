@@ -196,7 +196,7 @@ func (s *Service) failPiRunner(runID, userID string, cause error) {
 			if decodeErr == nil {
 				state.LastError = cause.Error()
 				cloudAgentDropInterjections(runID, "本轮已结束："+truncateRunes(cause.Error(), 120), &state)
-				state.event(runID, "run_failed", map[string]any{"error": cause.Error()})
+				state.event(runID, "run_failed", map[string]any{"error": current.FailureMessage, "text": current.FailureMessage})
 				return cloudAgentSave(current, &state)
 			}
 			return nil

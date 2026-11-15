@@ -92,6 +92,9 @@ func (s *Service) processStudioTask(ctx context.Context, task *model.Task) error
 		}
 		if first {
 			response, err := s.studioPlatform.Client.SubmitText(ctx, exec, envelope.Selection.TextProtocol, envelope.RequestID, envelope.Body)
+			if err != nil && response != nil {
+				return s.deferStudioTextRejection(task, response)
+			}
 			if err != nil || response.StatusCode == 202 {
 				return s.deferStudioTask(task)
 			}
@@ -101,20 +104,22 @@ func (s *Service) processStudioTask(ctx context.Context, task *model.Task) error
 			if err != nil {
 				return s.deferStudioTask(task)
 			}
-			if recovery.Data.RequestID != envelope.RequestID {
+			receipt := recovery.Data
+			if receipt.RequestID != envelope.RequestID || (receipt.Version != "" && receipt.Version != "oceanway.text-request.v1") {
 				return s.deferStudioTask(task)
 			}
-			if !recovery.Data.Ready {
-				if recovery.Data.Status == "FAILURE" || recovery.Data.Status == "failed" {
-					return s.failStudioTask(task, "平台原请求执行失败，请核对任务记录")
-				}
+			failed := receipt.Status == "FAILURE" || receipt.Status == "failed"
+			if !receipt.Ready && !failed {
 				return s.deferStudioTask(task)
 			}
 			fingerprint := fmt.Sprintf("%x", sha256.Sum256(append([]byte(envelope.Selection.Protocol+"\x00"), envelope.Body...)))
-			if recovery.Data.Protocol != envelope.Selection.Protocol || recovery.Data.Fingerprint != fingerprint {
+			if receipt.Protocol != envelope.Selection.Protocol || receipt.Fingerprint != fingerprint {
 				return s.deferStudioTask(task)
 			}
-			raw = recovery.Data.Response
+			if !receipt.Ready {
+				return s.failStudioTextRequest(task, receipt)
+			}
+			raw = receipt.Response
 		}
 		encrypted, err := s.encryptStudioValue(raw)
 		if err != nil {
@@ -126,12 +131,13 @@ func (s *Service) processStudioTask(ctx context.Context, task *model.Task) error
 	}
 	var payload map[string]any
 	if json.Unmarshal(raw, &payload) != nil {
-		return s.failStudioTask(task, "平台原响应无法解析，已保留原任务，请核对结果")
+		return s.failStudioTextResult(task, "平台原响应无法解析，已保留原任务，请核对结果")
 	}
 	result, err := parseAgentToolPayload(payload, studioTextWire(envelope.Selection.TextProtocol))
 	if err != nil || stringValue(result["text"]) == "" && len(interfaceSlice(result["toolCalls"])) == 0 {
-		return s.failStudioTask(task, "平台原响应没有可用内容，已保留原任务，请核对结果")
+		return s.failStudioTextResult(task, "平台原响应没有可用内容，已保留原任务，请核对结果")
 	}
+	task.ExecutionDiagnosticJSON = ""
 	return s.completeStudioTask(ctx, task, result)
 }
 
