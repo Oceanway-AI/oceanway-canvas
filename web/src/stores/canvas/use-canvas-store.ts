@@ -6,7 +6,7 @@ import { sameCanvasContent } from "@/lib/canvas/canvas-content";
 import { canvasAppearanceForPreset, DEFAULT_CANVAS_BACKGROUND_MODE, NEW_CANVAS_BACKGROUND_MODE, normalizeCanvasAppearance, readCanvasAppearanceDefault, type CanvasAppearance } from "@/lib/canvas/canvas-appearance";
 import { parseCanvasStorageDocument, rebaseCanvasProjects, serializeCanvasStorageDocument, type CanvasStorageDocument } from "@/lib/canvas/canvas-storage-revision";
 import { localForageStorageForScope } from "@/lib/localforage-storage";
-import { getActiveUserScope } from "@/lib/user-scope";
+import { getActiveUserScope, scopedLocalStorage } from "@/lib/user-scope";
 import { DEFAULT_CANVAS_COLOR_THEME, type CanvasBackgroundMode } from "@/lib/canvas-theme";
 import type { CanvasStarterMode } from "@/lib/canvas/canvas-starter";
 import type { CanvasAssistantSession, CanvasConnection, CanvasNodeData, ViewportTransform } from "@/types/canvas";
@@ -15,6 +15,19 @@ import type { TimelineProject } from "@/types/timeline";
 import { useSyncProgressStore, type SyncProjectProgress } from "@/stores/use-sync-progress-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 import { recordDiagnosticEvent } from "@/services/diagnostics/client-diagnostics";
+
+// The marker belongs to the authenticated tab and never enters a cloud canvas document.
+function localDraftKey(id: string) {
+    return `yingce:pending-local-canvas:${id}`;
+}
+
+export function hasLocalCanvasCreation(id: string) {
+    return scopedLocalStorage.getItem(localDraftKey(id)) === "1";
+}
+
+export function clearLocalCanvasCreation(id: string) {
+    scopedLocalStorage.removeItem(localDraftKey(id));
+}
 
 export type CanvasProject = {
     id: string;
@@ -690,6 +703,7 @@ export const useCanvasStore = create<CanvasStore>()(
                     viewport: initialViewport,
                     previsScenes: [],
                 };
+                scopedLocalStorage.setItem(localDraftKey(project.id), "1");
                 set((state) => ({ projects: [project, ...state.projects] }));
                 return id;
             },
@@ -713,6 +727,7 @@ export const useCanvasStore = create<CanvasStore>()(
                     viewport: source.viewport || initialViewport,
                     previsScenes: source.previsScenes || [],
                 };
+                scopedLocalStorage.setItem(localDraftKey(project.id), "1");
                 set((state) => ({ projects: [project, ...state.projects] }));
                 return project.id;
             },

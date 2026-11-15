@@ -147,7 +147,8 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	if withReference {
 		body = strings.Replace(body, `"input":{`, `"input":{"referenceImages":[{"storageKey":"resource:retained-input","url":"https://cdn.test/not-persisted?signature=private"}],`, 1)
 	}
-	f.request(t, "POST", "/api/tasks/preview", "platform_session=alice", body, 200)
+	raw := body
+	body = studioBindPreview(t, f, "platform_session=alice", raw)
 	w := f.request(t, "POST", "/api/tasks", "platform_session=alice", body, 200)
 	var created struct {
 		Data model.Task `json:"data"`
@@ -222,20 +223,21 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	if submits != 1 || previews != 2 || reads != len(recoveryStates) || binds != 1 {
 		t.Fatalf("duplicate lifecycle: submit=%d preview=%d read=%d binds=%d", submits, previews, reads, binds)
 	}
-	invalid := strings.Replace(body, kind+"-intent", "invalid-size", 1)
+	invalid := studioBindPreview(t, f, "platform_session=alice", strings.Replace(raw, kind+"-intent", "invalid-size", 1))
 	if kind == "image" {
 		invalid = strings.Replace(invalid, "square", "unsupported", 1)
 	} else {
 		invalid = strings.Replace(invalid, "720p", "720", 1)
 	}
 	f.request(t, "POST", "/api/tasks", "platform_session=alice", invalid, 400)
-	f.request(t, "POST", "/api/tasks", "platform_session=alice", strings.Replace(strings.Replace(body, kind+"-intent", "stale-price", 1), "price-1", "old-price", 1), 409)
+	stale := studioBindPreview(t, f, "platform_session=alice", strings.Replace(raw, kind+"-intent", "stale-price", 1))
+	f.request(t, "POST", "/api/tasks", "platform_session=alice", strings.Replace(stale, "price-1", "old-price", 1), 409)
 	// Neither invalid parameters nor a new catalog version may re-dispatch the
 	// original request, whose fixed Resource remains readable.
 	f.catalog = strings.ReplaceAll(f.catalog, "price-1", "price-2")
 	f.request(t, "POST", "/api/tasks/preview", "platform_session=alice", body, 409)
 	f.request(t, "GET", "/api/tasks/"+created.Data.ID, "platform_session=alice", "", 200)
-	if submits != 1 || previews != 2 {
+	if submits != 1 || previews != 4 {
 		t.Fatal("invalid/stale request reached the upstream")
 	}
 }

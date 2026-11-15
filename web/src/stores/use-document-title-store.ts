@@ -2,6 +2,8 @@ import { create } from "zustand";
 
 type DocumentTitleStore = {
     pageTitle: string;
+    openCanvas: { id: string; userId: string } | null;
+    setOpenCanvas: (value: { id: string; userId: string } | null) => void;
     attentionCount: number;
     attentionLabel: string;
     setPageTitle: (pageTitle: string) => void;
@@ -11,6 +13,8 @@ type DocumentTitleStore = {
 /** 标签页标题的页面部分与后台提醒；标题本身由 use-appearance-store 统一写入。 */
 export const useDocumentTitleStore = create<DocumentTitleStore>((set) => ({
     pageTitle: "",
+    openCanvas: null,
+    setOpenCanvas: (openCanvas) => set({ openCanvas }),
     attentionCount: 0,
     attentionLabel: "",
     setPageTitle: (pageTitle) => set((state) => (state.pageTitle === pageTitle ? state : { pageTitle })),

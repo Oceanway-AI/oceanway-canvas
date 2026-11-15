@@ -6,6 +6,7 @@ import { useLocation } from "react-router";
 import { dramaKeys } from "@/lib/drama/drama-query-keys";
 import { workspacePageTitleKey } from "@/lib/workspace-page-title";
 import type { DramaSummary } from "@/services/api/drama";
+import { useUserStore } from "@/stores/use-user-store";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useDocumentTitleStore } from "@/stores/use-document-title-store";
 
@@ -18,7 +19,11 @@ export function useWorkspaceDocumentTitle() {
     const { pathname, search } = useLocation();
     const [slug, id] = pathname.split("/").filter(Boolean);
     const canvasId = slug === "canvas" ? id || "" : "";
-    const canvasTitle = useCanvasStore((state) => (canvasId ? state.projects.find((project) => project.id === canvasId)?.title?.trim() || "" : ""));
+    const user = useUserStore((state) => state.user);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const openCanvas = useDocumentTitleStore((state) => state.openCanvas);
+    const showCanvasTitle = !platformIdentity || (openCanvas?.id === canvasId && openCanvas.userId === user?.id);
+    const canvasTitle = useCanvasStore((state) => (canvasId && showCanvasTitle ? state.projects.find((project) => project.id === canvasId)?.title?.trim() || "" : ""));
     const dramaProjectId = slug === "projects" && id && id !== "new" ? id : "";
     const dramaName = useCachedDramaProjectName(dramaProjectId);
     const titleKey = workspacePageTitleKey(pathname);

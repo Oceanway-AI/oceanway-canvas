@@ -10,6 +10,8 @@ import { applyGeneratedMediaResultMetadata, generationTaskOutputsApplied, imageM
 import { isolateCopiedNodeMetadata } from "@/lib/canvas/canvas-node-copy";
 import { generationTaskMetadata } from "@/lib/canvas/canvas-project-generation";
 import { canvasTaskBindingStatus } from "@/lib/canvas/canvas-task-state";
+import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation";
+import { restoreCanvasBudgetDraft } from "@/lib/canvas/canvas-task-state";
 import { executeImageGeneration } from "@/pages/canvas/canvas-image-generation-executor";
 import { defaultConfig } from "@/stores/use-config-store";
 import { useAssetStore, withAssetStorePersistenceSuppressed, type ImageAsset } from "@/stores/use-asset-store";
@@ -59,7 +61,7 @@ function dirty(nodes: CanvasNodeData[]) {
     return batchRowInputChanged(table, table.rows[0], new Map(nodes.map((node) => [node.id, node])));
 }
 
-async function executeCandidate(candidate: ReturnType<typeof prepare>, outcome: "failed" | "success", onReceipt?: (nodes: CanvasNodeData[]) => void) {
+async function executeCandidate(candidate: ReturnType<typeof prepare>, outcome: "failed" | "success" | "decline", onReceipt?: (nodes: CanvasNodeData[]) => void) {
     const nodesRef = { current: candidate.nodes };
     const connectionsRef = { current: candidate.connections };
     const target = candidate.targets[0];
@@ -109,6 +111,7 @@ async function executeCandidate(candidate: ReturnType<typeof prepare>, outcome: 
         async (options) => {
             submitted.push(options.nodeId || "");
             duringRequest = nodesRef.current;
+            if (outcome === "decline") throw new PlatformBudgetDeclined();
             if (outcome === "failed") throw new Error("isolated generation failed");
             options.onTaskCreated?.(task);
             onReceipt?.(nodesRef.current);
@@ -119,6 +122,41 @@ async function executeCandidate(candidate: ReturnType<typeof prepare>, outcome: 
 }
 
 describe("batch regeneration result ownership", () => {
+    test("declining a new image wallet confirmation keeps the old result and original task ID", async () => {
+        const state = fixture();
+        const candidate = prepare(state);
+        candidate.nodes = candidate.nodes.map((node) => (node.id === state.output.id ? { ...node, metadata: { ...node.metadata, status: "success", taskId: "old-task" } } : node));
+        const result = await executeCandidate(candidate, "decline");
+        const restored = result.nodes.find((node) => node.id === state.output.id)!;
+        expect(restored.metadata).toMatchObject({ content: "/old.png", storageKey: "resource:old", taskId: "old-task", status: "success" });
+        expect(restored.metadata?.errorDetails).toBeUndefined();
+    });
+
+    test("a cancelled pre-submit image draft keeps the exact prompt, selection and no fictitious timing or failure", async () => {
+        const candidate = prepare(fixture());
+        const target = candidate.targets[0];
+        candidate.nodes = candidate.nodes.map((node) => (node.id === target.nodeId ? { ...node, metadata: { ...node.metadata, content: undefined, storageKey: undefined, taskId: undefined, status: "idle" } } : node));
+        const result = await executeCandidate(candidate, "decline");
+        const restored = result.nodes.find((node) => node.id === target.nodeId)!;
+        expect(restored.metadata).toMatchObject({ composerContent: target.inputSnapshot.prompt, model: defaultConfig.imageModel, status: "idle" });
+        expect(restored.metadata?.taskId).toBeUndefined();
+        expect(restored.metadata?.taskCreatedAt).toBeUndefined();
+        expect(restored.metadata?.errorDetails).toBeUndefined();
+    });
+
+    test("declining a retry of a legacy unsubmitted failure yields an editable media draft and preserves a genuinely bound receipt", () => {
+        const { output } = fixture();
+        const legacy = { ...output, metadata: { status: "error", model: "studio-image", prompt: "original prompt", errorDetails: "已取消生成或最高消费低于预估" } } as CanvasNodeData;
+        const pending = { ...legacy, metadata: { ...legacy.metadata, status: "loading", taskCreatedAt: "temporary" } } as CanvasNodeData;
+        expect(restoreCanvasBudgetDraft(pending, legacy).metadata).toMatchObject({ status: "idle", model: "studio-image", prompt: "original prompt" });
+        expect(restoreCanvasBudgetDraft(pending, legacy).metadata?.taskCreatedAt).toBeUndefined();
+        expect(restoreCanvasBudgetDraft(pending, legacy).metadata?.errorDetails).toBeUndefined();
+        const newer = { ...pending, metadata: { ...pending.metadata, taskId: "already-running" } };
+        expect(restoreCanvasBudgetDraft(newer, legacy)).toBe(newer);
+        const prior = { ...legacy, metadata: { ...legacy.metadata, taskId: "real-original-failure" } };
+        expect(restoreCanvasBudgetDraft(pending, prior).metadata).toMatchObject({ status: "error", taskId: "real-original-failure", errorDetails: legacy.metadata?.errorDetails });
+    });
+
     test("waiting and failed regeneration keep the old image, dirty marker and same target ID", async () => {
         const state = fixture();
         const candidate = prepare(state);

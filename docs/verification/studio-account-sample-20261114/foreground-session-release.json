@@ -1,0 +1,93 @@
+{
+  "checkedAt": "2026-11-14T17:11:47.818852+00:00",
+  "environment": "W7",
+  "publicStudioEntry": "https://test.oceanway.tech:18448",
+  "release": {
+    "webRevision": "09b95dca7c8c9c581cc04e23ea894eca4d78b0bb",
+    "backendRevision": "ac185ac8bf1adcac9dc5872f96af50e442117500",
+    "webIndexSHA256": "c5e00965f5a3c9b9f9e56295e09a547b8fe89c9fc524e4949349a3ffb11abbec",
+    "ready": true,
+    "schema": {
+      "current": 95,
+      "expected": 95,
+      "ready": true
+    },
+    "webImage": "sha256:399171c2445bd346c0d4d7095b78406a0e7e25752d06493e3bdc9043f6271a58",
+    "previousWebRevision": "16406ea81060569017f7ee02513b38b8a30ad054",
+    "onlyEnvironmentChange": "CANVAS_WEB_IMAGE",
+    "unchangedContainerIDs": [
+      "backend",
+      "postgres",
+      "redis",
+      "yingce-agent",
+      "edge"
+    ],
+    "activeWorkerTasksBeforeSwitch": 0
+  },
+  "foregroundSessionAndIsolation": {
+    "browserEvidence": "cross-account-browser.json",
+    "sha256": "309ddb21d5a8a8e1d44f8fdef916e050eabbc72382530f3589e213810ce45c8b",
+    "normalTabAndFocusOnlyWindowPassed": true,
+    "BAccessToACanvasHTTP": 404,
+    "logoutAccessHTTP": 401,
+    "AReturnedToOriginalPrivateCanvas": true,
+    "additionalPaidRequests": 0
+  },
+  "existingImageSecondReopen": {
+    "studioTask": "ada99a54-41aa-53af-a11c-7095d5a974dd",
+    "model": "gpt-image-2",
+    "studioStatus": "已完成",
+    "originalFundingOperation": "op_382dceb863ac7d4ad71d7f7fcc5f0bded0d768ef40b61036",
+    "consoleStatus": "已结算",
+    "settledPoints": "25",
+    "walletRow": 790,
+    "walletDelta": "-25",
+    "path": "Studio task details → Console records by original business task → original settled operation → operation-filtered wallet row"
+  },
+  "freeQuoteOnFinalWeb": {
+    "source": "same existing two-node W7 sample canvas, image editor",
+    "model": "GPT Image 2",
+    "payer": "个人空间",
+    "estimate": "25",
+    "maximum": "25",
+    "unit": "✦",
+    "action": "取消",
+    "emptyImageNode": true,
+    "promptPreservedAndEditable": true,
+    "generateButtonEnabled": true,
+    "failureShown": false
+  },
+  "accountScopedCountsBeforeAfter": {
+    "studioMediaTasks": [
+      9,
+      9
+    ],
+    "platformStudioOperations": [
+      38,
+      38
+    ],
+    "personalWalletEntries": [
+      703,
+      703
+    ],
+    "walletBalanceChange": "0"
+  },
+  "targetedRegression": {
+    "tests": 128,
+    "files": 14,
+    "assertions": 573,
+    "failures": 0,
+    "typescript": "passed",
+    "eslint": "passed",
+    "diffCheck": "passed",
+    "initialRegression": "The isolated session focus fixture and the revision-zero canvas 404 assertion initially failed. The final suite includes both assertions.",
+    "assertionsScope": [
+      "session reopen and confirmed foreground account changes",
+      "previous response arriving after a newer session",
+      "account-pinned local persistence",
+      "unknown-origin revision-zero cache and HTTP 401/403/404",
+      "verified local unpublished draft with HTTP 404",
+      "original task and canvas recovery"
+    ]
+  }
+}

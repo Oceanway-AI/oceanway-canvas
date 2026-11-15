@@ -37,11 +37,13 @@ test("actual provider publication through Studio projection keeps one variant an
     let recoveries = 0;
     const task = await submitPlatformTask(request, {
         scope: () => "fixture-user",
-        preview: async () => videoEvidence.preview,
+        preview: async () => ({ ...videoEvidence.preview, previewUserId: "fixture-user", previewBinding: "bound-quote" }),
         confirmBudget: async () => "1",
         create: async (frozen) => {
             creates++;
             expect(frozen.platform).toEqual({
+                previewUserId: "fixture-user",
+                previewBinding: "bound-quote",
                 expectedPriceVersion: videoEvidence.preview.price_version,
                 expectedCapabilityRevision: videoEvidence.preview.capability_revision,
                 expectedConnectionRevision: videoEvidence.preview.connection_revision,
@@ -73,7 +75,7 @@ test("provider image 200 preview with unverified outputs creates no task", async
     try {
         await submitPlatformTask(request, {
             scope: () => "fixture-user",
-            preview: async () => imageEvidence.preview,
+            preview: async () => ({ ...imageEvidence.preview, previewUserId: "fixture-user", previewBinding: "bound-quote" }),
             create: async () => {
                 creates++;
                 return { id: "unexpected" } as GenerationTask;

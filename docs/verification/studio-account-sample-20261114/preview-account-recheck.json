@@ -1,0 +1,275 @@
+{
+  "scope": "W7 Studio sample: account-bound quote, canceled video and original image ledger re-open",
+  "checkedOn": "2026-11-15T00:36:16+08:00",
+  "release": {
+    "previousLiveRevision": "132a69f01eaa53547ec8ab7e23e15b4c13a19e1c",
+    "previewBindingChange": "443f030ee6c64199a9b56c43c7d4ba9757a67160",
+    "components": {
+      "backend": "sha256:5b7c7414326f8a7189af9ec0fefc87b02add142ea47aff9fb79793ae3564b09a",
+      "web": "sha256:90582807fb253eb95a88f446548eb624210ec9a1d554e80f4f438bbccbd03f42"
+    },
+    "publicEntry": "https://test.oceanway.tech:18448",
+    "htmlAndEntryScriptHTTP": [
+      200,
+      200
+    ],
+    "indexSHA256": "358380ce224cf0e86524762005667bf76d6843f33430bb950d2cc3c3786bae1f",
+    "ready": true,
+    "activeWorkerTasksBeforeSwitch": 0,
+    "schema": 95,
+    "environmentValuesChanged": [
+      "CANVAS_BACKEND_IMAGE",
+      "CANVAS_WEB_IMAGE"
+    ],
+    "preservedContainerIds": [
+      "edge",
+      "postgres",
+      "redis",
+      "yingce-agent"
+    ],
+    "acceptedGuardRevision": "ac185ac8bf1adcac9dc5872f96af50e442117500"
+  },
+  "accountScopedCounts": {
+    "studioMediaTasksBeforeAfter": [
+      9,
+      9
+    ],
+    "studioPlatformOperationsBeforeAfter": [
+      38,
+      38
+    ],
+    "personalWalletLedgerRowsBeforeAfter": [
+      703,
+      703
+    ],
+    "personalWalletAvailableQuotaDelta": "0",
+    "newPaidSubmissions": 0
+  },
+  "originalImage": {
+    "studioTask": "ada99a54-41aa-53af-a11c-7095d5a974dd",
+    "model": "gpt-image-2",
+    "studioStatus": "已完成",
+    "originalFundingOperation": "op_382dceb863ac7d4ad71d7f7fcc5f0bded0d768ef40b61036",
+    "source": "task detail → Console records filtered by product + business task → operation detail → wallet filtered by operation",
+    "consoleStatus": "已结算",
+    "estimatedPoints": "25",
+    "confirmedMaximum": "25",
+    "settledPoints": "25",
+    "walletRow": 790,
+    "walletDelta": "-25",
+    "walletEntry": "消费扣款",
+    "reopenedOnCurrentBuild": true
+  },
+  "identityRaceVerification": {
+    "method": "Local real Studio HTTP handlers with two fixture accounts and a simulated Platform provider. W7 browser confirmed the current account quote and canceled; it did not switch accounts or confirm a purchase.",
+    "rejections": [
+      "missing receipt",
+      "receipt for other account",
+      "replacing account ID while retaining another account signature",
+      "reusing receipt for a different command"
+    ],
+    "deniedCreateEffects": {
+      "catalogReads": 0,
+      "providerPreviews": 0,
+      "executionAuthorizations": 0,
+      "storedStudioCommands": 0,
+      "storedTasks": 0,
+      "billingOrders": 0
+    },
+    "accepted": "Second fixture account confirmed its own fresh quote. A retry of the saved original command obtained the same task. Recovery requesting a different account was rejected.",
+    "handlerRace": {
+      "topLevel": 9,
+      "includingSubtests": 37,
+      "skips": 0,
+      "logSHA256": "b322bd443cf0d7623f5c8591ae00264e8bee3813c23843b10f18e49dcced88ed"
+    },
+    "appRace": {
+      "topLevel": 12,
+      "includingSubtests": 44,
+      "skips": 0,
+      "logSHA256": "75c55a5b4725ee3c693a81bc9b55980f73da7a8d0b46645fad27bc3bf1e87466"
+    },
+    "afterMergeHandlerRace": {
+      "topLevel": 2,
+      "includingSubtests": 2,
+      "skips": 0,
+      "logSHA256": "6457db510273176e9ac34cac6829900f96a4253817a23662ae0fc26322874bff"
+    },
+    "afterMergeFrontend": {
+      "tests": 26,
+      "files": 4,
+      "assertions": 98
+    },
+    "typecheck": "pass",
+    "goVet": "pass",
+    "earlierRuns": "Unbound pre-change UI and direct-create HTTP fixtures failed before migration. The final handler race run above includes the updated rejection and recovery fixtures."
+  },
+  "firstCancelPriorToUXFix": {
+    "canvas": "existing sample draft 37m8gCyHEN5YNPByG1lT1",
+    "model": "doubao-seedance-2-0-mini-260615",
+    "resolution": "720p",
+    "aspect": "16:9",
+    "seconds": 4,
+    "payer": "个人空间",
+    "estimate": "198.72",
+    "displayUnit": "✦",
+    "maximum": "198.72",
+    "action": "取消",
+    "outcome": "Confirmation closed, node showed 生成失败 / 已取消生成或最高消费低于预估 and 重新生成; zero generation or charge persisted."
+  },
+  "finalWebRelease": {
+    "source": "16406ea81060569017f7ee02513b38b8a30ad054",
+    "backendSource": "ac185ac8bf1adcac9dc5872f96af50e442117500",
+    "amd64Image": "sha256:76c0ded10c2ad5f852af8143970582fb02f84ec311180f0a0cb7c67d53e227d6",
+    "indexSHA256": "d15df1395c88b024b179dc878898bb9610ab2729bcdd5d6e1f5fe81f879cd59b",
+    "schema": 95,
+    "onlyEnvironmentChange": "CANVAS_WEB_IMAGE",
+    "preservedContainerIds": [
+      "backend",
+      "postgres",
+      "redis",
+      "yingce-agent",
+      "edge"
+    ],
+    "ready": true,
+    "browserRecheck": {
+      "environment": "W7",
+      "platformRevision": "8a21f481fdf35bc1c06fea269186a92cdbafc234",
+      "canvasId": "37m8gCyHEN5YNPByG1lT1",
+      "image": {
+        "model": "gpt-image-2",
+        "entry": "reopened same sample canvas; retry after price revision changed",
+        "previewHTTP": 200,
+        "authenticatedSubjectAndCommandBindingPresent": true,
+        "payer": "个人空间",
+        "estimate": "25",
+        "maximum": "25",
+        "unit": "✦",
+        "action": "取消",
+        "result": "空图片节点",
+        "originalPromptPreserved": true,
+        "promptEditable": true,
+        "generateButtonEnabled": true,
+        "paidCreateRequestSent": false
+      },
+      "video": {
+        "previouslyVerifiedEstimate": "198.72",
+        "previouslyVerifiedMaximum": "198.72",
+        "previousModel": "doubao-seedance-2-0-mini-260615",
+        "newCatalogOmittedPreviousModel": true,
+        "concurrentPublication": "The catalog and prices were synchronized while this draft remained open. Current options changed. Before the provider fix, two native media preview calls returned HTTP 409 to Studio, which reported 503 to the browser. An intermediate quote was separately rejected by Studio because the price revision changed.",
+        "afterProviderFix": {
+          "modelAtSelection": "seedance-2.0-mini-ch04",
+          "size": "16:9",
+          "resolution": "720p",
+          "seconds": 4,
+          "consumptionPreviewHTTPAtStudio": 400,
+          "reason": "invalid_argument",
+          "reasonText": "所选平台模型暂不可用，请刷新模型目录",
+          "createRequestSent": false,
+          "requestAtUTC": "2026-11-14T16:35:17.866Z",
+          "studioRoute": "POST /api/tasks/preview",
+          "code": 400,
+          "publishedVariant": "8a32fc21ab081af29273a248782b1ca287e92943e5ea3b4ca254316a2cb50a43",
+          "expectedPriceVersion": "47f083004ee9fa48adc9b7f7847eab75197caa144aeedac1708149544d914eae",
+          "type": "canvas_video",
+          "operation": "text_to_video",
+          "channel": "oceanway-platform",
+          "nativeParameters": {
+            "/duration": 4,
+            "/metadata/aspect_ratio": "16:9",
+            "/metadata/resolution": "720p"
+          },
+          "references": 0,
+          "walletCapSupplied": false,
+          "providerNativePreviewRequests": 0,
+          "rejectionBoundary": "Studio re-read the authoritative product catalog and did not find the exact selected config.model. This branch runs before variant, native parameters, price or wallet validation.",
+          "timelineUTC": [
+            "16:33:19 the browser downloaded the catalog that listed ch04",
+            "16:34:12 the catalog audit recorded a change for model:75 (ch04, enabled=true)",
+            "16:35:21 the provider product-models request returned 200; no provider native preview followed",
+            "16:37:49 and 16:37:50 subsequent capability draft and publication for model:75"
+          ]
+        },
+        "finalVideoCancellation": {
+          "atUTC": "2026-11-14T16:40:10.627Z",
+          "model": "doubao-seedance-2-0-mini-260615",
+          "channel": "oceanway-platform",
+          "variant": "69a75eb9b6a05af485b9435086d43285f8739f453bbffa494574578794038f34",
+          "priceVersion": "67beced01fe6b8f01a10e50957cde6fe5f25c1e8ef9b364846e2d131c5682512",
+          "nativeParameters": {
+            "/duration": 4,
+            "/metadata/aspect_ratio": "16:9",
+            "/metadata/generate_audio": true,
+            "/metadata/resolution": "720p"
+          },
+          "previewHTTP": 200,
+          "accountCommandBindingPresent": true,
+          "payer": "个人空间",
+          "estimate": "198.72",
+          "maximum": "198.72",
+          "unit": "✦",
+          "action": "取消",
+          "stateAfterCancel": "空视频节点",
+          "imageStillDraft": true,
+          "dialogClosed": true,
+          "promptPreservedAndEditable": true,
+          "generateEnabled": true,
+          "sizeAndDurationPreserved": true,
+          "countsBeforeAfter": {
+            "studioMediaTasks": [
+              9,
+              9
+            ],
+            "studioPlatformOperations": [
+              38,
+              38
+            ],
+            "personalWalletLedgerRows": [
+              703,
+              703
+            ],
+            "availableQuotaDelta": "0",
+            "paidCreateRequests": 0
+          }
+        }
+      },
+      "activeSampleNodes": 2,
+      "publicHtmlAndEntryScriptHTTP": [
+        200,
+        200
+      ]
+    },
+    "frontendTests": {
+      "files": 8,
+      "pass": 62,
+      "failed": 0,
+      "expectCalls": 240,
+      "typecheck": "pass",
+      "lint": "pass",
+      "includes": [
+        "first and repeat generation",
+        "restoring prior bound image task and output",
+        "canceled quote vs invalid amount",
+        "creation composer and references remain editable"
+      ],
+      "testOutputSHA256": "bc3071656b37a76b5e1e15a4c566bd02e91371fd8cab122fa73ad30231a6763f"
+    },
+    "accountScopedCounts": {
+      "studioMediaTasksBeforeAfter": [
+        9,
+        9
+      ],
+      "studioPlatformOperationsBeforeAfter": [
+        38,
+        38
+      ],
+      "personalWalletLedgerRowsBeforeAfter": [
+        703,
+        703
+      ],
+      "availableQuotaDelta": "0",
+      "extraPaidSubmissions": 0
+    }
+  }
+}

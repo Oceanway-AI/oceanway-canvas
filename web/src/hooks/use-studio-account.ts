@@ -11,7 +11,8 @@ export function useStudioAccount() {
         enabled: !!userId && platformIdentity,
         retry: false,
         gcTime: 0,
-        refetchOnWindowFocus: "always",
+        // Session activation rechecks the identity before refreshing this cache.
+        refetchOnWindowFocus: false,
     });
     // A Console account change can precede Studio's session update. A cached
     // response may only be shown in the account it was returned for.

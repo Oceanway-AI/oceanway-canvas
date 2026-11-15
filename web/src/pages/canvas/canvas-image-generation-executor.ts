@@ -1,4 +1,6 @@
 import { translate } from "@/i18n";
+import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation";
+import { restoreCanvasBudgetDraft } from "@/lib/canvas/canvas-task-state";
 import { nativeMediaProfile } from "@/lib/platform-native-media";
 import { nanoid } from "nanoid";
 
@@ -210,6 +212,7 @@ export async function executeImageGeneration(
     if (count > 1) startGenerationRequest(rootId, nodeId, nodeId, controller);
     let hasSuccess = false;
     let hasFailure = false;
+    const declinedTargets = new Set<string>();
     let failureCount = 0;
     let representativeFailure: GenerationFailureMetadata | undefined;
     await Promise.all(
@@ -285,6 +288,11 @@ export async function executeImageGeneration(
                 if (isConfigNode) setNodes((current) => current.map((node) => (node.id === nodeId ? { ...node, metadata: { ...node.metadata, status: NODE_STATUS_SUCCESS, errorDetails: undefined } } : node)));
                 return true;
             } catch (error) {
+                if (error instanceof PlatformBudgetDeclined) {
+                    declinedTargets.add(targetId);
+                    setNodes((current) => current.map((node) => (node.id === targetId ? restoreCanvasBudgetDraft(node, targetId === nodeId ? sourceNode : undefined) : node)));
+                    return false;
+                }
                 if (isGenerationCanceled(error)) return false;
                 const failure = generationFailureMetadata(error, prompt);
                 if (!representativeFailure || failure.generationErrorCode === CONTENT_MODERATION_ERROR_CODE) representativeFailure = failure;
@@ -310,6 +318,14 @@ export async function executeImageGeneration(
                 setConnections((connections) => connections.filter((connection) => !removed.has(connection.fromNodeId) && !removed.has(connection.toNodeId)));
             }
             return cancelled.nodes.map((node) => (node.id === nodeId && isConfigNode && node.metadata?.status === NODE_STATUS_LOADING ? { ...node, metadata: { ...node.metadata, status: NODE_STATUS_IDLE, errorDetails: undefined } } : node));
+        });
+        return;
+    }
+    if (declinedTargets.size === targetIds.length && !hasFailure && !hasSuccess) {
+        setNodes((current) => {
+            const next = current.map((node) => (node.id === rootId || (isConfigNode && node.id === nodeId) ? restoreCanvasBudgetDraft(node, node.id === nodeId ? sourceNode : undefined) : node));
+            if (projectId) useCanvasStore.getState().updateProject(projectId, { nodes: next });
+            return next;
         });
         return;
     }

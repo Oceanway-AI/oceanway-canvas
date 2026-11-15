@@ -62,3 +62,14 @@ export function resetGenerationTaskMetadata(metadata: CanvasNodeMetadata | undef
     delete next.generationOutputCount;
     return next;
 }
+
+// A declined quote owns no task. Preserve the prior result/receipt when one
+// existed, otherwise keep the prepared model and prompt as an editable draft.
+export function restoreCanvasBudgetDraft(node: CanvasNodeData, original?: CanvasNodeData): CanvasNodeData {
+    if (node.metadata?.taskId || node.metadata?.status !== "loading") return node;
+    const previous = original?.metadata;
+    if (original && (previous?.taskId || previous?.content || previous?.storageKey)) {
+        return { ...original, position: node.position, metadata: { ...previous, composerContent: node.metadata.composerContent ?? previous.composerContent } };
+    }
+    return { ...node, metadata: resetGenerationTaskMetadata(node.metadata, "idle") };
+}
