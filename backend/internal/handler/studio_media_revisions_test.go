@@ -19,7 +19,7 @@ func studioRevisionBody() map[string]any {
 }
 
 func TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization(t *testing.T) {
-	for _, scenario := range []string{"request_capability", "request_connection", "preview_capability", "preview_connection", "preview_malformed", "changed_capability", "changed_connection"} {
+	for _, scenario := range []string{"request_capability", "request_connection", "empty_limit", "null_limit", "preview_capability", "preview_connection", "preview_malformed", "changed_capability", "changed_connection"} {
 		t.Run(scenario, func(t *testing.T) {
 			f := newStudioFixture(t)
 			f.catalog = studioRevisionCatalog
@@ -33,6 +33,12 @@ func TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization(t *testin
 				want = 400
 			case "request_connection":
 				delete(options, "expectedConnectionRevision")
+				want = 400
+			case "empty_limit":
+				options["walletMaxPoints"] = ""
+				want = 400
+			case "null_limit":
+				options["walletMaxPoints"] = nil
 				want = 400
 			case "preview_capability":
 				quote.CapabilityRevision = ""

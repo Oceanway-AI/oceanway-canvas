@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"net/http"
 	"regexp"
@@ -27,6 +28,26 @@ type StudioTaskOptions struct {
 var studioDecimal = regexp.MustCompile(`^(0|[1-9][0-9]*)(\.[0-9]+)?$`)
 
 func studioValidDecimal(v string) bool { return len(v) <= 128 && studioDecimal.MatchString(v) }
+
+func (o *StudioTaskOptions) UnmarshalJSON(data []byte) error {
+	// Only an omitted limit selects actual-usage billing. Reject a malformed
+	// explicit limit before it can be decoded as the empty string.
+	type options StudioTaskOptions
+	var wire struct {
+		options
+		WalletMaxPoints json.RawMessage `json:"walletMaxPoints"`
+	}
+	if err := json.Unmarshal(data, &wire); err != nil {
+		return err
+	}
+	if wire.WalletMaxPoints != nil {
+		if err := json.Unmarshal(wire.WalletMaxPoints, &wire.options.WalletMaxPoints); err != nil || !studioValidDecimal(wire.options.WalletMaxPoints) {
+			return errors.New("平台积分上限无效")
+		}
+	}
+	*o = StudioTaskOptions(wire.options)
+	return nil
+}
 
 func (s *Service) studioSelectTaskModel(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response) (platformintegration.ModelSelection, error) {
 	catalog, err := s.studioPlatform.Client.Models(ctx, session)
@@ -80,19 +101,19 @@ func (s *Service) StudioPreviewTask(ctx context.Context, userID string, session 
 	return quote, response, err
 }
 
-func (s *Service) studioPreviewMedia(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, selected platformintegration.ModelSelection, body []byte, response *platformclient.Response, requireCap bool) (*platformclient.ConsumptionPreview, error) {
+func (s *Service) studioPreviewMedia(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, selected platformintegration.ModelSelection, body []byte, response *platformclient.Response, requireRevisions bool) (*platformclient.ConsumptionPreview, error) {
 	if req.Platform == nil || req.Platform.ExpectedPriceVersion != selected.Price.Version {
 		return nil, NewAppError(409, "模型价格已更新，请刷新报价后再生成")
 	}
 	options := req.Platform
-	if requireCap && (!studioSHA256.MatchString(options.ExpectedCapabilityRevision) || options.ExpectedConnectionRevision <= 0) {
+	if requireRevisions && (!studioSHA256.MatchString(options.ExpectedCapabilityRevision) || options.ExpectedConnectionRevision <= 0) {
 		return nil, BadAuthRequest("请提供已确认的平台能力与连接版本")
 	}
 	if options.BillingPreference != "" && options.BillingPreference != "wallet-fallback" && options.BillingPreference != "only-benefits" {
 		return nil, BadAuthRequest("资金使用方式无效")
 	}
-	if (requireCap || options.WalletMaxPoints != "") && !studioValidDecimal(options.WalletMaxPoints) {
-		return nil, BadAuthRequest("请提供本次生成的平台积分上限")
+	if options.WalletMaxPoints != "" && !studioValidDecimal(options.WalletMaxPoints) {
+		return nil, BadAuthRequest("平台积分上限无效")
 	}
 	quote, err := s.studioPlatform.Client.PreviewMedia(ctx, session, platformclient.PreviewRequest{Request: platformclient.MediaConsumption{Model: selected.Name, ModelType: selected.Kind, NativeProtocol: selected.GatewayProtocol, NativeRequest: json.RawMessage(body), ExpectedPriceVersion: options.ExpectedPriceVersion, BillingPreference: options.BillingPreference, WalletMaxPoints: options.WalletMaxPoints}})
 	quote.Response.AppendCookies(response.Header)
@@ -103,7 +124,7 @@ func (s *Service) studioPreviewMedia(ctx context.Context, session platformclient
 	if q.Model != selected.Name || q.ModelType != selected.Kind || q.PriceVersion != options.ExpectedPriceVersion || !q.CombinationSupported || !q.Allowed || !studioValidDecimal(q.WalletPoints) || !studioSHA256.MatchString(q.CapabilityRevision) || q.ConnectionRevision <= 0 {
 		return nil, NewAppError(409, "平台未批准当前参数或额度，请刷新报价")
 	}
-	if requireCap && (q.CapabilityRevision != options.ExpectedCapabilityRevision || q.ConnectionRevision != options.ExpectedConnectionRevision) {
+	if requireRevisions && (q.CapabilityRevision != options.ExpectedCapabilityRevision || q.ConnectionRevision != options.ExpectedConnectionRevision) {
 		return nil, NewAppError(409, "平台能力或连接版本已变化，请重新确认报价")
 	}
 	if options.WalletMaxPoints != "" {
@@ -116,8 +137,8 @@ func (s *Service) studioPreviewMedia(ctx context.Context, session platformclient
 	return &q, nil
 }
 
-// Preview is the authority for all versions; the caller supplies only the
-// confirmed wallet ceiling and billing preference. Persist this unchanged.
+// The preview owns the revisions. WalletMaxPoints comes only from the request,
+// since a Platform estimate may be lower than the final usage.
 func studioMediaConsumption(preview *platformclient.ConsumptionPreview, options *StudioTaskOptions) *platformclient.MediaConsumptionConstraints {
 	return &platformclient.MediaConsumptionConstraints{
 		ExpectedCapabilityRevision: preview.CapabilityRevision,
@@ -128,8 +149,17 @@ func studioMediaConsumption(preview *platformclient.ConsumptionPreview, options 
 	}
 }
 
-func studioMediaConsumptionValid(c *platformclient.MediaConsumptionConstraints) bool {
-	return c != nil && studioSHA256.MatchString(c.ExpectedCapabilityRevision) && c.ExpectedConnectionRevision > 0 && c.ExpectedPriceVersion != "" && studioValidDecimal(c.WalletMaxPoints)
+func (e *studioExecutionEnvelope) validMediaConsumption() bool {
+	c := e.Consumption
+	if c == nil || !studioSHA256.MatchString(c.ExpectedCapabilityRevision) || c.ExpectedConnectionRevision <= 0 || c.ExpectedPriceVersion == "" {
+		return false
+	}
+	// Older envelopes only granted a specific amount. A missing limit in one
+	// of those records cannot authorize actual-usage billing during recovery.
+	if e.ActualUsageBilling {
+		return c.WalletMaxPoints == "" && e.AgentRunID == "" && e.Task.AgentRunID == ""
+	}
+	return studioValidDecimal(c.WalletMaxPoints)
 }
 
 func studioDecodeInput(req CreateTaskRequest) (canvasGenerationInput, error) {

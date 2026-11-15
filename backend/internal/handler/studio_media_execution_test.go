@@ -25,6 +25,10 @@ func TestStudioMediaTaskRetainsReferenceInputs(t *testing.T) {
 }
 
 func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
+	walletMax := "1.23456789"
+	if kind == "image" || kind == "video" {
+		walletMax = ""
+	}
 	withReference := kind == "image_reference"
 	if withReference {
 		kind = "image"
@@ -68,7 +72,7 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 			previews++
 			var in platformclient.PreviewRequest
 			_ = json.NewDecoder(r.Body).Decode(&in)
-			if in.Request.ExpectedPriceVersion != "price-1" || len(in.Request.NativeRequest) == 0 {
+			if in.Request.ExpectedPriceVersion != "price-1" || in.Request.WalletMaxPoints != walletMax || len(in.Request.NativeRequest) == 0 {
 				t.Error("preview lost native authority")
 			}
 			previewBody = append([]byte(nil), in.Request.NativeRequest...)
@@ -100,8 +104,11 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 				raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get("X-Platform-Media-Consumption"))
 				var cap platformclient.MediaConsumptionConstraints
 				_ = json.Unmarshal(raw, &cap)
-				if cap.WalletMaxPoints != "1.23456789" || cap.ExpectedPriceVersion != "price-1" || cap.ExpectedCapabilityRevision != strings.Repeat("a", 64) || cap.ExpectedConnectionRevision != 7 {
+				if cap.WalletMaxPoints != walletMax || cap.ExpectedPriceVersion != "price-1" || cap.ExpectedCapabilityRevision != strings.Repeat("a", 64) || cap.ExpectedConnectionRevision != 7 {
 					t.Error("exact quote/ceiling/capability/connection lost")
+				}
+				if walletMax == "" && strings.Contains(string(raw), `"wallet_max_points"`) {
+					t.Errorf("ordinary generation sent a wallet ceiling: %s", raw)
 				}
 				w.WriteHeader(503)
 			case strings.HasPrefix(r.URL.Path, "/internal/relay/media-requests/"):
@@ -144,6 +151,9 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 		body = `{"commandId":"video-intent","type":"canvas_video","operation":"text_to_video","prompt":"cat","model":"doubao-seedance-2-0-fast-260128","platform":{"expectedPriceVersion":"price-1","walletMaxPoints":"1.23456789"},"input":{"mode":"video","config":{"channelId":"oceanway-platform","model":"doubao-seedance-2-0-fast-260128","videoSeconds":"4","vquality":"720p","size":"16:9","videoGenerateAudio":"false","videoWatermark":"false"}}}`
 	}
 	body = strings.Replace(body, `"walletMaxPoints":`, `"expectedCapabilityRevision":"`+strings.Repeat("a", 64)+`","expectedConnectionRevision":7,"walletMaxPoints":`, 1)
+	if walletMax == "" {
+		body = strings.Replace(body, `,"walletMaxPoints":"1.23456789"`, "", 1)
+	}
 	if withReference {
 		body = strings.Replace(body, `"input":{`, `"input":{"referenceImages":[{"storageKey":"resource:retained-input","url":"https://cdn.test/not-persisted?signature=private"}],`, 1)
 	}
@@ -156,6 +166,9 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 	for i := 0; i < 8; i++ {
 		if err := f.svc.ProcessNextTask(); err != nil {
 			t.Fatal(err)
+		}
+		if i == 0 && submits != 1 {
+			t.Fatalf("worker did not reach the Platform media submit route: wallet ceiling %q, submits %d", walletMax, submits)
 		}
 		f.db.Model(&model.Task{}).Where("id = ?", created.Data.ID).Update("next_poll_at", time.Now().Add(-time.Second))
 		if i == 1 {

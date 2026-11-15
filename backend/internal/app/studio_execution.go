@@ -20,14 +20,15 @@ import (
 )
 
 type studioExecutionEnvelope struct {
-	Task        model.Task                                  `json:"task"`
-	Selection   platformintegration.ModelSelection          `json:"selection"`
-	RequestID   string                                      `json:"requestId"`
-	ContentType string                                      `json:"contentType"`
-	Body        []byte                                      `json:"body"`
-	Consumption *platformclient.MediaConsumptionConstraints `json:"consumption,omitempty"`
-	AgentRunID  string                                      `json:"agentRunId,omitempty"`
-	Catalog     []platformclient.Model                      `json:"catalog,omitempty"`
+	Task               model.Task                                  `json:"task"`
+	Selection          platformintegration.ModelSelection          `json:"selection"`
+	RequestID          string                                      `json:"requestId"`
+	ContentType        string                                      `json:"contentType"`
+	Body               []byte                                      `json:"body"`
+	Consumption        *platformclient.MediaConsumptionConstraints `json:"consumption,omitempty"`
+	ActualUsageBilling bool                                        `json:"actualUsageBilling,omitempty"`
+	AgentRunID         string                                      `json:"agentRunId,omitempty"`
+	Catalog            []platformclient.Model                      `json:"catalog,omitempty"`
 }
 
 func studioTaskID(userID, commandID string) string {
@@ -102,7 +103,10 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 			return nil, response, e
 		}
 		task := model.Task{ID: id, UserID: userID, ProjectID: req.ProjectID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: publicInput, Status: model.TaskStatusQueued, Stage: "等待平台任务调度", TraceID: req.TraceID, RequestID: req.RequestID, WorkbenchKind: workbenchKindFromTaskInput(req.Input, req.Type)}
-		envelope := studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, ContentType: "application/json", Body: body, Consumption: consumption}
+		envelope := studioExecutionEnvelope{
+			Task: task, Selection: selected, RequestID: "studio-" + id, ContentType: "application/json", Body: body,
+			Consumption: consumption, ActualUsageBilling: consumption != nil && consumption.WalletMaxPoints == "",
+		}
 		encoded, e := s.encryptStudioValue(envelope)
 		if e != nil {
 			return nil, response, e
@@ -119,7 +123,7 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 	if err := s.decryptStudioValue(existing.EnvelopeEncrypted, &envelope); err != nil {
 		return nil, response, err
 	}
-	if envelope.Selection.Kind != "text" && !studioMediaConsumptionValid(envelope.Consumption) {
+	if envelope.Selection.Kind != "text" && !envelope.validMediaConsumption() {
 		return nil, response, NewAppError(409, "原媒体消费版本未冻结，请重新确认报价")
 	}
 	grant, err := s.studioPlatform.Client.IssueExecution(ctx, session, id)

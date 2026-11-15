@@ -146,7 +146,6 @@ export type CreateTaskInput = {
 };
 export function createGenerationTask(input: CreateTaskInput) {
     return submitPlatformTask(input, {
-        confirmBudget: confirmPlatformBudget,
         preview: (body) => http.post("/tasks/preview", body),
         create: (body) => http.post<GenerationTask>("/tasks", body),
         recover: (commandId) => http.get<GenerationTask>(`/tasks/by-command/${encodeURIComponent(commandId)}`),
@@ -668,4 +667,3 @@ function notifyCanvasTaskCreated(task: GenerationTask) {
     if (typeof window === "undefined" || !task.projectId) return;
     window.dispatchEvent(new CustomEvent("canvas:task-created", { detail: { task } }));
 }
-import { confirmPlatformBudget } from "@/services/platform-budget-confirmation";

@@ -1,9 +1,8 @@
 import { createClientUUID } from "@/lib/client-id";
 import type { CreateTaskInput, GenerationTask } from "@/services/api/task-center";
-import { validPlatformBudget } from "./platform-budget-confirmation";
+import { validPlatformBudget, validPlatformPoints } from "./platform-budget-confirmation";
 
 type SubmissionDependencies = {
-    confirmBudget?(estimate: string, title: string): Promise<string | null>;
     preview?(input: CreateTaskInput): Promise<{ capability_revision?: string; connection_revision?: number; price_version: string; wallet_points: string; allowed: boolean; combination_supported: boolean }>;
     create(input: CreateTaskInput): Promise<GenerationTask>;
     recover(commandId: string): Promise<GenerationTask>;
@@ -35,18 +34,15 @@ export async function submitPlatformTask(input: CreateTaskInput, deps: Submissio
                 !quote.allowed ||
                 !quote.combination_supported ||
                 quote.price_version !== input.platform.expectedPriceVersion ||
-                !/^(0|[1-9]\d*)(\.\d+)?$/.test(quote.wallet_points) ||
+                !validPlatformPoints(quote.wallet_points) ||
                 !/^[a-f0-9]{64}$/.test(quote.capability_revision || "") ||
                 !Number.isSafeInteger(quote.connection_revision) ||
                 (quote.connection_revision ?? 0) <= 0
             )
                 throw new Error("平台未批准当前参数或额度，请刷新报价");
-            let maximum = input.platform.walletMaxPoints;
-            if (maximum == null && deps.confirmBudget) maximum = (await deps.confirmBudget(quote.wallet_points, input.type === "canvas_video" ? "确认视频生成消费" : "确认图片生成消费")) ?? undefined;
-            else if (maximum == null && input.type === "canvas_image") maximum = quote.wallet_points;
-            assertScope();
-            if (!maximum || !validPlatformBudget(maximum, quote.wallet_points)) throw new Error("已取消生成或最高消费低于预估");
-            prepared = { ...prepared, platform: { ...input.platform, expectedCapabilityRevision: quote.capability_revision, expectedConnectionRevision: quote.connection_revision, walletMaxPoints: maximum } };
+            const maximum = input.platform.walletMaxPoints;
+            if (maximum !== undefined && !validPlatformBudget(maximum, quote.wallet_points)) throw new Error("最高消费额度无效或低于预估");
+            prepared = { ...prepared, platform: { ...input.platform, expectedCapabilityRevision: quote.capability_revision, expectedConnectionRevision: quote.connection_revision } };
         }
         preparedRequests.set(input, prepared);
     }
