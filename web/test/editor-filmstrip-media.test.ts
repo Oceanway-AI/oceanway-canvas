@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { Storage } from "happy-dom";
+import { getActiveUserScope, setActiveUserScope } from "../src/lib/user-scope";
 import { readTimelineFrames } from "../src/lib/plugins/builtin/editor/editor-filmstrip-media";
 
 let videos: TestVideo[];
 let drawnTime = 0;
-let scope = "filmstrip-user-a";
+let previousScope: string;
 let blocked = false;
 const originals = new Map<string, PropertyDescriptor | undefined>();
 
@@ -43,8 +45,9 @@ function stub(name: string, value: unknown) {
 beforeEach(() => {
     videos = [];
     blocked = false;
-    scope = "filmstrip-user-a";
-    stub("window", { localStorage: { getItem: () => scope } });
+    previousScope = getActiveUserScope();
+    stub("window", { localStorage: new Storage() });
+    setActiveUserScope("filmstrip-user-a");
     stub("document", {
         createElement: (tag: string) => {
             if (tag === "video") {
@@ -67,6 +70,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    setActiveUserScope(previousScope);
     for (const [name, descriptor] of originals) {
         if (descriptor) Object.defineProperty(globalThis, name, descriptor);
         else Reflect.deleteProperty(globalThis, name);
@@ -87,7 +91,7 @@ test("提取指定源时间的画面并缓存，结束后释放独立视频解�
     await readTimelineFrames(media, [2500], new AbortController().signal, (_, frame) => cached.push(frame));
     expect(cached).toEqual(["data:image/jpeg;base64,frame-2.5"]);
     expect(videos).toHaveLength(1);
-    scope = "filmstrip-user-b";
+    setActiveUserScope("filmstrip-user-b");
     await readTimelineFrames(media, [2500], new AbortController().signal, () => {});
     expect(videos).toHaveLength(2);
 });
