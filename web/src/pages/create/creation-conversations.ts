@@ -130,7 +130,8 @@ export function studioCreationOutputSnapshot(tasks: GenerationTask[]) {
             keys.push(slot.media.storageKey);
             urls.push(slot.media.dataUrl);
         }
-        return taskEarlyPreviews(task).filter((ref) => !saved.has(ref.index));
+        // A saved video can still be waiting for its playback rendition.
+        return taskEarlyPreviews(task).filter((ref) => ref.kind === "video" || !saved.has(ref.index));
     });
     return { earlyPreviews, ...(keys.length ? { resultStorageKeys: keys, resultUrls: urls } : {}) };
 }

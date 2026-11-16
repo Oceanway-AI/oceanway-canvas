@@ -400,7 +400,7 @@ export function MediaResult({
         <TaskEarlyMedia
             includeChildren={partial}
             previews={platformIdentity ? (item.earlyPreviews || []).filter((ref) => item.taskIds?.includes(ref.taskId)) : []}
-            show={item.status === "pending" || (!displayResultUrls.length && (!platformVideoKey || mediaStates[platformVideoKey] !== "error"))}
+            show={(item.status === "pending" && !isVideo) || !displayResultUrls.length || Boolean(platformVideoKey && mediaStates[platformVideoKey] === "error")}
         >
             {children}
         </TaskEarlyMedia>
