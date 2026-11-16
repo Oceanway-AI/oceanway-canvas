@@ -235,7 +235,9 @@ func TestStudioGenerationBrowserFixture(t *testing.T) {
 			return
 		}
 		r.Host = "studio.example.test"
-		r.Header.Set("Origin", "https://studio.example.test")
+		if r.Header.Get("Origin") != "" {
+			r.Header.Set("Origin", "https://studio.example.test")
+		}
 		if _, err := r.Cookie("platform_session"); err != nil {
 			r.Header.Set("Cookie", "platform_session=alice")
 		}

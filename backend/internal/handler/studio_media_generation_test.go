@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -94,13 +95,18 @@ func TestStudioMediaGenerationOriginalAdmissionAndRead(t *testing.T) {
 }
 
 func TestStudioMediaGenerationSlotsAndEarlyBrowser(t *testing.T) {
-	studioMediaGenerationSlots(t, false, false)
+	studioMediaGenerationSlots(t, false, false, false)
 }
-func TestStudioMediaGenerationSynchronous(t *testing.T) { studioMediaGenerationSlots(t, true, false) }
+func TestStudioMediaGenerationSynchronous(t *testing.T) {
+	studioMediaGenerationSlots(t, true, false, false)
+}
 func TestStudioMediaGenerationOriginalBindingLostAck(t *testing.T) {
-	studioMediaGenerationSlots(t, true, true)
+	studioMediaGenerationSlots(t, true, true, false)
 }
-func studioMediaGenerationSlots(t *testing.T, syncReady, loseBinding bool) {
+func TestStudioMediaGenerationBrowserAdoptsFromOriginalReceipt(t *testing.T) {
+	studioMediaGenerationSlots(t, false, false, true)
+}
+func studioMediaGenerationSlots(t *testing.T, syncReady, loseBinding, browserRead bool) {
 	f := newStudioFixture(t)
 	f.catalog = studioGenerationCatalog
 	var reqID string
@@ -172,6 +178,36 @@ func studioMediaGenerationSlots(t *testing.T, syncReady, loseBinding bool) {
 		}
 	}
 	_ = json.Unmarshal([]byte(w.Data.ResultJSON), &projection)
+	if browserRead {
+		path := "/api/tasks/" + w.Data.ID
+		bodyless := func(method, path string, want int) *httptest.ResponseRecorder {
+			req := httptest.NewRequest(method, "https://studio.example.test"+path, nil)
+			req.Header.Set("Cookie", auth)
+			reply := httptest.NewRecorder()
+			f.router.ServeHTTP(reply, req)
+			if reply.Code != want {
+				t.Fatalf("%s %s status=%d want=%d", method, path, reply.Code, want)
+			}
+			return reply
+		}
+		raw := bodyless("GET", path, 200)
+		var pending struct{ Data model.Task }
+		_ = json.Unmarshal(raw.Body.Bytes(), &pending)
+		if !pending.Data.PlatformProjectionPending || len(bindings) != 2 || reads != 1 {
+			t.Fatalf("same-origin browser GET lost unbound original, bindings=%d reads=%d", len(bindings), reads)
+		}
+		bodyless("POST", path+"/adopt-outputs", 403)
+		f.request(t, "POST", path+"/adopt-outputs", "platform_session=bob", "", 404)
+		for i := 0; i < 2; i++ {
+			saved := f.request(t, "POST", path+"/adopt-outputs", auth, "", 200)
+			var done struct{ Data model.Task }
+			_ = json.Unmarshal(saved.Body.Bytes(), &done)
+			if done.Data.Status != model.TaskStatusSucceeded || done.Data.PlatformProjectionPending || len(bindings) != 3 || posts != 1 || reads != 1 {
+				t.Fatalf("adoption replay status=%s bindings=%d post=%d get=%d", done.Data.Status, len(bindings), posts, reads)
+			}
+		}
+		return
+	}
 	if loseBinding {
 		if w.Data.Status != model.TaskStatusRunning || len(bindings) != 3 || projection.Outputs[0].ResourceID == "" || projection.Outputs[1].ResourceID != "" || projection.Outputs[2].ResourceID == "" {
 			t.Fatalf("wrong initial local binding projection %+v", projection)
