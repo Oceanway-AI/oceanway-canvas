@@ -169,6 +169,7 @@ export default function CreatePage() {
     const initialConversationSnapshot = userSessionHydrated ? readCreationConversationSnapshot<CreationConversation>(activeConversationScope) : null;
     const [conversations, setConversations] = useState<CreationConversation[]>(() => initialConversationSnapshot || []);
     const conversationsRef = useRef<CreationConversation[]>(initialConversationSnapshot || []);
+    const persistedIntentRef = useRef<CreationConversation[] | null>(null);
     const [activeId, setActiveId] = useState(() => initialConversationSnapshot?.[0]?.id || "");
     const activeIdRef = useRef(activeId);
     const [hydrated, setHydrated] = useState(() => Boolean(initialConversationSnapshot?.length));
@@ -458,6 +459,9 @@ export default function CreatePage() {
         conversationsRef.current = conversations;
         if (!userSessionHydrated || !hydrated || !conversationStorageReady || conversationScope !== getActiveUserScope()) return;
         writeCreationConversationSnapshot(conversationScope, conversations);
+        const alreadyPersisted = persistedIntentRef.current === conversations;
+        persistedIntentRef.current = null;
+        if (alreadyPersisted) return;
         void saveCreationConversations(conversations).catch((error) => {
             console.warn("创作会话持久化失败；当前会话仍保留在内存快照", error);
         });
@@ -1014,6 +1018,11 @@ export default function CreatePage() {
         }
         const expandedPrompt = skillExecution.prompt;
         const referenceMetadata = skillExecution.metadata;
+        if (getActiveUserScope() !== activeConversationScope) {
+            releaseRetryLock();
+            releaseSubmitGate();
+            return;
+        }
         followLatestMessageRef.current = true;
         const userMessage = newMessage("user", text, { mode, model: selectedModel, attachments, references, settings });
         const command = (mode === "image" || mode === "video") && studioMediaGenerationVariant(generationConfig, selectedModel) ? retryContext?.clientOperationId || createClientUUID() : undefined;
@@ -1068,17 +1077,24 @@ export default function CreatePage() {
                 releaseSubmitGate();
             }
         };
-        updateActive((conversation) => ({
+        const submittedConversation = updateCreationConversationSnapshot(conversationsRef.current, originConversationId, (conversation) => ({
             ...conversation,
             title: conversation.messages.length ? conversation.title : text.slice(0, 24),
             updatedAt: new Date().toISOString(),
             messages: [...conversation.messages, userMessage, assistantMessage],
         }));
-        if (!holdDraftForPreview) clearSubmittedDraft();
-        setBusy(true);
+        conversationsRef.current = submittedConversation;
+        const showSubmission = () => {
+            setConversations(conversationsRef.current);
+            if (!boundTaskIds.size && abortRef.current === controller) {
+                if (!holdDraftForPreview) clearSubmittedDraft();
+                setBusy(true);
+            }
+        };
         const controller = new AbortController();
         const requestLifecycle = runtime.beginGenerationConsumer(controller.signal);
         abortRef.current = controller;
+        if (!command) showSubmission();
         const normalizedImage =
             mode === "image" && imageProfile
                 ? imageProfile.parameters
@@ -1100,8 +1116,14 @@ export default function CreatePage() {
             if (command) {
                 // The acknowledgement may never reach this tab. Persist the
                 // message-to-command mapping before the first network POST.
-                await saveCreationConversations(conversationsRef.current);
+                await saveCreationConversations(submittedConversation);
                 if (requestLifecycle.signal.aborted || getActiveUserScope() !== activeConversationScope) throw new DOMException("Aborted", "AbortError");
+                persistedIntentRef.current = submittedConversation;
+                // Rendering a new attachment may load its preview. Dispatch the
+                // committed command before spending the next frame on the thread.
+                window.requestAnimationFrame(() => {
+                    if (!requestLifecycle.signal.aborted && getActiveUserScope() === activeConversationScope) showSubmission();
+                });
             }
             if (mode === "text") {
                 const result = await runtime.runGenerationOperationOnce(retryContext?.clientOperationId, () =>
@@ -1243,8 +1265,8 @@ export default function CreatePage() {
             }
             updateOriginAssistant((item) => ({ ...item, status: "done" }));
         } catch (error) {
+            if (getActiveUserScope() !== activeConversationScope) return;
             if (error instanceof PlatformBudgetDeclined && !boundTaskIds.size) {
-                if (getActiveUserScope() !== activeConversationScope) return;
                 updateActive((conversation) => {
                     const messages = conversation.messages.filter((item) => item.id !== userMessage.id && item.id !== assistantMessage.id);
                     return { ...conversation, title: messages.length ? conversation.title : activeConversation.title, messages };

@@ -89,7 +89,8 @@ async function scenario(browser, loseResponse) {
         const task = await ack;
         assert.equal(task.status, "running");
         assert.ok(task.id && task.platformGenerationRequest);
-        assert.deepEqual(await page.evaluate(() => window.originalPersistence), { id: task.platformGenerationRequest, writes: 1, commits: 1 });
+        const originalPersistence = await page.evaluate(() => window.originalPersistence);
+        assert.deepEqual(originalPersistence, { id: task.platformGenerationRequest, writes: 1, commits: 1 });
         const initial = await counts();
         assert.equal(initial.posts, before.posts + 1);
         assert.equal(initial.gets, before.gets);
@@ -130,6 +131,7 @@ async function scenario(browser, loseResponse) {
         const diff = (a, b) => Object.fromEntries(["posts", "gets", "quotes", "ticketGets", "previewReads"].map((k) => [k, a[k] - b[k]]));
         return {
             scenario: loseResponse ? "closed-before-first-studio-ack" : "early-preview-close-reopen",
+            beforeOriginalXHR: { indexedDBWrites: originalPersistence.writes, committed: originalPersistence.commits },
             initial: diff(initial, before),
             atClose: diff(closed, before),
             final: diff(final, before),
