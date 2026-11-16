@@ -67,6 +67,7 @@ import {
     splitCreationAttachments,
     type CreationAttachment,
 } from "./creation-assets";
+import { loadCreationRuntime, type CreationRuntime } from "./creation-runtime-loader";
 import { creationLibraryDisabledReason, creationLibrarySelectionToAttachments } from "./creation-library";
 import { defaultCreationMode, modeLabels, type CreationConversation, type CreationMessage, type CreationMode, type CreationRetryContext, type CreationSettings, type CreationShotRailEntry, type CreationStatus } from "./creation-types";
 import { studioCreationOutputSnapshot } from "./creation-conversations";
@@ -97,8 +98,6 @@ import { creationVideoConfig } from "./creation-generation-config";
 const PlatformMaterialPicker = lazy(() => import("@/components/assets/platform-material-picker").then((module) => ({ default: module.PlatformMaterialPicker })));
 const AssetLibraryPickerModal = lazy(() => import("@/components/assets/asset-library-picker-modal").then((module) => ({ default: module.AssetLibraryPickerModal })));
 const InspirationHall = lazy(() => import("@/pages/inspirations"));
-const loadCreationRuntime = () => import("./creation-runtime");
-type CreationRuntime = Awaited<ReturnType<typeof loadCreationRuntime>>;
 
 const TEXT_STREAMING_PREF_KEY = "creation.composer.text-streaming";
 // 思考档位按模型分别记住：{ [model]: level }。只存小型 UI 偏好。
