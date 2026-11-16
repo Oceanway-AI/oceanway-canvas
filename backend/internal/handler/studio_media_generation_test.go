@@ -369,3 +369,56 @@ func TestStudioMediaGenerationOriginalReadRecoversConfirmedRejection(t *testing.
 		t.Fatalf("original read status=%s reads=%d posts=%d", task.Data.Status, reads, posts)
 	}
 }
+
+func TestStudioGenerationUsesAuthenticatedVariantFromLargeCatalog(t *testing.T) {
+	f := newStudioFixture(t)
+	legacy := `{"model_name":"legacy","model_type":"image","invocation_status":"available","price":{"status":"available","version":"p1"},"media_generation_profile":{"opaque_presentation":"` + strings.Repeat("x", 2<<20) + `"}}`
+	f.catalog = strings.TrimSuffix(studioGenerationCatalog, "]}}") + "," + legacy + "]}}"
+	posts := 0
+	f.execution = func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/internal/products/v1/media-generations" {
+			t.Fatalf("unexpected upstream %s %s", r.Method, r.URL.Path)
+		}
+		var c platformclient.MediaCommand
+		if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
+			t.Error(err)
+		}
+		posts++
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(gin.H{"request_id": c.RequestID, "task_id": "platform-" + c.RequestID, "revision": 1, "execution_state": "running", "funds_state": "reserved", "outputs": []any{}, "retry_after_ms": 1500})
+	}
+	f.request(t, "GET", "/api/model-catalog", "platform_session=alice; preference=old", "", 200)
+	send := func(cookie, id, price string, status int) {
+		t.Helper()
+		body := strings.ReplaceAll(strings.ReplaceAll(studioGenerationInput, "original-v1", id), "price-1", price)
+		f.request(t, "POST", "/api/tasks", cookie, body, status)
+	}
+	send("preference=new; platform_session=alice", "same-session", "price-1", 200)
+	if f.catalogCalls != 1 || posts != 1 {
+		t.Errorf("valid displayed variant with rotating unrelated cookie: catalog requests=%d, original posts=%d", f.catalogCalls, posts)
+	}
+	f.revoked = true
+	send("platform_session=alice", "revoked", "price-1", 401)
+	f.revoked = false
+	if posts != 1 {
+		t.Fatalf("revoked session dispatched: %d posts", posts)
+	}
+	f.catalog = strings.ReplaceAll(f.catalog, "price-1", "price-2")
+	before := f.catalogCalls
+	send("platform_session=alice", "new-price", "price-2", 200)
+	if f.catalogCalls != before+1 {
+		t.Error("different price revision did not refresh the authenticated catalog")
+	}
+	for _, other := range []string{"alice-other-session", "bob"} {
+		before = f.catalogCalls
+		send("platform_session="+other, "separate-"+other, "price-2", 200)
+		if f.catalogCalls != before+1 {
+			t.Fatalf("another authenticated session reused a prior schema: %s", other)
+		}
+	}
+	before = f.catalogCalls
+	send("platform_session=alice", "same-session", "price-1", 200)
+	if f.catalogCalls != before || posts != 4 {
+		t.Fatalf("recover original command after price change: catalogs=%d posts=%d", f.catalogCalls, posts)
+	}
+}
