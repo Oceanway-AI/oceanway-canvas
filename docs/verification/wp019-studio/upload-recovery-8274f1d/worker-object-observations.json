@@ -1,0 +1,292 @@
+{
+  "selection": "Only the named original upload, file and two variant jobs",
+  "events": [
+    {
+      "timestamp": "2026-11-16T14:21:15.222548925Z",
+      "event": {
+        "stage": "upload_seal",
+        "job_id": "upload_75412da0e5ecdaacb8bac9cef7ad3c592da7dd41d4ab1df8",
+        "job_attempt": 1,
+        "operation": "get",
+        "object_key_sha256": "fd4e4270f55dbdc1480377a08e810e64ddb4eee3d5b647b1376fc1fa42d3182c",
+        "expected_bytes": -1,
+        "method": "GET",
+        "http_status": 404,
+        "service_code": "NoSuchKey",
+        "s3_request_id": "f8c107fb115b0f9f6afb115b-bd468bd-1xSxa7-GO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 0,
+        "received_bytes": 379,
+        "duration_ms": 959.365,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "not_checked"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:21:18.522647303Z",
+      "event": {
+        "stage": "upload_seal",
+        "job_id": "upload_75412da0e5ecdaacb8bac9cef7ad3c592da7dd41d4ab1df8",
+        "job_attempt": 1,
+        "operation": "get",
+        "object_key_sha256": "5252f98a6a8f5391edfcc472df7243422181920a81082a573a577af5d8a2b26e",
+        "expected_bytes": -1,
+        "method": "GET",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb115b0faf6afb115b-bd468bd-1xSxa7-GO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 0,
+        "received_bytes": 8388608,
+        "duration_ms": 3299.555,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "not_checked"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:21:20.848870898Z",
+      "event": {
+        "stage": "upload_seal",
+        "job_id": "upload_75412da0e5ecdaacb8bac9cef7ad3c592da7dd41d4ab1df8",
+        "job_attempt": 1,
+        "operation": "get",
+        "object_key_sha256": "0813f68fc38afe1552eeb1e853553d816493aa6c857d919ed17f9b4f5954d920",
+        "expected_bytes": -1,
+        "method": "GET",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb115e10816afb115e-bd468bd-1xSxaA-GO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 0,
+        "received_bytes": 8388608,
+        "duration_ms": 2325.683,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "not_checked"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:21:23.364926305Z",
+      "event": {
+        "stage": "upload_seal",
+        "job_id": "upload_75412da0e5ecdaacb8bac9cef7ad3c592da7dd41d4ab1df8",
+        "job_attempt": 1,
+        "operation": "get",
+        "object_key_sha256": "8e6cec4d726536a5b793e67a35f19414af3f69b193a9ca57a55f2dcad8955d14",
+        "expected_bytes": -1,
+        "method": "GET",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb116111246afb1161-bd468bd-1xSxaD-GO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 0,
+        "received_bytes": 8388608,
+        "duration_ms": 2515.544,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "not_checked"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:21:26.373757278Z",
+      "event": {
+        "stage": "upload_seal",
+        "job_id": "upload_75412da0e5ecdaacb8bac9cef7ad3c592da7dd41d4ab1df8",
+        "job_attempt": 1,
+        "operation": "get",
+        "object_key_sha256": "6364d3833b825b82d5cd0ed3ccaade0de3557986a0292426b7e1ece6876558f5",
+        "expected_bytes": -1,
+        "method": "GET",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb116311ca6afb1163-bd468bd-1xSxaF-GO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 0,
+        "received_bytes": 8388608,
+        "duration_ms": 3008.204,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "not_checked"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:21:26.941453704Z",
+      "event": {
+        "stage": "upload_seal",
+        "job_id": "upload_75412da0e5ecdaacb8bac9cef7ad3c592da7dd41d4ab1df8",
+        "job_attempt": 1,
+        "operation": "get",
+        "object_key_sha256": "99ec48e3f61fde44ab6d524f93e9e29492bb767db962663cc136b428f20d7dd0",
+        "expected_bytes": -1,
+        "method": "GET",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb1166129b6afb1166-bd468bd-1xSxaI-GO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 0,
+        "received_bytes": 1067418,
+        "duration_ms": 567.224,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "not_checked"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:21:43.006377748Z",
+      "event": {
+        "stage": "upload_seal",
+        "job_id": "upload_75412da0e5ecdaacb8bac9cef7ad3c592da7dd41d4ab1df8",
+        "job_attempt": 1,
+        "operation": "seal",
+        "object_key_sha256": "fd4e4270f55dbdc1480377a08e810e64ddb4eee3d5b647b1376fc1fa42d3182c",
+        "expected_bytes": 34621850,
+        "method": "PUT",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb116712c16afb1167-bd468bd-1xSxaJ-PuO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 34621850,
+        "received_bytes": 0,
+        "duration_ms": 16010.294,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "not_checked"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:21:55.302425028Z",
+      "event": {
+        "stage": "upload_seal",
+        "job_id": "upload_75412da0e5ecdaacb8bac9cef7ad3c592da7dd41d4ab1df8",
+        "job_attempt": 1,
+        "operation": "get",
+        "object_key_sha256": "fd4e4270f55dbdc1480377a08e810e64ddb4eee3d5b647b1376fc1fa42d3182c",
+        "expected_bytes": -1,
+        "method": "GET",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb1177176b6afb1177-bd468bd-1xSxaZ-GO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 0,
+        "received_bytes": 34621850,
+        "duration_ms": 12300.321,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "matched"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:22:08.502203561Z",
+      "event": {
+        "stage": "variant_source",
+        "job_id": "file_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+        "job_attempt": 0,
+        "operation": "get",
+        "object_key_sha256": "fd4e4270f55dbdc1480377a08e810e64ddb4eee3d5b647b1376fc1fa42d3182c",
+        "expected_bytes": -1,
+        "method": "GET",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb11831b1c6afb1183-bd468bd-1xSxal-GO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 0,
+        "received_bytes": 34621850,
+        "duration_ms": 13176.425,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "matched"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:22:09.048505430Z",
+      "event": {
+        "stage": "variant",
+        "job_id": "variant_81a7d1b280957824e26d1d7de8e8f1a2b6a9231c8c80056d",
+        "job_attempt": 1,
+        "operation": "seal",
+        "object_key_sha256": "6a5736211321b163e938e8534e94794ab3808c426d3468149b18f4a7f34a82a2",
+        "expected_bytes": 8144,
+        "method": "PUT",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb11901f136afb1190-bd468bd-1xSxay-PuO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 8144,
+        "received_bytes": 0,
+        "duration_ms": 186.125,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "not_checked"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:22:09.237107501Z",
+      "event": {
+        "stage": "variant",
+        "job_id": "variant_81a7d1b280957824e26d1d7de8e8f1a2b6a9231c8c80056d",
+        "job_attempt": 1,
+        "operation": "get",
+        "object_key_sha256": "6a5736211321b163e938e8534e94794ab3808c426d3468149b18f4a7f34a82a2",
+        "expected_bytes": -1,
+        "method": "GET",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb11911f236afb1191-bd468bd-1xSxaz-GO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 0,
+        "received_bytes": 8144,
+        "duration_ms": 188.085,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "matched"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:22:09.701695039Z",
+      "event": {
+        "stage": "variant",
+        "job_id": "variant_ca935e620e2dfd3218208d46b976bd4649f804e2c3d57505",
+        "job_attempt": 1,
+        "operation": "seal",
+        "object_key_sha256": "0e4e3cf6893b39c7812a40ebacf6d5126eb926572e3d5d138a5ca8bf3538439f",
+        "expected_bytes": 1272,
+        "method": "PUT",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb11911f386afb1191-bd468bd-1xSxaz-PuO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 1272,
+        "received_bytes": 0,
+        "duration_ms": 191.961,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "not_checked"
+      }
+    },
+    {
+      "timestamp": "2026-11-16T14:22:09.920267975Z",
+      "event": {
+        "stage": "variant",
+        "job_id": "variant_ca935e620e2dfd3218208d46b976bd4649f804e2c3d57505",
+        "job_attempt": 1,
+        "operation": "get",
+        "object_key_sha256": "0e4e3cf6893b39c7812a40ebacf6d5126eb926572e3d5d138a5ca8bf3538439f",
+        "expected_bytes": -1,
+        "method": "GET",
+        "http_status": 200,
+        "s3_request_id": "f8c107fb11911f516afb1191-bd468bd-1xSxaz-GO-cb-tos-1az-front-aza-1",
+        "sdk_attempt": 1,
+        "sdk_retries": 0,
+        "sent_bytes": 0,
+        "received_bytes": 1272,
+        "duration_ms": 218.11,
+        "body_complete": true,
+        "body_read_error": false,
+        "digest": "matched"
+      }
+    }
+  ]
+}
