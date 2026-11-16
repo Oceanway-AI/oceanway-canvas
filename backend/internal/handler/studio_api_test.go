@@ -60,7 +60,7 @@ func newStudioFixture(t *testing.T) *studioFixture {
 			f.account(w, r)
 			return
 		}
-		if f.execution != nil && (strings.HasPrefix(r.URL.Path, "/internal/products/v1/media-generations") || strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/internal/materials/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
+		if f.execution != nil && (strings.HasPrefix(r.URL.Path, "/internal/products/v1/media-generations") || strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/internal/materials/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || strings.HasSuffix(r.URL.Path, "/media/price-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
 			f.execution(w, r)
 			return
 		}

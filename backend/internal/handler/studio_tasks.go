@@ -11,6 +11,26 @@ import (
 )
 
 func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
+	r.POST("/tasks/estimate", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16<<20)
+		var req service.CreateTaskRequest
+		if c.ShouldBindJSON(&req) != nil {
+			failService(c, service.BadAuthRequest("估价参数无效"))
+			return
+		}
+		price, response, err := svc.StudioEstimateMediaPrice(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req, user.PlatformSessionID)
+		response.AppendCookies(c.Writer.Header())
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, price)
+	})
 	r.POST("/tasks/preview", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

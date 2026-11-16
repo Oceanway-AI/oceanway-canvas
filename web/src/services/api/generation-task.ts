@@ -1,15 +1,14 @@
 import type { ThinkingRequest } from "@/lib/text-thinking";
 import { createClientUUID } from "@/lib/client-id";
-import { normalizeAudioFormatForConfig, normalizeAudioVoiceForConfig } from "@/lib/audio-generation";
+import { backendProviderConfig, omittedImageQuality } from "./generation-provider-config";
 import { imageParameterRequest } from "@/lib/image-parameters";
-import { nativeMediaProfile, nativeMediaVariant, studioMediaGenerationVariant, nativeParameterValues } from "@/lib/platform-native-media";
+import { nativeMediaVariant, studioMediaGenerationVariant } from "@/lib/platform-native-media";
 import { assignFrameSlots, publishedFrameRoles } from "@/lib/media-reference-slots";
-import { nativeImageSizeIssue } from "@/lib/platform-native-image-size";
 import { getMediaBlob } from "@/services/file-storage";
 import { getImageBlob } from "@/services/image-storage";
 import { resourceIdFromStorageKey, resourceStorageKey, uploadResourceFile } from "@/services/api/resources";
 import { createGenerationTask, waitForGenerationTask, type GenerationTask, type CreateTaskInput } from "@/services/api/task-center";
-import { modelCapabilityConfigFor, videoResolutionRequest } from "@/lib/model-capabilities";
+import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
 import { grokImagePromptLimitError } from "@/lib/grok-image-prompt-limit";
 import { resolveGenerationWorkflowExecution, type GenerationWorkflowExecution } from "@/lib/generation-workflow-execution";
 import { isArkPlanBaseUrl } from "@/lib/seedance-video";
@@ -20,7 +19,7 @@ import type { ReferenceAudio, ReferenceVideo } from "@/types/media";
 import { buildBackendToolRequests, type ResponseFunctionTool, type ResponseInputMessage, type ToolChoice, type ToolResponseResult } from "@/services/api/image";
 import { assertAgentExchangeBudget } from "@/lib/canvas/agent-context-budget";
 
-export { logicalModelIDForConfig };
+export { backendProviderConfig, logicalModelIDForConfig };
 
 export type BackendGenerationMode = "text" | "image" | "video" | "audio";
 
@@ -425,98 +424,6 @@ function backendMediaReference<T extends ReferenceVideo | ReferenceAudio>(media:
     } as T;
 }
 
-export function backendProviderConfig(config: AiConfig, mode: BackendGenerationMode = "image") {
-    const requestConfig = resolveModelRequestConfig(config, config.model);
-    if ((mode === "image" || mode === "video") && requestConfig.channelId === "oceanway-platform" && nativeMediaProfile(config)) {
-        const variant = nativeMediaVariant(config);
-        if (!variant) throw new Error("所选模型参数版本已失效，请刷新模型目录");
-        const nativeParameters = nativeParameterValues(variant, config.nativeParameters);
-        const issue = nativeImageSizeIssue(variant, nativeParameters);
-        if (issue) throw new Error(issue);
-        return { channelId: requestConfig.channelId, model: requestConfig.model, nativeVariantId: variant.id, nativeParameters };
-    }
-    const workflow = resolveGenerationWorkflowExecution(config, mode);
-    if (workflow) return workflowProviderConfig(config, requestConfig, workflow);
-    const generationOptions = {
-        ...(mode === "image" ? { imageParameters: imageParameterRequest(modelCapabilityConfigFor(config, config.model).image!, config, true) } : {}),
-        size: config.size,
-        imageResolution: omittedImageQuality(config.imageResolution),
-        quality: omittedImageQuality(config.quality),
-        transparentBackground: config.transparentBackground,
-        count: config.count,
-        videoSeconds: config.videoSeconds,
-        vquality: config.vquality,
-        videoGenerateAudio: config.videoGenerateAudio,
-        videoWatermark: config.videoWatermark,
-        videoArkPrivateAssetUpload: config.videoArkPrivateAssetUpload,
-        audioVoice: normalizeAudioVoiceForConfig(config, config.audioVoice),
-        audioFormat: normalizeAudioFormatForConfig(config, config.audioFormat),
-        audioSpeed: config.audioSpeed,
-        audioLanguage: config.audioLanguage,
-        audioDialect: config.audioDialect,
-        audioInstructions: config.audioInstructions,
-        systemPrompt: config.systemPrompt,
-    };
-    if (logicalModelIDForConfig(config)) return generationOptions;
-    if (requestConfig.channelId === "oceanway-platform") {
-        const video = mode === "video" ? modelCapabilityConfigFor(config, config.model).video : undefined;
-        // UI preferences may use 720; Platform validates the published value
-        // (e.g. 720p). Keep unsupported input intact so admission rejects it.
-        return { channelId: requestConfig.channelId, model: requestConfig.model, ...generationOptions, ...(video ? { vquality: videoResolutionRequest(video, config.vquality) ?? config.vquality } : {}) };
-    }
-    return {
-        channelId: requestConfig.channelId,
-        apiFormat: requestConfig.apiFormat,
-        interfaceType: requestConfig.interfaceType,
-        baseUrl: requestConfig.baseUrl,
-        apiKey: requestConfig.apiKey,
-        secretKey: requestConfig.secretKey,
-        model: requestConfig.model,
-        ...generationOptions,
-        capabilityConfig: modelCapabilityConfigFor(config, requestConfig.model),
-        systemPrompt: config.systemPrompt,
-    };
-}
-
-function workflowProviderConfig(config: AiConfig, requestConfig: ReturnType<typeof resolveModelRequestConfig>, workflow: GenerationWorkflowExecution) {
-    const runningHubActive = workflow.provider === "runninghub";
-    return {
-        channelId: "",
-        apiFormat: requestConfig.apiFormat,
-        interfaceType: workflow.interfaceType,
-        baseUrl: config.runningHub.baseUrl,
-        apiKey: runningHubActive ? config.runningHub.apiKey : "",
-        // 工作流是独立 Provider，不能继承普通模型渠道的密钥和自定义头。
-        secretKey: "",
-        headers: [],
-        model: workflow.providerModel,
-        size: config.size,
-        quality: config.quality,
-        transparentBackground: config.transparentBackground,
-        count: config.count,
-        videoSeconds: config.videoSeconds,
-        vquality: config.vquality,
-        videoGenerateAudio: config.videoGenerateAudio,
-        videoWatermark: config.videoWatermark,
-        videoArkPrivateAssetUpload: config.videoArkPrivateAssetUpload,
-        audioVoice: normalizeAudioVoiceForConfig(config, config.audioVoice),
-        audioFormat: normalizeAudioFormatForConfig(config, config.audioFormat),
-        audioSpeed: config.audioSpeed,
-        audioLanguage: config.audioLanguage,
-        audioDialect: config.audioDialect,
-        audioInstructions: config.audioInstructions,
-        workflowId: workflow.workflowId,
-        webappId: workflow.webappId,
-        workflowJson: workflow.workflowJson,
-        workflowFields: workflow.workflowFields,
-        runningHubUseWallet: false,
-        runningHubWalletApiKey: "",
-        runningHubUploadApiKey: runningHubActive ? config.runningHub.uploadApiKey || "" : "",
-        capabilityConfig: modelCapabilityConfigFor(config, requestConfig.model),
-        systemPrompt: config.systemPrompt,
-    };
-}
-
 function workflowPublicExecution(workflow: GenerationWorkflowExecution) {
     return {
         provider: workflow.provider,
@@ -547,13 +454,6 @@ function logicalCapabilityOptions(config: AiConfig, mode: BackendGenerationMode)
     // 只把前台模型声明过的参数送进能力匹配。未声明的 quality 不能因为画布选了 4K 档位
     // 而被硬塞进去，否则会报“不支持参数 生成质量”；插件仍从 config.quality 读取档位。
     return filtered;
-}
-
-function omittedImageQuality(value: string | undefined) {
-    const normalized = String(value || "")
-        .trim()
-        .toLowerCase();
-    return normalized === "auto" || normalized === "any" ? undefined : value;
 }
 
 export function parseBackendGenerationResult(task: GenerationTask): BackendGenerationResult {

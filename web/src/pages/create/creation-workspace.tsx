@@ -32,6 +32,7 @@ import { buildImageResolutionOptions, formatImageResolutionSize, supportsImageRe
 import { normalizeVideoValue, videoDurationOptions, videoDurationRange, type ImageCapabilityConfig, type VideoCapabilityConfig } from "@/lib/model-capabilities";
 import { mergedImageCapabilityConfig, type ModelRequirements } from "@/lib/model-selection";
 import { imageQualityLabel } from "@/lib/image-quality";
+import { useStudioMediaPrice } from "@/services/studio-media-price";
 import { modelQuoteDescription, modelQuoteRequest } from "@/lib/model-pricing";
 import { quoteModel, type LogicalModelQuote } from "@/services/api/logical-models";
 import { modelOptionName, resolveModelChannel, type AiConfig } from "@/stores/use-config-store";
@@ -261,10 +262,24 @@ export function CreationComposer(props: ComposerProps) {
             });
         return () => controller.abort();
     }, [creditsEnabled, quoteRequest]);
+    const standardPrice = useStudioMediaPrice(
+        props.config,
+        props.mode,
+        props.prompt,
+        props.attachments.map((item) => ({ kind: creationAttachmentKind(item), storageKey: item.storageKey, role: props.frameSlots?.find((slot) => slot.attachment?.id === item.id)?.role })),
+    );
     const generationCredits = routeQuote ? routeQuote.amountMicrocredits / 1_000_000 : credits;
-    const showCost = creditsEnabled && generationCredits !== null && generationCredits !== undefined;
+    const showCost = Boolean(standardPrice) || (creditsEnabled && generationCredits !== null && generationCredits !== undefined);
     const formattedCredits = generationCredits?.toLocaleString("zh-CN", { maximumFractionDigits: 6 });
-    const actionLabel = props.referenceReplacementBusy ? "正在替换参考图" : interactionBusy || (props.generationActive && !canSubmit) ? "生成中" : showCost ? `${routeQuote?.estimated ? "预估" : "消耗"} ${formattedCredits} 积分，发送` : "发送";
+    const actionLabel = props.referenceReplacementBusy
+        ? "正在替换参考图"
+        : interactionBusy || (props.generationActive && !canSubmit)
+          ? "生成中"
+          : standardPrice
+            ? `${standardPrice}，发送`
+            : showCost
+              ? `${routeQuote?.estimated ? "预估" : "消耗"} ${formattedCredits} 积分，发送`
+              : "发送";
     // Send-button working state must span the WHOLE generation (not just the
     // submit-lock window): spinner + glow stay while a message is pending and
     // the composer is empty; typing a next prompt returns the arrow so the
@@ -615,7 +630,7 @@ export function CreationComposer(props: ComposerProps) {
                     {showCost ? (
                         <span className="creation-submit-cost" title={routeQuote ? modelQuoteDescription(routeQuote) : undefined}>
                             <CreditSymbol />
-                            <span>{routeQuote?.estimated ? `预估:${formattedCredits}` : formattedCredits}</span>
+                            <span>{standardPrice || (routeQuote?.estimated ? `预估:${formattedCredits}` : formattedCredits)}</span>
                         </span>
                     ) : null}
                     <span className="creation-submit-action" aria-hidden>
