@@ -598,5 +598,272 @@
         }
       ]
     }
-  ]
+  ],
+  "loaded_runtime": {
+    "release": {
+      "target": "https://test.oceanway.tech:18448/api/health/ready",
+      "previous": "959fa973e5b8d8368f089e52d44fe98d7eb885b4",
+      "commit": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+      "ready": true,
+      "schema": {
+        "current": 97,
+        "expected": 97,
+        "ready": true
+      },
+      "old_backend_stopped_before_activation": true,
+      "images": {
+        "backend": "sha256:cc6695c0281651fada780912ae8ab7fbfcc689984408d63b1b7a29826d8b058a",
+        "web": "sha256:8f0974e15873cd90dcfbdb25fc34e29520acd495115716c35fe74d4d6d86a987"
+      },
+      "unmodified_services": [
+        "postgres",
+        "redis",
+        "yingce-agent",
+        "edge"
+      ],
+      "reloaded_w7_edge": false,
+      "dump_sha256": "7b4b6a8e27016956155434d548a81cb3bf7c7ef8e12712122854a1656acd1030",
+      "utc": "2026-11-16T08:39:48.338964+00:00"
+    },
+    "restore": {
+      "source": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+      "from": "959fa973e5b8d8368f089e52d44fe98d7eb885b4",
+      "images": {
+        "backend": "sha256:cc6695c0281651fada780912ae8ab7fbfcc689984408d63b1b7a29826d8b058a",
+        "web": "sha256:8f0974e15873cd90dcfbdb25fc34e29520acd495115716c35fe74d4d6d86a987"
+      },
+      "dump_sha256": "7b4b6a8e27016956155434d548a81cb3bf7c7ef8e12712122854a1656acd1030",
+      "dump_bytes": 136602836,
+      "restored": true,
+      "shadow_pre_schema": 97,
+      "shadow_post_schema": 97,
+      "changed_env_keys": [
+        "CANVAS_BACKEND_IMAGE",
+        "CANVAS_WEB_IMAGE"
+      ],
+      "compose_otherwise_equal": true
+    },
+    "red_source": "c1271f8",
+    "green_source": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+    "web_regressions": {
+      "files": 498,
+      "passed": 3383,
+      "failed": 0
+    },
+    "formal_host_race_tests": {
+      "top_level": 11,
+      "skipped": 0,
+      "failed": 0
+    },
+    "chromium_scenarios": [
+      {
+        "scenario": "early-preview-close-reopen",
+        "beforeOriginalXHR": {
+          "indexedDBWrites": 1,
+          "committed": 1
+        },
+        "initial": {
+          "posts": 1,
+          "gets": 0,
+          "quotes": 0,
+          "ticketGets": 0,
+          "previewReads": 0
+        },
+        "atClose": {
+          "posts": 1,
+          "gets": 2,
+          "quotes": 0,
+          "ticketGets": 1,
+          "previewReads": 1
+        },
+        "final": {
+          "posts": 1,
+          "gets": 3,
+          "quotes": 0,
+          "ticketGets": 2,
+          "previewReads": 2
+        },
+        "closedObservationMs": 1850,
+        "byCommand": 0,
+        "sameOriginal": true,
+        "originalAdopted": true
+      },
+      {
+        "scenario": "closed-before-first-studio-ack",
+        "beforeOriginalXHR": {
+          "indexedDBWrites": 1,
+          "committed": 1
+        },
+        "initial": {
+          "posts": 1,
+          "gets": 0,
+          "quotes": 0,
+          "ticketGets": 0,
+          "previewReads": 0
+        },
+        "atClose": {
+          "posts": 1,
+          "gets": 0,
+          "quotes": 0,
+          "ticketGets": 0,
+          "previewReads": 0
+        },
+        "final": {
+          "posts": 1,
+          "gets": 1,
+          "quotes": 0,
+          "ticketGets": 0,
+          "previewReads": 0
+        },
+        "closedObservationMs": 1850,
+        "byCommand": 1,
+        "sameOriginal": true,
+        "originalAdopted": true
+      },
+      {
+        "scenario": "canvas-three-outputs-close-reopen",
+        "requestedOutputs": 3,
+        "originalNodes": 3,
+        "initialBound": [
+          0,
+          2
+        ],
+        "finalBound": [
+          0,
+          1,
+          2
+        ],
+        "unchangedOnReplay": true,
+        "posts": 1,
+        "gets": 1,
+        "bindingPosts": 3,
+        "quotes": 0,
+        "actualEarlyPreviewReads": 1,
+        "closedObservationMs": 1850
+      },
+      {
+        "scenario": "early-video-across-original-adoption",
+        "width": 64,
+        "height": 48,
+        "seekSeconds": 0.55,
+        "rangeReads": 1,
+        "posts": 1,
+        "quotes": 0,
+        "samePlayingElement": true
+      }
+    ],
+    "same_region_dry_runs": [
+      {
+        "case": "w7-post959-warm2-marks-display",
+        "release": "959fa973e5b8d8368f089e52d44fe98d7eb885b4",
+        "modified_browser_bundle": false,
+        "generations": 0,
+        "trusted_click_to_intercepted_xhr_ms": 1001.3,
+        "milestones": [
+          {
+            "name": "click",
+            "ms_from_click": 0
+          },
+          {
+            "name": "runtime_load",
+            "ms_from_click": 11.3
+          },
+          {
+            "name": "skill_prepare",
+            "ms_from_click": 607.9
+          },
+          {
+            "name": "message_build",
+            "ms_from_click": 608.3
+          },
+          {
+            "name": "snapshot",
+            "ms_from_click": 608.8
+          },
+          {
+            "name": "before_persist",
+            "ms_from_click": 609.1
+          },
+          {
+            "name": "create_history_put",
+            "ms_from_click": 610.2
+          },
+          {
+            "name": "create_history_put_success",
+            "ms_from_click": 797.5
+          },
+          {
+            "name": "create_history_committed",
+            "ms_from_click": 997.2
+          },
+          {
+            "name": "after_persist",
+            "ms_from_click": 997.7
+          },
+          {
+            "name": "original_send_blocked",
+            "ms_from_click": 1001.3
+          }
+        ]
+      },
+      {
+        "case": "w7-post959-warm2-memo-fixed-display",
+        "release": "959fa973e5b8d8368f089e52d44fe98d7eb885b4",
+        "modified_browser_bundle": true,
+        "generations": 0,
+        "trusted_click_to_intercepted_xhr_ms": 406.6,
+        "milestones": [
+          {
+            "name": "click",
+            "ms_from_click": 0
+          },
+          {
+            "name": "create_history_put",
+            "ms_from_click": 0.7
+          },
+          {
+            "name": "create_history_put_success",
+            "ms_from_click": 207.2
+          },
+          {
+            "name": "create_history_committed",
+            "ms_from_click": 404.2
+          },
+          {
+            "name": "original_send_blocked",
+            "ms_from_click": 406.6
+          }
+        ]
+      },
+      {
+        "case": "w7-22529-warm2-display",
+        "release": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+        "modified_browser_bundle": false,
+        "generations": 0,
+        "trusted_click_to_intercepted_xhr_ms": 388.6,
+        "milestones": [
+          {
+            "name": "click",
+            "ms_from_click": 0
+          },
+          {
+            "name": "create_history_put",
+            "ms_from_click": 1
+          },
+          {
+            "name": "create_history_put_success",
+            "ms_from_click": 194.1
+          },
+          {
+            "name": "create_history_committed",
+            "ms_from_click": 387
+          },
+          {
+            "name": "original_send_blocked",
+            "ms_from_click": 388.6
+          }
+        ]
+      }
+    ]
+  }
 }
