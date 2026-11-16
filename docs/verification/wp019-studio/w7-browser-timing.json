@@ -1,0 +1,602 @@
+{
+  "scope": "Free synthetic W7 ordinary Studio browser. Diagnostic attempts are reported separately from fixed-version acceptance groups.",
+  "environment": {
+    "studio": "test.oceanway.tech:18448",
+    "platform": "test.oceanway.tech:18447",
+    "ordinary_username_sha256_prefix": "56dc9f94b8d5",
+    "browser_image": "sha256:c680ccb394f92ae7b2af6e60183478de459aa4912f46484da0c51ba0f9a2017c",
+    "region": "W7 host, disposable Chromium 156.0.8078.79 container",
+    "sdk": "v1.0.0-rc.1"
+  },
+  "pre_fix_4k_same_region": [
+    {
+      "group": "w7-6fd1-studio-4k",
+      "studio": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+      "platform": "6fd1fb230d6b56104ecf9ff864110c5a6b632f5b",
+      "requested": 30,
+      "observed_slots": 30,
+      "actual_new_generations": 2,
+      "never_entered_slots": [],
+      "event_capture": "Playwright request/response; the fetch hook did not observe Axios XMLHttpRequest",
+      "samples": [
+        {
+          "ordinal": 1,
+          "observed": "accepted_once",
+          "request": "de7561ca-53e7-4481-b6b5-cbe7766b75c8",
+          "studio_task": "a281ddd2-3dbd-51f4-af6c-a9a5975ea280",
+          "platform_task": "media_d8c5dcaabbea8f11a50a11c19a39cdec7bc28c8d534e1510b36ec4dab3ac437f",
+          "operation": "op_fac484410a6920a2e2831c1fdf86072787b5e3b948f8b4c2",
+          "settled_points": "0",
+          "supplier_attempts": 1,
+          "source_bytes": 8348171,
+          "source_sha256": "ac0e11ca95751e43b6da5b22877ceb308a8fc3fadad6dc975ffb849bf8584838",
+          "gateway_attempt_ids": [
+            "01a1e34f-bfdd-78e2-a8a9-68684a60095c"
+          ],
+          "archive": [
+            {
+              "output_index": 0,
+              "archive_state": "saved",
+              "archive_attempts": 1,
+              "direct_original": true,
+              "file_id": "f_0c467f6a339d9ae45993b3f838e3ddaf552171ac9bffe654bc7a4809d68a",
+              "asset_id": "a_0c467f6a339d9ae45993b3f838e3ddaf552171ac9bffe654bc7a4809d68a",
+              "version_id": "v_0c467f6a339d9ae45993b3f838e3ddaf552171ac9bffe654bc7a4809d68a",
+              "charged_original_bytes": 5337,
+              "stored_sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9"
+            }
+          ],
+          "trusted_click_ms": 1794815008785,
+          "original_xhr_ms": null,
+          "studio_receipt_ms": 1794815009773,
+          "click_to_platform_202_ms": 970.956,
+          "quote": {
+            "studio_http": 503,
+            "studio_ms": 7027.0,
+            "platform_http": 503,
+            "platform_ms": 6992.146
+          }
+        },
+        {
+          "ordinal": 2,
+          "observed": "accepted_once",
+          "request": "c23709cd-0396-45ae-80da-5c13c02b2c22",
+          "studio_task": "4a44d798-27ee-532d-afc9-2629e8890a2c",
+          "platform_task": "media_c5abc12b72e11e4dcf5e23bcba33b3642853d14be0f865086519d4ea95c735cd",
+          "operation": "op_ef588fb1348d909d58581362ad9cab2969c0bed0371c9fbf",
+          "settled_points": "0",
+          "supplier_attempts": 1,
+          "source_bytes": 8348171,
+          "source_sha256": "ac0e11ca95751e43b6da5b22877ceb308a8fc3fadad6dc975ffb849bf8584838",
+          "gateway_attempt_ids": [
+            "01a1e350-3194-7db1-8513-0323be208b2d"
+          ],
+          "archive": [
+            {
+              "output_index": 0,
+              "archive_state": "saved",
+              "archive_attempts": 1,
+              "direct_original": true,
+              "file_id": "f_5b7a3f9590dd2ab8e7e8c19ccf59e15db433494f5e462f5b060c4698ebd0",
+              "asset_id": "a_5b7a3f9590dd2ab8e7e8c19ccf59e15db433494f5e462f5b060c4698ebd0",
+              "version_id": "v_5b7a3f9590dd2ab8e7e8c19ccf59e15db433494f5e462f5b060c4698ebd0",
+              "charged_original_bytes": 5337,
+              "stored_sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9"
+            }
+          ],
+          "trusted_click_ms": 1794815036376,
+          "original_xhr_ms": null,
+          "studio_receipt_ms": 1794815037463,
+          "click_to_platform_202_ms": 910.942,
+          "quote": {
+            "studio_http": 503,
+            "studio_ms": 4601.0,
+            "platform_http": 503,
+            "platform_ms": 4581.265
+          }
+        },
+        {
+          "ordinal": 3,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 4,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 5,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 6,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 7,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 8,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 9,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 10,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 11,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 12,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 13,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 14,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 15,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 16,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 17,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 18,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 19,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 20,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 21,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 22,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 23,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 24,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 25,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 26,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 27,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 28,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 29,
+          "observed": "browser_closed_before_submit"
+        },
+        {
+          "ordinal": 30,
+          "observed": "browser_closed_before_submit"
+        }
+      ]
+    },
+    {
+      "group": "w7-6fd1-studio-4k-xhr",
+      "studio": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+      "platform": "6fd1fb230d6b56104ecf9ff864110c5a6b632f5b",
+      "requested": 30,
+      "observed_slots": 13,
+      "actual_new_generations": 2,
+      "never_entered_slots": [
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "event_capture": "native XMLHttpRequest",
+      "samples": [
+        {
+          "ordinal": 1,
+          "observed": "accepted_once",
+          "request": "52365e01-cf99-4599-bd2a-07aa4d3c0390",
+          "studio_task": "1a2a3f0f-64b5-51a8-b731-11c4fc9b8d25",
+          "platform_task": "media_1793f212e92a5767f3b5c9189b6380eb31f8b147051d69b667b1dd8fcea51878",
+          "operation": "op_8433f05dfa41cf16fe4fd5047d6904d991b05062e0440116",
+          "settled_points": "0",
+          "supplier_attempts": 1,
+          "source_bytes": 8348171,
+          "source_sha256": "ac0e11ca95751e43b6da5b22877ceb308a8fc3fadad6dc975ffb849bf8584838",
+          "gateway_attempt_ids": [
+            "01a1e352-c21d-798b-8ea2-5b0f0c4d8ae0"
+          ],
+          "archive": [
+            {
+              "output_index": 0,
+              "archive_state": "saved",
+              "archive_attempts": 1,
+              "direct_original": true,
+              "file_id": "f_7c5868a4aecb9b7d4cb547b35050bd82e31c17c42513208eb37c189d79c3",
+              "asset_id": "a_7c5868a4aecb9b7d4cb547b35050bd82e31c17c42513208eb37c189d79c3",
+              "version_id": "v_7c5868a4aecb9b7d4cb547b35050bd82e31c17c42513208eb37c189d79c3",
+              "charged_original_bytes": 5337,
+              "stored_sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9"
+            }
+          ],
+          "trusted_click_ms": 1794815208590,
+          "original_xhr_ms": 1794815209492,
+          "studio_receipt_ms": 1794815210173,
+          "click_to_platform_202_ms": 1494.916,
+          "quote": {
+            "studio_http": 503,
+            "studio_ms": 3538.0,
+            "platform_http": 503,
+            "platform_ms": 3521.74
+          }
+        },
+        {
+          "ordinal": 2,
+          "observed": "sealed_material_picker_timeout_before_submit"
+        },
+        {
+          "ordinal": 3,
+          "observed": "sealed_material_picker_timeout_before_submit"
+        },
+        {
+          "ordinal": 4,
+          "observed": "sealed_material_picker_timeout_before_submit"
+        },
+        {
+          "ordinal": 5,
+          "observed": "sealed_material_picker_timeout_before_submit"
+        },
+        {
+          "ordinal": 6,
+          "observed": "sealed_material_picker_timeout_before_submit"
+        },
+        {
+          "ordinal": 7,
+          "observed": "sealed_material_picker_timeout_before_submit"
+        },
+        {
+          "ordinal": 8,
+          "observed": "accepted_once",
+          "request": "dc40e35c-a8e1-487a-9e2c-23143d0d2bc0",
+          "studio_task": "a0c6a69d-a7c3-5d67-88bb-27b136618029",
+          "platform_task": "media_26ae76adb45b7f9143efa20504771dd7a50574cfe89e9f49ca9eac51b5a4c82d",
+          "operation": "op_7f1e5d435f6b26888ec6d88e2e6c5217cbec2726ecdccd58",
+          "settled_points": "0",
+          "supplier_attempts": 1,
+          "source_bytes": 8348171,
+          "source_sha256": "ac0e11ca95751e43b6da5b22877ceb308a8fc3fadad6dc975ffb849bf8584838",
+          "gateway_attempt_ids": [
+            "01a1e356-b10f-7cac-b0df-d6c9a65f4aed"
+          ],
+          "archive": [
+            {
+              "output_index": 0,
+              "archive_state": "saved",
+              "archive_attempts": 1,
+              "direct_original": true,
+              "file_id": "f_cc862f9577d4f7b4924e935a0ccba11212041305002fb891d12fb8688fff",
+              "asset_id": "a_cc862f9577d4f7b4924e935a0ccba11212041305002fb891d12fb8688fff",
+              "version_id": "v_cc862f9577d4f7b4924e935a0ccba11212041305002fb891d12fb8688fff",
+              "charged_original_bytes": 5337,
+              "stored_sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9"
+            }
+          ],
+          "trusted_click_ms": 1794815464580,
+          "original_xhr_ms": 1794815465190,
+          "studio_receipt_ms": 1794815465870,
+          "click_to_platform_202_ms": 1110.261,
+          "quote": {
+            "studio_http": 503,
+            "studio_ms": 3425.0,
+            "platform_http": 503,
+            "platform_ms": 3406.945
+          }
+        },
+        {
+          "ordinal": 9,
+          "observed": "sealed_material_picker_timeout_before_submit"
+        },
+        {
+          "ordinal": 10,
+          "observed": "sealed_material_picker_timeout_before_submit"
+        },
+        {
+          "ordinal": 11,
+          "observed": "sealed_material_picker_timeout_before_submit"
+        },
+        {
+          "ordinal": 12,
+          "observed": "browser_setup_stopped_before_submit"
+        },
+        {
+          "ordinal": 13,
+          "observed": "browser_closed_before_submit"
+        }
+      ]
+    }
+  ],
+  "new_studio_release": {
+    "healthy": {
+      "target": "https://test.oceanway.tech:18448/api/health/ready",
+      "previous": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+      "commit": "959fa973e5b8d8368f089e52d44fe98d7eb885b4",
+      "ready": true,
+      "schema": {
+        "current": 97,
+        "expected": 97,
+        "ready": true
+      },
+      "old_backend_stopped_before_activation": true,
+      "images": {
+        "backend": "sha256:741935d9d87369849326c9f637ab26daa6591604c655feb2ee5e545569756aec",
+        "web": "sha256:e4a3d600d6ad9cef1212068719048db1bf8467d32a0fc074f53b34acd594b807"
+      },
+      "unmodified_services": [
+        "postgres",
+        "redis",
+        "yingce-agent",
+        "edge"
+      ],
+      "reloaded_w7_edge": false,
+      "dump_sha256": "a9fdc7f133387b7dcc180a4df0baff941378a169fef8e2771182177bcee8f595",
+      "utc": "2026-11-16T08:12:12.658756+00:00"
+    },
+    "restore": {
+      "source": "959fa973e5b8d8368f089e52d44fe98d7eb885b4",
+      "from": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+      "images": {
+        "backend": "sha256:741935d9d87369849326c9f637ab26daa6591604c655feb2ee5e545569756aec",
+        "web": "sha256:e4a3d600d6ad9cef1212068719048db1bf8467d32a0fc074f53b34acd594b807"
+      },
+      "dump_sha256": "a9fdc7f133387b7dcc180a4df0baff941378a169fef8e2771182177bcee8f595",
+      "dump_bytes": 136602845,
+      "restored": true,
+      "shadow_pre_schema": 97,
+      "shadow_post_schema": 97,
+      "changed_env_keys": [
+        "CANVAS_BACKEND_IMAGE",
+        "CANVAS_WEB_IMAGE"
+      ],
+      "compose_otherwise_equal": true
+    },
+    "browser_regressions": {
+      "chrome": "157.0.8103.51",
+      "scenarios": [
+        {
+          "scenario": "early-preview-close-reopen",
+          "beforeOriginalXHR": {
+            "indexedDBWrites": 1,
+            "committed": 1
+          },
+          "initial": {
+            "posts": 1,
+            "gets": 0,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "atClose": {
+            "posts": 1,
+            "gets": 2,
+            "quotes": 0,
+            "ticketGets": 1,
+            "previewReads": 1
+          },
+          "final": {
+            "posts": 1,
+            "gets": 3,
+            "quotes": 0,
+            "ticketGets": 2,
+            "previewReads": 2
+          },
+          "closedObservationMs": 1850,
+          "byCommand": 0,
+          "sameOriginal": true,
+          "originalAdopted": true
+        },
+        {
+          "scenario": "closed-before-first-studio-ack",
+          "beforeOriginalXHR": {
+            "indexedDBWrites": 1,
+            "committed": 1
+          },
+          "initial": {
+            "posts": 1,
+            "gets": 0,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "atClose": {
+            "posts": 1,
+            "gets": 0,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "final": {
+            "posts": 1,
+            "gets": 1,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "closedObservationMs": 1850,
+          "byCommand": 1,
+          "sameOriginal": true,
+          "originalAdopted": true
+        },
+        {
+          "scenario": "canvas-three-outputs-close-reopen",
+          "requestedOutputs": 3,
+          "originalNodes": 3,
+          "initialBound": [
+            0,
+            2
+          ],
+          "finalBound": [
+            0,
+            1,
+            2
+          ],
+          "unchangedOnReplay": true,
+          "posts": 1,
+          "gets": 2,
+          "bindingPosts": 3,
+          "quotes": 0,
+          "actualEarlyPreviewReads": 1,
+          "closedObservationMs": 1850
+        },
+        {
+          "scenario": "early-video-across-original-adoption",
+          "width": 64,
+          "height": 48,
+          "seekSeconds": 0.55,
+          "rangeReads": 1,
+          "posts": 1,
+          "quotes": 0,
+          "samePlayingElement": true
+        }
+      ]
+    },
+    "web_tests": {
+      "files": 497,
+      "passed": 3382,
+      "failed": 0
+    },
+    "red": {
+      "commit": "0b76b94",
+      "original_indexeddb_writes_before_send": 2,
+      "committed_before_send": 1
+    },
+    "source": "959fa973e5b8d8368f089e52d44fe98d7eb885b4",
+    "schema_cache_green": "3004be1",
+    "schema_cache_red": "0fb95cb"
+  },
+  "same_region_client_dry_runs": [
+    {
+      "revision": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+      "sample": "timing-w7-dry4k",
+      "trusted_click_to_intercepted_original_xhr_ms": 523.7,
+      "original_posts": 0,
+      "original_indexeddb": [
+        {
+          "event": "create_history_put",
+          "relative_ms": 198.6,
+          "bytes": 1611
+        },
+        {
+          "event": "create_history_put",
+          "relative_ms": 341,
+          "bytes": 1611
+        },
+        {
+          "event": "create_history_committed",
+          "relative_ms": 517.5,
+          "bytes": null
+        },
+        {
+          "event": "original_send_blocked",
+          "relative_ms": 523.7,
+          "bytes": null
+        }
+      ]
+    },
+    {
+      "revision": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+      "sample": "timing-w7-primed4k",
+      "trusted_click_to_intercepted_original_xhr_ms": 586.3,
+      "original_posts": 0,
+      "original_indexeddb": [
+        {
+          "event": "create_history_put",
+          "relative_ms": 253.6,
+          "bytes": 1614
+        },
+        {
+          "event": "create_history_put",
+          "relative_ms": 364.3,
+          "bytes": 1614
+        },
+        {
+          "event": "create_history_committed",
+          "relative_ms": 577.1,
+          "bytes": null
+        },
+        {
+          "event": "original_send_blocked",
+          "relative_ms": 586.3,
+          "bytes": null
+        }
+      ]
+    },
+    {
+      "revision": "959fa973e5b8d8368f089e52d44fe98d7eb885b4",
+      "sample": "w7-post959-dry4k",
+      "trusted_click_to_intercepted_original_xhr_ms": 501.5,
+      "original_posts": 0,
+      "original_indexeddb": [
+        {
+          "event": "create_history_put",
+          "relative_ms": 428.3,
+          "bytes": 1612
+        },
+        {
+          "event": "create_history_committed",
+          "relative_ms": 430,
+          "bytes": null
+        },
+        {
+          "event": "original_send_blocked",
+          "relative_ms": 501.5,
+          "bytes": null
+        }
+      ]
+    }
+  ]
+}
