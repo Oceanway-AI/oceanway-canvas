@@ -18,6 +18,20 @@ import styles from "./molten-metal.module.css";
 
 export type MoltenMetalColorMode = "molten" | "ember" | "frost";
 
+export function createMoltenMetalContext(canvas: HTMLCanvasElement) {
+    const gl = canvas.getContext("webgl2", { alpha: true, antialias: false, premultipliedAlpha: true, failIfMajorPerformanceCaveat: true });
+    if (!gl) return null;
+    // Some browsers grant the requested context through a CPU rasterizer.
+    // The existing CSS surface can render the same full-screen backdrop there.
+    const details = gl.getExtension("WEBGL_debug_renderer_info");
+    const renderer = details && gl.getParameter(details.UNMASKED_RENDERER_WEBGL);
+    if (typeof renderer === "string" && /\b(swiftshader|llvmpipe|lavapipe|softpipe|swrast|software rasterizer|software renderer|microsoft basic render driver)\b/i.test(renderer)) {
+        gl.getExtension("WEBGL_lose_context")?.loseContext();
+        return null;
+    }
+    return gl;
+}
+
 type MoltenMetalContext = {
     renderer: Renderer;
     program: Program;
@@ -229,9 +243,13 @@ export function MoltenMetal({
         const forcedColorsPreference = getMediaPreference("(forced-colors: active)");
         if (motionPreference.matches || transparencyPreference.matches || forcedColorsPreference.matches) return;
 
+        const canvas = document.createElement("canvas");
+        const gl = createMoltenMetalContext(canvas);
+        if (!gl) return;
         let renderer: Renderer;
         try {
             renderer = new Renderer({
+                canvas,
                 webgl: 2,
                 alpha: true,
                 premultipliedAlpha: true,
@@ -241,12 +259,11 @@ export function MoltenMetal({
                 dpr: Math.min(window.devicePixelRatio || 1, 1.5),
             });
         } catch {
+            gl.getExtension("WEBGL_lose_context")?.loseContext();
             return;
         }
 
-        const gl = renderer.gl;
         gl.clearColor(0, 0, 0, 0);
-        const canvas = gl.canvas;
         canvas.style.width = "100%";
         canvas.style.height = "100%";
         canvas.style.display = "block";
@@ -254,8 +271,8 @@ export function MoltenMetal({
         container.appendChild(canvas);
         container.dataset.contextStatus = "webgl";
 
-        const geometry = new Triangle(gl);
-        const program = new Program(gl, {
+        const geometry = new Triangle(renderer.gl);
+        const program = new Program(renderer.gl, {
             vertex,
             fragment,
             uniforms: {
@@ -283,7 +300,7 @@ export function MoltenMetal({
             },
         });
 
-        const mesh = new Mesh(gl, { geometry, program });
+        const mesh = new Mesh(renderer.gl, { geometry, program });
         ctxMap.set(container, { renderer, program, mesh });
         let contextLost = false;
 
