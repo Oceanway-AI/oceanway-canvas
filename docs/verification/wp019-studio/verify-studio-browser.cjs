@@ -27,6 +27,35 @@ async function restrictedContext(browser, options) {
 async function scenario(browser, loseResponse) {
     const before = await counts();
     const context = await restrictedContext(browser);
+    await context.addInitScript(() => {
+        const started = new Map();
+        const committed = new Map();
+        const put = IDBObjectStore.prototype.put;
+        IDBObjectStore.prototype.put = function (value, key) {
+            const request = put.call(this, value, key);
+            if (typeof value !== "string" || !String(key).startsWith("creation-conversations-v1:user:")) return request;
+            const ids = JSON.parse(value).flatMap((conversation) => conversation.messages.map((message) => message.studioGenerationCommand).filter(Boolean));
+            for (const id of ids) started.set(id, (started.get(id) || 0) + 1);
+            this.transaction.addEventListener("complete", () => {
+                for (const id of ids) committed.set(id, (committed.get(id) || 0) + 1);
+            });
+            return request;
+        };
+        const open = XMLHttpRequest.prototype.open;
+        const send = XMLHttpRequest.prototype.send;
+        const generation = new WeakSet();
+        XMLHttpRequest.prototype.open = function (method, url, ...args) {
+            if (method.toUpperCase() === "POST" && new URL(url, location.href).pathname === "/api/tasks") generation.add(this);
+            return open.call(this, method, url, ...args);
+        };
+        XMLHttpRequest.prototype.send = function (body) {
+            if (generation.has(this)) {
+                const id = JSON.parse(body).commandId;
+                window.originalPersistence = { id, writes: started.get(id) || 0, commits: committed.get(id) || 0 };
+            }
+            return send.call(this, body);
+        };
+    });
     try {
         const page = await context.newPage();
         await page.goto(endpoint("/create").href);
@@ -60,6 +89,7 @@ async function scenario(browser, loseResponse) {
         const task = await ack;
         assert.equal(task.status, "running");
         assert.ok(task.id && task.platformGenerationRequest);
+        assert.deepEqual(await page.evaluate(() => window.originalPersistence), { id: task.platformGenerationRequest, writes: 1, commits: 1 });
         const initial = await counts();
         assert.equal(initial.posts, before.posts + 1);
         assert.equal(initial.gets, before.gets);
