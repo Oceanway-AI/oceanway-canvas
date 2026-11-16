@@ -31,6 +31,12 @@ func TestStudioPiNativeMediaApprovalPreservesProtocolAndRequest(t *testing.T) {
 	}
 }
 
+func TestStudioPiGenerationAction(t *testing.T) {
+	for _, scenario := range []string{"v1_manual_first", "v1_approval_first", "v1_manual_lost", "v1_approval_lost"} {
+		t.Run(scenario, func(t *testing.T) { studioPiMediaApprovalScenario(t, scenario) })
+	}
+}
+
 func TestStudioPiMediaPreviewDoesNotAuthorize(t *testing.T) {
 	studioPiMediaApprovalScenario(t, "preview_only")
 }
@@ -50,6 +56,13 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	submits, recoveries := 0, 0
 	currentCapability, currentConnection := strings.Repeat("a", 64), int64(7)
 	catalog := studioAgentMediaFixtureCatalog
+	v1 := strings.HasPrefix(scenario, "v1_")
+	postedID := ""
+	postedLimit := ""
+	runRef := ""
+	if v1 {
+		catalog = strings.Replace(catalog, `"id":"generate","protocol"`, `"id":"generate","media_generation_v1":true,"protocol"`, 1)
+	}
 	kind, submitPath := "image", "/internal/relay/images/generations"
 	nativeProtocol := ""
 	if strings.HasPrefix(scenario, "native_") {
@@ -120,6 +133,30 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 				quote.ConnectionRevision = 0
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": quote})
+		case v1 && strings.HasPrefix(r.URL.Path, "/internal/products/v1/media-generations"):
+			if r.Header.Get("X-Platform-Execution-Authorization") != "exa_media_run" {
+				t.Error("v1 action lost run authority")
+			}
+			if r.Method == "POST" {
+				submits++
+				var in platformclient.MediaCommand
+				_ = json.NewDecoder(r.Body).Decode(&in)
+				postedID = in.RequestID
+				runRef = in.ProductTaskID
+				if in.Consumption != nil {
+					postedLimit = in.Consumption.WalletMaxPoints
+				}
+				if strings.HasSuffix(scenario, "lost") {
+					w.WriteHeader(503)
+					return
+				}
+			} else {
+				recoveries++
+				if !strings.HasSuffix(r.URL.Path, "/"+postedID) {
+					t.Error("changed recovery id")
+				}
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"request_id": postedID, "task_id": "original-pi", "revision": 1, "execution_state": "running", "funds_state": "reserved", "outputs": []any{}, "retry_after_ms": 500})
 		case r.URL.Path == submitPath:
 			submits++
 			if nativeProtocol != "" && kind == "image" && r.Header.Get("Prefer") != "respond-async" {
@@ -391,6 +428,47 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	// Hold the native waiter so this fixture can inspect the atomic queued checkpoint.
 	s.claimCloudAgentApprovalFollowUp(cloudAgentApprovalFollowUpKey(run.ID, approval))
 	defer s.releaseCloudAgentApprovalFollowUp(cloudAgentApprovalFollowUpKey(run.ID, approval))
+	if v1 {
+		// Exercise the actual action while the live Pi continuation is held.
+		s.approvedMediaClosed = true
+		manual := func() *model.Task {
+			req := CreateTaskRequest{CommandID: "manual-original", ProjectID: "media-canvas", Type: "canvas_image", Operation: "image", Prompt: "manual image", Model: "image-model", Platform: &StudioTaskOptions{ExpectedPriceVersion: "price-1", WalletMaxPoints: "0"}, Input: map[string]any{"mode": "image", "config": map[string]any{"model": "image-model", "channelId": StudioPlatformChannelID, "imageParameters": map[string]any{"count": 1, "size": "1:1"}}, "metadata": map[string]any{"nodeId": "batch-child", "sourceNodeId": "image-node", "studioPendingRunId": run.ID}}}
+			task, _, err := s.StudioCreateTask(context.Background(), "user", session, req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return task
+		}
+		approve := func() {
+			if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", quote.ID, nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		var winner *model.Task
+		manualFirst := strings.HasPrefix(scenario, "v1_manual")
+		if manualFirst {
+			winner = manual()
+			approve()
+		} else {
+			approve()
+			winner = manual()
+		}
+		approve()
+		original, err := s.StudioTaskByCommand("user", "manual-original", "user")
+		if err != nil || original.ID != winner.ID {
+			t.Fatalf("manual alias lost %v %+v", err, original)
+		}
+		latest, _ := s.repo.CloudAgent("user", run.ID)
+		checkpoint, _ := cloudAgentDecode(latest)
+		if submits != 1 || runRef != run.ID || checkpoint.MediaTaskID != winner.ID || winner.PlatformGenerationRequest != postedID || latest.Status != "running" {
+			t.Fatalf("posts=%d request=%s ref=%s winner=%s active=%s state=%s", submits, postedID, runRef, winner.ID, checkpoint.MediaTaskID, latest.Status)
+		}
+		if manualFirst && (postedID != "manual-original" || postedLimit != "0") || !manualFirst && postedLimit != maximum {
+			t.Fatalf("changed winner scope %s", postedLimit)
+		}
+		return
+	}
+
 	if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", quote.ID, nil); err != nil {
 		t.Fatal(err)
 	}
