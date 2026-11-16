@@ -3501,6 +3501,56 @@ paths:
           $ref: "#/components/responses/Envelope"
         "400":
           $ref: "#/components/responses/Error"
+  /tasks/estimate:
+    post:
+      tags: [tasks]
+      summary: 按当前账号、原生变体和封存参考查询标准积分
+      description: 创作页和画布共用此估价。结果只用于显示，已知零点返回字符串 "0"，未知用量省略 points。正式生成和显式消费确认分别核权。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/CreateTaskRequest"
+                - type: object
+                  required: [type, prompt, platform]
+                  properties:
+                    type: { type: string, enum: [canvas_image, canvas_video] }
+                    model: { type: string, description: 模型名也可由 input.config.model 指定 }
+                    platform:
+                      type: object
+                      required: [variantId, expectedPriceVersion]
+                      properties:
+                        expectedUserId: { type: string }
+                        variantId: { type: string }
+                        expectedPriceVersion: { type: string }
+                        expectedCapabilityRevision: { type: string }
+                        expectedConnectionRevision: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: 当前参数的标准积分及正式版本
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [code, data]
+                properties:
+                  code: { type: integer, enum: [0] }
+                  data:
+                    type: object
+                    required: [state, priceVersion, variantId]
+                    properties:
+                      state: { type: string, enum: [available, unavailable] }
+                      points: { type: string, pattern: '^[0-9]+(\.[0-9]+)?$' }
+                      priceVersion: { type: string }
+                      variantId: { type: string }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
   /tasks/{id}/adopt-outputs:
     post:
       tags: [tasks]
