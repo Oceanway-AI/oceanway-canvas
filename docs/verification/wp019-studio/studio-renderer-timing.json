@@ -1,0 +1,469 @@
+{
+  "fixture": "Same-region Chromium 156, original Studio 22529d5 after warm-up, private 3840x2160 synthetic original. Each intervention ran before native dispatch.",
+  "probes": {
+    "first_2cpu": {
+      "click_handler_to_send_ms": 395.1,
+      "original_network_generations": 0,
+      "compositor": [],
+      "cpu_samples": [
+        {
+          "function": "(program)",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 386.6
+        },
+        {
+          "function": "blur",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 1.4
+        },
+        {
+          "function": "drawImage",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 1.3
+        },
+        {
+          "function": "use",
+          "script": "molten-metal-CyqV-GZI.js",
+          "line": 3,
+          "column": 4325,
+          "selfMs": 1.2
+        },
+        {
+          "function": "u",
+          "script": "agent-avatar-video-CqVHnxv_.js",
+          "line": 2,
+          "column": 6320,
+          "selfMs": 1
+        },
+        {
+          "function": "Be",
+          "script": "generation-task-ByZoj9j5.js",
+          "line": 1,
+          "column": 15652,
+          "selfMs": 0.8
+        }
+      ],
+      "effects": null
+    },
+    "second_4cpu": {
+      "click_handler_to_send_ms": 90.6,
+      "original_network_generations": 0,
+      "compositor": [],
+      "cpu_samples": [
+        {
+          "function": "(program)",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 81.8
+        },
+        {
+          "function": "drawImage",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 1.9
+        },
+        {
+          "function": "blur",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 1.3
+        },
+        {
+          "function": "r",
+          "script": "client-id-CoAmbM05.js",
+          "line": 1,
+          "column": 117,
+          "selfMs": 0.7
+        },
+        {
+          "function": "IDBObjectStore.put",
+          "script": null,
+          "line": 5,
+          "column": 80,
+          "selfMs": 0.6
+        },
+        {
+          "function": "pp",
+          "script": "vendor-react-BKzeR9DJ.js",
+          "line": 9,
+          "column": 29117,
+          "selfMs": 0.6
+        }
+      ],
+      "effects": null
+    },
+    "reversed_4cpu": {
+      "click_handler_to_send_ms": 189.5,
+      "original_network_generations": 0,
+      "compositor": [
+        {
+          "event": "ProxyMain::BeginMainFrame",
+          "calls": 2,
+          "inclusiveWallMs": 175.1,
+          "cpuMs": 21.3,
+          "cpuMeasured": 2
+        },
+        {
+          "event": "Commit",
+          "calls": 2,
+          "inclusiveWallMs": 162.2,
+          "cpuMs": 8.8,
+          "cpuMeasured": 2
+        },
+        {
+          "event": "GLES2::ReadPixels",
+          "calls": 2,
+          "inclusiveWallMs": 156.5,
+          "cpuMs": 3.8,
+          "cpuMeasured": 2
+        }
+      ],
+      "cpu_samples": [
+        {
+          "function": "(program)",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 182
+        },
+        {
+          "function": "blur",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 1.9
+        },
+        {
+          "function": "xc",
+          "script": "vendor-react-BKzeR9DJ.js",
+          "line": 8,
+          "column": 78973,
+          "selfMs": 1.4
+        },
+        {
+          "function": "encode",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 0.7
+        },
+        {
+          "function": "mark",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 0.7
+        },
+        {
+          "function": "send",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 0.6
+        }
+      ],
+      "effects": null
+    },
+    "reversed_2cpu": {
+      "click_handler_to_send_ms": 469.7,
+      "original_network_generations": 0,
+      "compositor": [
+        {
+          "event": "ProxyMain::BeginMainFrame",
+          "calls": 2,
+          "inclusiveWallMs": 386.8,
+          "cpuMs": 24.9,
+          "cpuMeasured": 2
+        },
+        {
+          "event": "Commit",
+          "calls": 2,
+          "inclusiveWallMs": 330.3,
+          "cpuMs": 9.3,
+          "cpuMeasured": 2
+        },
+        {
+          "event": "GLES2::ReadPixels",
+          "calls": 2,
+          "inclusiveWallMs": 323.3,
+          "cpuMs": 4.1,
+          "cpuMeasured": 2
+        }
+      ],
+      "cpu_samples": [
+        {
+          "function": "(program)",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 418.5
+        },
+        {
+          "function": "drawImage",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 43.7
+        },
+        {
+          "function": "u",
+          "script": "agent-avatar-video-CqVHnxv_.js",
+          "line": 2,
+          "column": 6320,
+          "selfMs": 1.9
+        },
+        {
+          "function": "mark",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 1.2
+        },
+        {
+          "function": "blur",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 1.2
+        },
+        {
+          "function": "o",
+          "script": "platform-native-image-size-BYBoYhcC.js",
+          "line": 1,
+          "column": 1287,
+          "selfMs": 0.7
+        }
+      ],
+      "effects": null
+    },
+    "pause_stock_avatar_only": {
+      "click_handler_to_send_ms": 389.6,
+      "original_network_generations": 0,
+      "compositor": [
+        {
+          "event": "ProxyMain::BeginMainFrame",
+          "calls": 2,
+          "inclusiveWallMs": 377,
+          "cpuMs": 18.5,
+          "cpuMeasured": 2
+        },
+        {
+          "event": "Commit",
+          "calls": 2,
+          "inclusiveWallMs": 365.1,
+          "cpuMs": 7.1,
+          "cpuMeasured": 2
+        },
+        {
+          "event": "GLES2::ReadPixels",
+          "calls": 2,
+          "inclusiveWallMs": 360.5,
+          "cpuMs": 2.9,
+          "cpuMeasured": 2
+        }
+      ],
+      "cpu_samples": [
+        {
+          "function": "(program)",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 384.5
+        },
+        {
+          "function": "blur",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 1.4
+        },
+        {
+          "function": "D",
+          "script": "vendor-react-BKzeR9DJ.js",
+          "line": 1,
+          "column": 16024,
+          "selfMs": 1.3
+        },
+        {
+          "function": "mark",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 1.1
+        },
+        {
+          "function": "log",
+          "script": null,
+          "line": 3,
+          "column": 33,
+          "selfMs": 0.7
+        },
+        {
+          "function": "g",
+          "script": "resources-CyZ-Armd.js",
+          "line": 1,
+          "column": 986,
+          "selfMs": 0.6
+        }
+      ],
+      "effects": {
+        "avatar": {
+          "input": [
+            480,
+            432
+          ],
+          "draw": [
+            320,
+            288
+          ],
+          "display": [
+            156.93994140625,
+            141.5999755859375
+          ],
+          "playing": true
+        },
+        "background": {
+          "buffer": [
+            1500,
+            1000
+          ],
+          "display": [
+            1500,
+            1000
+          ],
+          "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+        },
+        "avatarPaused": true
+      }
+    },
+    "original_css_backdrop_keep_avatar": {
+      "click_handler_to_send_ms": 59.7,
+      "original_network_generations": 0,
+      "compositor": [
+        {
+          "event": "ProxyMain::BeginMainFrame",
+          "calls": 2,
+          "inclusiveWallMs": 49.4,
+          "cpuMs": 13,
+          "cpuMeasured": 2
+        },
+        {
+          "event": "Commit",
+          "calls": 2,
+          "inclusiveWallMs": 1.2,
+          "cpuMs": 0.7,
+          "cpuMeasured": 2
+        }
+      ],
+      "cpu_samples": [
+        {
+          "function": "(program)",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 50.4
+        },
+        {
+          "function": "J",
+          "script": "use-config-store-C2PsIeD_.js",
+          "line": 1,
+          "column": 16407,
+          "selfMs": 2.2
+        },
+        {
+          "function": "mark",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 2.1
+        },
+        {
+          "function": "drawImage",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 1.9
+        },
+        {
+          "function": "blur",
+          "script": null,
+          "line": 0,
+          "column": 0,
+          "selfMs": 1.3
+        },
+        {
+          "function": "$t",
+          "script": "vendor-react-BKzeR9DJ.js",
+          "line": 8,
+          "column": 15211,
+          "selfMs": 0.8
+        }
+      ],
+      "effects": {
+        "avatar": {
+          "input": [
+            480,
+            432
+          ],
+          "draw": [
+            320,
+            288
+          ],
+          "display": [
+            156.93994140625,
+            141.5999755859375
+          ],
+          "playing": true
+        },
+        "background": {
+          "buffer": [
+            1500,
+            1000
+          ],
+          "display": [
+            1500,
+            1000
+          ],
+          "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+        },
+        "backgroundFallback": "lost-fallback"
+      }
+    }
+  },
+  "hardware_browser": {
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "initial": "webgl",
+    "canvasCount": 1,
+    "lost": "lost-fallback",
+    "restored": "restored-fallback",
+    "unmountedCanvases": 0,
+    "browser": "157.0.8103.51"
+  },
+  "software_browser": {
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+    "initial": "css-fallback",
+    "canvasCount": 0,
+    "lost": null,
+    "restored": null,
+    "unmountedCanvases": 0,
+    "browser": "157.0.8103.51"
+  },
+  "prior_browser": {
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+    "initial": "webgl",
+    "canvasCount": 1,
+    "lost": "lost-fallback",
+    "restored": "restored-fallback",
+    "unmountedCanvases": 0,
+    "browser": "157.0.8103.51"
+  }
+}

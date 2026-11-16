@@ -1,0 +1,130 @@
+{
+  "chrome": "157.0.8103.51",
+  "scenarios": [
+    {
+      "scenario": "early-preview-close-reopen",
+      "beforeOriginalXHR": {
+        "indexedDBWrites": 1,
+        "committed": 1
+      },
+      "initial": {
+        "posts": 1,
+        "gets": 0,
+        "quotes": 0,
+        "ticketGets": 0,
+        "previewReads": 0
+      },
+      "atClose": {
+        "posts": 1,
+        "gets": 2,
+        "quotes": 0,
+        "ticketGets": 1,
+        "previewReads": 1
+      },
+      "final": {
+        "posts": 1,
+        "gets": 3,
+        "quotes": 0,
+        "ticketGets": 2,
+        "previewReads": 2
+      },
+      "closedObservationMs": 1850,
+      "byCommand": 0,
+      "sameOriginal": true,
+      "originalAdopted": true
+    },
+    {
+      "scenario": "closed-before-first-studio-ack",
+      "beforeOriginalXHR": {
+        "indexedDBWrites": 1,
+        "committed": 1
+      },
+      "initial": {
+        "posts": 1,
+        "gets": 0,
+        "quotes": 0,
+        "ticketGets": 0,
+        "previewReads": 0
+      },
+      "atClose": {
+        "posts": 1,
+        "gets": 0,
+        "quotes": 0,
+        "ticketGets": 0,
+        "previewReads": 0
+      },
+      "final": {
+        "posts": 1,
+        "gets": 1,
+        "quotes": 0,
+        "ticketGets": 0,
+        "previewReads": 0
+      },
+      "closedObservationMs": 1850,
+      "byCommand": 1,
+      "sameOriginal": true,
+      "originalAdopted": true
+    },
+    {
+      "scenario": "canvas-three-outputs-close-reopen",
+      "requestedOutputs": 3,
+      "originalNodes": 3,
+      "initialBound": [
+        0,
+        2
+      ],
+      "finalBound": [
+        0,
+        1,
+        2
+      ],
+      "unchangedOnReplay": true,
+      "posts": 1,
+      "gets": 2,
+      "bindingPosts": 3,
+      "quotes": 0,
+      "displayedStandardPoints": "0",
+      "actualEarlyPreviewReads": 1,
+      "closedObservationMs": 1850
+    },
+    {
+      "scenario": "early-video-across-original-adoption",
+      "frame": {
+        "width": 64,
+        "height": 48,
+        "presented": 4,
+        "inMessage": true
+      },
+      "seekSeconds": 0.55,
+      "rangeReads": 1,
+      "posts": 1,
+      "quotes": 0,
+      "samePlayingElement": true
+    },
+    {
+      "scenario": "first-observation-saved-video",
+      "frame": {
+        "width": 64,
+        "height": 48,
+        "presented": 3,
+        "inMessage": true
+      },
+      "seekSeconds": 0.55,
+      "rangeReads": 1,
+      "posts": 1,
+      "quotes": 0,
+      "samePlayingElement": true
+    },
+    {
+      "scenario": "account-standard-price-with-independent-submit",
+      "points": [
+        "2.75",
+        null,
+        "0"
+      ],
+      "offlineSubmit": true,
+      "posts": 1,
+      "fullConsumptionPreviews": 0
+    }
+  ]
+}
