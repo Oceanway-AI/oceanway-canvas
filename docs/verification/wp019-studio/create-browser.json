@@ -1,0 +1,61 @@
+{
+  "chrome": "157.0.8103.51",
+  "scenarios": [
+    {
+      "scenario": "early-preview-close-reopen",
+      "initial": {
+        "posts": 1,
+        "gets": 0,
+        "quotes": 0,
+        "ticketGets": 0,
+        "previewReads": 0
+      },
+      "atClose": {
+        "posts": 1,
+        "gets": 2,
+        "quotes": 0,
+        "ticketGets": 1,
+        "previewReads": 1
+      },
+      "final": {
+        "posts": 1,
+        "gets": 3,
+        "quotes": 0,
+        "ticketGets": 2,
+        "previewReads": 2
+      },
+      "closedObservationMs": 1850,
+      "byCommand": 0,
+      "sameOriginal": true,
+      "originalAdopted": true
+    },
+    {
+      "scenario": "closed-before-first-studio-ack",
+      "initial": {
+        "posts": 1,
+        "gets": 0,
+        "quotes": 0,
+        "ticketGets": 0,
+        "previewReads": 0
+      },
+      "atClose": {
+        "posts": 1,
+        "gets": 0,
+        "quotes": 0,
+        "ticketGets": 0,
+        "previewReads": 0
+      },
+      "final": {
+        "posts": 1,
+        "gets": 1,
+        "quotes": 0,
+        "ticketGets": 0,
+        "previewReads": 0
+      },
+      "closedObservationMs": 1850,
+      "byCommand": 1,
+      "sameOriginal": true,
+      "originalAdopted": true
+    }
+  ]
+}
