@@ -136,9 +136,12 @@ test("create workbench shows already adopted original slots while the same comma
 
 test("the first saved video receipt retains its authorized original preview while playback is being prepared", () => {
     const first = task({
-        provider: "platform", status: "succeeded", platformRevision: 3, platformGenerationRequest: "already-saved",
-        earlyPreviews: [{index: 0, kind: "video"}],
-        resultJson: JSON.stringify({outputs:[{index:0,kind:"video",materialState:"saved",resourceId:"r-video",media:{storageKey:"resource:r-video",dataUrl:"/api/resources/r-video/file"}}]}),
+        provider: "platform",
+        status: "succeeded",
+        platformRevision: 3,
+        platformGenerationRequest: "already-saved",
+        earlyPreviews: [{ index: 0, kind: "video" }],
+        resultJson: JSON.stringify({ outputs: [{ index: 0, kind: "video", materialState: "saved", resourceId: "r-video", media: { storageKey: "resource:r-video", dataUrl: "/api/resources/r-video/file" } }] }),
     });
-    expect(studioCreationOutputSnapshot([first])).toMatchObject({earlyPreviews:[{taskId:first.id,index:0,kind:"video"}],resultStorageKeys:["resource:r-video"]});
+    expect(studioCreationOutputSnapshot([first])).toMatchObject({ earlyPreviews: [{ taskId: first.id, index: 0, kind: "video" }], resultStorageKeys: ["resource:r-video"] });
 });

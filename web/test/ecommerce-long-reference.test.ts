@@ -20,6 +20,7 @@ beforeAll(() => {
     }
 });
 beforeEach(() => {
+    dom.localStorage.clear();
     clearResourceAccessCache();
     setActiveUserScope("long-reference-owner");
 });
