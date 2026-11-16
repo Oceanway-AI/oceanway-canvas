@@ -96,7 +96,7 @@
     "The original browser observer recorded byteLength=0 when Playwright postDataBuffer was unavailable for resumed PUT2-5. This field does not measure sent bytes. Five acknowledged ETags, exact worker part reads, original digest and DB metadata independently verify the uploaded content.",
     "The initial run closed the page and opened a new page in the same browser context. The readback later used a new Chrome process with the saved original browser state.",
     "Worker events observe original sealing and variant I/O. Browser direct PUT and browser CDN download have separate observations.",
-    "The external volume became unavailable after collection. JSON artifacts are exact tool-return transcriptions recovered from this agent own local session log. The screenshot is a copy of the image displayed by view_image, with no claim of byte identity with the original screenshot PNG."
+    "The external volume was temporarily unavailable after collection. On reconnection all JSON values matched the tool-return copies, the ready screenshot bytes matched exactly, and original files replaced the intermediate copy. artifact-recovery.json retains the verification and prior recovery history."
   ],
   "worker": {
     "whitelisted_events": 13,

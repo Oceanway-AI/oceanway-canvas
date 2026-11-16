@@ -16,4 +16,4 @@
 
 `run-browser-recovery.cjs` 是首次执行的脚本，包含创建上传的操作。它对已有 create 记录拒绝再次运行。已完成的本批次使用 `studio-readback.json` 和数据库记录作后续核验。
 
-完成浏览器、数据库核对之后，保存原始文件的外盘暂时不可用。这里的 JSON 从本 agent 内部盘会话记录中提取精确工具返回，`artifact-recovery.json` 列出对应调用。`studio-recovered-ready.png` 从 `view_image` 当时显示的图像数据恢复，属于工具显示图像副本。原截图文件哈希尚未取得，因此未声称这份副本与原 PNG 字节完全相同。原浏览器状态、签名 URL、Cookie、错误对象和下载原件均未收录，外盘恢复后可继续取得原文件。
+完成浏览器、数据库核对之后，保存原始文件的外盘曾暂时不可用。首个证据提交从本 agent 内部盘会话记录提取精确工具返回，并恢复 `view_image` 当时显示的图片。外盘重新连接后，原始失败 JSON、数据库 JSON、worker JSON 和完成态截图均逐字匹配原文件 SHA-256。readback JSON 的解析值完全相同，仅缩进不同，现已换回原文件。首片完成与重开待续传的原始截图也已加入。`artifact-recovery.json` 保留调用来源、前后哈希和恢复记录。私有浏览器状态、签名 URL、Cookie、错误对象和下载原件均未收录。
