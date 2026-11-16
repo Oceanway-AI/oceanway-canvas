@@ -1,0 +1,129 @@
+{
+  "observed_utc": "2026-11-16T15:17:02.673538+00:00",
+  "platform": {
+    "repository": "Oceanway-AI/oceanway-platform",
+    "run_id": 43887923479,
+    "head_sha": "e2ec8f24aa620c07549ace23b6305ad7b77b1998",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "databaseId": 133370973905,
+        "name": "Changed engineering scopes",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-11-16T14:38:54Z",
+        "completedAt": "2026-11-16T14:39:10Z"
+      },
+      {
+        "databaseId": 133371151474,
+        "name": "Frontend typecheck and test",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-11-16T14:39:13Z",
+        "completedAt": "2026-11-16T15:00:53Z"
+      },
+      {
+        "databaseId": 133371151569,
+        "name": "Backend vet, build, and test",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-11-16T14:39:12Z",
+        "completedAt": "2026-11-16T15:09:42Z"
+      }
+    ],
+    "frontend": {
+      "job_id": 133371151474,
+      "test_files": 434,
+      "tests_passed": 5007,
+      "tests_failed": 0,
+      "typecheck": "passed",
+      "lint": "passed",
+      "build": "passed",
+      "log_sha256": "0d1a441580841c08f7a01f3693ca68039c5474c513bbd2f165a96ccc5d7452d7"
+    },
+    "isolated_postgres": {
+      "job_id": 133371151569,
+      "counts": {
+        "PASS": 679,
+        "SKIP": 3
+      },
+      "allowed_skips": [
+        "TestPlatformAccountingPostgresProcessHelper",
+        "TestPlatformMediaCatalogLivePostgresAudit",
+        "TestPlatformRelayPostgresProcessHelper"
+      ],
+      "failed": 0,
+      "missing": 0,
+      "unexpected_skip": 0,
+      "verified": true,
+      "cleanup": true,
+      "server_identity_verified": true,
+      "postgres_version": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-1.pgdg24.04+2)",
+      "parsed_summary_sha256": "585081b584045e44feb4329abe7ccb97bef731fba5e96ce4969a6496223dd1e7",
+      "log_sha256": "74f09ae191c8f5b07a52d4d76052aedfda7c6440e5032dec661c3ef45749db34"
+    },
+    "sdk_formal_http_owned_postgres_race": {
+      "top_level_passed": 12,
+      "exit_code": 0,
+      "sdk_source_stable": true,
+      "provider_source_stable": true
+    }
+  },
+  "gateway": {
+    "repository": "Oceanway-AI/oceanway-media-gateway",
+    "run_id": 43881074615,
+    "head_sha": "55c884b58b8fd2b7430355bf6608392931563656",
+    "status": "queued",
+    "conclusion": "",
+    "jobs": [
+      {
+        "databaseId": 133346811178,
+        "name": "components",
+        "status": "queued",
+        "conclusion": "",
+        "startedAt": "2026-11-16T13:59:07Z",
+        "completedAt": "0001-01-01T00:00:00Z"
+      },
+      {
+        "databaseId": 133346811541,
+        "name": "backend",
+        "status": "queued",
+        "conclusion": "",
+        "startedAt": "2026-11-16T13:59:07Z",
+        "completedAt": "0001-01-01T00:00:00Z"
+      },
+      {
+        "databaseId": 133346811634,
+        "name": "web",
+        "status": "queued",
+        "conclusion": "",
+        "startedAt": "2026-11-16T13:59:07Z",
+        "completedAt": "0001-01-01T00:00:00Z"
+      },
+      {
+        "databaseId": 133346811921,
+        "name": "secrets",
+        "status": "queued",
+        "conclusion": "",
+        "startedAt": "2026-11-16T13:59:07Z",
+        "completedAt": "0001-01-01T00:00:00Z"
+      },
+      {
+        "databaseId": 133346812081,
+        "name": "compose",
+        "status": "queued",
+        "conclusion": "",
+        "startedAt": "2026-11-16T13:59:07Z",
+        "completedAt": "0001-01-01T00:00:00Z"
+      }
+    ]
+  },
+  "studio": {
+    "repository": "Oceanway-AI/oceanway-canvas",
+    "pull_request": 4,
+    "observed_head": "c46d7c17be477adcf918472a734fbd58432a1174",
+    "checks_reported": 0,
+    "meaning": "No CI check result was available for this PR head. The source verification and W7 runtime evidence are recorded separately."
+  }
+}
