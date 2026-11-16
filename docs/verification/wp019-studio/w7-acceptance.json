@@ -41,6 +41,24 @@
         "CANVAS_WEB_IMAGE"
       ],
       "compose_otherwise_equal": true
+    },
+    {
+      "source": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+      "from": "6bdb41256f309b204e376c5a265e88d446817270",
+      "images": {
+        "backend": "sha256:a44631401e1a162ce0b211fe15518af85e49b6dc4d6542230d72fceb272018bb",
+        "web": "sha256:921de6c30ff05f9f9f4ce1ca2c069aaba085b57d42a91269cf01fe2a065bf08d"
+      },
+      "dump_sha256": "db704c590d894a98957c5c26676e7542dc551bbc63bb406cbb69224038ff4df8",
+      "dump_bytes": 136590581,
+      "restored": true,
+      "shadow_pre_schema": 97,
+      "shadow_post_schema": 97,
+      "changed_env_keys": [
+        "CANVAS_BACKEND_IMAGE",
+        "CANVAS_WEB_IMAGE"
+      ],
+      "compose_otherwise_equal": true
     }
   ],
   "initial_browser_requests": [
@@ -373,5 +391,96 @@
     "initial_browser_reopen_error": "page.evaluate: TypeError: Failed to fetch",
     "reopened": true
   },
-  "latency_scope": "Initial examples are individual pre-fix observations. Frozen >=30 same-region timing groups are reported separately."
+  "latency_scope": "Initial examples are individual pre-fix observations. Frozen >=30 same-region timing groups are reported separately.",
+  "w7_revision_1decbb41": {
+    "compiled_source": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+    "actual_route_comparison": [
+      {
+        "at": "2026-11-16T07:29:16.420541141Z",
+        "method": "POST",
+        "path": "/api/tasks",
+        "http": 200,
+        "duration_ms": 512.0
+      },
+      {
+        "at": "2026-11-16T07:29:15.914926174Z",
+        "method": "GET",
+        "path": "/api/platform/v1/identity",
+        "http": 200,
+        "duration_ms": 5.964
+      },
+      {
+        "at": "2026-11-16T07:29:16.415914735Z",
+        "method": "POST",
+        "path": "/internal/products/v1/media-generations",
+        "http": 202,
+        "duration_ms": 485.386
+      }
+    ],
+    "request_id": "5b5b7e52-dace-47f6-9912-7500722b3d77",
+    "studio_task_id": "d9e19765-b26b-5ecc-ae0a-03e30fb77847",
+    "platform_task_id": "media_8085fec8b34f25021e6dd104bbcc677ba1ef2a225459698ccec6da93d9e7f5a6",
+    "click_to_browser_receipt_ms": 878,
+    "post_to_browser_receipt_ms": 668,
+    "wallet": {
+      "operation_id": "op_75d0d6f4a07b7cdf771a7411ece5970c9b4e64ea489fe14c",
+      "reserved_points": "0",
+      "settled_points": "0",
+      "funds_state": "settled"
+    },
+    "source_attempts": 1,
+    "reopened_same_original": true,
+    "output": {
+      "index": 0,
+      "kind": "image",
+      "materialState": "saved",
+      "contentState": "available",
+      "previewState": "available",
+      "resourceId": "e6191fb0-ae16-59a1-8777-eae33134142e",
+      "failureCode": null,
+      "bytes": 5337,
+      "width": 1024,
+      "height": 1024,
+      "durationMs": null
+    },
+    "targeted_go_race": {
+      "top_level": 6,
+      "including_subtests": 8,
+      "fail": 0,
+      "skip": 0,
+      "elapsed_s": 77.041
+    },
+    "chrome_region": "Mac Chrome over W7 HTTPS"
+  },
+  "same_region_video_pilot": {
+    "platform": "d5354f9e8d149623cd4272c356431217ae8db0fa",
+    "studio": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+    "client": "W7 host, independent Linux/amd64 Chromium 156.0.8078.79",
+    "request_id": "c8b8dcf0-5ee7-44b3-ab80-204c953dd2d1",
+    "platform_task_id": "media_3f0ec58cf3c8a09e121f25a8758d5d1c977c120d3a7b73d89b7d8633efb4f394",
+    "input_bytes": 773745,
+    "explicit_quote": {
+      "studio_ms": 251,
+      "platform_ms": 234.18,
+      "points": "0"
+    },
+    "real_dom_click_ms": 1794814486883,
+    "browser_driver_observed_post_ms": 1794814487867,
+    "studio_post_ms": 554,
+    "platform_admission_ms": 523.97,
+    "result_publication_utc": "2026-11-16T07:34:52.146435+00:00",
+    "actual_frame": {
+      "timeMs": 1794814495683,
+      "hostTask": "23395e3a-ecbb-5890-a2ca-6e2664d1e80c",
+      "resource": null,
+      "mediaTime": 0,
+      "presentedFrames": 1,
+      "width": 1280,
+      "height": 720
+    },
+    "published_to_frame_ms": 3536.565,
+    "click_to_browser_receipt_ms": 1601,
+    "original_attempts": 1,
+    "source": "W7 Studio and Platform access logs, scoped Gateway original, requestVideoFrameCallback for this Studio task preview. This n=1 pilot is separate from the fixed group."
+  }
 }
