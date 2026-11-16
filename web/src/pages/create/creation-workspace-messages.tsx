@@ -11,6 +11,7 @@ import { AIMessageMarkdown } from "@/components/ai/ai-message-markdown";
 import { WorkingDots } from "@/components/ai/working-indicator";
 import { UserAvatar } from "@/components/layout/user-avatar";
 import { generationErrorMessage } from "@/lib/generation-error";
+import { translate } from "@/i18n";
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { generationPhaseHint, generationPhaseLabel, generationPhaseStep, generationTaskPhase, generationTaskSavingState, generationTaskShowsProgress, type GenerationPhase } from "@/lib/generation-task-display";
 import { useTaskElapsed } from "@/hooks/use-task-elapsed";
@@ -19,7 +20,7 @@ import { useCopyText } from "@/hooks/use-copy-text";
 import { type CreationReference, displayCreationPrompt } from "./creation-references";
 import { useUserStore } from "@/stores/use-user-store";
 import { type CreationAttachment, creationAttachmentKind, creationMediaAspectRatio, type CreationMode } from "./creation-assets";
-import { getResourceAccess, resolveResourceAccessURL, resolveResourceUrl, resourceIdFromStorageKey } from "@/services/api/resources";
+import { getResourceAccess, resolveResourceAccessURL, resolveResourceUrl, resourceIdFromStorageKey, waitForResourcePreview } from "@/services/api/resources";
 import { CachedResourceImage } from "@/components/cached-resource-image";
 import { Tooltip } from "@/components/ui/base/tooltip";
 import { useAssetStore, type Asset, type ImageAsset, type VideoAsset } from "@/stores/use-asset-store";
@@ -30,6 +31,7 @@ import { App, Button } from "antd";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { preparePlatformCreationAssets } from "@/services/creation-platform-handoff";
 import { CanvasImagePreview } from "@/components/canvas/canvas-image-preview";
+import { TaskEarlyMedia } from "@/components/task-early-media";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { creationResultEntries } from "./creation-result-urls";
 import { nativeParameterObject, nativeParameterSummary } from "@/lib/platform-native-media";
@@ -126,6 +128,7 @@ export function CreationMessageView({
             ) : (
                 <GenerationToolCard status={toolStatus} heading={heading}>
                     <MediaResult
+                        key={getActiveUserScope()}
                         item={item}
                         onRetryFailure={onRetryFailure}
                         onRefreshResult={onRefreshResult}
@@ -306,18 +309,26 @@ export function MediaResult({
     // 展示地址按 storageKey 保存；effect 重跑（素材库更新、续签）时不回退到历史 hint。
     const [resolvedByKey, setResolvedByKey] = useState<Record<string, string>>({});
     const [failedByKey, setFailedByKey] = useState<Record<string, boolean>>({});
+    const isVideo = item.mode === "video";
+    const platformVideoKey = platformIdentity && isVideo && resourceIdFromStorageKey(resultStorageKeys[0]) ? resultStorageKeys[0] : "";
+    const [mediaStates, setMediaStates] = useState<Partial<Record<string, "loaded" | "error">>>({});
+    const [mediaAttempts, setMediaAttempts] = useState<Record<string, number>>({});
+    const videoAttempt = mediaAttempts[platformVideoKey] || 0;
+    const scope = getActiveUserScope();
 
     useEffect(() => {
-        let active = true;
+        const controller = new AbortController();
+        const active = () => !controller.signal.aborted && scope === getActiveUserScope();
         const timers: ReturnType<typeof setTimeout>[] = [];
         const updateResultUrl = (storageKey: string, url: string) => {
-            if (!active || !url) return;
+            if (!active() || !url) return;
             setResolvedByKey((current) => (current[storageKey] === url ? current : { ...current, [storageKey]: url }));
         };
         const refreshRemote = async (index: number, storageKey: string): Promise<void> => {
             try {
-                const access = await getResourceAccess(storageKey, "display");
-                if (!active) return;
+                if (!active()) return;
+                const access = storageKey === platformVideoKey ? await waitForResourcePreview(storageKey, "playback", controller.signal, { forceRefresh: videoAttempt > 0 }) : await getResourceAccess(storageKey, "display");
+                if (!active()) return;
                 updateResultUrl(storageKey, resolveResourceAccessURL(access.url));
                 const refreshAt = access.refreshAt ? new Date(access.refreshAt).getTime() : Number.NaN;
                 const expiresAt = access.expiresAt ? new Date(access.expiresAt).getTime() : Number.NaN;
@@ -325,14 +336,19 @@ export function MediaResult({
                 const delay = Number.isFinite(nextRefreshAt) ? Math.max(10_000, nextRefreshAt - Date.now()) : 4 * 60_000;
                 timers.push(setTimeout(() => void refreshRemote(index, storageKey), delay));
             } catch {
-                if (!active) return;
+                if (!active()) return;
+                if (storageKey === platformVideoKey) {
+                    setResolvedByKey(({ [storageKey]: _previous, ...rest }) => rest);
+                    setMediaStates((current) => ({ ...current, [storageKey]: "error" }));
+                    return;
+                }
                 setFailedByKey((current) => (current[storageKey] ? current : { ...current, [storageKey]: true }));
                 timers.push(setTimeout(() => void refreshRemote(index, storageKey), 60_000));
             }
         };
         if (!resultStorageKeys.length) {
             return () => {
-                active = false;
+                controller.abort();
             };
         }
         // 历史记录只把 URL 当作短期 hint；真正恢复依赖稳定 storageKey，展示 URL 由访问缓存按需续签。
@@ -350,20 +366,21 @@ export function MediaResult({
             // 保留当前页面已有的 URL hint；若已过期，页面会走明确的媒体空态而不是回退到平台正文代理。
         });
         return () => {
-            active = false;
+            controller.abort();
             timers.forEach((timer) => clearTimeout(timer));
         };
-    }, [item.id, item.mode, resultStorageKeys.join("|"), storedResultUrls.join("|")]);
+    }, [item.id, item.mode, resultStorageKeys.join("|"), storedResultUrls.join("|"), platformVideoKey, videoAttempt, scope]);
 
-    const isVideo = item.mode === "video";
     // 每个结果的加载状态与重试次数按 storageKey 记录；重试会换一个元素重新请求，并强制续签访问地址。
-    const [mediaStates, setMediaStates] = useState<Record<string, "loaded" | "error">>({});
-    const [mediaAttempts, setMediaAttempts] = useState<Record<string, number>>({});
     const [naturalRatios, setNaturalRatios] = useState<Record<string, number>>({});
     const markResultMedia = (key: string, state: "loaded" | "error") => setMediaStates((current) => (current[key] === state ? current : { ...current, [key]: state }));
     const retryResultMedia = (key: string) => {
         setMediaStates(({ [key]: _failed, ...rest }) => rest);
         setMediaAttempts((current) => ({ ...current, [key]: (current[key] || 0) + 1 }));
+        if (key === platformVideoKey) {
+            setResolvedByKey(({ [key]: _previous, ...rest }) => rest);
+            return;
+        }
         if (!resourceIdFromStorageKey(key)) return;
         void getResourceAccess(key, "display", "original", "", { forceRefresh: true })
             .then((access) => setResolvedByKey((current) => ({ ...current, [key]: resolveResourceAccessURL(access.url) })))
@@ -378,7 +395,15 @@ export function MediaResult({
     const resultResourceIds = platformIdentity ? creationResultResourceIds(resultStorageKeys) : [];
     const selection: CreationCanvasSelection = platformIdentity ? { assetIds: [], resourceIds: resultResourceIds } : { assetIds: resultAssetIds, resourceIds: [] };
     const canContinueWithResults = item.status === "done" && expectedResultCount > 0 && selection.assetIds.length + selection.resourceIds.length === expectedResultCount;
-    if (item.status === "pending") return <CreationMediaPending item={item} refreshing={refreshingResult} onRefresh={onRefreshResult} onRetry={onRetryFailure} />;
+    const withEarlyMedia = (children: ReactNode) => (
+        <TaskEarlyMedia
+            previews={platformIdentity ? (item.earlyPreviews || []).filter((ref) => item.taskIds?.includes(ref.taskId)) : []}
+            show={item.status === "pending" || (!displayResultUrls.length && (!platformVideoKey || mediaStates[platformVideoKey] !== "error"))}
+        >
+            {children}
+        </TaskEarlyMedia>
+    );
+    if (item.status === "pending") return withEarlyMedia(<CreationMediaPending item={item} refreshing={refreshingResult} onRefresh={onRefreshResult} onRetry={onRetryFailure} />);
     if ((item.status === "error" || item.status === "cancelled") && !expectedResultCount) return <CreationMediaFailure item={item} refreshing={refreshingResult} onRefresh={onRefreshResult} onRecoverMedia={onRecoverMedia} onRetry={onRetryFailure} />;
     // 远端结果首次解析中不显示空态，避免先闪「没有返回可预览结果」再出现结果。
     if (!expectedResultCount || (!displayResultUrls.length && !resolving))
@@ -407,28 +432,36 @@ export function MediaResult({
             />
         );
     const videoKey = resultEntries[0]?.key || resultStorageKeys[0] || "video";
-    const videoState = displayResultUrls[0] ? mediaStates[videoKey] || "loading" : "loading";
+    const videoState = mediaStates[videoKey] || "loading";
+    const preparingLabel = platformVideoKey && !displayResultUrls[0] && videoState !== "error" ? translate("library.tasks.row.preparingPlayback") : "";
     // 远端地址还在解析的结果位先按同样尺寸占位，不让结果区塌成一行操作按钮。
     const pendingImageKeys = !isVideo && resolving ? resultStorageKeys.filter((storageKey) => !resultEntries.some((entry) => entry.key === storageKey)) : [];
-    return (
+    return withEarlyMedia(
         <div className="creation-media-result">
             {isVideo ? (
                 <button
                     type="button"
                     className="creation-video-result"
                     data-media-state={videoState}
+                    disabled={!displayResultUrls[0] && videoState !== "error"}
+                    aria-busy={videoState === "loading"}
                     onClick={() => {
                         if (videoState === "error") return retryResultMedia(videoKey);
                         if (!displayResultUrls[0]) return;
                         setPreviewType("video");
                         setPreviewUrl(displayResultUrls[0]);
                     }}
-                    aria-label={videoState === "error" ? "视频加载失败，点击重新加载" : "预览生成视频"}
+                    aria-label={videoState === "error" ? "视频加载失败，点击重新加载" : preparingLabel || "预览生成视频"}
                 >
                     {displayResultUrls[0] ? (
                         <video key={`${videoKey}:${mediaAttempts[videoKey] || 0}`} muted preload="metadata" src={displayResultUrls[0]} onLoadedMetadata={() => markResultMedia(videoKey, "loaded")} onError={() => markResultMedia(videoKey, "error")} />
                     ) : null}
                     {videoState === "error" ? <CreationResultMediaError label="视频加载失败，点击重试" /> : null}
+                    {preparingLabel ? (
+                        <i className="creation-result-media-status" role="status">
+                            {preparingLabel}
+                        </i>
+                    ) : null}
                     <span>
                         <Maximize2 />
                         预览视频
@@ -499,7 +532,7 @@ export function MediaResult({
                 ))}
             </div>
             <CreationMediaPreviewModal url={previewUrl} type={previewType} onClose={() => setPreviewUrl("")} />
-        </div>
+        </div>,
     );
 }
 

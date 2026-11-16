@@ -22,6 +22,16 @@ function conversations(message: CreationMessage): CreationConversation[] {
 
 const messageOf = (value: CreationConversation[]) => value[0].messages[1];
 
+test("reopening a pending creation observes only the original task preview slots", () => {
+    const observed = task({ provider: "platform", earlyPreviews: [{ index: 2, kind: "video" }], clientContext: { conversationId: "conversation-1", messageId: "assistant-1" } });
+    const before = conversations(assistant({ status: "pending", taskIds: [] }));
+    const pending = reconcileCreationTaskMessages(runtime, before, [observed]);
+    expect(messageOf(pending)).toMatchObject({ status: "pending", taskIds: ["task-1"], earlyPreviews: [{ taskId: "task-1", index: 2, kind: "video" }] });
+    expect(messageOf(pending).resultUrls).toBeUndefined();
+    expect(messageOf(pending).resultStorageKeys).toBeUndefined();
+    expect(reconcileCreationTaskMessages(runtime, pending, [observed])).toBe(pending);
+});
+
 describe("首页创作：页面没跟上 ≠ 生成失败", () => {
     test("轮询中断后任务仍在跑：失败消息回到生成中，并带上真实阶段与进度", () => {
         const next = messageOf(reconcileCreationTaskMessages(runtime, conversations(assistant({ status: "error", errorKind: "sync", error: "网络异常。", content: "生成失败" })), [task({ stage: "上游生成中", progress: 40 })]));

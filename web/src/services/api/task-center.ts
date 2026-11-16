@@ -5,6 +5,7 @@ import { recordDiagnosticEvent } from "@/services/diagnostics/client-diagnostics
 import { observeGenerationTaskStatus, observeGenerationTaskStatuses } from "@/services/generation-completion-tracker";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { useUserStore } from "@/stores/use-user-store";
+import { createStudioGenerationReads } from "@/services/studio-generation-reads";
 import { submitPlatformTask } from "@/services/platform-task-submission";
 
 export type { BackendEnvelope } from "@/services/api/request";
@@ -24,6 +25,11 @@ export type GenerationTaskOutput = {
 };
 
 export type GenerationTask = {
+    earlyPreviews?: { index: number; kind: "image" | "video" }[];
+    platformGenerationRequest?: string;
+    platformWorkspaceId?: string;
+    platformRevision?: number;
+    retryAfterMs?: number;
     id: string;
     agentRunId?: string;
     clientOperationId?: string;
@@ -136,6 +142,9 @@ export type TaskLog = {
 export type CreateTaskInput = {
     commandId?: string;
     platform?: {
+        mediaGenerationV1?: boolean;
+        expectedUserId?: string;
+        workspaceId?: string;
         variantId?: string;
         previewUserId?: string;
         previewBinding?: string;
@@ -166,6 +175,7 @@ export function createGenerationTask(input: CreateTaskInput) {
             return user?.id === storageScope ? user.id : "";
         },
     }).then((task) => {
+        studioGenerationReads.remember(task);
         recordDiagnosticEvent({ level: "info", category: "task", message: "任务已创建", taskId: task.id, projectId: task.projectId });
         observeGenerationTaskStatus(task);
         notifyCanvasTaskCreated(task);
@@ -243,8 +253,10 @@ async function collectGenerationTaskPages<T>(readPage: (request: GenerationTaskP
     return items.slice(0, limit);
 }
 
+const studioGenerationReads = createStudioGenerationReads(getActiveUserScope, (id, signal) => http.get<GenerationTask>(`/tasks/${encodeURIComponent(id)}`, { signal }));
+
 export function queryGenerationTask(id: string, options?: { signal?: AbortSignal }) {
-    return http.get<GenerationTask>(`/tasks/${encodeURIComponent(id)}`, { signal: options?.signal }).then(observedTask);
+    return studioGenerationReads.read(id, options?.signal).then(observedTask);
 }
 
 /** 所有任务读取都汇入完成跟踪，生成完成提醒不依赖某个页面是否还在轮询。 */
@@ -271,6 +283,7 @@ export function createGenerationTaskSubscriptionService(dependencies: Generation
     const entries = new Map<string, Entry>();
     const publish = (entry: Entry, task: GenerationTask) => {
         if (entry.scope !== getActiveUserScope() || !entry.listeners.size) return;
+        if (task.platformGenerationRequest && entry.latest && (task.platformRevision ?? 0) < (entry.latest.platformRevision ?? 0)) return;
         entry.latest = task;
         for (const listener of entry.listeners) listener(task);
     };
@@ -484,6 +497,11 @@ export async function waitForGenerationTask(id: string, options?: WaitForGenerat
     let lastTask = options?.initialTask;
     let lastQueryError: unknown;
     let consecutiveFailures = 0;
+    if (lastTask?.platformGenerationRequest) {
+        if (lastTask.status === "succeeded") return lastTask;
+        if (lastTask.status === "failed" || lastTask.status === "cancelled") throw terminalTaskError(lastTask);
+        await delay(lastTask.retryAfterMs || intervalMs, options?.signal);
+    }
     try {
         while (Date.now() - startedAt < (options?.timeoutMs || taskWaitTimeoutMs(lastTask))) {
             if (options?.signal?.aborted) throw new DOMException("Aborted", "AbortError");
@@ -513,7 +531,7 @@ export async function waitForGenerationTask(id: string, options?: WaitForGenerat
                 window.dispatchEvent(new CustomEvent("wallet:updated"));
                 throw terminalTaskError(task);
             }
-            await delay(intervalMs, options?.signal);
+            await delay(task.platformGenerationRequest ? task.retryAfterMs || intervalMs : intervalMs, options?.signal);
         }
     } catch (error) {
         if (options?.signal?.aborted) {

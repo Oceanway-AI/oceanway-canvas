@@ -23306,7 +23306,7 @@ html:not(.dark) .creation-home .creation-user-message-copy-wrap {
     animation: creation-result-shimmer 1.6s var(--motion-ease-in-out) infinite;
     pointer-events: none;
 }
-.creation-home .creation-result-media-error {
+.creation-home :is(.creation-result-media-error, .creation-result-media-status) {
     position: absolute;
     z-index: 2;
     inset: 0;

@@ -262,7 +262,7 @@ export function useCanvasGeneration({ projectId, domainProjectId, projectLoaded,
         (targetNodeId: string, task: GenerationTask) => {
             setNodes((current) =>
                 current.map((node) => {
-                    if (node.id !== targetNodeId) return node;
+                    if (node.id !== targetNodeId || (task.platformGenerationRequest && node.metadata?.taskId && node.metadata.taskId !== task.id)) return node;
                     const failed = task.status === "failed" || task.status === "cancelled";
                     const extraction = node.metadata?.layerExtraction;
                     const rejectedLayer = extraction?.rejectedTaskId === task.id;
@@ -280,8 +280,15 @@ export function useCanvasGeneration({ projectId, domainProjectId, projectLoaded,
                     };
                 }),
             );
+            if (task.platformGenerationRequest && task.resultJson) {
+                void import("@/services/studio-canvas-generation")
+                    .then(({ adoptStudioCanvasGeneration }) => adoptStudioCanvasGeneration(projectId, targetNodeId, task, { nodesRef, setNodes }, consumerControllerRef.current.signal))
+                    .catch((error) => {
+                        if (!(error instanceof DOMException && error.name === "AbortError")) console.warn("画布输出仍待采用", { taskId: task.id });
+                    });
+            }
         },
-        [setNodes],
+        [nodesRef, projectId, setNodes],
     );
 
     const saveGeneratedAsset = useCallback(
@@ -322,6 +329,11 @@ export function useCanvasGeneration({ projectId, domainProjectId, projectLoaded,
         async (nodeId: string, task: GenerationTask) => {
             const requestSignal = generationRequestsRef.current.get(nodeId)?.controller.signal;
             const signal = requestSignal ? AbortSignal.any([consumerControllerRef.current.signal, requestSignal]) : consumerControllerRef.current.signal;
+            if (task.platformGenerationRequest) {
+                const { adoptStudioCanvasGeneration } = await import("@/services/studio-canvas-generation");
+                await adoptStudioCanvasGeneration(projectId, nodeId, task, { nodesRef, setNodes }, signal);
+                return;
+            }
             const applyStoredTaskResult = async () => {
                 const before = nodesRef.current.find((node) => node.id === nodeId);
                 if (!before) throw new Error(translate("canvasPage.taskRecovery.nodeMissing"));

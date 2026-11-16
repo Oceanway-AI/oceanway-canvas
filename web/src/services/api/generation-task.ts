@@ -27,8 +27,8 @@ export type BackendGenerationMode = "text" | "image" | "video" | "audio";
 export type BackendGenerationResult = {
     projectAssetImageStatus?: "bound" | "stale";
     mode?: BackendGenerationMode;
-    images?: Array<{ dataUrl: string; storageKey?: string; width?: number; height?: number; bytes?: number; mimeType?: string }>;
-    video?: { dataUrl: string; storageKey?: string; width?: number; height?: number; durationMs?: number; bytes?: number; mimeType?: string };
+    images?: Array<{ outputIndex?: number; dataUrl: string; storageKey?: string; width?: number; height?: number; bytes?: number; mimeType?: string }>;
+    video?: { outputIndex?: number; dataUrl: string; storageKey?: string; width?: number; height?: number; durationMs?: number; bytes?: number; mimeType?: string };
     audio?: { dataUrl: string; storageKey?: string; durationMs?: number; bytes?: number; mimeType?: string; format?: string };
     audios?: Array<{ dataUrl: string; storageKey?: string; durationMs?: number; bytes?: number; mimeType?: string; format?: string }>;
     text?: string;
@@ -300,6 +300,9 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
     const workflow = resolveGenerationWorkflowExecution(config, mode);
     const logicalModelId = workflow ? "" : logicalModelIDForConfig(config);
     const platform = resolveModelChannel(config, config.model).modelCosts?.find((item) => item.model === modelOptionName(config.model))?.platform;
+    const profile = platform?.media_generation_profile;
+    const variantId = nativeMediaVariant(config)?.id || config.nativeVariantId || profile?.default_variant;
+    const generationV1 = typeof variantId === "string" && Array.isArray(profile?.variants) && profile.variants.some((v: { id?: string; media_generation_v1?: boolean }) => v.id === variantId && v.media_generation_v1 === true);
     const frameRoles = !workflow && mode === "video" ? publishedFrameRoles(nativeMediaVariant(config)) : [];
     let images = prepared.referenceImages;
     if (frameRoles.length) {
@@ -318,7 +321,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
         prompt,
         ...(workflow ? { provider: workflow.provider } : {}),
         model: workflow?.taskModel || config.model,
-        ...(platform && (mode === "image" || mode === "video") ? { platform: { expectedPriceVersion: platform.price.version } } : {}),
+        ...(platform && (mode === "image" || mode === "video") ? { platform: { expectedPriceVersion: platform.price.version, ...(generationV1 && typeof variantId === "string" ? { mediaGenerationV1: true, variantId } : {}) } } : {}),
         ...(logicalModelId ? { logicalModelId } : {}),
         input: {
             mode,

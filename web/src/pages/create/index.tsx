@@ -67,6 +67,7 @@ import {
 } from "./creation-assets";
 import { creationLibraryDisabledReason, creationLibrarySelectionToAttachments } from "./creation-library";
 import { defaultCreationMode, modeLabels, type CreationConversation, type CreationMessage, type CreationMode, type CreationRetryContext, type CreationSettings, type CreationShotRailEntry, type CreationStatus } from "./creation-types";
+import { taskEarlyPreviews } from "@/services/task-early-previews";
 import {
     attachCreationTaskContexts,
     completedCreationGenerationTask,
@@ -1014,6 +1015,7 @@ export default function CreatePage() {
             updateOriginAssistant((item) => ({
                 ...item,
                 generationStage: task.stage,
+                earlyPreviews: Array.from(boundTasks.values()).flatMap(taskEarlyPreviews),
                 generationStatus: task.status,
                 generationMediaStage: task.mediaStage,
                 generationProgress: typeof task.progress === "number" && Number.isFinite(task.progress) ? Math.round(task.progress) : undefined,

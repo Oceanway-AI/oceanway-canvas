@@ -17,6 +17,7 @@ import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useAssetStore } from "@/stores/use-asset-store";
 import { applyGenerationConsumerEffect, generationEffectApplied } from "@/services/generation-consumer-dedupe";
 import { generationTaskOutputReady } from "@/services/generation-task-materializer";
+import { taskEarlyPreviews } from "@/services/task-early-previews";
 import { resolveResourceUrl } from "@/services/api/resources";
 import { commitProducedModel } from "@/lib/canvas/produced-model";
 import { experimentalLayerSignature, hasUsableLayerTransparency, imageLayerCompositeSignature, validateImageLayerOutput } from "@/lib/canvas/canvas-image-layers";
@@ -691,7 +692,7 @@ export async function buildExperimentalImageLayerResult(root: CanvasNodeData, no
 }
 
 export async function syncGenerationTaskToCanvasStore(task: GenerationTask) {
-    if (task.status !== "succeeded" || !task.projectId) return false;
+    if ((!task.platformGenerationRequest && task.status !== "succeeded") || !task.projectId) return false;
     // 短剧任务使用业务项目 ID，不能拿它请求同名的画布项目。
     const domainProjectId = task.clientContext?.domainProjectId || generationTaskInput(task)?.metadata?.domainProjectId;
     if (domainProjectId === task.projectId || !generationTaskNodeId(task)) return false;
@@ -700,6 +701,18 @@ export async function syncGenerationTaskToCanvasStore(task: GenerationTask) {
         const project = await loadCanvasProjectForEditing(task.projectId!);
         if (signal.aborted) throw new DOMException("The operation was aborted", "AbortError");
         if (!project) return false;
+        if (task.platformGenerationRequest) {
+            const rootId = generationTaskNodeId(task);
+            if (!rootId || !project.nodes.some((n) => n.id === rootId && n.metadata?.taskId === task.id)) return false;
+            const { adoptStudioCanvasGeneration } = await import("@/services/studio-canvas-generation");
+            const nodesRef = {
+                get current() {
+                    return useCanvasStore.getState().projects.find((p) => p.id === project.id)?.nodes || [];
+                },
+            };
+            await adoptStudioCanvasGeneration(project.id, rootId, task, { nodesRef, setNodes: (update) => useCanvasStore.getState().updateProject(project.id, { nodes: typeof update === "function" ? update(nodesRef.current) : update }) }, signal);
+            return true;
+        }
         const node = findGenerationTaskNode(project.nodes, task);
         if (!node) return false;
         if (generationTaskOutputsApplied(node, task, project.nodes)) return false;
@@ -748,12 +761,15 @@ function findGenerationTaskNode(nodes: CanvasNodeData[], task: GenerationTask, t
 }
 
 function completedTaskMetadata(task: GenerationTask): CanvasNodeMetadata {
+    const early = taskEarlyPreviews(task);
     return {
         taskId: task.id,
         taskStatus: task.status,
         taskProgress: typeof task.progress === "number" && Number.isFinite(task.progress) ? Math.max(0, Math.min(100, Math.round(task.progress))) : 100,
         taskStage: task.stage,
         taskMediaStage: task.mediaStage,
+        taskEarlyPreviews: early.length ? early : undefined,
+        taskProvider: task.provider,
         taskCanRecoverMedia: task.canRecoverMedia,
         taskStartedAt: task.startedAt,
         taskCompletedAt: task.completedAt,

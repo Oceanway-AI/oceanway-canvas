@@ -1,5 +1,6 @@
 import type { GenerationRetryContext } from "@/lib/canvas/canvas-project-generation";
 import type { GenerationTask, TaskStatus } from "@/services/api/task-center";
+import type { TaskEarlyPreview } from "@/services/task-early-previews";
 import { formatVideoResolutionLabel as videoResolutionLabel, VIDEO_RESOLUTION_OPTIONS } from "@/lib/video-generation-options";
 import { imageQualityDescription, imageQualityLabel } from "@/lib/image-quality";
 import type { CreationAttachment, CreationMode } from "./creation-assets";
@@ -32,6 +33,7 @@ export type CreationMessage = {
     references?: CreationReference[];
     settings?: CreationSettings;
     taskIds?: string[];
+    earlyPreviews?: TaskEarlyPreview[];
     clientOperationId?: string;
     retryOf?: string;
     attemptGroupId?: string;

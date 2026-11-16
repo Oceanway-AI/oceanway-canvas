@@ -233,3 +233,32 @@ describe("Platform task submission", () => {
         expect([creates, previews]).toEqual([1, 1]);
     });
 });
+
+test("published v1 media submits once across concurrent clicks and reopens the original command after an unknown response", async () => {
+    const input: CreateTaskInput = { commandId: "same-v1-original", type: "canvas_image", prompt: "cat", platform: { expectedPriceVersion: "p", mediaGenerationV1: true } };
+    let posts = 0,
+        reads = 0,
+        quotes = 0,
+        unavailable = true;
+    const deps = {
+        scope: () => "v1-account",
+        preview: async () => {
+            quotes++;
+            throw new Error("unused quote");
+        },
+        create: async () => {
+            posts++;
+            throw new Error("lost response");
+        },
+        recover: async (id: string, owner: string) => {
+            reads++;
+            expect([id, owner]).toEqual(["same-v1-original", "v1-account"]);
+            if (unavailable) throw new Error("temporarily unavailable");
+            return { id: "original" } as GenerationTask;
+        },
+    };
+    await Promise.allSettled([submitPlatformTask(input, deps), submitPlatformTask({ ...input }, deps)]);
+    unavailable = false;
+    expect((await submitPlatformTask({ ...input }, deps)).id).toBe("original");
+    expect([posts, reads, quotes]).toEqual([1, 2, 0]);
+});

@@ -16,6 +16,7 @@ export type NativeImageOutputSize = {
     max_aspect_ratio: number;
 };
 export type NativeMediaVariant = {
+    media_generation_v1?: boolean;
     workbench_parameters?: string[];
     id: string;
     gateway_protocol: string;

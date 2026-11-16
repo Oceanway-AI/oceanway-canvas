@@ -9,6 +9,7 @@ import type { GenerationTask } from "@/services/api/task-center";
 import type { AiConfig } from "@/stores/use-config-store";
 import { formatModelName, isTaskActive, isTaskFailed, isTaskRetryBlocked, taskAttentionReason, TaskDate, taskKindIcon, TaskStatusPill, taskTone } from "./task-shared";
 import { TaskVideoThumbnail } from "./task-video-thumbnail";
+import { earlyPreviewURL, taskEarlyPreviews } from "@/services/task-early-previews";
 import { progressFillStyle } from "@/lib/progress-fill";
 
 /** 网格卡片：封面上叠状态；运行中在封面底部显示进度，失败在封面上给出原因。整卡点击打开详情。 */
@@ -17,8 +18,10 @@ export function TaskGridCard({ task, effectiveConfig, actingId, onOpen, onRetry 
     const active = isTaskActive(task);
     const failed = isTaskFailed(task);
     const retryBlocked = isTaskRetryBlocked(task);
-    const isVideo = task.previewKind === "video";
-    const thumbnailUrl = isVideo ? task.previewPosterUrl : task.previewUrl;
+    const early = taskEarlyPreviews(task)[0];
+    const url = task.previewUrl || (early && earlyPreviewURL(early));
+    const isVideo = (task.previewKind || early?.kind) === "video";
+    const thumbnailUrl = isVideo ? task.previewPosterUrl : url;
     const stageLabel = generationTaskStageLabel(task);
     const showsProgress = generationTaskShowsProgress(task);
     const Icon = taskKindIcon(task);
@@ -27,8 +30,8 @@ export function TaskGridCard({ task, effectiveConfig, actingId, onOpen, onRetry 
             <div className="task-center-card-media">
                 {thumbnailUrl ? (
                     <MediaPreview src={thumbnailUrl} kind="image" loading="lazy" fallbackLabel={t("library.tasks.row.previewUnavailable")} />
-                ) : isVideo && task.previewUrl ? (
-                    <TaskVideoThumbnail src={task.previewUrl} />
+                ) : isVideo && url ? (
+                    <TaskVideoThumbnail src={url} />
                 ) : (
                     <span className="task-center-card-placeholder" aria-hidden="true">
                         {failed ? <AlertCircle /> : <Icon />}

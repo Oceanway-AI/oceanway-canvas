@@ -10,10 +10,11 @@ export async function materializePlatformGenerationResults(task: GenerationTask,
         if (signal?.aborted || scope !== getActiveUserScope()) throw new DOMException("生成结果校验已取消或账号已切换", "AbortError");
     };
     assertCurrent();
-    if (task.status !== "succeeded" || task.type === "canvas_text") return task;
+    if ((!task.platformGenerationRequest && task.status !== "succeeded") || task.type === "canvas_text") return task;
     const result = parseBackendGenerationResult(task);
     const mediaType = task.type === "canvas_image" ? "image" : task.type === "canvas_video" ? "video" : undefined;
     const items = mediaType === "image" ? result.images : mediaType === "video" && result.video ? [result.video] : undefined;
+    if (task.platformGenerationRequest && !items?.length && task.status !== "succeeded") return task;
     if (!mediaType || !items?.length) throw new Error("平台生成结果缺少固定素材引用");
     const outputs: GenerationTaskOutput[] = await Promise.all(
         items.map(async (item, outputIndex) => {
@@ -28,7 +29,7 @@ export async function materializePlatformGenerationResults(task: GenerationTask,
             item.height = resource.height || item.height;
             item.bytes = resource.size;
             item.mimeType = resource.mimeType;
-            return { outputIndex, mediaType, providerArtifactRef: `resource:${id}`, materializedResourceId: id };
+            return { outputIndex: task.platformGenerationRequest && Number.isSafeInteger(item.outputIndex) ? item.outputIndex! : outputIndex, mediaType, providerArtifactRef: `resource:${id}`, materializedResourceId: id };
         }),
     );
     assertCurrent();

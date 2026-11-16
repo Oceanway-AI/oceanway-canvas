@@ -287,6 +287,10 @@ export type CanvasDramaRef = {
 };
 
 export type CanvasNodeMetadata = {
+    platformOutputIndex?: number;
+    platformOutputRequest?: string;
+    platformOutputRevision?: number;
+    platformOutputNodeIds?: Record<number, string>;
     /** Credential-free editable generation contract; submitted recipes live with tasks. */
     generationSpec?: GenerationSpec;
     dramaRef?: CanvasDramaRef;
@@ -516,6 +520,7 @@ export type CanvasNodeMetadata = {
     taskProgress?: number;
     taskStage?: string;
     taskMediaStage?: GenerationTask["mediaStage"];
+    taskEarlyPreviews?: import("@/services/task-early-previews").TaskEarlyPreview[];
     taskCanRecoverMedia?: boolean;
     taskProvider?: string;
     taskStartedAt?: string;
