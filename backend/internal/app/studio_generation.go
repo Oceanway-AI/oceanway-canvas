@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/http/httptrace"
 	"strconv"
@@ -364,7 +364,7 @@ func (s *Service) sendStudioGeneration(ctx context.Context, task *model.Task, au
 	})
 	g, e := s.studioPlatform.Client.GenerateMedia(ctx, auth, command)
 	// Record only the local correlation IDs and clocks. Missing transport events stay zero.
-	log.Printf("studio media admission request_id=%s task_id=%s start_us=%d write_us=%d first_byte_us=%d received_us=%d", task.RequestID, task.ID, started.UnixMicro(), written.Load(), firstByte.Load(), time.Now().UnixMicro())
+	slog.InfoContext(ctx, "studio media admission", "request_id", task.RequestID, "task_id", task.ID, "start_us", started.UnixMicro(), "write_us", written.Load(), "first_byte_us", firstByte.Load(), "received_us", time.Now().UnixMicro())
 	g.Response.AppendCookies(response.Header)
 	if e == nil {
 		return s.projectStudioGeneration(ctx, task, auth, g, response)

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -654,7 +655,7 @@ func currentUser(c *gin.Context, svc *service.Service) (*model.User, error) {
 			if response != nil {
 				providerTrace = normalizeCorrelationID(response.Header.Get("X-Oneapi-Request-Id"))
 			}
-			log.Printf("studio task identity request_id=%s provider_trace=%s start_us=%d end_us=%d", RequestID(c), providerTrace, started.UnixMicro(), time.Now().UnixMicro())
+			slog.InfoContext(c.Request.Context(), "studio task identity", "request_id", RequestID(c), "provider_trace", providerTrace, "start_us", started.UnixMicro(), "end_us", time.Now().UnixMicro())
 		}
 		if response != nil && !c.Writer.Written() {
 			response.AppendCookies(c.Writer.Header())
