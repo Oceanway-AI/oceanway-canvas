@@ -647,7 +647,15 @@ func currentUser(c *gin.Context, svc *service.Service) (*model.User, error) {
 		if err := svc.ValidateStudioRequest(c.Request); err != nil {
 			return nil, err
 		}
+		started := time.Now()
 		user, response, err := svc.StudioCurrentUser(c.Request.Context(), platformintegration.Session(c.Request))
+		if c.Request.Method == http.MethodPost && c.Request.URL.Path == "/api/tasks" {
+			var providerTrace string
+			if response != nil {
+				providerTrace = normalizeCorrelationID(response.Header.Get("X-Oneapi-Request-Id"))
+			}
+			log.Printf("studio task identity request_id=%s provider_trace=%s start_us=%d end_us=%d", RequestID(c), providerTrace, started.UnixMicro(), time.Now().UnixMicro())
+		}
 		if response != nil && !c.Writer.Written() {
 			response.AppendCookies(c.Writer.Header())
 		}
