@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { creationMessageNeedsResultSync, reconcileCreationTaskMessages, type PersistedCreationTask } from "@/pages/create/creation-conversations";
+import { creationMessageNeedsResultSync, reconcileCreationTaskMessages, studioCreationOutputSnapshot, type PersistedCreationTask } from "@/pages/create/creation-conversations";
 import type { CreationConversation, CreationMessage } from "@/pages/create/creation-types";
 import { pendingCreationTaskIds } from "@/services/creation-conversation-store";
 import { recoverCreationTextTask } from "@/services/creation-text-task-recovery";
@@ -132,4 +132,13 @@ test("create workbench shows already adopted original slots while the same comma
     });
     const next = reconcileCreationTaskMessages(runtime, conversations(assistant({ mode: "image", status: "pending" })), [observed]);
     expect(next[0].messages[1]).toMatchObject({ status: "pending", resultStorageKeys: ["resource:r0", "resource:r2"], earlyPreviews: [{ taskId: observed.id, index: 1, kind: "image" }] });
+});
+
+test("the first saved video receipt retains its authorized original preview while playback is being prepared", () => {
+    const first = task({
+        provider: "platform", status: "succeeded", platformRevision: 3, platformGenerationRequest: "already-saved",
+        earlyPreviews: [{index: 0, kind: "video"}],
+        resultJson: JSON.stringify({outputs:[{index:0,kind:"video",materialState:"saved",resourceId:"r-video",media:{storageKey:"resource:r-video",dataUrl:"/api/resources/r-video/file"}}]}),
+    });
+    expect(studioCreationOutputSnapshot([first])).toMatchObject({earlyPreviews:[{taskId:first.id,index:0,kind:"video"}],resultStorageKeys:["resource:r-video"]});
 });
