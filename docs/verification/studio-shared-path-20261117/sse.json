@@ -1,0 +1,38 @@
+{
+  "checked_at": "2026-11-16T19:53:31.775Z",
+  "active_task_stream_tested": false,
+  "probes": [
+    {
+      "authenticated": true,
+      "id": "path-verification-absent",
+      "status": 500,
+      "code": 500,
+      "message": "系统处理失败，请稍后重试",
+      "contentType": "application/json; charset=utf-8"
+    },
+    {
+      "authenticated": true,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "status": 500,
+      "code": 500,
+      "message": "系统处理失败，请稍后重试",
+      "contentType": "application/json; charset=utf-8"
+    },
+    {
+      "authenticated": false,
+      "id": "path-verification-absent",
+      "status": 401,
+      "code": 401,
+      "message": "请登录 OceanWay 账号",
+      "contentType": "application/json; charset=utf-8"
+    },
+    {
+      "authenticated": false,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "status": 401,
+      "code": 401,
+      "message": "请登录 OceanWay 账号",
+      "contentType": "application/json; charset=utf-8"
+    }
+  ]
+}

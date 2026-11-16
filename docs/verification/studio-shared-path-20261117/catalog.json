@@ -1,0 +1,20 @@
+{
+  "started_at": "2026-11-16T19:59:57.694Z",
+  "checks": [
+    {
+      "name": "catalog-complete-before-navigation",
+      "status": 200,
+      "code": 0,
+      "source": "platform",
+      "bytes": 6849799,
+      "elapsedMs": 5095,
+      "models": 70,
+      "available": 65
+    },
+    {
+      "name": "model-picker-visible",
+      "visibleItems": 1
+    }
+  ],
+  "completed_at": "2026-11-16T20:00:04.077Z"
+}

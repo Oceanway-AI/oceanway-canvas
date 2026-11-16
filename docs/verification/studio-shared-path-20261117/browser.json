@@ -1,0 +1,6418 @@
+{
+  "started_at": "2026-11-16T19:44:07.762Z",
+  "checks": [
+    {
+      "name": "embedded-login-visible",
+      "url": "https://test.oceanway.tech/studio/canvas",
+      "iframe": true
+    },
+    {
+      "name": "fresh-platform-login",
+      "status": 200,
+      "provider": "platform",
+      "hasUser": true
+    },
+    {
+      "name": "registered-callback",
+      "login": "https://test.oceanway.tech/login",
+      "callback": "https://test.oceanway.tech/studio/platform/login/complete"
+    },
+    {
+      "name": "standalone-callback-return",
+      "url": "https://test.oceanway.tech/studio/platform/login/complete"
+    },
+    {
+      "name": "page-and-refresh",
+      "path": "/studio/",
+      "status": 200,
+      "restored": true
+    },
+    {
+      "name": "page-and-refresh",
+      "path": "/studio/create",
+      "status": 200,
+      "restored": true
+    },
+    {
+      "name": "existing-data",
+      "canvases": 0,
+      "tasks": 0,
+      "taskDataKeys": []
+    }
+  ],
+  "network": [
+    {
+      "path": "/studio/canvas",
+      "status": 200,
+      "type": "document"
+    },
+    {
+      "path": "/studio/assets/index-KuM6WOyj.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/app-path-Bmg536mr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preload-helper-CwJ3m9iE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/index-D1aLaGuc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/rolldown-runtime-DAXXjFlN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/appearance-NVG3Ndd7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-document-title-store-BoTnm6aj.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-appearance-store-DHGZOap3.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/es-DbZMGlm4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/request-CtguV6Ub.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-react-wE8nilpT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/i18n-D3sC3Yb7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/api/public/appearance",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-B5BXDqMa.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-BdKWPmCo.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/account-4cYisuza.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/stylis-GghFqLuf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/clsx-DtTNkXd0.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-babel-runtime-C9WJqkiz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/application-Dp4W4Gzd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/application-DVHjg6y6.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/esm-OQeTgJ75.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pan~shdgalx0-D86pFSC7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-drawer~project-d8uoMbJq.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-s967Pncr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ocean-air-theme-Ce-k4caH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-theme-By65v7I1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-ClKevT8_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-auth-dialog-store-D84nT0hL.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-user-store-n_cFCRU1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-scope-CNHuztFE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/auth-D7eu_d9a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-theme-nLGLpL6n.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-diagnostics-BTaLbV4s.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/localforage-storage-CK94ZDsO.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-data-sync-CHgK3GNC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/index.browser-CFnhNi_L.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-utils-B623MVxm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-category-DqCqg8i7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-storage-Cxghj25y.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-resource-references-CLVYiDMz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resources-RNqBCvc4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/node-registry-Gu9oV4TK.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-config-store-BAt0sTwc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-generation-options-_gBvFNKY.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-capabilities-NTvcEEwm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/w3c-keyname-CUIGPi9F.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CyJNy69R.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CPikLeVa.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-id-CoAmbM05.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-canvas-theme-store-DkhmhpwB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/full-screen-loader-DFn3aLfB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/brand-logo-Dl5Gatvr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/utils-CsUMuBw2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/studio-release-surface-CcKHN-8T.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preloadable-lazy-DHeYLzF8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-route-modules-DZl-HALt.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/bundle-mjs-CkbwKWz6.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/admin-page-loader-DrFzMI7a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-B4Bovy8W.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-budget-confirmation-C6cVFjFy.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/select-BW492pC9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-page-B3laYav2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-dismiss-popup-on-anchor-move-BU2U_42j.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-signal-icon-YrrxDeen.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-state-DKVzHz1U.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~canvas-generation-consumer~studio-canvas-generation~welcome-applic~iwvqlfui-CixV_OSv.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/logical-models-XSJ5gzTN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-plugin-store-B8aIPx8h.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-session-Bod3ECIl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-consumer-lifecycle-TkYCh0RE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-global-agent-store-CQNvzl1J.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-refresh-shell-DJ6kcWYk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-UsKunU-b.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/react-wH4AbdAi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 200,
+      "type": "other"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pane~cbdqn726-_Y1Cty3G.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/studio/api/auth/session",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/app-modal-BQXUdnSD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-login-8SIgVN0t.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-login-panel-CxUk7Vp7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-modal-C1B3jRY7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/api/auth/login-url",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/inspiration-thumbs/haohaoxue/jellyfish-neon-ocean.webp",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/login",
+      "status": 200,
+      "type": "document"
+    },
+    {
+      "path": "/static/css/index.6e0ed6bcf8.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/static/js/vendor-tanstack.5df39c3775.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/vendor-ui-primitives.a6e891fbf1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/lib-react.1cbfd66eb0.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/62896.4f6f42bbfb.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/index.8a10ee5484.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/async/3161.02fd51075c.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/api/status",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/static/css/async/21054.f8fb9240ce.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/static/css/async/87283.f3b241818e.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/static/js/async/36541.ebdb5a0588.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/async/57785.364e0dffc0.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/async/49291.4503e597f8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/async/66003.e129fa9cce.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/async/75989.17b01ccb84.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/async/87283.e706032fd4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/async/21054.19a77844b7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/api/platform/v1/identity",
+      "status": 401,
+      "type": "fetch"
+    },
+    {
+      "path": "/static/svg/oceanway-ai-wordmark-black.52b405627b.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/static/svg/oceanway-ai-symbol-black.2f6382caf8.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/api/platform/v1/auth/login-return",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/studio/api/auth/session",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/api/user/login",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/api/platform/v1/identity",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/api/platform/v1/auth/login-return",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/studio/api/auth/session",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/studio/api/auth/session",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/api/platform/v1/identity",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/studio/assets/client-root-init-DObIRIsi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/switch-OS2Yj_oE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-agent-panel-dock-C5CgDDAI.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-group-badge-B0gaLMp2.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/use-notification-preferences-store-2H75yT5r.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/payment-checkout-code-S9gMCNKz.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/kbd-DniQglOA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/aceternity-motion-9kRdsdmY.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-layout-B7vwjyWd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/navigation-tools-C76dAL94.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-layout-CEWzUDJl.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/workspace-wallet-DAAC8ek2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/announcements-COcKD6tZ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/banner-announcement-content-l9XM5Xen.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/settings-navigation-DRHMyrRf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/auth-login-link-D7WJC3zH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-group-badge-9d6J6M-N.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-top-bar-extension-VT7vNK-t.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-credit-gift-mark-DuL4d0BC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-auth-entry-BpZT28_U.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/wallet-tcKH7cmf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-studio-account-CDSECppG.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-completion-tracker-DJ9uYsIT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/credits-3vXRUYUy.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-pricing-qXcaSPVH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-quality-B8CAuUff.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-storage-usage-BCkKeOJf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-storage-BXKGVsFH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-selection-C1V58VvF.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/progress-fill-CQaQuFA-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-changelog-modal-i0-IlYjS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/plugin-registry-Dd8XwEWr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-task-submission-Cf0LSui8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-feedback-RyOGVcte.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/segmented-control-kK2XPFN7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/segmented-control-eQZF8a1g.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ant-tooltip-BHRWlZFC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/feedback-D27cLzpg.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-notification-preferences-store-aIOXX1uh.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/storage-grants-Bwssbv3r.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-order-grant-mNRk82R5.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-checkout-code-QvEA4D_w.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-error-C5r-Oht9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-brand-icons-PObbhhY3.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-text-stream-D0bbgA0I.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/drama-query-keys-fSNiT6ND.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-center-UGUXzRVo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/molten-metal-De1OCoH_.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/auth/login-url",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/studio/assets/molten-metal-UZ1gq7Mz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/oceanway-ai-app-micro-CQKa8k8Z.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/login",
+      "status": 200,
+      "type": "document"
+    },
+    {
+      "path": "/static/js/vendor-ui-primitives.a6e891fbf1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/vendor-tanstack.5df39c3775.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/lib-react.1cbfd66eb0.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/62896.4f6f42bbfb.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/index.8a10ee5484.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/css/index.6e0ed6bcf8.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/static/js/async/3161.02fd51075c.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/api/status",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/static/js/async/66003.e129fa9cce.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/async/75989.17b01ccb84.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/async/49291.4503e597f8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/async/36541.ebdb5a0588.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/js/async/57785.364e0dffc0.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/css/async/21054.f8fb9240ce.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/static/js/async/21054.19a77844b7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/static/css/async/87283.f3b241818e.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/static/js/async/87283.e706032fd4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/api/platform/v1/identity",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/api/platform/v1/identity",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/api/platform/v1/auth/login-return",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/studio/platform/login/complete",
+      "status": 200,
+      "type": "document"
+    },
+    {
+      "path": "/studio/assets/index-D1aLaGuc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/index-KuM6WOyj.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/app-path-Bmg536mr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preload-helper-CwJ3m9iE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/appearance-NVG3Ndd7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-document-title-store-BoTnm6aj.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/rolldown-runtime-DAXXjFlN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-appearance-store-DHGZOap3.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/es-DbZMGlm4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/request-CtguV6Ub.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-react-wE8nilpT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/i18n-D3sC3Yb7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pane~cbdqn726-_Y1Cty3G.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resources-RNqBCvc4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/node-registry-Gu9oV4TK.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~canvas-generation-consumer~studio-canvas-generation~welcome-applic~iwvqlfui-CixV_OSv.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-config-store-BAt0sTwc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-capabilities-NTvcEEwm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-generation-options-_gBvFNKY.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-UsKunU-b.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/w3c-keyname-CUIGPi9F.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CPikLeVa.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CyJNy69R.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-id-CoAmbM05.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-canvas-theme-store-DkhmhpwB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/full-screen-loader-DFn3aLfB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/utils-CsUMuBw2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/bundle-mjs-CkbwKWz6.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/brand-logo-Dl5Gatvr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/studio-release-surface-CcKHN-8T.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-route-modules-DZl-HALt.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preloadable-lazy-DHeYLzF8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/admin-page-loader-DrFzMI7a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-B4Bovy8W.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-budget-confirmation-C6cVFjFy.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-page-B3laYav2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/select-BW492pC9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-dismiss-popup-on-anchor-move-BU2U_42j.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-signal-icon-YrrxDeen.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/react-wH4AbdAi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-state-DKVzHz1U.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-session-Bod3ECIl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/logical-models-XSJ5gzTN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-plugin-store-B8aIPx8h.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-global-agent-store-CQNvzl1J.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-consumer-lifecycle-TkYCh0RE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-refresh-shell-DJ6kcWYk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-B5BXDqMa.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-BdKWPmCo.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/application-Dp4W4Gzd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-4cYisuza.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/application-DVHjg6y6.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/public/appearance",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/stylis-GghFqLuf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-babel-runtime-C9WJqkiz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/clsx-DtTNkXd0.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/esm-OQeTgJ75.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ocean-air-theme-Ce-k4caH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-s967Pncr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-auth-dialog-store-D84nT0hL.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-diagnostics-BTaLbV4s.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-drawer~project-d8uoMbJq.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-user-store-n_cFCRU1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-scope-CNHuztFE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-category-DqCqg8i7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/localforage-storage-CK94ZDsO.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/auth-D7eu_d9a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-utils-B623MVxm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-theme-nLGLpL6n.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-theme-By65v7I1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/index.browser-CFnhNi_L.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-storage-Cxghj25y.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-data-sync-CHgK3GNC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pan~shdgalx0-D86pFSC7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-resource-references-CLVYiDMz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-ClKevT8_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/",
+      "status": 200,
+      "type": "document"
+    },
+    {
+      "path": "/studio/assets/index-D1aLaGuc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/rolldown-runtime-DAXXjFlN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-path-Bmg536mr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preload-helper-CwJ3m9iE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-react-wE8nilpT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/es-DbZMGlm4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/i18n-D3sC3Yb7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/request-CtguV6Ub.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/appearance-NVG3Ndd7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-document-title-store-BoTnm6aj.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-appearance-store-DHGZOap3.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/index-KuM6WOyj.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/application-Dp4W4Gzd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pane~cbdqn726-_Y1Cty3G.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/stylis-GghFqLuf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-babel-runtime-C9WJqkiz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/clsx-DtTNkXd0.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/esm-OQeTgJ75.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pan~shdgalx0-D86pFSC7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-ClKevT8_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-drawer~project-d8uoMbJq.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-B5BXDqMa.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-s967Pncr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ocean-air-theme-Ce-k4caH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-theme-By65v7I1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-BdKWPmCo.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/use-auth-dialog-store-D84nT0hL.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-user-store-n_cFCRU1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/auth-D7eu_d9a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-scope-CNHuztFE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-data-sync-CHgK3GNC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/localforage-storage-CK94ZDsO.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-resource-references-CLVYiDMz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-theme-nLGLpL6n.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-diagnostics-BTaLbV4s.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/index.browser-CFnhNi_L.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-category-DqCqg8i7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resources-RNqBCvc4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-utils-B623MVxm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-storage-Cxghj25y.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/node-registry-Gu9oV4TK.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~canvas-generation-consumer~studio-canvas-generation~welcome-applic~iwvqlfui-CixV_OSv.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-config-store-BAt0sTwc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-capabilities-NTvcEEwm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-generation-options-_gBvFNKY.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-UsKunU-b.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/w3c-keyname-CUIGPi9F.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CPikLeVa.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CyJNy69R.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-id-CoAmbM05.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-canvas-theme-store-DkhmhpwB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/full-screen-loader-DFn3aLfB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/utils-CsUMuBw2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/bundle-mjs-CkbwKWz6.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/brand-logo-Dl5Gatvr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/studio-release-surface-CcKHN-8T.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-route-modules-DZl-HALt.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preloadable-lazy-DHeYLzF8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/admin-page-loader-DrFzMI7a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-B4Bovy8W.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-4cYisuza.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/platform-budget-confirmation-C6cVFjFy.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-page-B3laYav2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/select-BW492pC9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-dismiss-popup-on-anchor-move-BU2U_42j.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-signal-icon-YrrxDeen.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/react-wH4AbdAi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-state-DKVzHz1U.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-session-Bod3ECIl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/logical-models-XSJ5gzTN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-plugin-store-B8aIPx8h.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-global-agent-store-CQNvzl1J.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-consumer-lifecycle-TkYCh0RE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-refresh-shell-DJ6kcWYk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/application-DVHjg6y6.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/public/appearance",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 200,
+      "type": "other"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/studio/api/auth/session",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/client-root-init-DObIRIsi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-modal-C1B3jRY7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-modal-BQXUdnSD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/plugin-registry-Dd8XwEWr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-selection-C1V58VvF.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-quality-B8CAuUff.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-pricing-qXcaSPVH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/switch-OS2Yj_oE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/aceternity-motion-9kRdsdmY.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-top-bar-extension-VT7vNK-t.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-auth-entry-BpZT28_U.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/credits-3vXRUYUy.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-task-submission-Cf0LSui8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-error-C5r-Oht9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/progress-fill-CQaQuFA-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ai-message-markdown-DkK0ymA2.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/model-picker-CgppifLP.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/thinking-level-slider-BeHZnQ2n.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/fluid-orb-CXbeNOkA.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/image-size-picker-BxriuQp6.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/canvas-generation-batch-ZbEuCzKn.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/create-Bi-CIw93.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/cached-resource-image-C2uvvIc-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-file-upload-CD4q7aFh.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-library-assets-BAffapQw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-metadata-9BTc65HB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/create-C20CEigZ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-material-selection-Bryt2zCo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-external-asset-sources-DvJFkrBD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/external-asset-sources-CSEpItSG.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/projects-CplgzBd_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-runtime-C-YUNJj-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skills-B9quwlG-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ai-message-markdown-BAc3_RW8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/hast-util-whitespace-BuWdN7Cw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ccount-BO1CChAT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-layout-B7vwjyWd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-agent-panel-dock-C5CgDDAI.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/kbd-DniQglOA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/navigation-tools-C76dAL94.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-wallet-DAAC8ek2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/announcements-COcKD6tZ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/banner-announcement-content-l9XM5Xen.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/settings-navigation-DRHMyrRf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/auth-login-link-D7WJC3zH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-login-8SIgVN0t.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-group-badge-9d6J6M-N.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-group-badge-B0gaLMp2.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/workspace-credit-gift-mark-DuL4d0BC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/wallet-tcKH7cmf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-studio-account-CDSECppG.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-completion-tracker-DJ9uYsIT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-storage-usage-BCkKeOJf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-storage-BXKGVsFH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-changelog-modal-i0-IlYjS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-feedback-RyOGVcte.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-notification-preferences-store-aIOXX1uh.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/segmented-control-eQZF8a1g.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/segmented-control-kK2XPFN7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ant-tooltip-BHRWlZFC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/feedback-D27cLzpg.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-notification-preferences-store-2H75yT5r.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/payment-brand-icons-PObbhhY3.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-order-grant-mNRk82R5.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/storage-grants-Bwssbv3r.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-checkout-code-QvEA4D_w.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-checkout-code-S9gMCNKz.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/task-center-UGUXzRVo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-text-stream-D0bbgA0I.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/drama-query-keys-fSNiT6ND.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-layout-CEWzUDJl.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/canvas-resource-mention-textarea-Dr1PNCO2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-drawing-storage-smwQRzC_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/zwitch-BQ0blp6h.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-popover-anchor-align-Ct7q-XID.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-picker-BBxxFj4l.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/remark-gfm-uGD-nVmR.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/text-thinking-BD10nYVd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/thinking-level-slider-B7rr-9hl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/fluid-orb-C_mHdNjw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/chunk-BO2N2NFS-Df8Vp1K9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-validation-BIXVfZnz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-native-media-settings-rAY1xB6W.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-size-picker-De8LtRWQ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-parameter-fields-CzsJdyPF.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/tooltip-B52471Ji.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-native-image-size-BYBoYhcC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/relative-time-DHqH9fcS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/relative-time-8n9tMqGd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/unified-tJxk5YWS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-display-CLt8ZLo2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/catalog-CfsN9w2G.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-copy-text-BjIlZ05s.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-drawer-CDkLcL9d.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-early-previews-D50mjEu_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/prompt-optimizer-DpBsM5Kr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-reference-slots-C_hwlind.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-logo-CKE_U8pA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/plugin-catalog-BWAO9TyH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/FileSaver.min-BvZiQU7D.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-canvas-ui-store-BN8HxX3v.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-BfcyK554.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-project-card-Bis1iTQo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-package-BsAkBxlB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/zip-BFoBRt68.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-placeholder-Df4fm4qA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-generation-batch-C4aUgLOP.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/browser-DuTvxeuo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-phase-steps-D8rYYE8O.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-image-preview-DPDSmenL.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-early-media-Ctszquui.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/studio-generation-outputs-BD1cNEkd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resolve-DsSqWF5w.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-voice-recording-CcyHbj2I.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/voice-recording-button-BQR2ORjC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/creation-generation-config-BX7lF0mD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/molten-metal-UZ1gq7Mz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/molten-metal-De1OCoH_.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/oceanway-ai-app-micro-CQKa8k8Z.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/studio/assets/seedance-video-BSzg_8FV.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-recommendations-modal-gNHRpA2r.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memory-5Cq_v15E.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-settings-panel-BrySbN2j.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-cloud-agent-panel-pXcF919B.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/canvas-anchored-dropdown-DzgiUn3Y.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-curation-browser-zOWjhMfv.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memory-pane-Bb1Ckmzl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-Llp8A3yz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/badges-BHJwylxl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memories-DS-AB4Ch.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/buttons-CWcDySqn.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-cloud-agent-panel-CKwFaVXC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/callout-WWIOzt3N.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-avatar-video-D633KfEP.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/api/banner-announcements",
+      "status": 501,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/announcements",
+      "status": 501,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/doll/avatar.json",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/studio/api/auth/account-summary",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/agent/profile",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/skills/presets",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/inspirations-BnayxoBP.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/skills",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/skills/added",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/use-debounced-value-BGadLAfS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/inspiration-catalog-C2BVYl6V.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/inspirations-BPkfsugo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/api/canvas-projects",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/materials/assets",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/doll/mascot-idle.mp4",
+      "status": 206,
+      "type": "media"
+    },
+    {
+      "path": "/studio/api/materials/assets/asset_191a9a79169a487afb341307750cad511d5d6f47bf075ff9/versions/version_191a9a79169a487afb341307750cad511d5d6f47bf075ff9/file",
+      "status": 307,
+      "type": "image"
+    },
+    {
+      "path": "/studio/",
+      "status": 200,
+      "type": "document"
+    },
+    {
+      "path": "/studio/assets/index-D1aLaGuc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/rolldown-runtime-DAXXjFlN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-path-Bmg536mr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preload-helper-CwJ3m9iE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-react-wE8nilpT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/es-DbZMGlm4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/i18n-D3sC3Yb7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/request-CtguV6Ub.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/appearance-NVG3Ndd7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-document-title-store-BoTnm6aj.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-appearance-store-DHGZOap3.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/index-KuM6WOyj.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/application-Dp4W4Gzd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pane~cbdqn726-_Y1Cty3G.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/stylis-GghFqLuf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-babel-runtime-C9WJqkiz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/clsx-DtTNkXd0.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/esm-OQeTgJ75.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pan~shdgalx0-D86pFSC7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-ClKevT8_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-drawer~project-d8uoMbJq.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-B5BXDqMa.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-s967Pncr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ocean-air-theme-Ce-k4caH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-theme-By65v7I1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-BdKWPmCo.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/use-auth-dialog-store-D84nT0hL.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-user-store-n_cFCRU1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/auth-D7eu_d9a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-scope-CNHuztFE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-data-sync-CHgK3GNC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/localforage-storage-CK94ZDsO.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-resource-references-CLVYiDMz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-theme-nLGLpL6n.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-diagnostics-BTaLbV4s.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/index.browser-CFnhNi_L.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-category-DqCqg8i7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resources-RNqBCvc4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-utils-B623MVxm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-storage-Cxghj25y.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/node-registry-Gu9oV4TK.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~canvas-generation-consumer~studio-canvas-generation~welcome-applic~iwvqlfui-CixV_OSv.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-config-store-BAt0sTwc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-capabilities-NTvcEEwm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-generation-options-_gBvFNKY.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-UsKunU-b.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/w3c-keyname-CUIGPi9F.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CPikLeVa.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CyJNy69R.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-id-CoAmbM05.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-canvas-theme-store-DkhmhpwB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/full-screen-loader-DFn3aLfB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/utils-CsUMuBw2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/bundle-mjs-CkbwKWz6.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/brand-logo-Dl5Gatvr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/studio-release-surface-CcKHN-8T.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-route-modules-DZl-HALt.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preloadable-lazy-DHeYLzF8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/admin-page-loader-DrFzMI7a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-B4Bovy8W.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-4cYisuza.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/platform-budget-confirmation-C6cVFjFy.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-page-B3laYav2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/select-BW492pC9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-dismiss-popup-on-anchor-move-BU2U_42j.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-signal-icon-YrrxDeen.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/react-wH4AbdAi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-state-DKVzHz1U.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-session-Bod3ECIl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/logical-models-XSJ5gzTN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-plugin-store-B8aIPx8h.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-global-agent-store-CQNvzl1J.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-consumer-lifecycle-TkYCh0RE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-refresh-shell-DJ6kcWYk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/application-DVHjg6y6.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/public/appearance",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 304,
+      "type": "image"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 200,
+      "type": "other"
+    },
+    {
+      "path": "/studio/api/auth/session",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/client-root-init-DObIRIsi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/create-C20CEigZ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-modal-C1B3jRY7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-modal-BQXUdnSD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/cached-resource-image-C2uvvIc-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-library-assets-BAffapQw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-file-upload-CD4q7aFh.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-metadata-9BTc65HB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-material-selection-Bryt2zCo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-external-asset-sources-DvJFkrBD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/external-asset-sources-CSEpItSG.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/plugin-registry-Dd8XwEWr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/projects-CplgzBd_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-runtime-C-YUNJj-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skills-B9quwlG-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ai-message-markdown-BAc3_RW8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/chunk-BO2N2NFS-Df8Vp1K9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/hast-util-whitespace-BuWdN7Cw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/unified-tJxk5YWS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/zwitch-BQ0blp6h.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/remark-gfm-uGD-nVmR.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ccount-BO1CChAT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ai-message-markdown-DkK0ymA2.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/canvas-resource-mention-textarea-Dr1PNCO2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-drawing-storage-smwQRzC_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-picker-BBxxFj4l.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-selection-C1V58VvF.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-popover-anchor-align-Ct7q-XID.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-quality-B8CAuUff.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-pricing-qXcaSPVH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-logo-CKE_U8pA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-picker-CgppifLP.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/text-thinking-BD10nYVd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/thinking-level-slider-B7rr-9hl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/thinking-level-slider-BeHZnQ2n.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/tooltip-B52471Ji.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/fluid-orb-C_mHdNjw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/fluid-orb-CXbeNOkA.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/image-size-picker-De8LtRWQ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-validation-BIXVfZnz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-size-picker-BxriuQp6.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/image-parameter-fields-CzsJdyPF.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/switch-OS2Yj_oE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-native-media-settings-rAY1xB6W.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-native-image-size-BYBoYhcC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/aceternity-motion-9kRdsdmY.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-top-bar-extension-VT7vNK-t.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-auth-entry-BpZT28_U.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/credits-3vXRUYUy.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-task-submission-Cf0LSui8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-error-C5r-Oht9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/relative-time-8n9tMqGd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/relative-time-DHqH9fcS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/catalog-CfsN9w2G.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-display-CLt8ZLo2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/prompt-optimizer-DpBsM5Kr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-copy-text-BjIlZ05s.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-drawer-CDkLcL9d.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-early-previews-D50mjEu_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-reference-slots-C_hwlind.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-BfcyK554.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/plugin-catalog-BWAO9TyH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-project-card-Bis1iTQo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/FileSaver.min-BvZiQU7D.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-canvas-ui-store-BN8HxX3v.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-package-BsAkBxlB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/zip-BFoBRt68.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/browser-DuTvxeuo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-placeholder-Df4fm4qA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-generation-batch-C4aUgLOP.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-generation-batch-ZbEuCzKn.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/generation-phase-steps-D8rYYE8O.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/progress-fill-CQaQuFA-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-image-preview-DPDSmenL.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-early-media-Ctszquui.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resolve-DsSqWF5w.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/studio-generation-outputs-BD1cNEkd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/voice-recording-button-BQR2ORjC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-voice-recording-CcyHbj2I.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/creation-generation-config-BX7lF0mD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/create-Bi-CIw93.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/studio/assets/user-layout-B7vwjyWd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-agent-panel-dock-C5CgDDAI.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/kbd-DniQglOA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/navigation-tools-C76dAL94.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-wallet-DAAC8ek2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/announcements-COcKD6tZ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/banner-announcement-content-l9XM5Xen.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/settings-navigation-DRHMyrRf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/auth-login-link-D7WJC3zH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-login-8SIgVN0t.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-group-badge-9d6J6M-N.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-group-badge-B0gaLMp2.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/workspace-credit-gift-mark-DuL4d0BC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/wallet-tcKH7cmf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-studio-account-CDSECppG.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-completion-tracker-DJ9uYsIT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-storage-usage-BCkKeOJf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-storage-BXKGVsFH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-changelog-modal-i0-IlYjS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-feedback-RyOGVcte.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-notification-preferences-store-aIOXX1uh.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/segmented-control-eQZF8a1g.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/segmented-control-kK2XPFN7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ant-tooltip-BHRWlZFC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/feedback-D27cLzpg.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-notification-preferences-store-2H75yT5r.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/payment-brand-icons-PObbhhY3.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-order-grant-mNRk82R5.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/storage-grants-Bwssbv3r.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-checkout-code-QvEA4D_w.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-checkout-code-S9gMCNKz.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/task-center-UGUXzRVo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-text-stream-D0bbgA0I.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/drama-query-keys-fSNiT6ND.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-layout-CEWzUDJl.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/molten-metal-UZ1gq7Mz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/molten-metal-De1OCoH_.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/oceanway-ai-app-micro-CQKa8k8Z.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/studio/assets/canvas-cloud-agent-panel-CKwFaVXC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-settings-panel-BrySbN2j.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/seedance-video-BSzg_8FV.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-recommendations-modal-gNHRpA2r.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memory-5Cq_v15E.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-anchored-dropdown-DzgiUn3Y.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-curation-browser-zOWjhMfv.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memory-pane-Bb1Ckmzl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/badges-BHJwylxl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-Llp8A3yz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/buttons-CWcDySqn.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/callout-WWIOzt3N.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memories-DS-AB4Ch.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-avatar-video-D633KfEP.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-cloud-agent-panel-pXcF919B.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/banner-announcements",
+      "status": 501,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/announcements",
+      "status": 501,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/doll/avatar.json",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/studio/api/skills/presets",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/auth/account-summary",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/inspirations-BPkfsugo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-debounced-value-BGadLAfS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/inspiration-catalog-C2BVYl6V.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/inspirations-BnayxoBP.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/skills",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/agent/profile",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/skills/added",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/canvas-projects",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/materials/assets",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/doll/mascot-idle.mp4",
+      "status": 206,
+      "type": "media"
+    },
+    {
+      "path": "/studio/api/materials/assets/asset_191a9a79169a487afb341307750cad511d5d6f47bf075ff9/versions/version_191a9a79169a487afb341307750cad511d5d6f47bf075ff9/file",
+      "status": 307,
+      "type": "image"
+    },
+    {
+      "path": "/studio/assets/empty-state-lvc6dKfo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-task-state-Dpri_DOi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/collection-toolbar-WkdJOFYM.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-materializer-c9FVO2E1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-C-BLgXA2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-DO522LB7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/project-asset-sync-C4nIivj2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-library-picker-modal-ChFqjlpd.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/asset-library-card-B0IisIzi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-library-picker-modal-B2j27d91.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-material-picker-CrwYgjgq.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ark-asset-upload-CPDHvwyN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ark-assets-C5icoSa7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resource-storage-status-CiegPkr5.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-ark-library-reconcile-BHjG2SBs.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/browser-download-CCgW4DLl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/assets-wTzyJuYi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-preview-CLA-A8-V.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/tasks-CZldVXPC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/tasks-BsZnAbA3.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/produced-model-LWtfK9Ra.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-DELDUz7c.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/prompts-D48OZ-Uw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-generation-task-sync-DIp-o0-X.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-billing-DsmKLIya.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/create",
+      "status": 200,
+      "type": "document"
+    },
+    {
+      "path": "/studio/assets/index-D1aLaGuc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/rolldown-runtime-DAXXjFlN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-path-Bmg536mr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preload-helper-CwJ3m9iE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-react-wE8nilpT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/es-DbZMGlm4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/i18n-D3sC3Yb7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/request-CtguV6Ub.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/appearance-NVG3Ndd7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-document-title-store-BoTnm6aj.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-appearance-store-DHGZOap3.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/index-KuM6WOyj.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/application-Dp4W4Gzd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pane~cbdqn726-_Y1Cty3G.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/stylis-GghFqLuf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-babel-runtime-C9WJqkiz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/clsx-DtTNkXd0.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/esm-OQeTgJ75.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pan~shdgalx0-D86pFSC7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-ClKevT8_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-drawer~project-d8uoMbJq.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-B5BXDqMa.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-s967Pncr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ocean-air-theme-Ce-k4caH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-theme-By65v7I1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-BdKWPmCo.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/use-auth-dialog-store-D84nT0hL.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-user-store-n_cFCRU1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/auth-D7eu_d9a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-scope-CNHuztFE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-data-sync-CHgK3GNC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/localforage-storage-CK94ZDsO.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-resource-references-CLVYiDMz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-theme-nLGLpL6n.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-diagnostics-BTaLbV4s.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/index.browser-CFnhNi_L.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-category-DqCqg8i7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resources-RNqBCvc4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-utils-B623MVxm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-storage-Cxghj25y.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/node-registry-Gu9oV4TK.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~canvas-generation-consumer~studio-canvas-generation~welcome-applic~iwvqlfui-CixV_OSv.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-config-store-BAt0sTwc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-capabilities-NTvcEEwm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-generation-options-_gBvFNKY.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-UsKunU-b.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/w3c-keyname-CUIGPi9F.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CPikLeVa.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CyJNy69R.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-id-CoAmbM05.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-canvas-theme-store-DkhmhpwB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/full-screen-loader-DFn3aLfB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/utils-CsUMuBw2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/bundle-mjs-CkbwKWz6.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/brand-logo-Dl5Gatvr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/studio-release-surface-CcKHN-8T.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-route-modules-DZl-HALt.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preloadable-lazy-DHeYLzF8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/admin-page-loader-DrFzMI7a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-B4Bovy8W.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-4cYisuza.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/platform-budget-confirmation-C6cVFjFy.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-page-B3laYav2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/select-BW492pC9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-dismiss-popup-on-anchor-move-BU2U_42j.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-signal-icon-YrrxDeen.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/react-wH4AbdAi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-state-DKVzHz1U.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-session-Bod3ECIl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/logical-models-XSJ5gzTN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-plugin-store-B8aIPx8h.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-global-agent-store-CQNvzl1J.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-consumer-lifecycle-TkYCh0RE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-refresh-shell-DJ6kcWYk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/application-DVHjg6y6.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/public/appearance",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 304,
+      "type": "image"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 200,
+      "type": "other"
+    },
+    {
+      "path": "/studio/api/auth/session",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/client-root-init-DObIRIsi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/create-C20CEigZ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-modal-C1B3jRY7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-modal-BQXUdnSD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/cached-resource-image-C2uvvIc-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-library-assets-BAffapQw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-file-upload-CD4q7aFh.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-metadata-9BTc65HB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-material-selection-Bryt2zCo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-external-asset-sources-DvJFkrBD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/external-asset-sources-CSEpItSG.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/plugin-registry-Dd8XwEWr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/projects-CplgzBd_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-runtime-C-YUNJj-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skills-B9quwlG-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ai-message-markdown-BAc3_RW8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/chunk-BO2N2NFS-Df8Vp1K9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/hast-util-whitespace-BuWdN7Cw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/unified-tJxk5YWS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/zwitch-BQ0blp6h.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/remark-gfm-uGD-nVmR.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ccount-BO1CChAT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ai-message-markdown-DkK0ymA2.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/canvas-resource-mention-textarea-Dr1PNCO2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-drawing-storage-smwQRzC_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-picker-BBxxFj4l.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-selection-C1V58VvF.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-popover-anchor-align-Ct7q-XID.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-quality-B8CAuUff.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-pricing-qXcaSPVH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-logo-CKE_U8pA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-picker-CgppifLP.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/text-thinking-BD10nYVd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/thinking-level-slider-B7rr-9hl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/thinking-level-slider-BeHZnQ2n.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/tooltip-B52471Ji.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/fluid-orb-C_mHdNjw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/fluid-orb-CXbeNOkA.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/image-size-picker-De8LtRWQ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-validation-BIXVfZnz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-size-picker-BxriuQp6.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/image-parameter-fields-CzsJdyPF.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/switch-OS2Yj_oE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-native-media-settings-rAY1xB6W.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-native-image-size-BYBoYhcC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/aceternity-motion-9kRdsdmY.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-top-bar-extension-VT7vNK-t.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-auth-entry-BpZT28_U.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/credits-3vXRUYUy.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-task-submission-Cf0LSui8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-error-C5r-Oht9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/relative-time-8n9tMqGd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/relative-time-DHqH9fcS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/catalog-CfsN9w2G.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-display-CLt8ZLo2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/prompt-optimizer-DpBsM5Kr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-copy-text-BjIlZ05s.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-drawer-CDkLcL9d.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-early-previews-D50mjEu_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-reference-slots-C_hwlind.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-BfcyK554.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/plugin-catalog-BWAO9TyH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-project-card-Bis1iTQo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/FileSaver.min-BvZiQU7D.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-canvas-ui-store-BN8HxX3v.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-package-BsAkBxlB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/zip-BFoBRt68.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/browser-DuTvxeuo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-placeholder-Df4fm4qA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-generation-batch-C4aUgLOP.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-generation-batch-ZbEuCzKn.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/generation-phase-steps-D8rYYE8O.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/progress-fill-CQaQuFA-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-image-preview-DPDSmenL.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-early-media-Ctszquui.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resolve-DsSqWF5w.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/studio-generation-outputs-BD1cNEkd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/voice-recording-button-BQR2ORjC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-voice-recording-CcyHbj2I.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/creation-generation-config-BX7lF0mD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/create-Bi-CIw93.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/studio/assets/user-layout-B7vwjyWd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-agent-panel-dock-C5CgDDAI.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/kbd-DniQglOA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/navigation-tools-C76dAL94.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-wallet-DAAC8ek2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/announcements-COcKD6tZ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/banner-announcement-content-l9XM5Xen.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/settings-navigation-DRHMyrRf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/auth-login-link-D7WJC3zH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-login-8SIgVN0t.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-group-badge-9d6J6M-N.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-group-badge-B0gaLMp2.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/workspace-credit-gift-mark-DuL4d0BC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/wallet-tcKH7cmf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-studio-account-CDSECppG.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-completion-tracker-DJ9uYsIT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-storage-usage-BCkKeOJf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-storage-BXKGVsFH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-changelog-modal-i0-IlYjS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-feedback-RyOGVcte.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-notification-preferences-store-aIOXX1uh.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/segmented-control-eQZF8a1g.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/segmented-control-kK2XPFN7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ant-tooltip-BHRWlZFC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/feedback-D27cLzpg.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-notification-preferences-store-2H75yT5r.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/payment-brand-icons-PObbhhY3.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-order-grant-mNRk82R5.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/storage-grants-Bwssbv3r.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-checkout-code-QvEA4D_w.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-checkout-code-S9gMCNKz.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/task-center-UGUXzRVo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-text-stream-D0bbgA0I.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/drama-query-keys-fSNiT6ND.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-layout-CEWzUDJl.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/molten-metal-UZ1gq7Mz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/molten-metal-De1OCoH_.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/oceanway-ai-app-micro-CQKa8k8Z.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/studio/assets/canvas-cloud-agent-panel-CKwFaVXC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-settings-panel-BrySbN2j.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/seedance-video-BSzg_8FV.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-recommendations-modal-gNHRpA2r.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memory-5Cq_v15E.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-anchored-dropdown-DzgiUn3Y.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-curation-browser-zOWjhMfv.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memory-pane-Bb1Ckmzl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/badges-BHJwylxl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-Llp8A3yz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/buttons-CWcDySqn.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/callout-WWIOzt3N.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memories-DS-AB4Ch.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-avatar-video-D633KfEP.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-cloud-agent-panel-pXcF919B.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/banner-announcements",
+      "status": 501,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/announcements",
+      "status": 501,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/doll/avatar.json",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/studio/api/auth/account-summary",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/skills",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/agent/profile",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/inspirations-BnayxoBP.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/skills/presets",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/skills/added",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/use-debounced-value-BGadLAfS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/inspirations-BPkfsugo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/inspiration-catalog-C2BVYl6V.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/api/canvas-projects",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/materials/assets",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/doll/mascot-idle.mp4",
+      "status": 206,
+      "type": "media"
+    },
+    {
+      "path": "/studio/api/materials/assets/asset_191a9a79169a487afb341307750cad511d5d6f47bf075ff9/versions/version_191a9a79169a487afb341307750cad511d5d6f47bf075ff9/file",
+      "status": 307,
+      "type": "image"
+    },
+    {
+      "path": "/studio/assets/canvas-DO522LB7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/empty-state-lvc6dKfo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-task-state-Dpri_DOi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/project-asset-sync-C4nIivj2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-C-BLgXA2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-materializer-c9FVO2E1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/collection-toolbar-WkdJOFYM.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/assets-wTzyJuYi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-library-picker-modal-ChFqjlpd.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/asset-library-picker-modal-B2j27d91.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-library-card-B0IisIzi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-material-picker-CrwYgjgq.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ark-asset-upload-CPDHvwyN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resource-storage-status-CiegPkr5.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ark-assets-C5icoSa7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-ark-library-reconcile-BHjG2SBs.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/browser-download-CCgW4DLl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/tasks-BsZnAbA3.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/media-preview-CLA-A8-V.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-billing-DsmKLIya.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/prompts-D48OZ-Uw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/produced-model-LWtfK9Ra.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/tasks-CZldVXPC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-DELDUz7c.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-generation-task-sync-DIp-o0-X.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/create",
+      "status": 200,
+      "type": "document"
+    },
+    {
+      "path": "/studio/assets/index-KuM6WOyj.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/index-D1aLaGuc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/rolldown-runtime-DAXXjFlN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-path-Bmg536mr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preload-helper-CwJ3m9iE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/appearance-NVG3Ndd7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-document-title-store-BoTnm6aj.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/es-DbZMGlm4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-appearance-store-DHGZOap3.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/request-CtguV6Ub.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-react-wE8nilpT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/i18n-D3sC3Yb7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/stylis-GghFqLuf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-babel-runtime-C9WJqkiz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/clsx-DtTNkXd0.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/esm-OQeTgJ75.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pan~shdgalx0-D86pFSC7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-ClKevT8_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-drawer~project-d8uoMbJq.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~application~user-layout~payments-page~plugins-page~canvas-prompt-optimizer-draw~bbecxqhl-B5BXDqMa.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-s967Pncr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ocean-air-theme-Ce-k4caH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-theme-By65v7I1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/oceanway-theme-BdKWPmCo.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/use-auth-dialog-store-D84nT0hL.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-user-store-n_cFCRU1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/auth-D7eu_d9a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-scope-CNHuztFE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-data-sync-CHgK3GNC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/localforage-storage-CK94ZDsO.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-resource-references-CLVYiDMz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-theme-nLGLpL6n.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-diagnostics-BTaLbV4s.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/index.browser-CFnhNi_L.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-category-DqCqg8i7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resources-RNqBCvc4.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-utils-B623MVxm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-storage-Cxghj25y.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/node-registry-Gu9oV4TK.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/vendor-icons~index~index~canvas-generation-consumer~studio-canvas-generation~welcome-applic~iwvqlfui-CixV_OSv.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-config-store-BAt0sTwc.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-capabilities-NTvcEEwm.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-generation-options-_gBvFNKY.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-UsKunU-b.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/w3c-keyname-CUIGPi9F.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CPikLeVa.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-CyJNy69R.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/client-id-CoAmbM05.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-canvas-theme-store-DkhmhpwB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/full-screen-loader-DFn3aLfB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/utils-CsUMuBw2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/bundle-mjs-CkbwKWz6.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/brand-logo-Dl5Gatvr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/studio-release-surface-CcKHN-8T.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-route-modules-DZl-HALt.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/preloadable-lazy-DHeYLzF8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/admin-page-loader-DrFzMI7a.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-B4Bovy8W.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-4cYisuza.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/platform-budget-confirmation-C6cVFjFy.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-page-B3laYav2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/select-BW492pC9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-dismiss-popup-on-anchor-move-BU2U_42j.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-signal-icon-YrrxDeen.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/react-wH4AbdAi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-state-DKVzHz1U.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-session-Bod3ECIl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/logical-models-XSJ5gzTN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-plugin-store-B8aIPx8h.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-global-agent-store-CQNvzl1J.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-consumer-lifecycle-TkYCh0RE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-refresh-shell-DJ6kcWYk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/application-DVHjg6y6.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/public/appearance",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/application-Dp4W4Gzd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 200,
+      "type": "other"
+    },
+    {
+      "path": "/studio/assets/vendor-antd~index~index~welcome-application~application~user-layout~canvas-cloud-agent-pane~cbdqn726-_Y1Cty3G.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/oceanway/oceanway-ai-symbol-blue.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/studio/api/auth/session",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/client-root-init-DObIRIsi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/create-C20CEigZ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-modal-C1B3jRY7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-modal-BQXUdnSD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/cached-resource-image-C2uvvIc-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-library-assets-BAffapQw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-file-upload-CD4q7aFh.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-metadata-9BTc65HB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-material-selection-Bryt2zCo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-external-asset-sources-DvJFkrBD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/external-asset-sources-CSEpItSG.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/plugin-registry-Dd8XwEWr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/projects-CplgzBd_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-runtime-C-YUNJj-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skills-B9quwlG-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ai-message-markdown-BAc3_RW8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/chunk-BO2N2NFS-Df8Vp1K9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/hast-util-whitespace-BuWdN7Cw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/unified-tJxk5YWS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/zwitch-BQ0blp6h.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/remark-gfm-uGD-nVmR.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ccount-BO1CChAT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ai-message-markdown-DkK0ymA2.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/canvas-resource-mention-textarea-Dr1PNCO2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-drawing-storage-smwQRzC_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-picker-BBxxFj4l.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-selection-C1V58VvF.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-popover-anchor-align-Ct7q-XID.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-quality-B8CAuUff.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-pricing-qXcaSPVH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-logo-CKE_U8pA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-picker-CgppifLP.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/text-thinking-BD10nYVd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/thinking-level-slider-B7rr-9hl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/thinking-level-slider-BeHZnQ2n.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/tooltip-B52471Ji.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/fluid-orb-C_mHdNjw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/fluid-orb-CXbeNOkA.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/image-size-picker-De8LtRWQ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-validation-BIXVfZnz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-size-picker-BxriuQp6.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/image-parameter-fields-CzsJdyPF.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/switch-OS2Yj_oE.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-native-media-settings-rAY1xB6W.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-native-image-size-BYBoYhcC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/aceternity-motion-9kRdsdmY.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-top-bar-extension-VT7vNK-t.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-auth-entry-BpZT28_U.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/credits-3vXRUYUy.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-task-submission-Cf0LSui8.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-error-C5r-Oht9.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/relative-time-8n9tMqGd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/relative-time-DHqH9fcS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/catalog-CfsN9w2G.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-display-CLt8ZLo2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/prompt-optimizer-DpBsM5Kr.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-copy-text-BjIlZ05s.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-drawer-CDkLcL9d.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-early-previews-D50mjEu_.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-reference-slots-C_hwlind.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/image-BfcyK554.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/plugin-catalog-BWAO9TyH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-project-card-Bis1iTQo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/FileSaver.min-BvZiQU7D.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-canvas-ui-store-BN8HxX3v.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-package-BsAkBxlB.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/zip-BFoBRt68.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/browser-DuTvxeuo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-placeholder-Df4fm4qA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-generation-batch-C4aUgLOP.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-generation-batch-ZbEuCzKn.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/generation-phase-steps-D8rYYE8O.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/progress-fill-CQaQuFA-.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-image-preview-DPDSmenL.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-early-media-Ctszquui.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resolve-DsSqWF5w.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/studio-generation-outputs-BD1cNEkd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/voice-recording-button-BQR2ORjC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-voice-recording-CcyHbj2I.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/creation-generation-config-BX7lF0mD.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/create-Bi-CIw93.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/user-layout-B7vwjyWd.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-agent-panel-dock-C5CgDDAI.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/kbd-DniQglOA.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/navigation-tools-C76dAL94.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-wallet-DAAC8ek2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/announcements-COcKD6tZ.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/banner-announcement-content-l9XM5Xen.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/settings-navigation-DRHMyrRf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/auth-login-link-D7WJC3zH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/platform-login-8SIgVN0t.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-group-badge-9d6J6M-N.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-group-badge-B0gaLMp2.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/workspace-credit-gift-mark-DuL4d0BC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/wallet-tcKH7cmf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-studio-account-CDSECppG.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-completion-tracker-DJ9uYsIT.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/account-storage-usage-BCkKeOJf.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/workspace-storage-BXKGVsFH.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/app-changelog-modal-i0-IlYjS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-feedback-RyOGVcte.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-notification-preferences-store-aIOXX1uh.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/segmented-control-eQZF8a1g.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/segmented-control-kK2XPFN7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ant-tooltip-BHRWlZFC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/feedback-D27cLzpg.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-notification-preferences-store-2H75yT5r.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/payment-brand-icons-PObbhhY3.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-order-grant-mNRk82R5.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/storage-grants-Bwssbv3r.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-checkout-code-QvEA4D_w.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/payment-checkout-code-S9gMCNKz.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/task-center-UGUXzRVo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/task-text-stream-D0bbgA0I.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/drama-query-keys-fSNiT6ND.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/user-layout-CEWzUDJl.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/molten-metal-UZ1gq7Mz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/molten-metal-De1OCoH_.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/oceanway-ai-app-micro-CQKa8k8Z.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "path": "/studio/assets/canvas-cloud-agent-panel-CKwFaVXC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-settings-panel-BrySbN2j.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/seedance-video-BSzg_8FV.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-recommendations-modal-gNHRpA2r.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memory-5Cq_v15E.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-anchored-dropdown-DzgiUn3Y.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/skill-curation-browser-zOWjhMfv.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memory-pane-Bb1Ckmzl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/badges-BHJwylxl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/dist-Llp8A3yz.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/buttons-CWcDySqn.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/callout-WWIOzt3N.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-memories-DS-AB4Ch.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/agent-avatar-video-D633KfEP.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-cloud-agent-panel-pXcF919B.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/banner-announcements",
+      "status": 501,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/announcements",
+      "status": 501,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/doll/avatar.json",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/studio/api/auth/account-summary",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/assets/inspirations-BPkfsugo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-debounced-value-BGadLAfS.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/inspiration-catalog-C2BVYl6V.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/inspirations-BnayxoBP.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/api/agent/profile",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/skills/presets",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/skills/added",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/skills",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/canvas-projects",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/api/materials/assets",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "path": "/studio/doll/mascot-idle.mp4",
+      "status": 206,
+      "type": "media"
+    },
+    {
+      "path": "/studio/api/materials/assets/asset_191a9a79169a487afb341307750cad511d5d6f47bf075ff9/versions/version_191a9a79169a487afb341307750cad511d5d6f47bf075ff9/file",
+      "status": 307,
+      "type": "image"
+    },
+    {
+      "path": "/studio/assets/canvas-DO522LB7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/empty-state-lvc6dKfo.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-task-state-Dpri_DOi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/project-asset-sync-C4nIivj2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-C-BLgXA2.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-materializer-c9FVO2E1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/collection-toolbar-WkdJOFYM.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/assets-wTzyJuYi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-library-picker-modal-B2j27d91.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-library-card-B0IisIzi.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/asset-library-picker-modal-ChFqjlpd.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/platform-material-picker-CrwYgjgq.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ark-asset-upload-CPDHvwyN.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/ark-assets-C5icoSa7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/resource-storage-status-CiegPkr5.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/use-ark-library-reconcile-BHjG2SBs.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/browser-download-CCgW4DLl.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/tasks-CZldVXPC.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/media-preview-CLA-A8-V.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/canvas-generation-task-sync-DIp-o0-X.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/produced-model-LWtfK9Ra.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/video-DELDUz7c.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/prompts-D48OZ-Uw.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/generation-task-billing-DsmKLIya.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/tasks-BsZnAbA3.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/choice-browser-8rqC8UTG.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/model-editor-modal-DaRcwudj.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/settings-DQBnPL1C.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "path": "/studio/assets/choice-browser-CruRFn3Z.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-editor-modal-IEiDrL4r.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/checkbox-D31nGoj1.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/prompt-code-editor-C32y9Hm0.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/model-capability-editor-CSvJ1HhK.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/settings-DQHTsfiW.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/assets/esm-DwH2LUSg.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "path": "/studio/api/canvas-projects",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "path": "/studio/api/tasks",
+      "status": 200,
+      "type": "fetch"
+    }
+  ],
+  "errors": [],
+  "assetFailures": [],
+  "completed_at": "2026-11-16T19:44:15.414Z"
+}

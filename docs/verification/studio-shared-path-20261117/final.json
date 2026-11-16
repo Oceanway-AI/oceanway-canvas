@@ -1,0 +1,50 @@
+{
+  "started_at": "2026-11-16T20:03:06.438Z",
+  "after_mapping_reconciliation": true,
+  "checks": [
+    {
+      "name": "console-session",
+      "status": 200,
+      "userId": 1
+    },
+    {
+      "name": "catalog-after-mapping",
+      "status": 200,
+      "bytes": 6849799,
+      "models": 70,
+      "available": 65,
+      "elapsedMs": 5236
+    },
+    {
+      "name": "studio-session",
+      "status": 200,
+      "userId": "49c798f5-3085-59bd-bbf3-f36804f994d0",
+      "noLoginPrompt": true
+    },
+    {
+      "name": "studio-runtime-health",
+      "status": 200,
+      "commit": "f9b3c21e2d46c518f7a7f28a3d7eac239d813af5"
+    },
+    {
+      "name": "callback-after-mapping",
+      "status": 200,
+      "returnPath": "/studio/platform/login/complete"
+    },
+    {
+      "name": "model-picker",
+      "visibleItems": 1
+    },
+    {
+      "name": "drama-same-session",
+      "status": 200,
+      "userId": "platform:1"
+    },
+    {
+      "name": "temporary-canvas-remains-absent",
+      "status": 200,
+      "count": 0
+    }
+  ],
+  "completed_at": "2026-11-16T20:03:25.303Z"
+}
