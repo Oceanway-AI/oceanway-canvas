@@ -344,6 +344,8 @@ export type CanvasNodeMetadata = {
     /** 浏览器文件上传，与模型生成任务状态独立。 */
     fileUpload?: "uploading" | "error";
     fileUploadProgress?: number;
+    /** 原上传命令随节点保存，重选同一文件时续用，完成后清除。 */
+    fileUploadIdentity?: { key: string; ownerScope: string; canvasId: string; projectId?: string };
     locked?: boolean;
     errorDetails?: string;
     generationErrorCode?: string;

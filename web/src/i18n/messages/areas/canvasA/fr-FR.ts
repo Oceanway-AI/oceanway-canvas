@@ -124,6 +124,12 @@ export const frFR: DeepStringRecord<typeof zhCN> = {
         collapse: "Masquer les connecteurs",
     },
     fileUpload: {
+        resumeOriginal: "Sélectionnez le même fichier pour reprendre l’envoi initial",
+        recoveryInvalid: "Les données de reprise sont invalides. Conservez le fichier et vérifiez l’envoi initial",
+        progressStorageFailed: "La progression n’a pas pu être enregistrée. Vérifiez le stockage du navigateur et réessayez",
+        accountChanged: "L’envoi a été interrompu par un changement de compte",
+        resumeContextMismatch: "Reprenez l’envoi dans le compte et le canevas d’origine",
+        interrupted: "Envoi interrompu. Sélectionnez le fichier d’origine pour continuer",
         retryHint: "Choisissez à nouveau le fichier à importer",
         saving: "Fichier reçu, enregistrement et traitement",
         uploadedPercent: "{{percent}} % importé",

@@ -1,5 +1,7 @@
 import { sha256 } from "@noble/hashes/sha2.js";
+import { translate } from "@/i18n";
 import { bytesToHex } from "@noble/hashes/utils.js";
+import { getActiveUserScope, scopedStorageKey } from "@/lib/user-scope";
 import { http, ApiError } from "./request";
 import type { RemoteResource, ResourceUploadMeta } from "./resources";
 
@@ -27,6 +29,57 @@ type Upload = {
     upload: { protocol: string; upload_id: string; state: string; byte_length?: string; part_size?: string; asset?: PlatformMaterialAsset; tickets?: Ticket[]; retry_after_seconds?: number };
     resource?: RemoteResource;
 };
+type UploadCheckpoint = {
+    fingerprint: string;
+    filename: string;
+    id?: string;
+    uploadId?: string;
+    partSize?: number;
+    parts: Array<{ part_number: number; etag: string }>;
+    meta: Pick<ResourceUploadMeta, "width" | "height" | "durationMs">;
+};
+const activeUploads = new Map<string, { fingerprint: string; promise: Promise<RemoteResource & { material?: PlatformMaterialAsset }> }>();
+
+function readUploadCheckpoint(key: string, fingerprint: string, filename: string, meta?: ResourceUploadMeta): UploadCheckpoint {
+    const raw = typeof window === "undefined" ? null : window.localStorage.getItem(key);
+    if (!raw) return { fingerprint, filename, parts: [], meta: { width: meta?.width, height: meta?.height, durationMs: meta?.durationMs } };
+    let value: UploadCheckpoint;
+    try {
+        value = JSON.parse(raw) as UploadCheckpoint;
+    } catch {
+        throw new ApiError(translate("canvasA.fileUpload.recoveryInvalid"), { status: 409 });
+    }
+    if (
+        !value ||
+        typeof value !== "object" ||
+        typeof value.fingerprint !== "string" ||
+        typeof value.filename !== "string" ||
+        !value.filename ||
+        !value.meta ||
+        typeof value.meta !== "object" ||
+        Array.isArray(value.meta) ||
+        Object.entries(value.meta).some(([key, number]) => !["width", "height", "durationMs"].includes(key) || typeof number !== "number" || !Number.isFinite(number) || number < 0) ||
+        Boolean(value.id) !== Boolean(value.uploadId) ||
+        (value.id && (typeof value.id !== "string" || typeof value.uploadId !== "string")) ||
+        (value.partSize !== undefined && (!Number.isSafeInteger(value.partSize) || value.partSize < 1)) ||
+        !Array.isArray(value.parts) ||
+        value.parts.length > 10000 ||
+        value.parts.some((part) => !part || !Number.isSafeInteger(part.part_number) || part.part_number < 1 || typeof part.etag !== "string" || !part.etag || part.etag.length > 512) ||
+        new Set(value.parts.map((part) => part.part_number)).size !== value.parts.length
+    )
+        throw new ApiError(translate("canvasA.fileUpload.recoveryInvalid"), { status: 409 });
+    if (value.fingerprint !== fingerprint) throw new ApiError(translate("canvasA.fileUpload.resumeOriginal"), { status: 409 });
+    return value;
+}
+
+function saveUploadCheckpoint(key: string, value: UploadCheckpoint) {
+    // Only the original identity, file fingerprint and acknowledged ETags survive closure.
+    try {
+        if (typeof window !== "undefined") window.localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+        throw new ApiError(translate("canvasA.fileUpload.progressStorageFailed"), { status: 409 });
+    }
+}
 
 export async function getPlatformMaterials(page = 1, query = "", kind = "", signal?: AbortSignal, options: { limit?: number; source?: string; trash?: boolean } = {}) {
     return http.get<{ items: PlatformMaterialAsset[]; total: string; page: number; limit: number }>("/materials/assets", {
@@ -111,66 +164,104 @@ export async function uploadPlatformResource(file: Blob, name: string, meta: Res
     if (!Number.isSafeInteger(file.size) || file.size < 1) throw new ApiError("不能上传空文件", { status: 400 });
     const digest = await fileDigest(file, assertCurrent);
     const commandId = bytesToHex(sha256(new TextEncoder().encode(meta?.idempotencyKey || `${digest}\n${name}\n${file.type}`)));
-    assertCurrent();
-    let result = await http.post<Upload>(
-        "/resources/platform-uploads",
-        { commandId, filename: name, contentType: file.type || "application/octet-stream", byteLength: String(file.size), sha256: digest, width: meta?.width, height: meta?.height, durationMs: meta?.durationMs },
-        { timeout: 35_000 },
-    );
-    assertCurrent();
-    validUpload(result);
-    const id = result.id;
-    const uploadId = result.upload.upload_id;
-    const path = `/resources/platform-uploads/${encodeURIComponent(id)}`;
-    if (result.upload.state === "awaiting_upload") {
-        const size = Number(result.upload.part_size);
-        const tickets = [...(result.upload.tickets || [])].sort((a, b) => a.part_number - b.part_number);
-        const count = Math.ceil(file.size / size);
-        if (result.upload.byte_length !== String(file.size) || !Number.isSafeInteger(size) || size < 1 || count > 10000 || tickets.length !== count || tickets.some((ticket, i) => ticket.part_number !== i + 1)) throw new Error("上传分片响应不匹配");
-        // Validate every ticket before disclosing any bytes.
-        const headers = tickets.map(ticketHeaders);
-        const parts: Array<{ part_number: number; etag: string }> = [];
-        for (const [i, ticket] of tickets.entries()) {
-            assertCurrent();
-            const start = i * size;
-            const end = Math.min(file.size, start + size);
-            const response = await fetch(ticket.url, { method: "PUT", headers: headers[i], body: file.slice(start, end), credentials: "omit", redirect: "error", referrerPolicy: "no-referrer", signal: AbortSignal.timeout(120_000) });
-            assertCurrent();
-            if (!response.ok) throw new Error("文件分片上传失败，请恢复原上传");
-            const etag = response.headers.get("ETag");
-            if (!etag) throw new Error("上传服务未返回分片凭据，请检查跨域配置");
-            parts.push({ part_number: ticket.part_number, etag });
-            onProgress?.(end, file.size);
-        }
+    const owner = getActiveUserScope();
+    const key = scopedStorageKey(`studio-material-upload:v1:${commandId}`, owner);
+    const fingerprint = JSON.stringify([digest, file.size, file.type]);
+    const existing = activeUploads.get(key);
+    if (existing) {
+        if (existing.fingerprint !== fingerprint) throw new ApiError(translate("canvasA.fileUpload.resumeOriginal"), { status: 409 });
+        const result = await existing.promise;
         assertCurrent();
-        try {
-            result = await http.post<Upload>(`${path}/complete`, { parts }, { timeout: 35_000 });
-        } catch (error) {
+        return result;
+    }
+    const resume = async () => {
+        assertCurrent();
+        const checkpoint = readUploadCheckpoint(key, fingerprint, name, meta);
+        saveUploadCheckpoint(key, checkpoint);
+        let result = checkpoint.id
+            ? await http.get<Upload>(`/resources/platform-uploads/${encodeURIComponent(checkpoint.id)}`, { timeout: 35_000 })
+            : await http.post<Upload>(
+                  "/resources/platform-uploads",
+                  { commandId, filename: checkpoint.filename, contentType: file.type || "application/octet-stream", byteLength: String(file.size), sha256: digest, ...checkpoint.meta },
+                  { timeout: 35_000 },
+              );
+        assertCurrent();
+        validUpload(result, checkpoint.id, checkpoint.uploadId);
+        checkpoint.id = result.id;
+        checkpoint.uploadId = result.upload.upload_id;
+        saveUploadCheckpoint(key, checkpoint);
+        const path = `/resources/platform-uploads/${encodeURIComponent(result.id)}`;
+        if (result.upload.state === "awaiting_upload") {
+            const size = Number(result.upload.part_size);
+            const tickets = [...(result.upload.tickets || [])].sort((a, b) => a.part_number - b.part_number);
+            const count = Math.ceil(file.size / size);
+            if (
+                result.upload.byte_length !== String(file.size) ||
+                !Number.isSafeInteger(size) ||
+                size < 1 ||
+                count > 10000 ||
+                tickets.length !== count ||
+                tickets.some((ticket, i) => ticket.part_number !== i + 1) ||
+                (checkpoint.partSize !== undefined && checkpoint.partSize !== size) ||
+                checkpoint.parts.some((part) => part.part_number > count)
+            )
+                throw new Error("上传分片响应不匹配");
+            checkpoint.partSize = size;
+            const saved = new Set(checkpoint.parts.map((part) => part.part_number));
+            const missing = tickets.filter((ticket) => !saved.has(ticket.part_number));
+            const headers = missing.map(ticketHeaders);
+            let confirmedBytes = checkpoint.parts.reduce((total, part) => total + Math.min(size, file.size - (part.part_number - 1) * size), 0);
+            if (confirmedBytes) onProgress?.(confirmedBytes, file.size);
+            for (const [i, ticket] of missing.entries()) {
+                assertCurrent();
+                const start = (ticket.part_number - 1) * size;
+                const end = Math.min(file.size, start + size);
+                const response = await fetch(ticket.url, { method: "PUT", headers: headers[i], body: file.slice(start, end), credentials: "omit", redirect: "error", referrerPolicy: "no-referrer", signal: AbortSignal.timeout(120_000) });
+                assertCurrent();
+                if (!response.ok) throw new Error("文件分片上传失败，请恢复原上传");
+                const etag = response.headers.get("ETag");
+                if (!etag || etag.length > 512) throw new Error("上传服务未返回分片凭据，请检查跨域配置");
+                checkpoint.parts.push({ part_number: ticket.part_number, etag });
+                checkpoint.parts.sort((left, right) => left.part_number - right.part_number);
+                saveUploadCheckpoint(key, checkpoint);
+                confirmedBytes += end - start;
+                onProgress?.(confirmedBytes, file.size);
+            }
             assertCurrent();
-            if (error instanceof ApiError && !error.retryable && error.status !== undefined) throw error;
-            // Completion may already have committed. Read the same upload;
-            // neither restart nor send another completion automatically.
+            try {
+                result = await http.post<Upload>(`${path}/complete`, { parts: checkpoint.parts }, { timeout: 35_000 });
+            } catch (error) {
+                assertCurrent();
+                if (error instanceof ApiError && !error.retryable && error.status !== undefined) throw error;
+                result = await http.get<Upload>(path, { timeout: 35_000 });
+            }
+        }
+        for (let attempt = 0; attempt <= 60; attempt++) {
+            assertCurrent();
+            validUpload(result, checkpoint.id, checkpoint.uploadId);
+            if (result.upload.state === "ready") {
+                const asset = result.upload.asset;
+                if (!result.resource && asset?.asset_id && asset.version?.asset_id === asset.asset_id && asset.version.version_id && asset.file?.sha256 === digest && asset.file.byte_length === String(file.size)) {
+                    result.resource = await adoptPlatformMaterial(asset.asset_id, asset.version.version_id, checkpoint.meta);
+                    assertCurrent();
+                }
+                if (!result.resource?.id || result.resource.status !== "ready" || result.resource.provider !== "platform") throw new Error("素材尚未完成采用，请查询原上传");
+                // Keep the original identity until its caller has durably adopted the result.
+                checkpoint.parts = [];
+                saveUploadCheckpoint(key, checkpoint);
+                return { ...result.resource, material: asset };
+            }
+            if (result.upload.state === "failed" || result.upload.state === "expired") throw new ApiError("原上传失败或已过期，请检查文件后重新上传", { status: 422 });
+            if (!["verifying", "sealing"].includes(result.upload.state)) throw new Error("上传状态待确认，请恢复原上传");
+            if (attempt === 60) break;
+            await new Promise((resolve) => setTimeout(resolve, Math.max(1, Math.min(10, result.upload.retry_after_seconds || 1)) * 1000));
+            assertCurrent();
             result = await http.get<Upload>(path, { timeout: 35_000 });
         }
-    }
-    for (let attempt = 0; attempt <= 60; attempt++) {
-        assertCurrent();
-        validUpload(result, id, uploadId);
-        if (result.upload.state === "ready") {
-            const asset = result.upload.asset;
-            if (!result.resource && asset?.asset_id && asset.version?.asset_id === asset.asset_id && asset.version.version_id && asset.file?.sha256 === digest && asset.file.byte_length === String(file.size)) {
-                result.resource = await adoptPlatformMaterial(asset.asset_id, asset.version.version_id, meta);
-                assertCurrent();
-            }
-            if (!result.resource?.id || result.resource.status !== "ready" || result.resource.provider !== "platform") throw new Error("素材尚未完成采用，请查询原上传");
-            return { ...result.resource, material: asset };
-        }
-        if (result.upload.state === "failed" || result.upload.state === "expired") throw new ApiError("原上传失败或已过期，请检查文件后重新上传", { status: 422 });
-        if (!["verifying", "sealing"].includes(result.upload.state)) throw new Error("上传状态待确认，请恢复原上传");
-        if (attempt === 60) break;
-        await new Promise((resolve) => setTimeout(resolve, Math.max(1, Math.min(10, result.upload.retry_after_seconds || 1)) * 1000));
-        assertCurrent();
-        result = await http.get<Upload>(path, { timeout: 35_000 });
-    }
-    throw new Error("素材仍在处理中，请稍后恢复原上传");
+        throw new Error("素材仍在处理中，请稍后恢复原上传");
+    };
+    const work = typeof navigator !== "undefined" && navigator.locks ? navigator.locks.request(key, resume) : resume();
+    const promise = work.finally(() => activeUploads.delete(key));
+    activeUploads.set(key, { fingerprint, promise });
+    return promise;
 }

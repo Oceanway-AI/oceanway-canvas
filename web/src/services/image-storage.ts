@@ -1,4 +1,5 @@
 import localforage from "localforage";
+import { translate } from "@/i18n";
 
 import { nanoid } from "nanoid";
 import { readImageMeta } from "@/lib/image-utils";
@@ -26,10 +27,11 @@ export type UploadedImage = {
 const store = localforage.createInstance({ name: "yingce", storeName: "image_files" });
 const objectUrls = new Map<string, string>();
 
-export async function uploadImage(input: string | Blob, onProgress?: (uploadedBytes: number, totalBytes: number) => void, knownSize?: { width: number; height: number }): Promise<UploadedImage> {
+export async function uploadImage(input: string | Blob, onProgress?: (uploadedBytes: number, totalBytes: number) => void, knownSize?: { width: number; height: number }, uploadIdentity?: string): Promise<UploadedImage> {
     // 同一个逻辑上传在直传失败后会退回 IndexedDB，并由云端数据同步再次提交。
     // 提前生成本地 key，确保两条路径向后端发送相同的幂等标识。
-    const storageKey = `image:${getActiveUserScope()}:${nanoid()}`;
+    const scope = getActiveUserScope();
+    const storageKey = uploadIdentity || `image:${scope}:${nanoid()}`;
     if (typeof input === "string" && shouldImportRemoteImage(input)) {
         try {
             const resource = await importResourceFromUrl(input, "image", { idempotencyKey: storageKey });
@@ -51,8 +53,10 @@ export async function uploadImage(input: string | Blob, onProgress?: (uploadedBy
     const meta = knownSize?.width && knownSize.height ? { ...knownSize, mimeType: blob.type || "image/png" } : await readImageMeta(previewUrl);
     let remoteUploadError = "";
     try {
+        if (scope !== getActiveUserScope()) throw new DOMException(translate("canvasA.fileUpload.accountChanged"), "AbortError");
         const resource = await uploadResourceFile(blob, "image", { width: meta.width, height: meta.height, fileName: input instanceof File ? input.name : undefined, idempotencyKey: storageKey }, onProgress);
         await primeResourceBlobCache(resourceStorageKey(resource.id), blob).catch(() => "");
+        if (scope !== getActiveUserScope()) throw new DOMException(translate("canvasA.fileUpload.accountChanged"), "AbortError");
         URL.revokeObjectURL(previewUrl);
         return {
             url: resource.publicUrl || resourceFileUrl(resource.id),
@@ -63,12 +67,23 @@ export async function uploadImage(input: string | Blob, onProgress?: (uploadedBy
             mimeType: resource.mimeType || blob.type || meta.mimeType,
         };
     } catch (error) {
+        if (scope !== getActiveUserScope() || (error instanceof DOMException && error.name === "AbortError")) {
+            URL.revokeObjectURL(previewUrl);
+            throw new DOMException(translate("canvasA.fileUpload.accountChanged"), "AbortError");
+        }
         // 鉴权失效、越权、体积超限这类失败重传也是同样结果，不能退化成"稍后自动同步"。
-        if (error instanceof ResourceUploadError && error.permanent) throw error;
+        if (error instanceof ResourceUploadError && error.permanent) {
+            URL.revokeObjectURL(previewUrl);
+            throw error;
+        }
         remoteUploadError = error instanceof Error ? error.message : "图片直传失败";
     }
     // 瞬时失败退回本机：文件仍可用，且云端数据同步会用同一幂等键重传。
     await store.setItem(storageKey, blob);
+    if (scope !== getActiveUserScope()) {
+        URL.revokeObjectURL(previewUrl);
+        throw new DOMException(translate("canvasA.fileUpload.accountChanged"), "AbortError");
+    }
     const url = previewUrl;
     objectUrls.set(storageKey, url);
     return { url, storageKey, width: meta.width, height: meta.height, bytes: blob.size, mimeType: blob.type || meta.mimeType, pendingRemoteUpload: true, remoteUploadError };

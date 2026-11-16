@@ -124,6 +124,12 @@ export const koKR: DeepStringRecord<typeof zhCN> = {
         collapse: "커넥터 접기",
     },
     fileUpload: {
+        resumeOriginal: "동일한 파일을 선택하여 원래 업로드를 재개하세요",
+        recoveryInvalid: "업로드 복구 기록이 유효하지 않습니다. 파일을 보관하고 원래 업로드를 확인하세요",
+        progressStorageFailed: "업로드 진행 상황을 저장할 수 없습니다. 브라우저 저장소를 확인한 후 다시 시도하세요",
+        accountChanged: "계정 변경으로 업로드가 중단되었습니다",
+        resumeContextMismatch: "원래 계정과 캔버스에서 업로드를 재개하세요",
+        interrupted: "업로드가 중단되었습니다. 원래 파일을 선택하여 계속하세요",
         retryHint: "파일을 다시 선택해 업로드하세요",
         saving: "파일 전송 완료, 저장 및 처리 중",
         uploadedPercent: "{{percent}}% 업로드됨",

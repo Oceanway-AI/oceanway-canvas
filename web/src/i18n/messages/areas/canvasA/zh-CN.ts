@@ -123,6 +123,12 @@ export const zhCN = {
         collapse: "收起连接器",
     },
     fileUpload: {
+        resumeOriginal: "请选择原上传的同一文件继续",
+        recoveryInvalid: "原上传恢复记录无效，请保留文件并检查原上传",
+        progressStorageFailed: "无法保存上传进度，请检查浏览器本地存储后重试",
+        accountChanged: "上传已因账号切换失效",
+        resumeContextMismatch: "请在原账号和原画布中继续上传",
+        interrupted: "上传已中断，请重新选择原文件继续上传",
         retryHint: "请重新选择文件上传",
         saving: "文件已传输，正在保存与处理",
         uploadedPercent: "已上传 {{percent}}%",

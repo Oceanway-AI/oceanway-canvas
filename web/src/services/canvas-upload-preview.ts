@@ -51,9 +51,9 @@ export function subscribeUploadPreviews(listener: () => void) {
     };
 }
 
-export function releaseUploadPreview(nodeId: string) {
+export function releaseUploadPreview(nodeId: string, expectedUrl?: string) {
     const preview = previews.get(nodeId);
-    if (!preview) return;
+    if (!preview || (expectedUrl && preview.url !== expectedUrl)) return;
     previews.delete(nodeId);
     URL.revokeObjectURL(preview.url);
 }

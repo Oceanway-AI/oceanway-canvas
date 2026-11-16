@@ -809,6 +809,7 @@ function CanvasViewportPage() {
     } = useCanvasUpload({
         canvasId: projectId,
         domainProjectId: linkedProjectId,
+        persistLocalEdits,
         nodesRef,
         selectedNodeIdsRef,
         getCanvasCenter,
