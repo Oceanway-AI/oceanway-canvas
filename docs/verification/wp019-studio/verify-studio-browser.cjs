@@ -85,7 +85,7 @@ async function scenario(browser, loseResponse) {
                       assert.equal(response.status(), 200);
                       return (await response.json()).data;
                   });
-        await page.getByRole("button", { name: "发送", exact: true }).click();
+        await page.locator(".creation-submit:visible").click();
         const task = await ack;
         assert.equal(task.status, "running");
         assert.ok(task.id && task.platformGenerationRequest);
@@ -164,7 +164,8 @@ async function canvasScenario(browser) {
         await prompt.click();
         await page.getByRole("button", { name: /图像设置：.*3 张/ }).waitFor();
         const receipt = page.waitForResponse((r) => r.request().method() === "POST" && new URL(r.url()).pathname === "/api/tasks");
-        const generate = page.getByRole("button", { name: "生成", exact: true });
+        const generate = page.locator(".canvas-node-composer-submit:visible").first();
+        await generate.getByText("预计约 0 积分", {exact: true}).waitFor();
         await generate.focus();
         await generate.press("Enter");
         const response = await receipt;
@@ -237,6 +238,7 @@ async function canvasScenario(browser) {
             gets: end.gets - before.gets,
             bindingPosts: end.bindingPosts - before.bindingPosts,
             quotes: 0,
+            displayedStandardPoints: "0",
             actualEarlyPreviewReads: partial.previewReads - before.previewReads,
             closedObservationMs: 1850,
         };
@@ -245,7 +247,7 @@ async function canvasScenario(browser) {
     }
 }
 
-async function videoScenario(browser) {
+async function videoScenario(browser, savedFirst = false) {
     const before = await counts();
     const context = await restrictedContext(browser);
     try {
@@ -253,14 +255,18 @@ async function videoScenario(browser) {
         await page.goto(endpoint("/create").href);
         await page.getByRole("button", { name: "视频生成", exact: true }).click();
         await page.getByRole("button", { name: "选择视频模型" }).getByText("Fixture Video").waitFor();
-        await page.locator(".creation-chat-mention-editor:visible").first().fill("Free local video preview");
+        await page.locator(".creation-chat-mention-editor:visible").first().fill(savedFirst ? "Free saved-first local video" : "Free local video preview");
         const receipt = page.waitForResponse((r) => r.request().method() === "POST" && new URL(r.url()).pathname === "/api/tasks");
-        await page.getByRole("button", { name: "发送", exact: true }).click();
+        await page.locator(".creation-submit:visible").click();
         const ack = await receipt;
         assert.equal(ack.status(), 200);
         const task = (await ack.json()).data;
-        await fetch(endpoint("/api/__fixture/previewable"), { method: "POST" });
-        const video = page.locator('video[src*="/previews/"]').first();
+        if (savedFirst) {
+            assert.equal(task.status, "succeeded");
+        } else {
+            await fetch(endpoint("/api/__fixture/previewable"), { method: "POST" });
+        }
+        const video = page.locator('video[src="/api/tasks/' + task.id + '/previews/0"]').first();
         await video.waitFor();
         await until(() => video.evaluate((v) => v.videoWidth === 64 && v.videoHeight === 48 && v.duration > 1));
         await video.evaluate(async (v) => {
@@ -272,8 +278,12 @@ async function videoScenario(browser) {
             await v.play();
         });
         await until(() => video.evaluate((v) => !v.paused && v.currentTime > 0.6));
-        assert.equal((await counts()).adopted, false);
-        await fetch(endpoint("/api/__fixture/ready"), { method: "POST" });
+        const frame = await video.evaluate((v) => new Promise((resolve) => v.requestVideoFrameCallback((_, event) => resolve({ width: v.videoWidth, height: v.videoHeight, presented: event.presentedFrames, inMessage: !!v.closest(".creation-thread-message") }))));
+        assert.ok(frame.inMessage && frame.presented > 0 && frame.width === 64 && frame.height === 48);
+        if (!savedFirst) {
+            assert.equal((await counts()).adopted, false);
+            await fetch(endpoint("/api/__fixture/ready"), { method: "POST" });
+        }
         await until(async () => (await counts()).adopted);
         await until(() =>
             page.evaluate(async (id) => {
@@ -289,7 +299,39 @@ async function videoScenario(browser) {
         assert.ok(final.rangeReads > before.rangeReads);
         assert.equal(final.posts - before.posts, 1);
         assert.equal(final.quotes - before.quotes, 0);
-        return { scenario: "early-video-across-original-adoption", width: 64, height: 48, seekSeconds: 0.55, rangeReads: final.rangeReads - before.rangeReads, posts: 1, quotes: 0, samePlayingElement: true };
+        return { scenario: savedFirst ? "first-observation-saved-video" : "early-video-across-original-adoption", frame, seekSeconds: 0.55, rangeReads: final.rangeReads - before.rangeReads, posts: 1, quotes: 0, samePlayingElement: true };
+    } finally {
+        await context.close();
+    }
+}
+
+async function estimateScenario(browser) {
+    const before = await counts();
+    const context = await restrictedContext(browser);
+    try {
+        const page = await context.newPage();
+        await page.goto(endpoint("/create").href);
+        await page.getByRole("button", { name: "选择图片模型" }).getByText("Fixture Image").waitFor();
+        const editor = page.locator(".creation-chat-mention-editor:visible").first();
+        const button = page.locator(".creation-submit:visible");
+        for (const [prompt, label] of [["nonzero estimate", "预计约 2.75 积分"], ["unknown estimate", "估价暂不可用"], ["zero estimate", "预计约 0 积分"]]) {
+            await editor.fill(prompt);
+            await button.getByText(label, { exact: true }).waitFor();
+            assert.ok(await button.isEnabled());
+        }
+        await page.route("**/api/tasks/estimate", (route) => route.abort());
+        await editor.fill("offline estimate");
+        await button.getByText("估价暂不可用", { exact: true }).waitFor();
+        assert.ok(await button.isEnabled());
+        assert.equal(await button.getByText("预计约 0 积分", { exact: true }).count(), 0);
+        const ack = page.waitForResponse((r) => r.request().method() === "POST" && new URL(r.url()).pathname === "/api/tasks");
+        await button.click();
+        assert.equal((await ack).status(), 200);
+        const end = await counts();
+        assert.ok(end.estimates >= before.estimates + 3);
+        assert.equal(end.posts - before.posts, 1);
+        assert.equal(end.quotes, before.quotes);
+        return { scenario: "account-standard-price-with-independent-submit", points: ["2.75", null, "0"], offlineSubmit: true, posts: 1, fullConsumptionPreviews: 0 };
     } finally {
         await context.close();
     }
@@ -298,7 +340,7 @@ async function videoScenario(browser) {
 (async () => {
     const browser = await chromium.launch({ executablePath: process.env.STUDIO_CHROMIUM, headless: true, args: ["--disable-background-networking"] });
     try {
-        const scenarios = [await scenario(browser, false), await scenario(browser, true), await canvasScenario(browser), await videoScenario(browser)];
+        const scenarios = [await scenario(browser, false), await scenario(browser, true), await canvasScenario(browser), await videoScenario(browser), await videoScenario(browser, true), await estimateScenario(browser)];
         process.stdout.write(JSON.stringify({ chrome: browser.version(), scenarios }, null, 2) + "\n");
     } finally {
         await browser.close();

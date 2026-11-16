@@ -38,7 +38,7 @@ func TestStudioGenerationBrowserFixture(t *testing.T) {
 	const videoModel = `{"id":43,"model_name":"exact-video","model_type":"video","content":{"display_name":"Fixture Video"},"invocation_status":"available","price":{"status":"available","version":"price-1"},"media_generation_profile":{"default_variant":"video","variants":[{"id":"video","media_generation_v1":true,"protocol":"doubao-video","operation":"generate","method":"POST","path":"/doubao/api/v3/contents/generations/tasks","defaults":{"duration":2,"ratio":"16:9","resolution":"720p"},"specifications_schema":{"type":"object","properties":{"duration":{"type":"integer","enum":[2]},"ratio":{"type":"string","enum":["16:9"]},"resolution":{"type":"string","enum":["720p"]}}},"parameter_bindings":{"duration":"duration","ratio":"ratio","resolution":"resolution"}}]}}`
 	f.catalog = strings.TrimSuffix(f.catalog, "]}}") + "," + videoModel + "]}}"
 	var mu sync.Mutex
-	posts, reads, preview, quotes := 0, 0, 0, 0
+	posts, reads, preview, quotes, estimates := 0, 0, 0, 0, 0
 	ready, early := false, false
 	var frame bytes.Buffer
 	if err := png.Encode(&frame, image.NewRGBA(image.Rect(0, 0, 16, 16))); err != nil {
@@ -91,6 +91,25 @@ func TestStudioGenerationBrowserFixture(t *testing.T) {
 			w.WriteHeader(418)
 			return
 		}
+		if strings.HasSuffix(r.URL.Path, "/media/price-preview") {
+			estimates++
+			var in platformclient.MediaPriceEstimateRequest
+			if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			kind := strings.TrimPrefix(in.Model, "exact-")
+			result := map[string]any{"state": "available", "points": "0", "model": in.Model, "model_type": kind, "variant_id": in.VariantID, "price_version": in.ExpectedPriceVersion, "unit": "points", "calculated_at": time.Now().Unix()}
+			switch {
+			case bytes.Contains(in.NativeRequest, []byte("nonzero estimate")):
+				result["points"] = "2.75"
+			case bytes.Contains(in.NativeRequest, []byte("unknown estimate")):
+				result["state"] = "unavailable"
+				delete(result, "points")
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": result})
+			return
+		}
 		if !strings.HasPrefix(r.URL.Path, "/internal/products/v1/media-generations") {
 			w.WriteHeader(404)
 			return
@@ -117,6 +136,7 @@ func TestStudioGenerationBrowserFixture(t *testing.T) {
 			if c.Model == "exact-video" {
 				kind = "video"
 				requested = 1
+				ready = bytes.Contains(c.NativeRequest, []byte("saved-first"))
 			}
 			if requested < 1 || requested > 3 {
 				w.WriteHeader(422)
@@ -153,6 +173,10 @@ func TestStudioGenerationBrowserFixture(t *testing.T) {
 					out["width"] = 64
 					out["height"] = 48
 					out["duration_ms"] = 2000
+					if ready {
+						out["preview_state"] = "available"
+						out["preview_path"] = "/internal/products/v1/media-generations/" + original + "/outputs/" + strconv.Itoa(i) + "/preview"
+					}
 				}
 				if !ready && (requested == 1 || i == 1) {
 					out = map[string]any{"index": i, "kind": kind, "material_state": "saving", "preview_state": "available", "content_state": "available", "preview_path": "/internal/products/v1/media-generations/" + original + "/outputs/" + strconv.Itoa(i) + "/preview"}
@@ -219,7 +243,7 @@ func TestStudioGenerationBrowserFixture(t *testing.T) {
 					indexes = append(indexes, i)
 				}
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"posts": posts, "gets": reads, "ticketGets": preview, "quotes": quotes, "previewReads": served, "adopted": requested > 0 && len(indexes) == requested, "requestedOutputs": requested, "boundIndexes": indexes, "bindingPosts": boundPosts, "rangeReads": ranged})
+			_ = json.NewEncoder(w).Encode(map[string]any{"posts": posts, "gets": reads, "ticketGets": preview, "quotes": quotes, "estimates": estimates, "previewReads": served, "adopted": requested > 0 && len(indexes) == requested, "requestedOutputs": requested, "boundIndexes": indexes, "bindingPosts": boundPosts, "rangeReads": ranged})
 			return
 		case "/api/__fixture/previewable":
 			mu.Lock()
