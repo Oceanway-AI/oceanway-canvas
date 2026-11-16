@@ -865,5 +865,52 @@
         ]
       }
     ]
-  }
+  },
+  "fixed_studio_workloads": [
+    {
+      "group": "w7-813-studio-4k-fixed",
+      "source": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+      "platform": "813ebf1bbc2da9fa6ae053b4c6fd93811584238c",
+      "chromium": "156.0.8078.79",
+      "evidence": "w7-813-studio-4k-fixed-verified.json",
+      "input_bytes": 8348171,
+      "independent_rows": 30,
+      "owner_username_sha256_prefix": "56dc9f94b8d5",
+      "metrics": {
+        "quote_platform": {
+          "p50_ms": 281.697,
+          "p95_ms": 392.953,
+          "target_ms": 300,
+          "passed": false
+        },
+        "click_platform": {
+          "p50_ms": 930.947,
+          "p95_ms": 1454.345,
+          "target_ms": 1000,
+          "passed": false
+        },
+        "click_browser": {
+          "p50_ms": 1085,
+          "p95_ms": 1597,
+          "target_ms": 1000,
+          "passed": false
+        }
+      },
+      "counts": {
+        "reserved_and_settled_zero": 30,
+        "one_supplier_attempt": 30,
+        "saved_outputs": 30,
+        "immutable_archived_files": 30,
+        "charged_original_bytes": 160110,
+        "studio_resources_pinned_to_platform_files": 30
+      },
+      "close_and_reopen_ordinals": [
+        1,
+        15,
+        30
+      ],
+      "scheduler_limit_cpus": 2,
+      "memory_mib": 2304
+    }
+  ]
 }
