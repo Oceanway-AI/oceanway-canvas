@@ -23,6 +23,7 @@ import {
     listTaskLogs,
     queryFailedVideoProviderTask,
     queryGenerationTask,
+    subscribeGenerationTasks,
     retryGenerationTask,
     recoverGenerationTaskMedia,
     type CreateTaskInput,
@@ -312,6 +313,12 @@ export default function TasksPage() {
             });
         return () => controller.abort();
     }, [detailID, observedDetail, message, t]);
+
+    const observedRequest = detailTask?.platformGenerationRequest;
+    useEffect(() => {
+        if (!detailID || !observedRequest) return;
+        return subscribeGenerationTasks([detailID], (task) => setDetailTask((current) => (current?.id === task.id && (task.platformRevision ?? 0) >= (current.platformRevision ?? 0) ? { ...current, ...task } : current)));
+    }, [detailID, observedRequest]);
 
     useEffect(() => {
         tasksRef.current = tasks;

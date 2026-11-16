@@ -230,6 +230,7 @@ export async function executeImageGeneration(
                         signal: controller.signal,
                         metadata: {
                             sourceNodeId: nodeId,
+                            studioPendingRunId: sourceNode?.metadata?.agentDraftRunId,
                             ...taskContext,
                             resolvedCharacterVersions: generationContext.resolvedCharacterVersions,
                             promptTemplateOperation: sourceNode?.metadata?.promptTemplateOperation,

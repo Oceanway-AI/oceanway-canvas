@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"gorm.io/gorm"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/repository"
@@ -37,6 +38,12 @@ func TestStudioPiGenerationAction(t *testing.T) {
 	}
 }
 
+func TestStudioPiGenerationActionPostgres(t *testing.T) {
+	for _, scenario := range []string{"v1_manual_race_lost", "v1_approval_race_lost"} {
+		t.Run(scenario, func(t *testing.T) { studioPiMediaApprovalScenario(t, scenario, true) })
+	}
+}
+
 func TestStudioPiMediaPreviewDoesNotAuthorize(t *testing.T) {
 	studioPiMediaApprovalScenario(t, "preview_only")
 }
@@ -45,9 +52,16 @@ func TestStudioPiMediaRetainsApprovedReferenceInput(t *testing.T) {
 	studioPiMediaApprovalScenario(t, "reference_input")
 }
 
-func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
-	s, db, _, _ := creationTestService(t)
-	if err := db.AutoMigrate(&model.StudioExecution{}, &model.StudioMaterialReference{}); err != nil {
+func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ...bool) {
+	var s *Service
+	var db *gorm.DB
+	if len(usePostgres) > 0 && usePostgres[0] {
+		_, db = newProjectNameConflictPostgresService(t)
+		s, db, _, _ = creationTestServiceOnDatabase(t, db)
+	} else {
+		s, db, _, _ = creationTestService(t)
+	}
+	if err := db.AutoMigrate(&model.StudioExecution{}, &model.StudioMaterialReference{}, &model.StudioMediaAction{}, &model.StudioMediaActionAlias{}); err != nil {
 		t.Fatal(err)
 	}
 	s.legacyCloudAgentRootTask = false
@@ -60,6 +74,10 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	postedID := ""
 	postedLimit := ""
 	runRef := ""
+	race := strings.Contains(scenario, "race")
+	entered := make(chan struct{}, 1)
+	release := make(chan struct{}, 1)
+	complete := false
 	if v1 {
 		catalog = strings.Replace(catalog, `"id":"generate","protocol"`, `"id":"generate","media_generation_v1":true,"protocol"`, 1)
 	}
@@ -146,6 +164,14 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 				if in.Consumption != nil {
 					postedLimit = in.Consumption.WalletMaxPoints
 				}
+				if race {
+					entered <- struct{}{}
+					select {
+					case <-release:
+					case <-time.After(8 * time.Second):
+						t.Error("winning POST was not released")
+					}
+				}
 				if strings.HasSuffix(scenario, "lost") {
 					w.WriteHeader(503)
 					return
@@ -155,6 +181,10 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 				if !strings.HasSuffix(r.URL.Path, "/"+postedID) {
 					t.Error("changed recovery id")
 				}
+			}
+			if complete {
+				_ = json.NewEncoder(w).Encode(map[string]any{"request_id": postedID, "task_id": "original-pi", "revision": 2, "execution_state": "failed", "funds_state": "released", "outputs": []any{}})
+				return
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"request_id": postedID, "task_id": "original-pi", "revision": 1, "execution_state": "running", "funds_state": "reserved", "outputs": []any{}, "retry_after_ms": 500})
 		case r.URL.Path == submitPath:
@@ -446,7 +476,29 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 		}
 		var winner *model.Task
 		manualFirst := strings.HasPrefix(scenario, "v1_manual")
-		if manualFirst {
+		if race {
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				if manualFirst {
+					winner = manual()
+				} else {
+					approve()
+				}
+			}()
+			select {
+			case <-entered:
+			case <-time.After(8 * time.Second):
+				t.Fatal("winning action did not dispatch")
+			}
+			if manualFirst {
+				approve()
+			} else {
+				winner = manual()
+			}
+			release <- struct{}{}
+			<-done
+		} else if manualFirst {
 			winner = manual()
 			approve()
 		} else {
@@ -466,6 +518,12 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 		if manualFirst && (postedID != "manual-original" || postedLimit != "0") || !manualFirst && postedLimit != maximum {
 			t.Fatalf("changed winner scope %s", postedLimit)
 		}
+		complete = true
+		got, e := s.waitStudioAgentGeneration(context.Background(), "user", run.ID, winner.ID)
+		if e != nil || got.Status != model.TaskStatusFailed || submits != 1 || recoveries != 1 {
+			t.Fatalf("original waiter grant/ID recovery task=%v err=%v POST=%d GET=%d", got, e, submits, recoveries)
+		}
+
 		return
 	}
 

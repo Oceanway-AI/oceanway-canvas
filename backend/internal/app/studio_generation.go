@@ -16,6 +16,11 @@ import (
 )
 
 func (s *Service) createStudioGeneration(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest, selected platformintegration.ModelSelection, id, hash string, response *platformclient.Response) (*model.Task, *platformclient.Response, error) {
+	// Studio projects and their Resource bindings are currently personal. A
+	// browser-supplied space must never select a different payer.
+	if req.Platform != nil && req.Platform.WorkspaceID != "" {
+		return nil, response, Forbidden("当前项目未绑定该素材空间")
+	}
 	body, err := s.studioMediaBody(ctx, userID, req, selected)
 	if err != nil {
 		return nil, response, err
@@ -24,7 +29,7 @@ func (s *Service) createStudioGeneration(ctx context.Context, userID string, ses
 	if err != nil {
 		return nil, response, err
 	}
-	command := platformclient.MediaCommand{RequestID: "studio-" + id, ProductTaskID: id, Model: selected.Name, VariantID: selected.ID, NativeRequest: body}
+	command := platformclient.MediaCommand{RequestID: req.CommandID, ProductTaskID: id, Model: selected.Name, VariantID: selected.ID, NativeRequest: body}
 	if o := req.Platform; o != nil {
 		command.WorkspaceID = o.WorkspaceID
 		command.Consumption = &platformclient.MediaGenerationConstraints{ExpectedCapabilityRevision: o.ExpectedCapabilityRevision, ExpectedConnectionRevision: o.ExpectedConnectionRevision, ExpectedPriceVersion: o.ExpectedPriceVersion, WalletMaxPoints: o.WalletMaxPoints, BillingPreference: o.BillingPreference}
@@ -36,6 +41,11 @@ func (s *Service) createStudioGeneration(ctx context.Context, userID string, ses
 	now := time.Now()
 	task := model.Task{ID: id, UserID: userID, ProjectID: req.ProjectID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: input, Status: model.TaskStatusRunning, Stage: "正在提交生成", StartedAt: &now, TraceID: req.TraceID, RequestID: req.RequestID, WorkbenchKind: workbenchKindFromTaskInput(req.Input, req.Type), PlatformGenerationRequest: command.RequestID, PlatformWorkspaceID: command.WorkspaceID}
 	ex := model.StudioExecution{TaskID: id, UserID: userID, CommandID: req.CommandID, IntentHash: hash, State: "generation_v1", EnvelopeEncrypted: encoded}
+	if task.ProjectID != "" {
+		if winner, found, e := s.joinStudioGenerationApproval(ctx, req, &task, command, hash, response); found || e != nil {
+			return winner, response, e
+		}
+	}
 	first, err := s.repo.RegisterStudioGeneration(ex, &task)
 	if errors.Is(err, repository.ErrTaskStateConflict) {
 		return nil, response, NewAppError(409, "此任务命令已用于不同的创作意图")
@@ -45,20 +55,8 @@ func (s *Service) createStudioGeneration(ctx context.Context, userID string, ses
 	}
 	if first {
 		auth := platformclient.MediaGenerationAuth{Session: &session, WorkspaceID: command.WorkspaceID}
-		g, e := s.studioPlatform.Client.GenerateMedia(ctx, auth, command)
-		g.Response.AppendCookies(response.Header)
-		if e == nil {
-			if err = s.projectStudioGeneration(ctx, &task, auth, g, response); err != nil {
-				return nil, response, err
-			}
-		} else if g.Response != nil && g.Response.StatusCode >= 400 && g.Response.StatusCode < 500 {
-			var rejection *platformclient.MediaGenerationError
-			if errors.As(e, &rejection) && rejection.Failure != nil && rejection.Failure.Stage == "admission" {
-				err = s.repo.RejectStudioGeneration(&task, studioMediaSubmissionDiagnostic(g.Response, true, task.ID))
-				if err != nil {
-					return nil, response, err
-				}
-			}
+		if err = s.sendStudioGeneration(ctx, &task, auth, command, response); err != nil {
+			return nil, response, err
 		}
 	}
 	out, err := s.Task(userID, id)
@@ -155,6 +153,7 @@ func (s *Service) projectStudioGeneration(ctx context.Context, task *model.Task,
 	if err != nil {
 		return err
 	}
+	task.ExecutionDiagnosticJSON = ""
 	task.ResultJSON = string(encoded)
 	task.PlatformRevision = g.Revision
 	task.ProviderRequestID = g.TaskID
@@ -251,4 +250,23 @@ func studioGenerationPreviewSlots(task model.Task) []model.TaskPreviewOutput {
 		}
 	}
 	return slots
+}
+
+func (s *Service) sendStudioGeneration(ctx context.Context, task *model.Task, auth platformclient.MediaGenerationAuth, command platformclient.MediaCommand, response *platformclient.Response) error {
+	g, e := s.studioPlatform.Client.GenerateMedia(ctx, auth, command)
+	g.Response.AppendCookies(response.Header)
+	if e == nil {
+		return s.projectStudioGeneration(ctx, task, auth, g, response)
+	}
+	var failure *platformclient.MediaGenerationError
+	if errors.As(e, &failure) && failure.RejectedBeforeDispatch && failure.Failure != nil {
+		f := *failure.Failure
+		messages := map[string]string{"insufficient_quota": "可用额度不足，请核对余额或已批准的额度。", "active_task_limit": "同时生成的任务已达上限。", "archive_capacity_insufficient": "素材空间容量不足。", "price_changed": "模型价格已更新，请刷新目录后确认。", "capability_changed": "模型能力已更新，请刷新目录后确认。", "invalid_request": "生成参数无效，请核对所选模型和输入。"}
+		if m := messages[f.Code]; m != "" {
+			f.Message = m
+		}
+		message, diagnostic := studioMediaFailureDiagnostic(task.ID, &f, false)
+		return s.repo.RejectStudioGeneration(task, message, diagnostic)
+	}
+	return s.repo.MarkStudioGenerationUnknown(task, studioMediaSubmissionDiagnostic(g.Response, false, task.ID))
 }

@@ -580,7 +580,7 @@ func (s *Service) advanceCloudAgentTool(run *model.CloudAgentExecution, state *c
 	if allowed && call.Function.Name == agenttool.GenerateMediaBatch && state.Approval != nil && state.Approval.Decision == "approve" {
 		return s.startCloudAgentMediaBatch(run, state, call)
 	}
-	if allowed && (cloudAgentMediaTool(call.Function.Name)) && state.Approval != nil && state.Approval.Decision == "approve" {
+	if allowed && cloudAgentMediaTool(call.Function.Name) && state.Approval != nil && (state.Approval.Decision == "approve" || (state.Approval.StudioMedia && state.Approval.Decision == "manual" && state.MediaTaskID != "")) {
 		return s.advanceCloudAgentMedia(run, state, cloudAgentMediaCall(call))
 	}
 	if allowed && call.Function.Name == agenttool.MediaBatchControl {

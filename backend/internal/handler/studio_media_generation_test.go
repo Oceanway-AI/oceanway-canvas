@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"github.com/gin-gonic/gin"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 )
@@ -40,7 +41,7 @@ func TestStudioMediaGenerationOriginalAdmissionAndRead(t *testing.T) {
 						t.Error(err)
 					}
 					requestID, productTask = in.RequestID, in.ProductTaskID
-					if requestID == "" || productTask == "" || in.VariantID != "generate" || in.Model != "exact-image" || in.Consumption == nil || in.Consumption.WalletMaxPoints != "0" || !strings.Contains(string(in.NativeRequest), `"prompt":"cat"`) {
+					if requestID != "original-v1" || productTask == "" || in.VariantID != "generate" || in.Model != "exact-image" || in.Consumption == nil || in.Consumption.WalletMaxPoints != "0" || !strings.Contains(string(in.NativeRequest), `"prompt":"cat"`) {
 						t.Errorf("bad frozen command")
 					}
 					if lost {
@@ -70,6 +71,11 @@ func TestStudioMediaGenerationOriginalAdmissionAndRead(t *testing.T) {
 			if posts != 1 {
 				t.Fatal("duplicate dispatch")
 			}
+			f.restart()
+			f.router = gin.New()
+			if err := RegisterStudioAPI(f.router.Group("/api"), f.svc); err != nil {
+				t.Fatal(err)
+			}
 			f.request(t, "GET", "/api/tasks/by-command/original-v1", auth, "", 200)
 			if reads != 1 {
 				t.Fatalf("read count %d", reads)
@@ -78,6 +84,7 @@ func TestStudioMediaGenerationOriginalAdmissionAndRead(t *testing.T) {
 			if reads != 1 {
 				t.Fatal("another user queried original")
 			}
+			f.request(t, "POST", "/api/tasks", auth, strings.Replace(strings.Replace(studioGenerationInput, "original-v1", "wrong-space", 1), `"expectedPriceVersion"`, `"workspaceId":"team_foreign","expectedPriceVersion"`, 1), 403)
 			f.request(t, "POST", "/api/tasks", auth, strings.Replace(studioGenerationInput, "cat", "dog", 1), 409)
 			if posts != 1 {
 				t.Fatal("conflict dispatched")
@@ -87,6 +94,10 @@ func TestStudioMediaGenerationOriginalAdmissionAndRead(t *testing.T) {
 }
 
 func TestStudioMediaGenerationSlotsAndEarlyBrowser(t *testing.T) {
+	studioMediaGenerationSlots(t, false)
+}
+func TestStudioMediaGenerationSynchronous(t *testing.T) { studioMediaGenerationSlots(t, true) }
+func studioMediaGenerationSlots(t *testing.T, syncReady bool) {
 	f := newStudioFixture(t)
 	f.catalog = studioGenerationCatalog
 	var reqID string
@@ -136,7 +147,7 @@ func TestStudioMediaGenerationSlotsAndEarlyBrowser(t *testing.T) {
 		out := []map[string]any{}
 		for i, name := range []string{"zero", "one", "two"} {
 			o := map[string]any{"index": i, "kind": "image", "content_state": "available", "preview_state": "available", "material_state": "saved", "asset_id": "asset_" + name, "version_id": "version_" + name, "file_id": "file_" + name, "sha256": strings.Repeat("b", 64), "bytes": 12, "mime_type": "image/png", "owner": map[string]string{"kind": "account", "id": "101"}, "width": 24, "height": 13}
-			if i == 1 && reads == 0 {
+			if !syncReady && i == 1 && reads == 0 {
 				o = map[string]any{"index": 1, "kind": "image", "content_state": "available", "preview_state": "available", "material_state": "failed", "error": map[string]string{"code": "storage_unavailable", "category": "platform", "stage": "result_capture"}, "preview_path": "/internal/products/v1/media-generations/" + reqID + "/outputs/1/preview"}
 			}
 			out = append(out, o)
@@ -154,6 +165,16 @@ func TestStudioMediaGenerationSlotsAndEarlyBrowser(t *testing.T) {
 		}
 	}
 	_ = json.Unmarshal([]byte(w.Data.ResultJSON), &projection)
+	if syncReady {
+		if w.Data.Status != model.TaskStatusSucceeded || len(bindings) != 3 || posts != 1 || reads != 0 {
+			t.Fatalf("synchronous state %s, binds=%d, POST=%d GET=%d", w.Data.Status, len(bindings), posts, reads)
+		}
+		f.request(t, "GET", "/api/tasks/"+w.Data.ID, auth, "", 200)
+		if reads != 0 {
+			t.Fatal("synchronous receipt required another Platform status GET")
+		}
+		return
+	}
 	if len(projection.Outputs) != 3 || projection.Outputs[0].ResourceID == "" || projection.Outputs[2].ResourceID == "" || projection.Outputs[1].ResourceID != "" || projection.Outputs[1].PreviewURL == "" || len(bindings) != 2 || posts != 1 || reads != 0 {
 		t.Fatalf("initial partial outputs %+v bindings=%d reads=%d", projection.Outputs, len(bindings), reads)
 	}
@@ -173,5 +194,40 @@ func TestStudioMediaGenerationSlotsAndEarlyBrowser(t *testing.T) {
 	f.request(t, "GET", "/api/tasks/"+w.Data.ID, auth, "", 200)
 	if reads != 1 || len(bindings) != 3 {
 		t.Fatal("terminal already-complete task requested another status or adoption")
+	}
+}
+
+func TestStudioMediaGenerationConfirmsOnlyMatchingRejection(t *testing.T) {
+	for _, match := range []bool{true, false} {
+		t.Run(map[bool]string{true: "matching", false: "different_request"}[match], func(t *testing.T) {
+			f := newStudioFixture(t)
+			f.catalog = studioGenerationCatalog
+			n := 0
+			f.execution = func(w http.ResponseWriter, r *http.Request) {
+				n++
+				var cmd platformclient.MediaCommand
+				_ = json.NewDecoder(r.Body).Decode(&cmd)
+				ref := cmd.RequestID
+				if !match {
+					ref = "different"
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusPaymentRequired)
+				_ = json.NewEncoder(w).Encode(map[string]any{"request_id": ref, "error": map[string]string{"code": "insufficient_quota", "message": "Payment Required", "stage": "admission_rejected", "request_id": ref}})
+			}
+			w := f.request(t, "POST", "/api/tasks", "platform_session=alice", studioGenerationInput, 200)
+			var result struct{ Data model.Task }
+			_ = json.Unmarshal(w.Body.Bytes(), &result)
+			if n != 1 || result.Data.PlatformGenerationRequest != "original-v1" || result.Data.Diagnostic == nil {
+				t.Fatalf("wrong original %+v", result.Data)
+			}
+			if match {
+				if result.Data.Status != model.TaskStatusFailed || !strings.Contains(result.Data.Error, "额度") {
+					t.Fatalf("rejection not actionable %+v", result.Data)
+				}
+			} else if result.Data.Status != model.TaskStatusRunning {
+				t.Fatal("another request rejected the original")
+			}
+		})
 	}
 }

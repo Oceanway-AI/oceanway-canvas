@@ -226,6 +226,10 @@ func (r *Repository) SaveStudioGenerationProjection(task *model.Task, receipt st
 	})
 }
 
-func (r *Repository) RejectStudioGeneration(task *model.Task, diagnostic string) error {
-	return r.db.Model(&model.Task{}).Where("id=? AND user_id=? AND platform_revision=0 AND platform_generation_request=?", task.ID, task.UserID, task.PlatformGenerationRequest).Updates(map[string]any{"status": model.TaskStatusFailed, "stage": "平台未受理", "error": "平台已拒绝本次生成", "execution_diagnostic_json": diagnostic, "completed_at": time.Now()}).Error
+func (r *Repository) RejectStudioGeneration(task *model.Task, message, diagnostic string) error {
+	return r.db.Model(&model.Task{}).Where("id=? AND user_id=? AND platform_revision=0 AND platform_generation_request=?", task.ID, task.UserID, task.PlatformGenerationRequest).Updates(map[string]any{"status": model.TaskStatusFailed, "stage": "平台未受理", "error": message, "execution_diagnostic_json": diagnostic, "completed_at": time.Now()}).Error
+}
+
+func (r *Repository) MarkStudioGenerationUnknown(task *model.Task, diagnostic string) error {
+	return r.db.Model(&model.Task{}).Where("id=? AND user_id=? AND platform_revision=0 AND status=? AND platform_generation_request=?", task.ID, task.UserID, model.TaskStatusRunning, task.PlatformGenerationRequest).Updates(map[string]any{"stage": "正在查询原生成请求", "execution_diagnostic_json": diagnostic}).Error
 }

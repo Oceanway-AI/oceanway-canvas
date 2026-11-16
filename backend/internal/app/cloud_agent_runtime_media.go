@@ -550,7 +550,7 @@ func (s *Service) DecideCloudAgentApproval(userID, id, approvalID, decision, rea
 }
 
 func (s *Service) finishApprovedCloudAgentMedia(ctx context.Context, userID, id, mediaTaskID string) error {
-	mediaTask, err := s.waitCloudAgentTask(ctx, mediaTaskID)
+	mediaTask, err := s.waitStudioAgentGeneration(ctx, userID, id, mediaTaskID)
 	if err != nil && ctx.Err() != nil {
 		// 服务停机或等待被取消：不能继续回写和恢复运行时，否则正在排空的进程会重新拉起 Agent。
 		// MediaTaskID 仍保留在运行状态里，重启后 recoverCloudAgentPiRunners 会重新挂上等待。

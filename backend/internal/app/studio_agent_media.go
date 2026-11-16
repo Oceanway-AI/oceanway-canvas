@@ -205,6 +205,12 @@ func (s *Service) requestStudioAgentMediaApproval(run *model.CloudAgentExecution
 		state.Calls[state.CallIndex] = call
 		preview := cloudAgentMediaApprovalPreview(plan, selected.Name)
 		state.Approval = &cloudAgentApproval{ID: fmt.Sprintf("%s-%d-%d", run.ID, state.Step, state.CallIndex), Call: call, CallHash: cloudAgentApprovalCallHash(call), Preview: preview, ModelName: selected.Name, StudioMedia: true}
+		if selected.GenerationV1 {
+			if err := repo.OpenStudioMediaAction(model.StudioMediaAction{RunID: run.ID, ApprovalID: state.Approval.ID, UserID: run.UserID, ProjectID: state.Request.CanvasID, NodeID: plan.Args.NodeID}); err != nil {
+				return err
+			}
+		}
+
 		state.PiResumePrompt = ""
 		current.Status = "waiting_approval"
 		state.event(run.ID, "approval_requested", map[string]any{"approvalId": state.Approval.ID, "toolName": call.Function.Name, "modelName": selected.Name, "arguments": json.RawMessage(call.Function.Arguments), "preview": preview, "studioMedia": true, "text": preview.Description})
@@ -338,6 +344,10 @@ func (s *Service) DecideStudioAgentMedia(userID, runID, approvalID, decision, re
 		return err
 	}
 	if previous, ok := state.Decisions[approvalID]; ok {
+		if previous == "manual" {
+			return nil
+		}
+
 		if state.DecisionPreparedHashes[approvalID] == "" && quoteID == "" {
 			return s.DecideCloudAgentApproval(userID, runID, approvalID, decision, reason, settings)
 		}
@@ -381,6 +391,9 @@ func (s *Service) DecideStudioAgentMedia(userID, runID, approvalID, decision, re
 	followUp := s.claimCloudAgentApprovalFollowUp(key)
 	if followUp {
 		defer s.releaseCloudAgentApprovalFollowUp(key)
+	}
+	if prepared.Envelope.Selection.GenerationV1 {
+		return s.approveStudioGeneration(run, &state, &prepared, quoteID, reason, policy, followUp)
 	}
 	s.storageMu.Lock()
 	err = s.repo.MutateCloudAgent(userID, runID, run.Revision, func(current *model.CloudAgentExecution, repo *repository.Repository) error {

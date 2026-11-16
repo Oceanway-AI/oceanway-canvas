@@ -287,6 +287,7 @@ export type CanvasDramaRef = {
 };
 
 export type CanvasNodeMetadata = {
+    agentDraftRunId?: string;
     platformOutputIndex?: number;
     platformOutputRequest?: string;
     platformOutputRevision?: number;

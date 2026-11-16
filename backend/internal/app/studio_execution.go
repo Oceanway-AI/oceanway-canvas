@@ -45,6 +45,13 @@ func (s *Service) StudioTaskByCommand(userID, commandID, expectedUserID string) 
 	}
 	task, err := s.Task(userID, studioTaskID(userID, commandID))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
+		alias, e := s.repo.StudioActionAlias(userID, commandID)
+		if e == nil {
+			return s.Task(userID, alias.TaskID)
+		}
+		if !errors.Is(e, gorm.ErrRecordNotFound) {
+			return nil, e
+		}
 		return nil, NotFound("未找到原任务")
 	}
 	return task, err
@@ -217,7 +224,7 @@ func studioPublicTaskInput(kind string, req CreateTaskRequest) (string, error) {
 func studioTaskMetadata(input map[string]any) map[string]any {
 	source, _ := input["metadata"].(map[string]any)
 	metadata := map[string]any{}
-	for _, key := range []string{"clientOperationId", "nodeId", "conversationId", "messageId", "batchId", "batchIndex", "batchCount", "source"} {
+	for _, key := range []string{"clientOperationId", "nodeId", "sourceNodeId", "studioPendingRunId", "conversationId", "messageId", "batchId", "batchIndex", "batchCount", "source"} {
 		if v, ok := source[key]; ok {
 			metadata[key] = v
 		}
