@@ -1,0 +1,12 @@
+{
+  "version": "v1.0.0-rc.2",
+  "module": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+  "tag_commit": "cb3510f60a771a2fe0ccd28bf2b1d9b5b5ea879b",
+  "module_sum": "h1:9Gk60TKrf1m1l1/IqXrcUYFL7VOJecO8Ba6+ka25N3g=",
+  "go_mod_sum": "h1:bNGb+1LnSL/X/hNdSFqXzKE5olaJAhYrJxsEwBSXZZQ=",
+  "empty_cache": true,
+  "official_origin": "https://github.com/Oceanway-AI/oceanway-platform",
+  "zip_sha256": "72eabfde8cab2e4235a820affa5ada7c70d2dc91167973e5b77862e222e29944",
+  "mod_sha256": "a747ffc9234c7e43602d919954d3cbc0f7ac3d1666b0c4e756aca53050048ce2",
+  "info_sha256": "2997293dcfdac3e06941c893fec362a17f0b175e5800311ab0bd578bcc115bcc"
+}
