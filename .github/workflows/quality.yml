@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - codex/wp019-studio-media
+  workflow_dispatch:
   workflow_call:
 
 permissions:
