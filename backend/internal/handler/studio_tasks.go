@@ -112,6 +112,25 @@ func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
 		}
 		ok(c, task)
 	})
+	r.POST("/tasks/:id/adopt-outputs", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		task, err := svc.Task(user.ID, c.Param("id"))
+		if err != nil {
+			fail(c, 404, err)
+			return
+		}
+		task, response, err := svc.StudioAdoptGenerationOutputs(c.Request.Context(), task, platformintegration.Session(c.Request))
+		response.AppendCookies(c.Writer.Header())
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, task)
+	})
 	for _, method := range []string{http.MethodGet, http.MethodHead} {
 		r.Handle(method, "/tasks/:id/previews/:index", func(c *gin.Context) {
 			c.Header("Cache-Control", "private, no-store")

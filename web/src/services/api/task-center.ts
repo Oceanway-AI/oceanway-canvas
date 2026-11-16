@@ -29,6 +29,7 @@ export type GenerationTask = {
     platformGenerationRequest?: string;
     platformWorkspaceId?: string;
     platformRevision?: number;
+    projectionPending?: boolean;
     retryAfterMs?: number;
     id: string;
     agentRunId?: string;
@@ -253,7 +254,14 @@ async function collectGenerationTaskPages<T>(readPage: (request: GenerationTaskP
     return items.slice(0, limit);
 }
 
-const studioGenerationReads = createStudioGenerationReads(getActiveUserScope, (id, signal) => http.get<GenerationTask>(`/tasks/${encodeURIComponent(id)}`, { signal }));
+async function adoptPendingStudioOutputs(task: GenerationTask, signal?: AbortSignal) {
+    if (!task.platformGenerationRequest || !task.projectionPending || !task.resultJson) return task;
+    const result = JSON.parse(task.resultJson) as { fundsState?: string; outputs?: { materialState: string; resourceId?: string }[] };
+    if (!["settled", "not_applicable"].includes(result.fundsState || "") || !result.outputs?.some((output) => output.materialState === "saved" && !output.resourceId)) return task;
+    return http.post<GenerationTask>(`/tasks/${encodeURIComponent(task.id)}/adopt-outputs`, {}, { signal });
+}
+
+const studioGenerationReads = createStudioGenerationReads(getActiveUserScope, async (id, signal) => adoptPendingStudioOutputs(await http.get<GenerationTask>(`/tasks/${encodeURIComponent(id)}`, { signal }), signal));
 
 // When the tab closed before Studio acknowledged the POST, the local scoped
 // command marker is the only durable identity available to this consumer.
@@ -265,8 +273,10 @@ export async function recoverStudioGenerationCommand(commandId: string, signal: 
         try {
             const task = await http.get<GenerationTask>(`/tasks/by-command/${encodeURIComponent(commandId)}`, { params: { expectedUserId: owner }, signal });
             if (signal.aborted || owner !== getActiveUserScope()) return undefined;
-            studioGenerationReads.remember(task);
-            return task;
+            const adopted = await adoptPendingStudioOutputs(task, signal);
+            if (signal.aborted || owner !== getActiveUserScope()) return undefined;
+            studioGenerationReads.remember(adopted);
+            return adopted;
         } catch (error) {
             if (signal.aborted) return undefined;
             if (error instanceof ApiError && error.status && error.status < 500 && error.status !== 404 && error.status !== 429) throw error;
@@ -428,7 +438,10 @@ export function queryFailedVideoProviderTask(id: string) {
 }
 
 export function refreshGenerationTaskStatus(id: string, options?: { signal?: AbortSignal }) {
-    return http.get<GenerationTask>(`/tasks/${encodeURIComponent(id)}`, { signal: options?.signal }).then(observedTask);
+    return http
+        .get<GenerationTask>(`/tasks/${encodeURIComponent(id)}`, { signal: options?.signal })
+        .then((task) => adoptPendingStudioOutputs(task, options?.signal))
+        .then(observedTask);
 }
 
 export function deleteGenerationTask(id: string) {

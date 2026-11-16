@@ -121,8 +121,22 @@ func (s *Service) projectStudioGeneration(ctx context.Context, task *model.Task,
 				pending = true
 				break
 			}
-			resource, err := call.adopt(studioGenerationAsset(o), StudioResourceMeta{})
-			if err != nil {
+			asset := studioGenerationAsset(o)
+			var resource *model.Resource
+			var err error
+			if auth.Session != nil && auth.Session.Origin == "" {
+				// A same-origin browser GET may omit Origin. Only use an already
+				// authorized local binding until the browser sends an adoption POST.
+				repo := s.repo.WithContext(ctx)
+				id := studioMaterialResourceID(task.UserID, asset)
+				ref, findErr := repo.StudioMaterialReference(task.UserID, id)
+				if findErr == nil && matchesStudioOriginal(*ref, asset) {
+					resource, err = repo.ResourceForUser(task.UserID, id)
+				}
+			} else {
+				resource, err = call.adopt(asset, StudioResourceMeta{})
+			}
+			if err != nil || resource == nil || resource.Status != model.ResourceStatusReady {
 				pending = true
 				break
 			}
@@ -210,17 +224,51 @@ func (s *Service) projectStudioGeneration(ctx context.Context, task *model.Task,
 
 // An acknowledged final receipt contains all original file identities. Recover
 // a lost project binding response against those files, even after a restart.
+func (s *Service) storedStudioGenerationReceipt(ctx context.Context, task *model.Task) (platformclient.MediaGeneration, error) {
+	var g platformclient.MediaGeneration
+	ex, err := s.repo.WithContext(ctx).StudioExecution(task.UserID, task.ID)
+	if err != nil {
+		return g, err
+	}
+	if err = s.decryptStudioValue(ex.ResponseEncrypted, &g); err != nil {
+		return g, err
+	}
+	if g.RequestID != task.PlatformGenerationRequest || g.Revision != task.PlatformRevision || g.TaskID != task.ProviderRequestID {
+		return g, NewAppError(409, "原收据与当前任务不一致")
+	}
+	return g, nil
+}
+
+func (s *Service) StudioAdoptGenerationOutputs(ctx context.Context, task *model.Task, session platformclient.SessionContext) (*model.Task, *platformclient.Response, error) {
+	response := &platformclient.Response{Header: make(http.Header)}
+	if session.Origin == "" {
+		return nil, response, Forbidden("采用素材需要当前页面的来源")
+	}
+	if task.PlatformGenerationRequest == "" {
+		return nil, response, NotFound("任务不存在或不可访问")
+	}
+	if !task.PlatformProjectionPending {
+		return task, response, nil
+	}
+	g, err := s.storedStudioGenerationReceipt(ctx, task)
+	if err != nil {
+		return nil, response, err
+	}
+	auth := platformclient.MediaGenerationAuth{Session: &session, WorkspaceID: task.PlatformWorkspaceID}
+	if err = s.projectStudioGeneration(ctx, task, auth, g, response); err != nil {
+		return nil, response, err
+	}
+	result, err := s.Task(task.UserID, task.ID)
+	return result, response, err
+}
+
 func (s *Service) readStudioGenerationReceipt(ctx context.Context, task *model.Task, auth platformclient.MediaGenerationAuth) (platformclient.MediaGeneration, error) {
 	if task.PlatformProjectionPending {
-		ex, err := s.repo.WithContext(ctx).StudioExecution(task.UserID, task.ID)
+		g, err := s.storedStudioGenerationReceipt(ctx, task)
 		if err != nil {
-			return platformclient.MediaGeneration{}, err
-		}
-		var g platformclient.MediaGeneration
-		if err = s.decryptStudioValue(ex.ResponseEncrypted, &g); err != nil {
 			return g, err
 		}
-		if g.RequestID == task.PlatformGenerationRequest && g.Revision == task.PlatformRevision && g.ExecutionState == "succeeded" && (g.FundsState == "settled" || g.FundsState == "not_applicable") && len(g.Outputs) > 0 {
+		if g.ExecutionState == "succeeded" && (g.FundsState == "settled" || g.FundsState == "not_applicable") && len(g.Outputs) > 0 {
 			final := true
 			for _, o := range g.Outputs {
 				switch o.MaterialState {
