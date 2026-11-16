@@ -1,21 +1,24 @@
 package app
 
 import (
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
-	"crypto/sha256"
-	"fmt"
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
 )
 
 type studioCatalogScope struct{ user, session, host string }
 
-func studioCatalogScopeFor(user string, session platformclient.SessionContext) studioCatalogScope {
-	if user == "" || session.Cookie == "" {
+func studioCatalogScopeFor(user string, session platformclient.SessionContext, verifiedSessionID ...string) studioCatalogScope {
+	if user == "" || session.Host == "" || session.Cookie == "" || len(verifiedSessionID) != 1 || verifiedSessionID[0] == "" {
 		return studioCatalogScope{}
 	}
-	return studioCatalogScope{user, fmt.Sprintf("%x", sha256.Sum256([]byte(session.Cookie))), session.Host}
+	// Platform's live Identity has already authenticated this SID. Other
+	// browser cookies and a rotated cookie for the same SID are immaterial.
+	return studioCatalogScope{user, fmt.Sprintf("%x", sha256.Sum256([]byte(verifiedSessionID[0]))), session.Host}
 }
 
 type studioMediaCatalogSnapshot struct {
@@ -41,11 +44,27 @@ func (c *studioMediaCatalogCache) remember(scope studioCatalogScope, items []pla
 		if (m.ModelType != "image" && m.ModelType != "video") || m.InvocationStatus != "available" {
 			continue
 		}
-		size += len(m.Price) + len(m.MediaGenerationProfile) + len(m.ModelName) + 512
-		if size > 2<<20 {
-			models = nil
-			break
+		var profile struct {
+			Variants []struct {
+				ID      string `json:"id"`
+				Enabled bool   `json:"media_generation_v1"`
+			} `json:"variants"`
 		}
+		if json.Unmarshal(m.MediaGenerationProfile, &profile) != nil {
+			continue
+		}
+		enabled := false
+		for _, variant := range profile.Variants {
+			if variant.ID != "" && variant.Enabled {
+				enabled = true
+				break
+			}
+		}
+		cost := len(m.Price) + len(m.MediaGenerationProfile) + len(m.ModelName) + 512
+		if !enabled || size+cost > 2<<20 {
+			continue
+		}
+		size += cost
 		models[m.ModelName] = platformclient.Model{ModelName: m.ModelName, ModelType: m.ModelType, InvocationStatus: m.InvocationStatus, Price: m.Price, MediaGenerationProfile: m.MediaGenerationProfile}
 	}
 	c.mu.Lock()

@@ -56,7 +56,7 @@ func (o *StudioTaskOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (s *Service) studioSelectTaskModel(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response, owner ...string) (platformintegration.ModelSelection, error) {
+func (s *Service) studioSelectTaskModel(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response, scopes ...studioCatalogScope) (platformintegration.ModelSelection, error) {
 	config, _ := req.Input["config"].(map[string]any)
 	name := firstNonEmpty(stringValue(config["model"]), req.Model)
 	variant := stringValue(config["nativeVariantId"])
@@ -77,11 +77,11 @@ func (s *Service) studioSelectTaskModel(ctx context.Context, session platformcli
 		return selected, nil
 	}
 	var scope studioCatalogScope
-	if len(owner) == 1 {
-		scope = studioCatalogScopeFor(owner[0], session)
+	if len(scopes) == 1 {
+		scope = scopes[0]
 		if m, ok := s.studioMediaCatalog.lookup(scope, name); ok {
 			selected, err := selectModel(m)
-			if err == nil && selected.GenerationV1 {
+			if err == nil && selected.GenerationV1 && (req.Platform == nil || req.Platform.ExpectedPriceVersion == "" || req.Platform.ExpectedPriceVersion == selected.Price.Version) {
 				return selected, nil
 			}
 		}
@@ -139,14 +139,14 @@ func (s *Service) verifyStudioPreviewAccount(userID string, req CreateTaskReques
 	return nil
 }
 
-func (s *Service) StudioPreviewTask(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest) (*StudioTaskPreview, *platformclient.Response, error) {
+func (s *Service) StudioPreviewTask(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest, verifiedSessionID ...string) (*StudioTaskPreview, *platformclient.Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	response := &platformclient.Response{Header: make(http.Header)}
 	if !studioMaterialID.MatchString(req.CommandID) {
 		return nil, response, BadAuthRequest("请提供稳定的任务命令标识")
 	}
-	selected, err := s.studioSelectTaskModel(ctx, session, req, response)
+	selected, err := s.studioSelectTaskModel(ctx, session, req, response, studioCatalogScopeFor(userID, session, verifiedSessionID...))
 	if err != nil {
 		return nil, response, err
 	}

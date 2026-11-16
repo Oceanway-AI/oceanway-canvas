@@ -23,7 +23,7 @@ func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
 			failService(c, service.BadAuthRequest("任务输入无效"))
 			return
 		}
-		quote, response, err := svc.StudioPreviewTask(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req)
+		quote, response, err := svc.StudioPreviewTask(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req, user.PlatformSessionID)
 		response.AppendCookies(c.Writer.Header())
 		if err != nil {
 			failService(c, err)
@@ -48,7 +48,7 @@ func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		req.TraceID, req.RequestID = TraceID(c), RequestID(c)
-		task, response, err := svc.StudioCreateTask(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req)
+		task, response, err := svc.StudioCreateTask(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req, user.PlatformSessionID)
 		response.AppendCookies(c.Writer.Header())
 		if err != nil {
 			failService(c, err)

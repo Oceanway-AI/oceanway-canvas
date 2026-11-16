@@ -15,7 +15,7 @@ import (
 
 const StudioPlatformChannelID = "oceanway-platform"
 
-func (s *Service) StudioModelCatalog(ctx context.Context, session platformclient.SessionContext, owner ...string) (*ModelCatalogResponse, *platformclient.Response, error) {
+func (s *Service) StudioModelCatalog(ctx context.Context, session platformclient.SessionContext, owner ...*model.User) (*ModelCatalogResponse, *platformclient.Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	result, err := s.studioPlatform.Client.Models(ctx, session)
@@ -26,8 +26,8 @@ func (s *Service) StudioModelCatalog(ctx context.Context, session platformclient
 	if err != nil {
 		return nil, result.Response, err
 	}
-	if len(owner) == 1 {
-		s.studioMediaCatalog.remember(studioCatalogScopeFor(owner[0], session), result.Data.Items)
+	if len(owner) == 1 && owner[0] != nil && owner[0].PlatformAuthenticated {
+		s.studioMediaCatalog.remember(studioCatalogScopeFor(owner[0].ID, session, owner[0].PlatformSessionID), result.Data.Items)
 	}
 	channel := PublicChannelCatalog{ID: StudioPlatformChannelID, Name: "OceanWay", DisplayName: "OceanWay", Models: []PublicChannelModel{}, PlatformGroups: groups}
 	for _, item := range result.Data.Items {

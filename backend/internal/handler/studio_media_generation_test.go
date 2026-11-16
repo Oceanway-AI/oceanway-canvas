@@ -377,7 +377,9 @@ func TestStudioGenerationUsesAuthenticatedVariantFromLargeCatalog(t *testing.T) 
 	posts := 0
 	f.execution = func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" || r.URL.Path != "/internal/products/v1/media-generations" {
-			t.Fatalf("unexpected upstream %s %s", r.Method, r.URL.Path)
+			t.Errorf("unexpected upstream %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
 		}
 		var c platformclient.MediaCommand
 		if err := json.NewDecoder(r.Body).Decode(&c); err != nil {

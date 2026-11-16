@@ -137,7 +137,7 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 			failService(c, err)
 			return
 		}
-		catalog, response, err := svc.StudioModelCatalog(c.Request.Context(), platformintegration.Session(c.Request), user.ID)
+		catalog, response, err := svc.StudioModelCatalog(c.Request.Context(), platformintegration.Session(c.Request), user)
 		if response != nil {
 			response.AppendCookies(c.Writer.Header())
 		}

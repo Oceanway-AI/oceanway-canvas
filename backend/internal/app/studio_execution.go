@@ -57,7 +57,7 @@ func (s *Service) StudioTaskByCommand(userID, commandID, expectedUserID string) 
 	return task, err
 }
 
-func (s *Service) StudioCreateTask(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest) (*model.Task, *platformclient.Response, error) {
+func (s *Service) StudioCreateTask(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest, verifiedSessionID ...string) (*model.Task, *platformclient.Response, error) {
 	response := &platformclient.Response{Header: make(http.Header)}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -107,7 +107,7 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 		if err := s.ensureTaskProjectActive(userID, req.ProjectID); err != nil {
 			return nil, response, err
 		}
-		selected, e := s.studioSelectTaskModel(ctx, session, req, response, userID)
+		selected, e := s.studioSelectTaskModel(ctx, session, req, response, studioCatalogScopeFor(userID, session, verifiedSessionID...))
 		if e != nil {
 			return nil, response, e
 		}
