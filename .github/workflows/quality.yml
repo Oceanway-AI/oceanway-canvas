@@ -7,6 +7,10 @@ on:
       - codex/wp019-studio-media
   workflow_dispatch:
   workflow_call:
+    secrets:
+      PLATFORM_SDK_READ_TOKEN:
+        description: Fine-grained Contents read token for the private Platform SDK repository
+        required: false
 
 permissions:
   contents: read
@@ -80,6 +84,24 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
           cache: true
+      - name: Download the released Platform SDK
+        shell: bash
+        env:
+          PLATFORM_SDK_READ_TOKEN: ${{ secrets.PLATFORM_SDK_READ_TOKEN }}
+          GOPRIVATE: github.com/Oceanway-AI/oceanway-platform
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          test -n "$PLATFORM_SDK_READ_TOKEN" || { echo "::error::PLATFORM_SDK_READ_TOKEN is required to download the released SDK"; exit 1; }
+          basic_auth="$(printf 'x-access-token:%s' "$PLATFORM_SDK_READ_TOKEN" | base64 -w 0)"
+          echo "::add-mask::$basic_auth"
+          # Git receives auth only for this download step, without persisting it in a remote or config file.
+          export GIT_CONFIG_COUNT=2
+          export GIT_CONFIG_KEY_0=http.https://github.com/Oceanway-AI/oceanway-platform.extraheader
+          export GIT_CONFIG_KEY_1=http.https://github.com/Oceanway-AI/oceanway-platform.git.extraheader
+          export GIT_CONFIG_VALUE_0="Authorization: Basic $basic_auth"
+          export GIT_CONFIG_VALUE_1="$GIT_CONFIG_VALUE_0"
+          go mod download github.com/Oceanway-AI/oceanway-platform/platformclient
       - uses: actions/setup-node@v4
         with:
           node-version: 22.19.0
