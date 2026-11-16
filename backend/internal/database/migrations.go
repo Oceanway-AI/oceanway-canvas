@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const CurrentSchemaVersion int64 = 95
+const CurrentSchemaVersion int64 = 96
 
 const baselineSchemaChecksum = "sha256:open-ai-canvas-schema-v1-20260830"
 const schemaMigrationAppliedAtIndexChecksum = "sha256:schema-migrations-applied-at-index-v2-20260830"
@@ -337,6 +337,7 @@ var schemaMigrations = []migration{
 	{version: 95, name: "studio_material_authority", checksum: "sha256:studio-material-authority-v95", apply: func(tx *gorm.DB) error {
 		return tx.AutoMigrate(&model.StudioMaterialAuthority{})
 	}},
+	{version: 96, name: "studio_media_generation_v1", checksum: "sha256:studio-media-generation-v1-96", apply: func(tx *gorm.DB) error { return tx.AutoMigrate(&model.Task{}) }},
 }
 
 // migrateReferenceVideoCostPrice 为价格档成本和账单成本快照增加带参考视频的成本价。

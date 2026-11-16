@@ -6,7 +6,19 @@ import (
 	"gorm.io/gorm"
 )
 
+type TaskPreviewOutput struct {
+	Index int    `json:"index"`
+	Kind  string `json:"kind"`
+}
+
 type Task struct {
+	EarlyPreviews             []TaskPreviewOutput `json:"earlyPreviews,omitempty" gorm:"-"`
+	PlatformGenerationRequest string              `json:"platformGenerationRequest,omitempty" gorm:"size:128;not null;default:''"`
+	PlatformWorkspaceID       string              `json:"platformWorkspaceId,omitempty" gorm:"size:128;not null;default:''"`
+	PlatformRevision          int64               `json:"platformRevision,omitempty" gorm:"not null;default:0"`
+	PlatformRetryAfterMS      int64               `json:"retryAfterMs,omitempty" gorm:"not null;default:0"`
+	PlatformProjectionPending bool                `json:"projectionPending,omitempty" gorm:"not null;default:false"`
+
 	// Only EnsureCloudAgent sets this after creating the execution in the same
 	// transaction. Ordinary task saves must not reset it from a stale snapshot.
 	AgentExecutionReady          bool                     `json:"-" gorm:"not null;default:false;<-:create"`

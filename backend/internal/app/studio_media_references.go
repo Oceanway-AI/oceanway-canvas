@@ -62,7 +62,11 @@ func (s *Service) studioMediaReferences(ctx context.Context, userID string, sele
 		if field.MaxItemBytes > 0 && resource.Size > field.MaxItemBytes || field.MaxTotalBytes > 0 && totals[field.Field] > field.MaxTotalBytes || len(field.MIMETypes) > 0 && !slices.Contains(field.MIMETypes, resource.MimeType) {
 			return BadAuthRequest("参考素材超出所选模型的文件限制")
 		}
-		uri := "material://" + pin.AssetID + "/" + pin.VersionID
+		uris, err := platformclient.MediaReferenceURIs([]platformclient.MediaReference{{AssetID: pin.AssetID, VersionID: pin.VersionID}})
+		if err != nil {
+			return BadAuthRequest("参考素材版本无效")
+		}
+		uri := uris[0]
 		switch {
 		case selected.MediaRoute == platformclient.GeminiMedia && field.Field == "contents.parts.fileData":
 			content := body["contents"].([]any)[0].(map[string]any)

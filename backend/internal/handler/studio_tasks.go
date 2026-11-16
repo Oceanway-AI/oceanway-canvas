@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -66,6 +67,12 @@ func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
 			failService(c, err)
 			return
 		}
+		task, response, err := svc.StudioReadGeneration(c.Request.Context(), task, platformintegration.Session(c.Request))
+		response.AppendCookies(c.Writer.Header())
+		if err != nil {
+			failService(c, err)
+			return
+		}
 		ok(c, task)
 	})
 	r.GET("/tasks", func(c *gin.Context) {
@@ -97,8 +104,39 @@ func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
 			fail(c, 404, err)
 			return
 		}
+		task, response, err := svc.StudioReadGeneration(c.Request.Context(), task, platformintegration.Session(c.Request))
+		response.AppendCookies(c.Writer.Header())
+		if err != nil {
+			failService(c, err)
+			return
+		}
 		ok(c, task)
 	})
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		r.Handle(method, "/tasks/:id/previews/:index", func(c *gin.Context) {
+			c.Header("Cache-Control", "private, no-store")
+			c.Header("Referrer-Policy", "no-referrer")
+			user, err := currentUser(c, svc)
+			if err != nil {
+				failService(c, err)
+				return
+			}
+			raw := c.Param("index")
+			index, err := strconv.Atoi(raw)
+			if err != nil || index < 0 || index >= 128 || strconv.Itoa(index) != raw {
+				failService(c, service.NewAppError(404, "任务预览不存在"))
+				return
+			}
+			c.Header("Cache-Control", "private, no-store")
+			target, response, err := svc.StudioGenerationPreview(c.Request.Context(), user.ID, c.Param("id"), index, platformintegration.Session(c.Request))
+			response.AppendCookies(c.Writer.Header())
+			if err != nil {
+				failService(c, err)
+				return
+			}
+			c.Redirect(http.StatusTemporaryRedirect, target)
+		})
+	}
 	r.GET("/tasks/:id/logs", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

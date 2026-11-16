@@ -20,6 +20,8 @@ import (
 )
 
 type StudioTaskOptions struct {
+	ExpectedUserID             string `json:"expectedUserId,omitempty"`
+	WorkspaceID                string `json:"workspaceId,omitempty"`
 	PreviewUserID              string `json:"previewUserId,omitempty"`
 	PreviewBinding             string `json:"previewBinding,omitempty"`
 	VariantID                  string `json:"variantId,omitempty"`
@@ -54,12 +56,7 @@ func (o *StudioTaskOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (s *Service) studioSelectTaskModel(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response) (platformintegration.ModelSelection, error) {
-	catalog, err := s.studioPlatform.Client.Models(ctx, session)
-	catalog.Response.AppendCookies(response.Header)
-	if err != nil {
-		return platformintegration.ModelSelection{}, platformIdentityError(err)
-	}
+func (s *Service) studioSelectTaskModel(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response, owner ...string) (platformintegration.ModelSelection, error) {
 	config, _ := req.Input["config"].(map[string]any)
 	name := firstNonEmpty(stringValue(config["model"]), req.Model)
 	variant := stringValue(config["nativeVariantId"])
@@ -69,18 +66,38 @@ func (s *Service) studioSelectTaskModel(ctx context.Context, session platformcli
 		}
 		variant = firstNonEmpty(req.Platform.VariantID, variant)
 	}
-	for _, m := range catalog.Data.Items {
-		if m.ModelName == name {
-			selected, err := platformintegration.SelectModel(m, variant)
-			if err != nil {
-				return selected, BadAuthRequest(err.Error())
+	selectModel := func(m platformclient.Model) (platformintegration.ModelSelection, error) {
+		selected, err := platformintegration.SelectModel(m, variant)
+		if err != nil {
+			return selected, BadAuthRequest(err.Error())
+		}
+		if req.Type != "canvas_"+selected.Kind || strings.TrimSpace(req.Prompt) == "" {
+			return selected, BadAuthRequest("任务类型或提示词无效")
+		}
+		return selected, nil
+	}
+	var scope studioCatalogScope
+	if len(owner) == 1 {
+		scope = studioCatalogScopeFor(owner[0], session)
+		if m, ok := s.studioMediaCatalog.lookup(scope, name); ok {
+			selected, err := selectModel(m)
+			if err == nil && selected.GenerationV1 {
+				return selected, nil
 			}
-			if req.Type != "canvas_"+selected.Kind || strings.TrimSpace(req.Prompt) == "" {
-				return selected, BadAuthRequest("任务类型或提示词无效")
-			}
-			return selected, nil
 		}
 	}
+	catalog, err := s.studioPlatform.Client.Models(ctx, session)
+	catalog.Response.AppendCookies(response.Header)
+	if err != nil {
+		return platformintegration.ModelSelection{}, platformIdentityError(err)
+	}
+	s.studioMediaCatalog.remember(scope, catalog.Data.Items)
+	for _, m := range catalog.Data.Items {
+		if m.ModelName == name {
+			return selectModel(m)
+		}
+	}
+
 	return platformintegration.ModelSelection{}, BadAuthRequest("所选平台模型暂不可用，请刷新模型目录")
 }
 

@@ -54,6 +54,9 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 	response := &platformclient.Response{Header: make(http.Header)}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
+	if req.Platform != nil && req.Platform.ExpectedUserID != "" && req.Platform.ExpectedUserID != userID {
+		return nil, response, studioPreviewAccountChanged()
+	}
 	if !studioMaterialID.MatchString(req.CommandID) {
 		return nil, response, BadAuthRequest("请提供稳定的任务命令标识")
 	}
@@ -94,15 +97,18 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 			return task, response, e
 		}
 	} else {
-		if !hasReceipt && (req.Type == "canvas_image" || req.Type == "canvas_video") {
-			return nil, response, studioPreviewAccountChanged()
-		}
 		if err := s.ensureTaskProjectActive(userID, req.ProjectID); err != nil {
 			return nil, response, err
 		}
-		selected, e := s.studioSelectTaskModel(ctx, session, req, response)
+		selected, e := s.studioSelectTaskModel(ctx, session, req, response, userID)
 		if e != nil {
 			return nil, response, e
+		}
+		if selected.GenerationV1 {
+			return s.createStudioGeneration(ctx, userID, session, req, selected, id, hash, response)
+		}
+		if !hasReceipt && (req.Type == "canvas_image" || req.Type == "canvas_video") {
+			return nil, response, studioPreviewAccountChanged()
 		}
 		var body []byte
 		var consumption *platformclient.MediaConsumptionConstraints
