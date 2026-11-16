@@ -1,0 +1,339 @@
+{
+  "package": "WP-PLAT-019/P5a",
+  "scope": "Isolated Studio host, real browser, real PG16; free in-process Platform HTTP fixture",
+  "source": "393d86c7aa248dbb1d8f2176acb8de3e43ea0529",
+  "studio_base": "09f389cc1f3cf8e37d19f2cf5c05b1fa5979f047",
+  "linked_platformclient_git_tree": "909f1ab35911afda09df12c463f69470fb93449f",
+  "module_source": "external go.work used for this pre-release run",
+  "red_observations": [
+    {
+      "fixture": "admission-red.log",
+      "observation": "Original admission required an obsolete preview token and returned HTTP 409.",
+      "red_log_sha256": "01147a124dc58c405a117a6a8ba366e2532f9c98df6b8f1dc9518e7f9f994f1e"
+    },
+    {
+      "fixture": "agent-red.log",
+      "observation": "The manual and approval actions chose different command identities in both arrival orders.",
+      "red_log_sha256": "cca517fb6e8af7786de3ebe3b677cac5d024bfd0c43865055851aa99969dcdd1"
+    },
+    {
+      "fixture": "local-bind-red.log",
+      "observation": "Replaying an acknowledged original after a lost local binding incorrectly queried generation again.",
+      "red_log_sha256": "fde783dcafffe2f365a9e1d39e7ec28635839a7e4d62248a84178303cb1d1962"
+    },
+    {
+      "fixture": "batch-red.log",
+      "observation": "One published three-image command was split while native editor detail was unavailable.",
+      "red_log_sha256": "bbae404a9bbd6b010e9e8c990de49b45dd296a080c491e315fde7bf1e860cdc7"
+    },
+    {
+      "fixture": "funds-red.log",
+      "observation": "An execution terminal state discarded positive retry while its original wallet was still reserved.",
+      "red_log_sha256": "953246682b3f763fe2aa6c9537bbbb571d3dde848b4fc0c46b314b0e882455fe"
+    },
+    {
+      "fixture": "refusal-read-red.log",
+      "observation": "A confirmed unsubmitted rejection observed on an original GET was left running.",
+      "red_log_sha256": "9a1dbb4b3ca7532d83f10e02ae95144fe4ee658381cba3b0b41ce8a267c3905a"
+    },
+    {
+      "fixture": "slot-status-red.log",
+      "observation": "A permanent result failure left its original canvas node loading.",
+      "red_log_sha256": "0db3d95b650d263ce03d1d29218b67f5d537b80a6bb18a13fcc773f48dd3221c"
+    },
+    {
+      "fixture": "create-partial-red.log",
+      "observation": "The creation history lost the failed sibling when another output was already usable.",
+      "red_log_sha256": "2efc9e063878073afc7d0a4f81878f02553d96a260f586712dacb671790f0b60"
+    },
+    {
+      "fixture": "browser-four-proof.err",
+      "observation": "After closing between the first outgoing POST and the Studio acknowledgement, the created message could be absent from durable browser history.",
+      "red_log_sha256": "31240cf57281529bb36c70e26e9afb10b576302a894d7796df0b85afe16f74d4"
+    },
+    {
+      "fixture": "browser-durable.err",
+      "observation": "A second whole-page reload could re-expand a three-output canvas child into its own sibling group.",
+      "red_log_sha256": "0dc5e0033b0778e577ecbc4a5cde9cc9baad91124e8c5077244ab7bc319b7ad6"
+    },
+    {
+      "fixture": "canvas-child-red.log",
+      "observation": "Starting the canvas projection from an already bound nonzero ordinal produced nested sibling nodes.",
+      "red_log_sha256": "b850a09d5b7e9861f8fe195f0c21fdee8f45a6abdc1254c45a22934695124b50"
+    }
+  ],
+  "host_race": {
+    "top_level_passes": [
+      "TestStudioMediaGenerationOriginalAdmissionAndRead",
+      "TestStudioMediaGenerationSlotsAndEarlyBrowser",
+      "TestStudioMediaGenerationSynchronous",
+      "TestStudioMediaGenerationOriginalBindingLostAck",
+      "TestStudioMediaGenerationConfirmsOnlyMatchingRejection",
+      "TestStudioMediaGenerationObservesRemainingFundsAndPermanentOutputs",
+      "TestStudioMediaGenerationOriginalReadRecoversConfirmedRejection"
+    ],
+    "passes_including_subtests": 14,
+    "failures": 0,
+    "skips": 0,
+    "jsonl_sha256": "ff8e49ad182dd11c226114fa1fae9092babbf97ddbe86fb955eab890069a90af"
+  },
+  "related_go": {
+    "top_level_passes": [
+      "TestStudioCatalogUsesPlatformAndNeverLocalChannels",
+      "TestStudioMaterialBrowseDoesNotAdopt",
+      "TestStudioPiMediaApprovalFreezesQuoteAndSharesAuthority",
+      "TestStudioCatalogPresentationHTTP",
+      "TestStudioMaterialsUploadAdoptRecoverAndAccess",
+      "TestStudioPiGenerationAction",
+      "TestStudioCatalogWirePreservesPresentationGroupsAndNativeExtensions",
+      "TestStudioCatalogWireRejectsMismatchedOrHiddenMembers",
+      "TestStudioCatalogUsesInstalledOACProtocols",
+      "TestStudioCatalogProjectionKeepsTypedDefaultsAndMissingLimits",
+      "TestStudioCatalogProjectsConstAsSinglePublishedChoice",
+      "TestStudioNativeMediaBodyUsesPublishedBindings",
+      "TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant",
+      "TestStudioMaterialBindingRecoveryAndImmutableVersion",
+      "TestStudioMediaGenerationOriginalAdmissionAndRead",
+      "TestStudioMediaGenerationSlotsAndEarlyBrowser",
+      "TestStudioMediaGenerationSynchronous",
+      "TestStudioMediaGenerationOriginalBindingLostAck",
+      "TestStudioMediaGenerationConfirmsOnlyMatchingRejection",
+      "TestStudioMediaGenerationObservesRemainingFundsAndPermanentOutputs",
+      "TestStudioMediaGenerationOriginalReadRecoversConfirmedRejection"
+    ],
+    "passes_including_subtests": 58,
+    "failures": 0,
+    "skips": 0,
+    "jsonl_sha256": "7e3afcdcdf3b0228d212d7679161fc4a172b2fe08846fff1ed70cac6dde6567a"
+  },
+  "postgres": {
+    "version": "16.14",
+    "test": "TestStudioPiGenerationActionPostgres",
+    "race": true,
+    "passed_scenarios": [
+      "v1_manual_race_lost",
+      "v1_approval_race_lost"
+    ],
+    "seconds": 17.09,
+    "skips": 0,
+    "assertions": [
+      "one original admission and one winning command",
+      "new OS test process reloads the original encrypted grant from PG and uses the original ID for one GET after the lost receipt",
+      "unrelated projects and nodes remain untouched",
+      "later independent click creates a separate command"
+    ],
+    "log_sha256": "77ad8fe3dbaaa6808ad0672e4fd89dba29f16d760f6a29a63178439461e0a6d9"
+  },
+  "web": {
+    "files": 497,
+    "tests_passed": 3382,
+    "failed": 0,
+    "expect_calls": 78010,
+    "seconds": 62.38,
+    "log_sha256": "6c763a0cf8790ea8673edd40c529585662e4526dfa5ba43fde707e45a712e6fc",
+    "typecheck": "pass",
+    "changed_file_eslint": "pass",
+    "host_go_vet": "pass",
+    "vite_build": "pass",
+    "vite_build_log_sha256": "a0966e3d23fd6e231445f505427b13cc15d8dfa85bcd596942d5b8095ddf4c80"
+  },
+  "browser_runs": [
+    {
+      "chrome": "157.0.8103.51",
+      "scenarios": [
+        {
+          "scenario": "early-preview-close-reopen",
+          "initial": {
+            "posts": 1,
+            "gets": 0,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "atClose": {
+            "posts": 1,
+            "gets": 2,
+            "quotes": 0,
+            "ticketGets": 1,
+            "previewReads": 1
+          },
+          "final": {
+            "posts": 1,
+            "gets": 3,
+            "quotes": 0,
+            "ticketGets": 2,
+            "previewReads": 2
+          },
+          "closedObservationMs": 1850,
+          "byCommand": 0,
+          "sameOriginal": true,
+          "originalAdopted": true
+        },
+        {
+          "scenario": "closed-before-first-studio-ack",
+          "initial": {
+            "posts": 1,
+            "gets": 0,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "atClose": {
+            "posts": 1,
+            "gets": 0,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "final": {
+            "posts": 1,
+            "gets": 1,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "closedObservationMs": 1850,
+          "byCommand": 1,
+          "sameOriginal": true,
+          "originalAdopted": true
+        },
+        {
+          "scenario": "canvas-three-outputs-close-reopen",
+          "requestedOutputs": 3,
+          "originalNodes": 3,
+          "initialBound": [
+            0,
+            2
+          ],
+          "finalBound": [
+            0,
+            1,
+            2
+          ],
+          "unchangedOnReplay": true,
+          "posts": 1,
+          "gets": 1,
+          "bindingPosts": 3,
+          "quotes": 0,
+          "actualEarlyPreviewReads": 1,
+          "closedObservationMs": 1850
+        },
+        {
+          "scenario": "early-video-across-original-adoption",
+          "width": 64,
+          "height": 48,
+          "seekSeconds": 0.55,
+          "rangeReads": 1,
+          "posts": 1,
+          "quotes": 0,
+          "samePlayingElement": true
+        }
+      ]
+    },
+    {
+      "chrome": "157.0.8103.51",
+      "scenarios": [
+        {
+          "scenario": "early-preview-close-reopen",
+          "initial": {
+            "posts": 1,
+            "gets": 0,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "atClose": {
+            "posts": 1,
+            "gets": 2,
+            "quotes": 0,
+            "ticketGets": 1,
+            "previewReads": 1
+          },
+          "final": {
+            "posts": 1,
+            "gets": 3,
+            "quotes": 0,
+            "ticketGets": 2,
+            "previewReads": 2
+          },
+          "closedObservationMs": 1850,
+          "byCommand": 0,
+          "sameOriginal": true,
+          "originalAdopted": true
+        },
+        {
+          "scenario": "closed-before-first-studio-ack",
+          "initial": {
+            "posts": 1,
+            "gets": 0,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "atClose": {
+            "posts": 1,
+            "gets": 0,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "final": {
+            "posts": 1,
+            "gets": 1,
+            "quotes": 0,
+            "ticketGets": 0,
+            "previewReads": 0
+          },
+          "closedObservationMs": 1850,
+          "byCommand": 1,
+          "sameOriginal": true,
+          "originalAdopted": true
+        },
+        {
+          "scenario": "canvas-three-outputs-close-reopen",
+          "requestedOutputs": 3,
+          "originalNodes": 3,
+          "initialBound": [
+            0,
+            2
+          ],
+          "finalBound": [
+            0,
+            1,
+            2
+          ],
+          "unchangedOnReplay": true,
+          "posts": 1,
+          "gets": 1,
+          "bindingPosts": 3,
+          "quotes": 0,
+          "actualEarlyPreviewReads": 1,
+          "closedObservationMs": 1850
+        },
+        {
+          "scenario": "early-video-across-original-adoption",
+          "width": 64,
+          "height": 48,
+          "seekSeconds": 0.55,
+          "rangeReads": 1,
+          "posts": 1,
+          "quotes": 0,
+          "samePlayingElement": true
+        }
+      ]
+    }
+  ],
+  "browser_fixture": {
+    "routes": "/create and /canvas/{projectId}",
+    "h264_bytes": "FFmpeg-generated, 64x48, real HTTP byte-range response",
+    "project_and_render": "Actual Studio HTTP, project adoption and browser persistence; fake Platform, local preview origin only",
+    "replay_script": "verify-studio-browser.cjs",
+    "go_fixture": "backend/internal/handler/studio_generation_browser_test.go (build tag studio_media_browser)",
+    "server_environment": "STUDIO_MEDIA_FIXTURE_ADDR",
+    "browser_environment": [
+      "STUDIO_MEDIA_BROWSER_ORIGIN",
+      "STUDIO_CHROMIUM",
+      "PLAYWRIGHT_MODULE"
+    ]
+  }
+}

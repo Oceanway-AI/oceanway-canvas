@@ -1,7 +1,8 @@
+import { createClientUUID } from "@/lib/client-id";
 import { translate } from "@/i18n";
 import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation";
 import { restoreCanvasBudgetDraft } from "@/lib/canvas/canvas-task-state";
-import { nativeMediaProfile } from "@/lib/platform-native-media";
+import { nativeMediaProfile, studioMediaGenerationVariant } from "@/lib/platform-native-media";
 import { nanoid } from "nanoid";
 
 import { NODE_DEFAULT_SIZE } from "@/constant/canvas";
@@ -62,7 +63,9 @@ export async function executeImageGeneration(
         showError(referenceLimitError);
         return;
     }
-    const count = nativeMediaProfile(generationConfig) ? 1 : getGenerationCount(generationConfig.count);
+    const v1Image = studioMediaGenerationVariant(generationConfig);
+    const command = v1Image ? retryContext?.clientOperationId || createClientUUID() : undefined;
+    const count = v1Image || nativeMediaProfile(generationConfig) ? 1 : getGenerationCount(generationConfig.count);
     const isConfigNode = sourceNode?.type === CanvasNodeType.Config;
     const isImageNode = sourceNode?.type === CanvasNodeType.Image;
     const isExistingImageNode = isImageNode && hasImageBatchResult(sourceNode);
@@ -120,6 +123,7 @@ export async function executeImageGeneration(
         height: rootHeight,
         metadata: {
             ...resetGenerationTaskMetadata(reuseSourceNode ? sourceNode?.metadata : undefined, NODE_STATUS_LOADING),
+            studioGenerationCommand: command,
             // 原位生成会清空旧图，先把它登记进版本历史，失败时也能从版本面板恢复。
             ...(reuseSourceNode && count <= 1 ? mediaVersionFieldsBeforeReplace(sourceNode) : {}),
             imageLayerGroup: undefined,
@@ -223,13 +227,15 @@ export async function executeImageGeneration(
                         projectId,
                         nodeId: targetId,
                         ...retryContext,
+                        ...(command ? { clientOperationId: command } : {}),
                         mode: "image",
                         prompt: effectivePrompt,
-                        config: { ...generationConfig, count: "1" },
+                        config: v1Image ? generationConfig : { ...generationConfig, count: "1" },
                         referenceImages,
                         signal: controller.signal,
                         metadata: {
                             sourceNodeId: nodeId,
+                            studioPendingRunId: sourceNode?.metadata?.agentDraftRunId,
                             ...taskContext,
                             resolvedCharacterVersions: generationContext.resolvedCharacterVersions,
                             promptTemplateOperation: sourceNode?.metadata?.promptTemplateOperation,

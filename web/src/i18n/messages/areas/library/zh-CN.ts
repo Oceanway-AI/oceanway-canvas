@@ -52,6 +52,8 @@ export const zhCN = {
             previewVideo: "放大预览生成视频",
             previewImage: "放大预览生成图片",
             previewUnavailable: "预览不可用",
+            preparingPlayback: "视频已生成，正在准备播放",
+            waitingForArchivedPreview: "正在等待素材预览",
             videoPreview: "视频预览",
         },
         page: {
@@ -138,6 +140,7 @@ export const zhCN = {
             copyPrompt: "复制",
             copied: "已复制",
             copyFailed: "复制失败，请手动选择文本",
+            requestId: "请求号",
             taskId: "任务 ID",
         },
         empty: {

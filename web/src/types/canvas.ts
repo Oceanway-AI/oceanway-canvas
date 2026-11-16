@@ -287,6 +287,11 @@ export type CanvasDramaRef = {
 };
 
 export type CanvasNodeMetadata = {
+    agentDraftRunId?: string;
+    platformOutputIndex?: number;
+    platformOutputRequest?: string;
+    platformOutputRevision?: number;
+    platformOutputNodeIds?: Record<number, string>;
     /** Credential-free editable generation contract; submitted recipes live with tasks. */
     generationSpec?: GenerationSpec;
     dramaRef?: CanvasDramaRef;
@@ -339,6 +344,8 @@ export type CanvasNodeMetadata = {
     /** 浏览器文件上传，与模型生成任务状态独立。 */
     fileUpload?: "uploading" | "error";
     fileUploadProgress?: number;
+    /** 原上传命令随节点保存，重选同一文件时续用，完成后清除。 */
+    fileUploadIdentity?: { key: string; ownerScope: string; canvasId: string; projectId?: string };
     locked?: boolean;
     errorDetails?: string;
     generationErrorCode?: string;
@@ -510,12 +517,14 @@ export type CanvasNodeMetadata = {
     actionBoardColumns?: number;
     taskId?: string;
     taskClientOperationId?: string;
+    studioGenerationCommand?: string;
     retryOf?: string;
     attemptGroupId?: string;
     taskStatus?: "queued" | "running" | "succeeded" | "failed" | "cancelled" | string;
     taskProgress?: number;
     taskStage?: string;
     taskMediaStage?: GenerationTask["mediaStage"];
+    taskEarlyPreviews?: import("@/services/task-early-previews").TaskEarlyPreview[];
     taskCanRecoverMedia?: boolean;
     taskProvider?: string;
     taskStartedAt?: string;

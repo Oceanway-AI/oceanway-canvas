@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { creationMessageNeedsResultSync, reconcileCreationTaskMessages, type PersistedCreationTask } from "@/pages/create/creation-conversations";
+import { creationMessageNeedsResultSync, reconcileCreationTaskMessages, studioCreationOutputSnapshot, type PersistedCreationTask } from "@/pages/create/creation-conversations";
 import type { CreationConversation, CreationMessage } from "@/pages/create/creation-types";
 import { pendingCreationTaskIds } from "@/services/creation-conversation-store";
 import { recoverCreationTextTask } from "@/services/creation-text-task-recovery";
@@ -21,6 +21,16 @@ function conversations(message: CreationMessage): CreationConversation[] {
 }
 
 const messageOf = (value: CreationConversation[]) => value[0].messages[1];
+
+test("reopening a pending creation observes only the original task preview slots", () => {
+    const observed = task({ provider: "platform", earlyPreviews: [{ index: 2, kind: "video" }], clientContext: { conversationId: "conversation-1", messageId: "assistant-1" } });
+    const before = conversations(assistant({ status: "pending", taskIds: [] }));
+    const pending = reconcileCreationTaskMessages(runtime, before, [observed]);
+    expect(messageOf(pending)).toMatchObject({ status: "pending", taskIds: ["task-1"], earlyPreviews: [{ taskId: "task-1", index: 2, kind: "video" }] });
+    expect(messageOf(pending).resultUrls).toBeUndefined();
+    expect(messageOf(pending).resultStorageKeys).toBeUndefined();
+    expect(reconcileCreationTaskMessages(runtime, pending, [observed])).toBe(pending);
+});
 
 describe("首页创作：页面没跟上 ≠ 生成失败", () => {
     test("轮询中断后任务仍在跑：失败消息回到生成中，并带上真实阶段与进度", () => {
@@ -101,4 +111,37 @@ describe("首页创作恢复监听范围", () => {
         ];
         expect(pendingCreationTaskIds(stored)).toEqual(["task-pending", "task-sync", "task-legacy"]);
     });
+});
+
+test("create workbench shows already adopted original slots while the same command has another slot saving", () => {
+    const outputs = [
+        { index: 0, kind: "image", materialState: "saved", resourceId: "r0", media: { storageKey: "resource:r0", dataUrl: "/api/resources/r0/file" } },
+        { index: 1, kind: "image", materialState: "saving" },
+        { index: 2, kind: "image", materialState: "saved", resourceId: "r2", media: { storageKey: "resource:r2", dataUrl: "/api/resources/r2/file" } },
+    ];
+    const observed = task({
+        type: "canvas_image",
+        provider: "platform",
+        platformGenerationRequest: "r",
+        platformRevision: 2,
+        resultJson: JSON.stringify({ outputs }),
+        earlyPreviews: [
+            { index: 0, kind: "image" },
+            { index: 1, kind: "image" },
+        ],
+    });
+    const next = reconcileCreationTaskMessages(runtime, conversations(assistant({ mode: "image", status: "pending" })), [observed]);
+    expect(next[0].messages[1]).toMatchObject({ status: "pending", resultStorageKeys: ["resource:r0", "resource:r2"], earlyPreviews: [{ taskId: observed.id, index: 1, kind: "image" }] });
+});
+
+test("the first saved video receipt retains its authorized original preview while playback is being prepared", () => {
+    const first = task({
+        provider: "platform",
+        status: "succeeded",
+        platformRevision: 3,
+        platformGenerationRequest: "already-saved",
+        earlyPreviews: [{ index: 0, kind: "video" }],
+        resultJson: JSON.stringify({ outputs: [{ index: 0, kind: "video", materialState: "saved", resourceId: "r-video", media: { storageKey: "resource:r-video", dataUrl: "/api/resources/r-video/file" } }] }),
+    });
+    expect(studioCreationOutputSnapshot([first])).toMatchObject({ earlyPreviews: [{ taskId: first.id, index: 0, kind: "video" }], resultStorageKeys: ["resource:r-video"] });
 });

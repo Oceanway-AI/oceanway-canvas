@@ -124,6 +124,12 @@ export const jaJP: DeepStringRecord<typeof zhCN> = {
         collapse: "コネクタを閉じる",
     },
     fileUpload: {
+        resumeOriginal: "同じファイルを選択して元のアップロードを再開してください",
+        recoveryInvalid: "アップロードの復元記録が無効です。ファイルを保持し、元のアップロードを確認してください",
+        progressStorageFailed: "アップロードの進捗を保存できません。ブラウザーのストレージを確認して再試行してください",
+        accountChanged: "アカウントの切り替えによりアップロードが中断されました",
+        resumeContextMismatch: "元のアカウントとキャンバスでアップロードを再開してください",
+        interrupted: "アップロードが中断されました。元のファイルを選択して続行してください",
         retryHint: "ファイルを選び直してアップロードしてください",
         saving: "転送完了、保存・処理中",
         uploadedPercent: "{{percent}}% アップロード済み",

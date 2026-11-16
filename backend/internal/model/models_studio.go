@@ -55,3 +55,25 @@ type StudioMaterialReference struct {
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
+
+// An approval belongs to one project node and one action within its original run.
+type StudioMediaAction struct {
+	RunID      string `gorm:"primaryKey;size:80"`
+	ApprovalID string `gorm:"primaryKey;size:160"`
+	UserID     string `gorm:"not null;size:36;index:idx_studio_action_node,priority:1"`
+	ProjectID  string `gorm:"not null;size:80;index:idx_studio_action_node,priority:2"`
+	NodeID     string `gorm:"not null;size:128;index:idx_studio_action_node,priority:3"`
+	Winner     string `gorm:"not null;default:'';size:16"`
+	TaskID     string `gorm:"size:36"`
+	RequestID  string `gorm:"size:128"`
+	CreatedAt  time.Time
+}
+
+// A manual click which joined an approval can recover the winning task by its
+// own original command after either process has restarted.
+type StudioMediaActionAlias struct {
+	UserID     string `gorm:"primaryKey;size:36"`
+	CommandID  string `gorm:"primaryKey;size:128"`
+	IntentHash string `gorm:"not null;size:64"`
+	TaskID     string `gorm:"not null;size:36"`
+}

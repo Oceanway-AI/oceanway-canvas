@@ -22,6 +22,7 @@ const paths: Record<string, string> = {
     "@/lib/canvas/canvas-content": join(dir, "content.ts"),
     "@/stores/use-sync-progress-store": join(dir, "progress.ts"),
     "@/lib/canvas/canvas-task-mutation": fileURLToPath(new URL("../src/lib/canvas/canvas-task-mutation.ts", import.meta.url)),
+    "./video-response": fileURLToPath(new URL("services/api/video-response.ts", root)),
     "./canvas-mutation-batches": fileURLToPath(new URL("services/canvas-mutation-batches.ts", root)),
     "@/lib/canvas/canvas-batch-input-signature": fileURLToPath(new URL("lib/canvas/canvas-batch-input-signature.ts", root)),
     "./user-data-sync-media": join(dir, "media.ts"),
@@ -30,7 +31,9 @@ const paths: Record<string, string> = {
 };
 function copySource(source: string, name: string) {
     const code = readFileSync(new URL(source, root), "utf8");
-    const imports = code.replace(/"(@\/[^\"]+|\.\/platform-materials|\.\/user-data-sync-media|\.\/canvas-edit-leases|\.\/canvas-mutation-batches|json-canonicalize|zustand)"/g, (_, specifier: string) => JSON.stringify(paths[specifier] ?? stubPath));
+    const imports = code.replace(/"(@\/[^\"]+|\.\/platform-materials|\.\/user-data-sync-media|\.\/canvas-edit-leases|\.\/canvas-mutation-batches|\.\/video-response|json-canonicalize|zustand)"/g, (_, specifier: string) =>
+        JSON.stringify(paths[specifier] ?? stubPath),
+    );
     writeFileSync(join(dir, name), `import { fixtureWindow as window } from ${JSON.stringify(stubPath)};\n` + imports);
 }
 writeFileSync(

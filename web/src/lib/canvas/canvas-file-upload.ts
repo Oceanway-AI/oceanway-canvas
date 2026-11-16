@@ -1,4 +1,5 @@
 import { fitImageNodeSize, fitNodeSize } from "@/lib/canvas/canvas-node-size";
+import { translate } from "@/i18n";
 import { NODE_DEFAULT_SIZE } from "@/constant/canvas";
 import { CanvasNodeType, type CanvasNodeData, type Position } from "@/types/canvas";
 
@@ -96,5 +97,5 @@ export function createImageUploadPlaceholder(id: string, file: Pick<File, "name"
 
 export function interruptFileUpload(node: CanvasNodeData): CanvasNodeData {
     if (node.metadata?.fileUpload !== "uploading") return node;
-    return { ...node, metadata: { ...node.metadata, fileUpload: "error", fileUploadProgress: undefined, errorDetails: "上传已中断，请重新选择文件上传" } };
+    return { ...node, metadata: { ...node.metadata, fileUpload: "error", fileUploadProgress: undefined, errorDetails: translate("canvasA.fileUpload.interrupted") } };
 }

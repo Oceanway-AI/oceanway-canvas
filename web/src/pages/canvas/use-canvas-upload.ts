@@ -1,5 +1,6 @@
 import { translate } from "@/i18n";
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type Dispatch, type DragEvent, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type Dispatch, type DragEvent, type SetStateAction } from "react";
+import { nanoid } from "nanoid";
 import { useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
@@ -8,6 +9,7 @@ import type { InsertAssetPayload } from "@/components/canvas/asset-picker-modal"
 import { CANVAS_PROJECT_CHAPTER_DND_TYPE, type CanvasProjectChapterPayload } from "@/lib/canvas/canvas-project-chapter-dnd";
 import { NODE_DEFAULT_SIZE } from "@/constant/canvas";
 import { getDataUrlByteSize, readImageMeta } from "@/lib/image-utils";
+import { getActiveUserScope } from "@/lib/user-scope";
 import { audioMetadata, imageMetadata, videoMetadata } from "@/lib/canvas/canvas-generation-task-sync";
 import { createCanvasNode } from "@/lib/canvas/canvas-project-domain";
 import { isAudioFile } from "@/lib/canvas/canvas-project-generation";
@@ -39,6 +41,7 @@ type UseCanvasUploadOptions = {
     setSelectedConnectionId: Dispatch<SetStateAction<string | null>>;
     setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>;
     setDialogNodeId: Dispatch<SetStateAction<string | null>>;
+    persistLocalEdits: () => Promise<void>;
 };
 
 export type StartCanvasUploadStatus = (title: string, detail: string, total?: number, initialStep?: number) => CanvasUploadProgress;
@@ -90,7 +93,20 @@ async function warmUploadedImage(storageKey?: string) {
     }
 }
 
-export function useCanvasUpload({ canvasId, domainProjectId, nodesRef, selectedNodeIdsRef, getCanvasCenter, screenToCanvas, setNodes, setSelectedNodeIds, setSelectedConnectionId, setContextMenu, setDialogNodeId }: UseCanvasUploadOptions) {
+export function useCanvasUpload({
+    canvasId,
+    domainProjectId,
+    nodesRef,
+    selectedNodeIdsRef,
+    getCanvasCenter,
+    screenToCanvas,
+    setNodes,
+    setSelectedNodeIds,
+    setSelectedConnectionId,
+    setContextMenu,
+    setDialogNodeId,
+    persistLocalEdits,
+}: UseCanvasUploadOptions) {
     const { message } = App.useApp();
     const queryClient = useQueryClient();
     const imageInputRef = useRef<HTMLInputElement>(null);
@@ -103,6 +119,14 @@ export function useCanvasUpload({ canvasId, domainProjectId, nodesRef, selectedN
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<CanvasUploadStatus | null>(null);
     const [fileDropActive, setFileDropActive] = useState(false);
+    const ownerScope = getActiveUserScope();
+    const uploadContext = useMemo(() => ({ ownerScope, canvasId, domainProjectId, active: true }), [ownerScope, canvasId, domainProjectId]);
+    useEffect(() => {
+        uploadContext.active = true;
+        return () => {
+            uploadContext.active = false;
+        };
+    }, [uploadContext]);
 
     useEffect(
         () => () => {
@@ -147,15 +171,17 @@ export function useCanvasUpload({ canvasId, domainProjectId, nodesRef, selectedN
         async (node: CanvasNodeData, options: { refreshProject?: boolean } = {}) => {
             try {
                 const result = await ensureCanvasNodeAsset({ canvasId, domainProjectId, node, source: "canvas-upload" });
-                setNodes((current) => current.map((item) => (item.id === node.id ? { ...item, metadata: { ...item.metadata, assetId: result.assetId } } : item)));
+                if (!uploadContext.active || uploadContext.ownerScope !== getActiveUserScope()) return { persisted: false, syncPending: false };
+                setNodes((current) => current.map((item) => (item.id === node.id && item.metadata?.storageKey === node.metadata?.storageKey ? { ...item, metadata: { ...item.metadata, assetId: result.assetId } } : item)));
                 if (domainProjectId && options.refreshProject !== false) await queryClient.invalidateQueries({ queryKey: ["project", domainProjectId] });
                 return { persisted: true, syncPending: result.syncPending };
             } catch (error) {
+                if (!uploadContext.active || uploadContext.ownerScope !== getActiveUserScope()) return { persisted: false, syncPending: false };
                 message.warning(error instanceof Error ? translate("canvasPage.upload.mediaSyncFailedWithReason", { error: error.message }) : translate("canvasPage.upload.mediaSyncFailed"));
                 return { persisted: false, syncPending: false };
             }
         },
-        [canvasId, domainProjectId, message, queryClient, setNodes],
+        [canvasId, domainProjectId, message, queryClient, setNodes, uploadContext],
     );
 
     const persistTimelineMedia = useCallback(
@@ -189,6 +215,8 @@ export function useCanvasUpload({ canvasId, domainProjectId, nodesRef, selectedN
     const activeUploadsRef = useRef(new Set<string>());
     const createFileNode = useCallback(
         async (file: File, position: Position, replaceId?: string, options: FileNodeUploadOptions = {}) => {
+            const isCurrent = () => uploadContext.active && uploadContext.ownerScope === getActiveUserScope();
+            if (!isCurrent()) return null;
             const original = replaceId ? nodesRef.current.find((node) => node.id === replaceId) : undefined;
             if (replaceId && (!original || activeUploadsRef.current.has(replaceId))) return null;
             const id = replaceId || options.quiet?.nodeId || `upload-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -197,10 +225,24 @@ export function useCanvasUpload({ canvasId, domainProjectId, nodesRef, selectedN
             activeUploadsRef.current.add(id);
             const progress = silent ? SILENT_UPLOAD_PROGRESS : startUploadStatus(replaceId ? translate("canvasPage.upload.replaceFile") : translate("canvasPage.upload.uploadFile"), translate("canvasPage.upload.readingFile"), domainProjectId ? 4 : 3);
             const fileType = uploadNodeType(file);
+            const pendingIdentity = original?.metadata?.fileUploadIdentity;
+            const resume = original?.metadata?.fileUpload || (pendingIdentity && !resourceIdFromStorageKey(original?.metadata?.storageKey));
+            const identity =
+                resume && pendingIdentity
+                    ? pendingIdentity
+                    : {
+                          key: `${fileType || "file"}:${uploadContext.ownerScope}:canvas:${canvasId}:${domainProjectId || ""}:${id}:${nanoid()}`,
+                          ownerScope: uploadContext.ownerScope,
+                          canvasId,
+                          projectId: domainProjectId,
+                      };
             // 占位节点首帧就显示本地文件，上传进度叠加在预览之上，不再是一块空白。
-            if (fileType === CanvasNodeType.Image || fileType === CanvasNodeType.Video) registerUploadPreview(id, file);
+            const previewUrl = fileType === CanvasNodeType.Image || fileType === CanvasNodeType.Video ? registerUploadPreview(id, file) : undefined;
             try {
+                if (identity.ownerScope !== uploadContext.ownerScope || identity.canvasId !== canvasId || identity.projectId !== domainProjectId) throw new Error(translate("canvasA.fileUpload.resumeContextMismatch"));
                 const placeholder = await createFileUploadPlaceholder(id, file, position);
+                if (!isCurrent()) return null;
+                placeholder.metadata = { ...placeholder.metadata, fileUploadIdentity: identity };
                 setNodes((current) =>
                     replaceId
                         ? current.map((item) =>
@@ -209,46 +251,54 @@ export function useCanvasUpload({ canvasId, domainProjectId, nodesRef, selectedN
                                         ...item,
                                         width: placeholder.width,
                                         height: placeholder.height,
-                                        metadata: { ...item.metadata, fileUpload: "uploading", fileUploadProgress: undefined, status: undefined, size: undefined, errorDetails: undefined },
+                                        metadata: { ...item.metadata, fileUpload: "uploading", fileUploadIdentity: identity, fileUploadProgress: undefined, status: undefined, size: undefined, errorDetails: undefined },
                                     }
                                   : item,
                           )
                         : [...current, placeholder],
                 );
+                // The existing canvas writer flushes this identity before any upload request.
+                await persistLocalEdits();
+                if (!isCurrent()) return null;
                 if (!silent) selectInsertedNode(id, "close");
                 let lastPercent: number | undefined;
                 let lastPaintAt = 0;
                 const onProgress = (loaded: number, total: number) => {
+                    if (!isCurrent()) return;
                     const percent = uploadPercent(loaded, total);
                     if (percent === undefined || percent === lastPercent) return;
                     const now = performance.now();
                     if (percent < 100 && now - lastPaintAt < UPLOAD_PROGRESS_PAINT_MS) return;
                     lastPercent = percent;
                     lastPaintAt = now;
-                    setNodes((current) => current.map((item) => (item.id === id ? { ...item, metadata: { ...item.metadata, fileUploadProgress: percent } } : item)));
+                    setNodes((current) => current.map((item) => (item.id === id && item.metadata?.fileUploadIdentity?.key === identity.key ? { ...item, metadata: { ...item.metadata, fileUploadProgress: percent } } : item)));
                     progress.update(percent === 100 ? translate("canvasPage.upload.transferred") : translate("canvasPage.upload.uploadedPercent", { percent }), 2);
                 };
                 progress.update(translate("canvasPage.upload.uploadingAndSyncing"), 2);
                 let metadata: CanvasNodeData["metadata"];
                 if (placeholder.type === CanvasNodeType.Image) {
                     const naturalSize = { width: placeholder.metadata?.naturalWidth || 0, height: placeholder.metadata?.naturalHeight || 0 };
-                    const uploaded = await uploadImage(file, onProgress, naturalSize);
+                    const uploaded = await uploadImage(file, onProgress, naturalSize, identity.key);
                     metadata = imageMetadata(uploaded);
                     await warmUploadedImage(uploaded.storageKey);
                 } else if (placeholder.type === CanvasNodeType.Text) {
                     const content = await file.text();
-                    const resource = await uploadResourceFile(file, "file", { fileName: file.name }, onProgress);
+                    if (!isCurrent()) return null;
+                    const resource = await uploadResourceFile(file, "file", { fileName: file.name, idempotencyKey: identity.key }, onProgress);
                     metadata = { content, prompt: content, storageKey: resourceStorageKey(resource.id), mimeType: file.type || "text/plain", bytes: file.size, status: "success" };
                 } else {
-                    const media = await uploadMediaFile(file, placeholder.type === CanvasNodeType.Video ? "video" : "audio", onProgress);
+                    const media = await uploadMediaFile(file, placeholder.type === CanvasNodeType.Video ? "video" : "audio", onProgress, identity.key);
                     metadata = placeholder.type === CanvasNodeType.Video ? videoMetadata(media) : audioMetadata(media);
                 }
+                if (!isCurrent()) return null;
                 progress.update(translate("canvasPage.upload.updatingNode"), 3);
                 const currentNode = nodesRef.current.find((item) => item.id === id);
                 if (!currentNode) {
                     progress.done(translate("canvasPage.upload.placeholderRemoved"));
                     return null;
                 }
+                if (currentNode.metadata?.fileUploadIdentity?.key !== identity.key) return null;
+                const localOnly = metadata.storageKey && !resourceIdFromStorageKey(metadata.storageKey);
                 const uploadedNode: CanvasNodeData = {
                     ...currentNode,
                     type: placeholder.type,
@@ -256,6 +306,7 @@ export function useCanvasUpload({ canvasId, domainProjectId, nodesRef, selectedN
                         ...currentNode.metadata,
                         ...metadata,
                         fileUpload: undefined,
+                        fileUploadIdentity: localOnly ? identity : undefined,
                         fileUploadProgress: undefined,
                         errorDetails: undefined,
                         producedModel: undefined,
@@ -293,7 +344,7 @@ export function useCanvasUpload({ canvasId, domainProjectId, nodesRef, selectedN
                 setNodes((current) => current.map((item) => (item.id === id ? { ...item, type: node.type, metadata: node.metadata } : item)));
                 if (domainProjectId) progress.update(translate("canvasPage.upload.writingProjectAssets"), 4);
                 const persisted = await persistMediaNode(node, { refreshProject: !batch });
-                const localOnly = metadata.storageKey && !resourceIdFromStorageKey(metadata.storageKey);
+                if (!isCurrent()) return null;
                 const pendingLabel = domainProjectId ? translate("canvasPage.upload.projectAssetsSyncing") : translate("canvasPage.upload.cloudAssetsSyncing");
                 progress.done(
                     localOnly
@@ -310,17 +361,18 @@ export function useCanvasUpload({ canvasId, domainProjectId, nodesRef, selectedN
                 }
                 return id;
             } catch (error) {
+                if (!isCurrent() || (error instanceof DOMException && error.name === "AbortError")) return null;
                 const details = error instanceof Error ? error.message : translate("canvasPage.upload.uploadFailed");
                 setNodes((current) =>
                     current.map((item) =>
-                        item.id !== id
+                        item.id !== id || (item.metadata?.fileUploadIdentity && item.metadata.fileUploadIdentity.key !== identity.key)
                             ? item
                             : original?.metadata?.content
                               ? {
                                     ...item,
                                     width: original.width,
                                     height: original.height,
-                                    metadata: original.metadata,
+                                    metadata: { ...original.metadata, fileUpload: "error", fileUploadIdentity: identity, fileUploadProgress: undefined, errorDetails: details },
                                 }
                               : { ...item, metadata: { ...item.metadata, fileUpload: "error", fileUploadProgress: undefined, errorDetails: details } },
                     ),
@@ -332,10 +384,10 @@ export function useCanvasUpload({ canvasId, domainProjectId, nodesRef, selectedN
                 return null;
             } finally {
                 activeUploadsRef.current.delete(id);
-                releaseUploadPreview(id);
+                if (previewUrl) releaseUploadPreview(id, previewUrl);
             }
         },
-        [domainProjectId, message, nodesRef, persistMediaNode, selectInsertedNode, setNodes, startUploadStatus],
+        [canvasId, domainProjectId, message, nodesRef, persistLocalEdits, persistMediaNode, selectInsertedNode, setNodes, startUploadStatus, uploadContext],
     );
 
     // quiet：Agent 输入框拖入素材时不改选区；返回新节点 ID，失败返回 null。

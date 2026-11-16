@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import "@/i18n";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -9,17 +10,21 @@ async function renderWelcome() {
     try {
         const { welcomeEnabled } = await getWelcomeAvailability();
         if (welcomeEnabled !== true) {
-            window.location.replace("/");
+            window.location.replace(appURL("/"));
             return;
         }
-        createRoot(document.getElementById("root")!).render(<StrictMode><WelcomePage /></StrictMode>);
+        createRoot(document.getElementById("root")!).render(
+            <StrictMode>
+                <WelcomePage />
+            </StrictMode>,
+        );
     } catch (error) {
         console.error("Welcome page initialization failed", error);
         createRoot(document.getElementById("root")!).render(
             <main role="alert">
                 <p>{translate("account.welcome.openFailed")}</p>
                 <button onClick={() => window.location.reload()}>{translate("common.retry")}</button>
-                <a href="/">{translate("auth.backHome")}</a>
+                <a href={appURL("/")}>{translate("auth.backHome")}</a>
             </main>,
         );
     }

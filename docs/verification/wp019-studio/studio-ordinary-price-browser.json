@@ -1,0 +1,297 @@
+{
+  "before_ordinary_image": {
+    "date": "2026-11-16T09:14:36.892Z",
+    "family": "image",
+    "studio": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+    "platform": "3197d9720238500e66740ff5f375f07133802851",
+    "catalogPrice": {
+      "status": "usage_dependent",
+      "mode": "tiered_expr",
+      "version": "657ec8b549ca39cf09e2637fb5ef0b77d9360fb24ea8cd9046ea192aa3093fcd",
+      "unit": "积分",
+      "rates": {
+        "images": "0"
+      }
+    },
+    "model": "fixture-openai",
+    "variant": "816da6c2b7aeadcb9e8f58590a17e49b35b4c64041fbac23cdb69c6a055672ea",
+    "price": "657ec8b549ca39cf09e2637fb5ef0b77d9360fb24ea8cd9046ea192aa3093fcd",
+    "catalog_stage_count": 0,
+    "counts": {
+      "channel_estimate": 0,
+      "logical_model_estimate": 0,
+      "consumption_preview": 0
+    },
+    "samples": [],
+    "after_reference_and_prompt": {
+      "label": "发送",
+      "text": "开始创作",
+      "enabled": true
+    },
+    "submitted": 0,
+    "browser": "157.0.8103.51"
+  },
+  "before_ordinary_video": {
+    "date": "2026-11-16T09:14:52.176Z",
+    "family": "video",
+    "studio": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+    "platform": "3197d9720238500e66740ff5f375f07133802851",
+    "catalogPrice": {
+      "status": "usage_dependent",
+      "mode": "tiered_expr",
+      "version": "fadde6c641df1a9dff8fa56edece01d0afc8d7b56d77a0086fc19fa702760007",
+      "unit": "积分",
+      "rates": {
+        "seconds": "0"
+      }
+    },
+    "model": "fixture-modelark",
+    "variant": "ef23ef7a5d8468bbd8f5a17d0898138b5568ec87a54d758c9842f868f15caff8",
+    "price": "fadde6c641df1a9dff8fa56edece01d0afc8d7b56d77a0086fc19fa702760007",
+    "catalog_stage_count": 0,
+    "counts": {
+      "channel_estimate": 0,
+      "logical_model_estimate": 0,
+      "consumption_preview": 0
+    },
+    "samples": [],
+    "after_reference_and_prompt": {
+      "label": "发送",
+      "text": "开始创作",
+      "enabled": true
+    },
+    "submitted": 0,
+    "browser": "157.0.8103.51"
+  },
+  "ordinary_image": {
+    "date": "2026-11-16T09:43:45.109Z",
+    "family": "image",
+    "studio": "86608743d8240c54b036b07151e20255cd7631bb",
+    "platform": "cb3510f60a771a2fe0ccd28bf2b1d9b5b5ea879b",
+    "catalogPrice": {
+      "status": "usage_dependent",
+      "mode": "tiered_expr",
+      "version": "657ec8b549ca39cf09e2637fb5ef0b77d9360fb24ea8cd9046ea192aa3093fcd",
+      "unit": "积分",
+      "rates": {
+        "images": "0"
+      }
+    },
+    "model": "fixture-openai",
+    "variant": "816da6c2b7aeadcb9e8f58590a17e49b35b4c64041fbac23cdb69c6a055672ea",
+    "price": "657ec8b549ca39cf09e2637fb5ef0b77d9360fb24ea8cd9046ea192aa3093fcd",
+    "catalog_stage_count": 0,
+    "counts": {
+      "standard_estimate": 2,
+      "channel_estimate": 0,
+      "logical_model_estimate": 0,
+      "consumption_preview": 0
+    },
+    "samples": [
+      {
+        "phase": "select_model_and_frozen_reference",
+        "kind": "standard_estimate",
+        "sentMs": 1794822223761,
+        "http": 200,
+        "receivedMs": 1794822223835,
+        "code": 0,
+        "trace": "req-03ac86822928d9b0600b69d7",
+        "points": "0",
+        "state": "available",
+        "price": "657ec8b549ca39cf09e2637fb5ef0b77d9360fb24ea8cd9046ea192aa3093fcd",
+        "variant": "816da6c2b7aeadcb9e8f58590a17e49b35b4c64041fbac23cdb69c6a055672ea",
+        "references": [
+          "6a49bd45-eebb-55ae-8780-66fc20595c4c"
+        ],
+        "hasStandardPoints": true
+      },
+      {
+        "phase": "edit_prompt",
+        "kind": "standard_estimate",
+        "sentMs": 1794822224525,
+        "http": 200,
+        "receivedMs": 1794822224727,
+        "code": 0,
+        "trace": "req-d4f8cfd5a8b23545c77d87eb",
+        "points": "0",
+        "state": "available",
+        "price": "657ec8b549ca39cf09e2637fb5ef0b77d9360fb24ea8cd9046ea192aa3093fcd",
+        "variant": "816da6c2b7aeadcb9e8f58590a17e49b35b4c64041fbac23cdb69c6a055672ea",
+        "references": [
+          "6a49bd45-eebb-55ae-8780-66fc20595c4c"
+        ],
+        "hasStandardPoints": true
+      }
+    ],
+    "after_reference_and_prompt": {
+      "label": "预计约 0 积分，发送",
+      "text": "预计约 0 积分\n开始创作",
+      "enabled": true
+    },
+    "submitted": 0,
+    "browser": "156.0.8078.79"
+  },
+  "ordinary_video_and_stale_price": {
+    "date": "2026-11-16T09:49:45.038Z",
+    "family": "video",
+    "studio": "86608743d8240c54b036b07151e20255cd7631bb",
+    "platform": "cb3510f60a771a2fe0ccd28bf2b1d9b5b5ea879b",
+    "catalogPrice": {
+      "status": "usage_dependent",
+      "mode": "tiered_expr",
+      "version": "fadde6c641df1a9dff8fa56edece01d0afc8d7b56d77a0086fc19fa702760007",
+      "unit": "积分",
+      "rates": {
+        "seconds": "0"
+      }
+    },
+    "model": "fixture-modelark",
+    "variant": "ef23ef7a5d8468bbd8f5a17d0898138b5568ec87a54d758c9842f868f15caff8",
+    "price": "fadde6c641df1a9dff8fa56edece01d0afc8d7b56d77a0086fc19fa702760007",
+    "catalog_stage_count": 0,
+    "counts": {
+      "standard_estimate": 5,
+      "channel_estimate": 0,
+      "logical_model_estimate": 0,
+      "consumption_preview": 0
+    },
+    "samples": [
+      {
+        "phase": "select_model_and_frozen_reference",
+        "kind": "standard_estimate",
+        "sentMs": 1794822575952,
+        "http": 200,
+        "receivedMs": 1794822576076,
+        "code": 0,
+        "trace": "req-f01e5f37cc6086cc08491b95",
+        "points": "0",
+        "state": "available",
+        "price": "fadde6c641df1a9dff8fa56edece01d0afc8d7b56d77a0086fc19fa702760007",
+        "variant": "d2ac21e56517ea8f80e41a34d6837fafa50bcec9518edfdb4219565048c31f2f",
+        "references": [],
+        "hasStandardPoints": true
+      },
+      {
+        "phase": "select_model_and_frozen_reference",
+        "kind": "standard_estimate",
+        "sentMs": 1794822577701,
+        "http": 200,
+        "receivedMs": 1794822577782,
+        "code": 0,
+        "trace": "req-887d96b21abd00f374c1db07",
+        "points": "0",
+        "state": "available",
+        "price": "fadde6c641df1a9dff8fa56edece01d0afc8d7b56d77a0086fc19fa702760007",
+        "variant": "ef23ef7a5d8468bbd8f5a17d0898138b5568ec87a54d758c9842f868f15caff8",
+        "references": [
+          "2a037d38-2b94-5226-9f52-688c30422720"
+        ],
+        "hasStandardPoints": true
+      },
+      {
+        "phase": "edit_prompt",
+        "kind": "standard_estimate",
+        "sentMs": 1794822578453,
+        "http": 200,
+        "receivedMs": 1794822578518,
+        "code": 0,
+        "trace": "req-6e5afcd827c0a8cbeb15d614",
+        "points": "0",
+        "state": "available",
+        "price": "fadde6c641df1a9dff8fa56edece01d0afc8d7b56d77a0086fc19fa702760007",
+        "variant": "ef23ef7a5d8468bbd8f5a17d0898138b5568ec87a54d758c9842f868f15caff8",
+        "references": [
+          "2a037d38-2b94-5226-9f52-688c30422720"
+        ],
+        "hasStandardPoints": true
+      },
+      {
+        "phase": "held_request_with_current_inputs",
+        "kind": "standard_estimate",
+        "sentMs": 1794822579328,
+        "http": 409,
+        "receivedMs": 1794822584020,
+        "code": 409,
+        "trace": "req-442255f50bf050f8badc8af6",
+        "references": [
+          "2a037d38-2b94-5226-9f52-688c30422720"
+        ],
+        "hasStandardPoints": false
+      },
+      {
+        "phase": "current_selection_after_conflict",
+        "kind": "standard_estimate",
+        "sentMs": 1794822584482,
+        "http": 200,
+        "receivedMs": 1794822584568,
+        "code": 0,
+        "trace": "req-3f6deafdf7214f547e18a6dd",
+        "points": "0",
+        "state": "available",
+        "price": "fadde6c641df1a9dff8fa56edece01d0afc8d7b56d77a0086fc19fa702760007",
+        "variant": "ef23ef7a5d8468bbd8f5a17d0898138b5568ec87a54d758c9842f868f15caff8",
+        "references": [
+          "2a037d38-2b94-5226-9f52-688c30422720"
+        ],
+        "hasStandardPoints": true
+      }
+    ],
+    "after_reference_and_prompt": {
+      "label": "预计约 0 积分，发送",
+      "text": "预计约 0 积分\n开始创作",
+      "enabled": true
+    },
+    "revisionSwitch": {
+      "pausedBeforeProvider": {
+        "label": "估价中，发送",
+        "enabled": true
+      },
+      "realConflictResult": {
+        "label": "估价暂不可用，发送",
+        "enabled": true
+      },
+      "restored": "预计约 0 积分，发送",
+      "method": "Only the standard estimate in the expired-display scenario sent the obsolete price version; Studio handled the real HTTP conflict."
+    },
+    "submitted": 0,
+    "browser": "156.0.8078.79"
+  },
+  "ordinary_canvas": {
+    "source": "86608743d8240c54b036b07151e20255cd7631bb",
+    "platform": "cb3510f60a771a2fe0ccd28bf2b1d9b5b5ea879b",
+    "project": "NmMNshoUfd8etoGahu9my",
+    "stage": "real canvas node",
+    "priceLabel": "预计约 0 积分，生成",
+    "enabled": true,
+    "estimate": {
+      "at": "2026-11-16T09:45:04.312Z",
+      "trace": "req-67a3847c2022bc4a11e7ffa3",
+      "status": 200,
+      "points": "0",
+      "price": "657ec8b549ca39cf09e2637fb5ef0b77d9360fb24ea8cd9046ea192aa3093fcd",
+      "variant": "816da6c2b7aeadcb9e8f58590a17e49b35b4c64041fbac23cdb69c6a055672ea",
+      "project": "NmMNshoUfd8etoGahu9my",
+      "references": [
+        "6a49bd45-eebb-55ae-8780-66fc20595c4c"
+      ]
+    },
+    "generationRequests": 0,
+    "consumptionRequests": 0,
+    "browser": "156.0.8078.79"
+  },
+  "matched_platform_requests": [
+    {
+      "host": "req-03ac86822928d9b0600b69d7",
+      "platform": "202611160943437843960018268d9d6POOpcy57",
+      "platform_end": "2026-11-16T09:43:43.828518Z",
+      "platform_ms": 43.903
+    },
+    {
+      "host": "req-67a3847c2022bc4a11e7ffa3",
+      "platform": "202611160945042444927528268d9d6OiWHjCSl",
+      "platform_end": "2026-11-16T09:45:04.295436Z",
+      "platform_ms": 50.519
+    }
+  ],
+  "same_input": "USD-free published fixtures; Platform points use their decimal strings. HTTP409 used the same sealed video, an obsolete estimate price, and the real Studio HTTP response."
+}

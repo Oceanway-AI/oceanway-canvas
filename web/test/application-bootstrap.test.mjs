@@ -5,12 +5,12 @@ import { fileURLToPath } from "node:url";
 import { isIsolatedPrevisRepro } from "../src/lib/dev-repro";
 
 // Execute the real entry point; replace only its font, network and UI side effects.
-async function prepareEntry(dev, pathname) {
+async function prepareEntry(dev, pathname, basePath = "/") {
     const build = await Bun.build({
         entrypoints: [fileURLToPath(new URL("../src/main.tsx", import.meta.url))],
         target: "browser",
         format: "iife",
-        define: { "import.meta.env.DEV": JSON.stringify(dev) },
+        define: { "import.meta.env.DEV": JSON.stringify(dev), "import.meta.env.BASE_URL": JSON.stringify(basePath) },
         plugins: [
             {
                 name: "entry-side-effects",
@@ -61,9 +61,14 @@ for (const [dev, pathname] of [
     });
 }
 
-for (const pathname of ["/welcome", "/welcome/"]) {
+for (const [pathname, basePath] of [
+    ["/welcome", "/"],
+    ["/welcome/", "/"],
+    ["/studio/welcome", "/studio/"],
+    ["/studio/welcome/", "/studio/"],
+]) {
     test(`public film entry remains independent: ${pathname}`, async () => {
-        const entry = await prepareEntry(false, pathname);
+        const entry = await prepareEntry(false, pathname, basePath);
         await entry.loaded;
         // 欢迎页沿用站点外观（#683），但外观请求不阻塞欢迎页入口加载。
         expect(entry.events).toEqual(["appearance", "./welcome-application"]);

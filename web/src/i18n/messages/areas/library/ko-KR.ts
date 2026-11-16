@@ -53,6 +53,8 @@ export const koKR: DeepStringRecord<typeof zhCN> = {
             previewVideo: "생성된 동영상 크게 보기",
             previewImage: "생성된 이미지 크게 보기",
             previewUnavailable: "미리보기를 사용할 수 없음",
+            preparingPlayback: "동영상 생성 완료. 재생 준비 중…",
+            waitingForArchivedPreview: "저장된 미디어의 미리보기를 기다리는 중…",
             videoPreview: "동영상 미리보기",
         },
         page: {
@@ -139,6 +141,7 @@ export const koKR: DeepStringRecord<typeof zhCN> = {
             copyPrompt: "복사",
             copied: "복사했습니다",
             copyFailed: "복사하지 못했습니다. 텍스트를 직접 선택하세요",
+            requestId: "요청 ID",
             taskId: "작업 ID",
         },
         empty: {

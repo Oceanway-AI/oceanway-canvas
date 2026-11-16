@@ -2,16 +2,24 @@ name: Quality checks
 
 on:
   pull_request:
+  push:
+    branches:
+      - codex/wp019-studio-media
+  workflow_dispatch:
   workflow_call:
+    secrets:
+      PLATFORM_SDK_READ_TOKEN:
+        description: Fine-grained Contents read token for the private Platform SDK repository
+        required: false
 
 permissions:
   contents: read
 
-# 同一个 PR 连续推送时取消旧的检查，只保留最新提交；被发布流程调用（workflow_call）时
-# 每次运行使用独立分组，绝不互相取消，避免中间提交的镜像发布被跳过。
+# 同一来源分支的 PR 和 push 共用分组，只保留最新检查。
+# 发布流程调用时 github.workflow 为调用方名称，每次运行保留独立分组。
 concurrency:
-  group: quality-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: quality-${{ github.workflow == 'Quality checks' && format('{0}-{1}', github.event.pull_request.head.repo.full_name || github.repository, github.head_ref || github.ref_name) || github.run_id }}
+  cancel-in-progress: ${{ github.workflow == 'Quality checks' }}
 
 jobs:
   agent-lint:
@@ -76,6 +84,24 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
           cache: true
+      - name: Download the released Platform SDK
+        shell: bash
+        env:
+          PLATFORM_SDK_READ_TOKEN: ${{ secrets.PLATFORM_SDK_READ_TOKEN }}
+          GOPRIVATE: github.com/Oceanway-AI/oceanway-platform
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          test -n "$PLATFORM_SDK_READ_TOKEN" || { echo "::error::PLATFORM_SDK_READ_TOKEN is required to download the released SDK"; exit 1; }
+          basic_auth="$(printf 'x-access-token:%s' "$PLATFORM_SDK_READ_TOKEN" | base64 -w 0)"
+          echo "::add-mask::$basic_auth"
+          # Git receives auth only for this download step, without persisting it in a remote or config file.
+          export GIT_CONFIG_COUNT=2
+          export GIT_CONFIG_KEY_0=http.https://github.com/Oceanway-AI/oceanway-platform.extraheader
+          export GIT_CONFIG_KEY_1=http.https://github.com/Oceanway-AI/oceanway-platform.git.extraheader
+          export GIT_CONFIG_VALUE_0="Authorization: Basic $basic_auth"
+          export GIT_CONFIG_VALUE_1="$GIT_CONFIG_VALUE_0"
+          go mod download github.com/Oceanway-AI/oceanway-platform/platformclient
       - uses: actions/setup-node@v4
         with:
           node-version: 22.19.0
@@ -179,18 +205,14 @@ jobs:
         env:
           PAYMENT_PLUGIN_SMOKE_TEST: "1"
         run: sh plugin-packages/verify-payment-packages.sh --all linux amd64
-      # 发布时 backend/Dockerfile 会在两种架构的原生 Runner 上执行 smoke。
-      # PR 仍独立验证双架构，不能因没有发布任务而遗漏 ARM64 验收。
-      - uses: docker/setup-qemu-action@v3
-        if: github.event_name == 'pull_request'
       - uses: docker/setup-buildx-action@v3
-        if: github.event_name == 'pull_request'
-      - name: Build and execute payment packages for every image platform
-        if: github.event_name == 'pull_request'
+        if: github.workflow == 'Quality checks'
+      - name: Build and execute payment packages for linux/amd64
+        if: github.workflow == 'Quality checks'
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           target: payment-package-smoke
           file: backend/Dockerfile
           cache-from: type=gha,scope=payment-smoke

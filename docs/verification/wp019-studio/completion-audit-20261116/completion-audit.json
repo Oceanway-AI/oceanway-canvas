@@ -1,0 +1,461 @@
+{
+  "work_package": "WP-PLAT-019",
+  "review_date": "2026-11-16",
+  "review_state": "completed_with_documented_limits",
+  "method": "Read the P0-P6 normative table and named local/W7 evidence. Keep source tests, formal HTTP/isolated PostgreSQL, actual browser, actual cloud, SDK distribution and CI results distinct.",
+  "packages": [
+    {
+      "id": "P0",
+      "verified": "Product and Playground v1 POST/GET contracts, typed original identity, public compatibility baseline and failure fixtures are present in the frozen OpenAPI fragments and named integration evidence.",
+      "evidence": [
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-media-generations",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp-plat-019-public/cases.json",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6"
+        }
+      ],
+      "remaining": "Final report must retain original baseline and distinguish later candidate verification. No new P0 implementation gap identified by this audit."
+    },
+    {
+      "id": "P1",
+      "verified": "Formal PG16/race covers original PUT lost acknowledgement, process exit before version commit, source410, digest failure, lease competition and per-output recovery. Named W7 originals/CDN MISS-HIT/206/304/expiry403 and same-version renewal exist. The original 33MiB Python recovery cohort completed under its original ID, skipped acknowledged parts1/2, retained natural ticket expiry403 and transport timeouts, published one asset/version/file, released reservation, charged exact bytes once, replayed complete and downloaded the matching original. The102B corrupt fixture failed content matching and released reservation without a content object. Two separate legal4096x2816PNG browser uploads now completed in Console and Studio, each34621850bytes, one original command/upload/version/file, same-file partial recovery, matching digest, ready metadata and two ready variants. Their sequential capacity changes were53874924→88496774→123118624, each exactly34621850 with reserved0.",
+      "evidence": [
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-material-delivery/green.json",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-platform-generation",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-material-object-observation",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-console-upload-recovery/browser-69c7d4c7/summary.json",
+          "artifact_revision": "4efb44d8978534ce52b61332ed281fce7ef5d289",
+          "observed_runtime": {
+            "platform": "69c7d4c712be1c865f028d121960b00eb6420eae"
+          }
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-canvas",
+          "path": "docs/verification/wp019-studio/upload-recovery-8274f1d/summary.json",
+          "artifact_revision": "c46d7c17be477adcf918472a734fbd58432a1174",
+          "observed_runtime": {
+            "platform": "69c7d4c712be1c865f028d121960b00eb6420eae",
+            "studio": "8274f1d0841760b3e66916d5921de53f04fc0831"
+          }
+        }
+      ],
+      "remaining": "The older padded16x16PNG metadata failure remains correctly recorded. Console original seal PUT440.030699s is still slow despite SDK retries0. Studio same-size PUT16.010294s is a separate sample. Functional recovery and exact accounting do not resolve the server↔TOS transfer problem. Default-DNS timeouts and per-address differences remain limited observations, not a generic SDK/CDN root-cause finding."
+    },
+    {
+      "id": "P2",
+      "verified": "Original Gateway admission precedes input reading. Existing free formal fixtures cover zero pre-admission object I/O, no managed-input staging PUT, original-ID restoration, dispatch/close competition and ordered image/video inputs. W7 Studio video witnesses record supplier two-range reads of the original MP4. Gateway reader observation code received independent privacy and behavior review. Exact fresh Gateway managed_original_read is present at Gateway3d9420d0/Platform0daeef47 with112189bytes,1349.795ms,HTTP200,digest matched with sealed source and provider multipart witness. The provider video two206ranges cover the sealed773745byte object and match its assembled digest.",
+      "evidence": [
+        {
+          "repository": "Oceanway-AI/oceanway-media-gateway",
+          "pull_request": 14,
+          "artifact_revision": "93c6cf86f143f1a47de0ce9f9da81b8784420918"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-canvas",
+          "path": "docs/verification/wp019-studio/w7-2764842e-studio42-mp4-focus-fixed-verified.json",
+          "artifact_revision": "f1b6aead3dba59165f3d58b15464b71926d5856e",
+          "observed_runtime": {
+            "platform": "2764842ed7af1327fc79060272b0a38c5ddc377f",
+            "studio": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae"
+          }
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-tos-observation-20261116/w7-0daeef47-input-object-observations.json",
+          "artifact_revision": "e2ec8f24aa620c07549ace23b6305ad7b77b1998",
+          "observed_runtime": {
+            "platform": "0daeef479cb1c615913a4819375e148a1f827ea6",
+            "gateway": "3d9420d0ef05bd870403f8474ba0dcbb55500c05"
+          }
+        }
+      ],
+      "remaining": "Final Gateway1f272c56 includes later rejection mapping. Its exact runtime and CI are recorded separately from the3d9420d0 input-reading cohort. Reader duration excludes subsequent digest/dimensions/base64 work. HTTP transport internal retries are unobserved. These two original object samples do not create a percentile cohort. The initial presentation timeouts remain preserved, with same-original recovery and no new POST."
+    },
+    {
+      "id": "P3",
+      "verified": "Formal HTTP/isolated PG exercises full/last account slot, full archive capacity, same-command concurrency, explicit zero and over-budget limits, team and principal boundaries, three ordered outputs with one failed archive, lost response lookup and old-task authority. Actual W7 R9 forward/reverse lookup and optional estimate groups are recorded.",
+      "evidence": [
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-platform-generation/local-formal.json",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-platform-generation/product-standard-price-http.json",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-platform-generation/w7-product-standard-price-cb3510f6.json",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6"
+        }
+      ],
+      "remaining": "No new P3 functional gap identified. Preserve old task245 UNKNOWN/reserved as a query-only historical observation."
+    },
+    {
+      "id": "P4",
+      "verified": "platformclient/v1.0.0-rc.2 is actually published, downloaded twice with empty caches and checksum verification, and fixed by the Studio host. Official HTTP and isolated PG/race prove one POST or one GET per SDK action, bounded status body and explicit-only media transfer.",
+      "evidence": [
+        {
+          "repository": "Oceanway-AI/oceanway-canvas",
+          "path": "docs/verification/wp019-studio/released-rc2-module.json",
+          "artifact_revision": "f1b6aead3dba59165f3d58b15464b71926d5856e",
+          "sdk_tag_commit": "cb3510f60a771a2fe0ccd28bf2b1d9b5b5ea879b"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-canvas",
+          "path": "docs/verification/wp019-studio/released-rc2-local-browser.json",
+          "artifact_revision": "f1b6aead3dba59165f3d58b15464b71926d5856e"
+        }
+      ],
+      "remaining": "Stable v1.0.0 release is a separately recorded later action. The work-package P4 delivery explicitly permits a released candidate, so absence of stable v1.0.0 is not an invented candidate acceptance blocker."
+    },
+    {
+      "id": "P5a",
+      "verified": "Released SDK/local real-browser plus formal Studio PG/race covers original command persistence, lost first response, three outputs, failed local adoption, late results and both Agent/manual winners. W7 ordinary image/4K/video groups, original canvas restoration and actual free Agent approval card clicks are recorded. The missing Canvas upload checkpoint path was implemented at8274f1d and validated atfd7a896. Final500files/3394tests/78186assertions passed. One actual legal large PNG closed after confirmedpart1 and resumed parts2–5 through the original node. Final same-resource thumbnail decode, normal browser download digest and exact DB/capacity checks passed.",
+      "evidence": [
+        {
+          "repository": "Oceanway-AI/oceanway-canvas",
+          "path": "docs/verification/wp019-studio/released-rc2-local-browser.json",
+          "artifact_revision": "f1b6aead3dba59165f3d58b15464b71926d5856e"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-canvas",
+          "path": "docs/verification/wp019-studio/w7-agent-ui-approval.json",
+          "artifact_revision": "f1b6aead3dba59165f3d58b15464b71926d5856e",
+          "observed_runtime": {
+            "platform": "0ff8921e35d460ee5e12c0bd42a07cbb9ffa499e",
+            "studio": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae"
+          }
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-canvas",
+          "path": "docs/verification/wp019-studio/w7-2764842e-studio42-mp4-focus-fixed-verified.json",
+          "artifact_revision": "f1b6aead3dba59165f3d58b15464b71926d5856e",
+          "observed_runtime": {
+            "platform": "2764842ed7af1327fc79060272b0a38c5ddc377f",
+            "studio": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae"
+          }
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-canvas",
+          "path": "docs/verification/wp019-studio/upload-recovery-8274f1d/summary.json",
+          "artifact_revision": "c46d7c17be477adcf918472a734fbd58432a1174",
+          "observed_runtime": {
+            "platform": "69c7d4c712be1c865f028d121960b00eb6420eae",
+            "studio": "8274f1d0841760b3e66916d5921de53f04fc0831"
+          }
+        }
+      ],
+      "remaining": "Initial direct-file request503 after original readiness remains recorded. Default display/original maps to preview, which completed afterward. same route later307. Normal Canvas used display/thumbnail and download/original, both verified. PUT2–5 postDataBuffer unavailable was recorded0 by the observer. it does not mean zero sent bytes. Original screenshot and JSON files were restored and verified after temporary external-volume unavailability. Root independently reviewed the implementation without finding a blocking defect."
+    },
+    {
+      "id": "P5b",
+      "verified": "Both aliases, concurrent tabs and lost first responses preserve original identity. Long-history cold reopen is12/12. Final image group is30/30 measured. All60 image/video backend originals succeeded with one supply attempt and one archive, zero points, and no new POST on observed restores.",
+      "evidence": [
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-playground-recovery-20261116/w7-0ff8921e-long-history-summary.json",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6",
+          "observed_runtime": {
+            "platform": "0ff8921e35d460ee5e12c0bd42a07cbb9ffa499e"
+          }
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-playground-recovery-20261116/video-response-observation-review.json",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6"
+        }
+      ],
+      "remaining": "Video group has30 attempted and29 fully observed samples. Report p95 as n29 available observations plus one missing timing sample. The first failed browser context was not captured, while28 continuation originals were reopened from their captured context. Later original-ID verification does not recover the missing original timing/context."
+    },
+    {
+      "id": "P6",
+      "verified": "Independent baseline/candidate-off/candidate-on public HTTP/PG groups preserve native images, archive:false/default no long-term retention, explicit archive and native video response identities. Actual W7 external-URL ModelArk reads were exercised. Production Console remains on its existing release. Final fixed35 gallery collection has30cold/30warm measured samples. Cold first preview p951299.3ms, cold full screen2026.3ms, warm full screen124.4ms,12visible sealed cards and ≤158704static bytes,1cold authorization batch and0warm network requests. Independent corrected native-video cohort has30/30 current-source-ready native play/decoded frames, p951040.4ms,max2076.6ms. source readiness is included in preview-click timing.",
+      "evidence": [
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp-plat-019-public/cases.json",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp-plat-019-public/final-candidate-6a11b832.json",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6",
+          "verified_candidate_revision": "6a11b832e7fbc57774a0d286a3a9dcf8340001aa"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp-plat-019-public/w7-public-video-tls.json",
+          "artifact_revision": "0daeef479cb1c615913a4819375e148a1f827ea6"
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-gallery/measurements-894edb13-gallery-summary.json",
+          "artifact_revision": "e2ec8f24aa620c07549ace23b6305ad7b77b1998",
+          "observed_runtime": {
+            "platform": "894edb135c01ecd6625472d59f7f3d66e030e9e0"
+          }
+        },
+        {
+          "repository": "Oceanway-AI/oceanway-platform",
+          "path": "docs/verification/wp019-gallery/video-source-ready-69c7d4c7-summary.json",
+          "artifact_revision": "e2ec8f24aa620c07549ace23b6305ad7b77b1998",
+          "observed_runtime": {
+            "platform": "69c7d4c712be1c865f028d121960b00eb6420eae"
+          }
+        }
+      ],
+      "remaining": "Original gallery25/30 video and3navigation-preparation timeouts remain preserved. Final new video30 is separate, including sample1 above2000ms while nearest-rank p95 meets its2000ms limit. Full-navigation startup and historical P5b missing original timing are separate observations. Commercial provider acceptance and production traffic changes are outside these free fixtures."
+    }
+  ],
+  "cross_cutting": {
+    "gallery_timing": "Normative sources give fixed35/12cards/10Mbps80ms thresholds without explicitly defining HTML navigation as timing start. Named W6 acceptance measures opening the library to decoded visible images and excludes whole-site JavaScript startup. Preserve full-navigation measurements separately and disclose all cache boundaries.",
+    "gallery_timing_source_audit": {
+      "repository": "Oceanway-AI/oceanway-platform",
+      "path": "docs/verification/wp019-upload-recovery-20261116/gallery-timing-source-audit.json",
+      "artifact_revision": "e2ec8f24aa620c07549ace23b6305ad7b77b1998"
+    },
+    "known_followup": "The dedicated free planner setup exposed the existing disabled-model pricing projection gap. A formal same-value Admin model PATCH restored only the test model126. Underlying pricing-to-native channel refresh remains a named follow-up outside this candidate.",
+    "cloud_log_permission": "Existing restricted TOS credentials returned403 AccessDenied for GetBucketRealTimeLog configuration read. This proves current read permission is absent, not whether server-side logging is enabled. No logging/IAM configuration was changed.",
+    "upload_audit": {
+      "repository": "Oceanway-AI/oceanway-platform",
+      "path": "docs/verification/wp019-upload-recovery-20261116/w7-upload-summary.json",
+      "artifact_revision": "e2ec8f24aa620c07549ace23b6305ad7b77b1998"
+    },
+    "upload_transport": "Per-request path differences were observed across official DNS addresses. Preserve failed default-DNS attempts and successful hostname/TLS/signature-preserving resolves. These observations do not establish a generic SDK or CDN root cause.",
+    "gallery_current_cohort": "Independently verified final new video source SHA3bad6ecb8cf708a830208aaec0cd5d3004864c9bd77764126a20f2d2e8a29bf1,30unique indices1–30,5videos×6,30trusted inputs/native play/1280x720frames,source-ready≤play-input≤first-frame,nearest-rank p951040.4ms,max2076.6ms. Original25/30 remains preserved.",
+    "final_gateway_candidate": {
+      "head": "55c884b58b8fd2b7430355bf6608392931563656",
+      "runtime": "1f272c56c622fc44ff789b44c0896b39b6304d25",
+      "ci_run": 43881074615,
+      "ci_observed": "queued",
+      "ci_result": {
+        "repository": "Oceanway-AI/oceanway-media-gateway",
+        "run_id": 43881074615,
+        "head_sha": "55c884b58b8fd2b7430355bf6608392931563656",
+        "status": "queued",
+        "conclusion": "",
+        "jobs": [
+          {
+            "databaseId": 133346811178,
+            "name": "components",
+            "status": "queued",
+            "conclusion": "",
+            "startedAt": "2026-11-16T13:59:07Z",
+            "completedAt": "0001-01-01T00:00:00Z"
+          },
+          {
+            "databaseId": 133346811541,
+            "name": "backend",
+            "status": "queued",
+            "conclusion": "",
+            "startedAt": "2026-11-16T13:59:07Z",
+            "completedAt": "0001-01-01T00:00:00Z"
+          },
+          {
+            "databaseId": 133346811634,
+            "name": "web",
+            "status": "queued",
+            "conclusion": "",
+            "startedAt": "2026-11-16T13:59:07Z",
+            "completedAt": "0001-01-01T00:00:00Z"
+          },
+          {
+            "databaseId": 133346811921,
+            "name": "secrets",
+            "status": "queued",
+            "conclusion": "",
+            "startedAt": "2026-11-16T13:59:07Z",
+            "completedAt": "0001-01-01T00:00:00Z"
+          },
+          {
+            "databaseId": 133346812081,
+            "name": "compose",
+            "status": "queued",
+            "conclusion": "",
+            "startedAt": "2026-11-16T13:59:07Z",
+            "completedAt": "0001-01-01T00:00:00Z"
+          }
+        ]
+      }
+    },
+    "final_platform_candidate": {
+      "runtime": "69c7d4c712be1c865f028d121960b00eb6420eae",
+      "post_runtime_changes": "evidence and documentation only per parent",
+      "failure_mapping_validation": "full affected backend package and6UI tests passed",
+      "format_scope": "format wrapper ignored target paths and checked whole repository, reporting32pre-existing unmodified files. touched2files passed directoxfmt. unrelated formatting left untouched",
+      "head": "e2ec8f24aa620c07549ace23b6305ad7b77b1998",
+      "ci_run": 43887923479,
+      "ci_observed": "completed/success, three jobs passed",
+      "frontend_ci": {
+        "run_id": 43887923479,
+        "job_id": 133371151474,
+        "status": "completed",
+        "conclusion": "success",
+        "test_files": 434,
+        "tests_passed": 5007,
+        "lint": "passed",
+        "typecheck": "passed",
+        "build": "passed",
+        "log_sha256": "0d1a441580841c08f7a01f3693ca68039c5474c513bbd2f165a96ccc5d7452d7",
+        "independent_review": "Read the completed job log and confirmed434/434files,5007/5007tests and successful build."
+      },
+      "ci_result": {
+        "repository": "Oceanway-AI/oceanway-platform",
+        "run_id": 43887923479,
+        "head_sha": "e2ec8f24aa620c07549ace23b6305ad7b77b1998",
+        "status": "completed",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "databaseId": 133370973905,
+            "name": "Changed engineering scopes",
+            "status": "completed",
+            "conclusion": "success",
+            "startedAt": "2026-11-16T14:38:54Z",
+            "completedAt": "2026-11-16T14:39:10Z"
+          },
+          {
+            "databaseId": 133371151474,
+            "name": "Frontend typecheck and test",
+            "status": "completed",
+            "conclusion": "success",
+            "startedAt": "2026-11-16T14:39:13Z",
+            "completedAt": "2026-11-16T15:00:53Z"
+          },
+          {
+            "databaseId": 133371151569,
+            "name": "Backend vet, build, and test",
+            "status": "completed",
+            "conclusion": "success",
+            "startedAt": "2026-11-16T14:39:12Z",
+            "completedAt": "2026-11-16T15:09:42Z"
+          }
+        ],
+        "frontend": {
+          "job_id": 133371151474,
+          "test_files": 434,
+          "tests_passed": 5007,
+          "tests_failed": 0,
+          "typecheck": "passed",
+          "lint": "passed",
+          "build": "passed",
+          "log_sha256": "0d1a441580841c08f7a01f3693ca68039c5474c513bbd2f165a96ccc5d7452d7"
+        },
+        "isolated_postgres": {
+          "job_id": 133371151569,
+          "counts": {
+            "PASS": 679,
+            "SKIP": 3
+          },
+          "allowed_skips": [
+            "TestPlatformAccountingPostgresProcessHelper",
+            "TestPlatformMediaCatalogLivePostgresAudit",
+            "TestPlatformRelayPostgresProcessHelper"
+          ],
+          "failed": 0,
+          "missing": 0,
+          "unexpected_skip": 0,
+          "verified": true,
+          "cleanup": true,
+          "server_identity_verified": true,
+          "postgres_version": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-1.pgdg24.04+2)",
+          "parsed_summary_sha256": "585081b584045e44feb4329abe7ccb97bef731fba5e96ce4969a6496223dd1e7",
+          "log_sha256": "74f09ae191c8f5b07a52d4d76052aedfda7c6440e5032dec661c3ef45749db34"
+        },
+        "sdk_formal_http_owned_postgres_race": {
+          "top_level_passed": 12,
+          "exit_code": 0,
+          "sdk_source_stable": true,
+          "provider_source_stable": true
+        }
+      }
+    },
+    "console_browser_upload_current": "Final same-original recovery passed. Exactly1create/5PUT, lost complete acknowledgement, one command/version/file, metadata4096x2816,2variantsready, exact34621850byte quota increase. Initial10minute ready timeout remains RED. Reviewer independently verified all12artifact hashes and raw failure/recovery original IDs plus DB/metadata/capacity.",
+    "studio_upload_recovery_deployment": {
+      "target": "https://test.oceanway.tech:18448/api/health/ready",
+      "previous": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+      "commit": "8274f1d0841760b3e66916d5921de53f04fc0831",
+      "ready": true,
+      "schema": {
+        "current": 97,
+        "expected": 97,
+        "ready": true
+      },
+      "old_backend_stopped_before_activation": true,
+      "images": {
+        "backend": "sha256:e9b6644e86718aa061b0c15fda216238f53630aafc32819a472c50240562b9ff",
+        "web": "sha256:0e9dd0b59cd7dc330cbd96269d6b308e17b67e480ea95110e18a385215590d2b"
+      },
+      "unmodified_services": [
+        "postgres",
+        "redis",
+        "yingce-agent",
+        "edge"
+      ],
+      "reloaded_w7_edge": false,
+      "dump_sha256": "bf465ee4278933820f8a501c36f9bc29c5c02bd0e81ee4ab36d6c8f4eb1dccad",
+      "utc": "2026-11-16T14:17:59.302199+00:00"
+    },
+    "studio_browser_upload_current": "Final same-node recovery and actual Canvas thumbnail/download passed.1create,part1beforeclose then2–5afterreopen,originalresource adoption,4096x2816,matching34621850byte download and exact quota. Original worker13events include16.010294s PUT and12.300321s matching GET. Evidence PR4c46d7c1, deployed8274f1d, verifiedfd7a896 source equals runtime production paths.",
+    "final_studio_candidate": {
+      "runtime": "8274f1d0841760b3e66916d5921de53f04fc0831",
+      "production_source_equal_to_verified_fd7a896": true,
+      "ci": "PR4 had no checks reported at upload-evidence commit c46d7c17be477adcf918472a734fbd58432a1174. This audit adds evidence files after that commit.",
+      "static_independent_review": "Root reviewed main implementation, state writer persistence, scope generations, fingerprints, concurrency locks, same-original completion, explicit replacement identity and related regression tests. no blocking defect found. no additional runtime tests.",
+      "head_at_upload_evidence_publication": "c46d7c17be477adcf918472a734fbd58432a1174"
+    },
+    "storage_transport_remaining": "The server↔TOS connection remains problematic. Recorded same-size seal PUTs vary from16.010294s to440.030699s. Zero SDK retries does not isolate network/TOS internal causes. Storage replacement has been authorized. Root is checking the available target storage and connection requirements. Migration has not been executed.",
+    "artifact_recovery": "The external volume became temporarily unavailable after Studio verification. Tool-return copies were restored from this agent own local log, then compared when the volume returned. All JSON values matched, three JSON original files and ready screenshot matched exact bytes, readback whitespace was restored from original. Original preclose/reopen screenshots are also committed. No original-file availability limit remains.",
+    "task245_final_readback": {
+      "observed_utc": "2026-11-16T14:50:28.336273+00:00",
+      "query_mode": "BEGIN READ ONLY / ROLLBACK, task245 named fields only",
+      "original": {
+        "id": 245,
+        "task_id": "media_ab6573aa05681021d0c7de6f8cea5da86955ccf96861ca7c",
+        "task_status": "UNKNOWN",
+        "operation_id": "op_ff735d914673690e157446f11db105709d18eede207f189d",
+        "funds_state": "reserved",
+        "reserved_quota": 125000,
+        "settled_quota": 0
+      },
+      "artifact_sha256": "49295654e606c872c437f7daa8677be0e739429451f9a937489e38cdd08543bc"
+    }
+  },
+  "reviewed_at": "2026-11-16T15:17:02.673538+00:00",
+  "independence": "Completion audit is independent of primary Platform/Gateway/gallery owners. Studio upload recovery was implemented by this reviewer. root independently reviewed the 8274f1d implementation and related regressions, reporting no blocking defect. Root review was static and added no runtime tests.",
+  "conclusion": "Named P0-P6 evidence and final browser-upload/gallery additions have been checked within their recorded versions and environments. Platform final CI completed successfully with three passing jobs. Gateway CI remains queued. Server-to-TOS transfer performance remains unresolved, and storage replacement is in preparation. Historical missing presentation measurements and original failures remain recorded.",
+  "reference_verification": {
+    "observed_utc": "2026-11-16T15:02:49.780699+00:00",
+    "method": "git cat-file -e for every named repository path at its recorded artifact revision",
+    "checked_references": 29,
+    "all_resolved": true,
+    "pull_request_reference": "Gateway PR14 retains the named repository, pull request number and artifact revision as a separate PR reference."
+  },
+  "open_items": [
+    "Gateway CI43881074615 remains queued with five jobs at the final observation.",
+    "Server↔TOS transfer performance and authorized storage replacement remain active work.",
+    "The historical Playground30attempted/29timed video cohort retains one missing original timing/context observation."
+  ]
+}

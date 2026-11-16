@@ -1,0 +1,740 @@
+{
+  "scope": "W7 ordinary user approves one new free Agent media action through the visible Canvas approval card, then closes Chrome and restores the same original completed result in a separate process.",
+  "recorded_at": "2026-11-16T11:53:07.249366+00:00",
+  "platform_source": "0ff8921e35d460ee5e12c0bd42a07cbb9ffa499e",
+  "studio_source": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+  "sdk_module": "platformclient/v1.0.0-rc.2",
+  "method": {
+    "session": "Existing ordinary test user through real Chrome 157 with a fresh browser context per invocation. Credentials and fixture nonce remain private.",
+    "setup": "Normal Canvas operations and Agent run APIs create a new Canvas, Run and idempotency key.",
+    "approval": "The successful browser invocation uses trusted UI clicks for Get platform quote, Confirm maximum and Approve. The maximum textbox is asserted and filled with zero. The quote and decision APIs are triggered by the visible controls.",
+    "fixture": "Dedicated scripted free text planner returns one generate_media tool call, then completion. Existing zero-price fixture-openai accepts the sealed input.",
+    "visibility": "The dedicated planner model is published to W7 Studio. Other W7 Studio users may see it.",
+    "records": "Original Platform, Studio and Gateway rows are read in read-only transactions. Original bytes are downloaded through the authenticated Studio route with purpose=download&variant=original."
+  },
+  "canvas": "wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94",
+  "run_id": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+  "approval_id": "ag4b62b901f4d6bf3487b2d0b35c64da2d-1-0",
+  "successful_ui_clicks": [
+    {
+      "label": "获取平台报价",
+      "trusted": true,
+      "at_ms": 1794829760425.7
+    },
+    {
+      "label": "确认额度",
+      "trusted": true,
+      "at_ms": 1794829766302.4
+    },
+    {
+      "label": "同意执行",
+      "trusted": true,
+      "at_ms": 1794829771567.7
+    }
+  ],
+  "approval_network": [
+    {
+      "path": "/api/agent/runs/ag4b62b901f4d6bf3487b2d0b35c64da2d/approvals/ag4b62b901f4d6bf3487b2d0b35c64da2d-1-0/quote",
+      "method": "POST",
+      "at_ms": 1794829760436
+    },
+    {
+      "path": "/api/agent/runs/ag4b62b901f4d6bf3487b2d0b35c64da2d/approvals/ag4b62b901f4d6bf3487b2d0b35c64da2d-1-0/quote",
+      "method": "POST",
+      "at_ms": 1794829766305,
+      "maximum": "0"
+    },
+    {
+      "path": "/api/agent/runs/ag4b62b901f4d6bf3487b2d0b35c64da2d/approvals/ag4b62b901f4d6bf3487b2d0b35c64da2d-1-0/decision",
+      "method": "POST",
+      "at_ms": 1794829771572,
+      "decision": "approve",
+      "quote_id": "9dca38b1e07241f560e2051194e6ecc6"
+    }
+  ],
+  "initial_ui_attempt": {
+    "outcome": "The browser timed out after 30 seconds waiting for the budget confirmation modal following the Get platform quote click. The original waiting Run was retained and reopened.",
+    "evidence": "Studio logs from 11:47 through 11:51 UTC contain Canvas synchronization PATCH calls during the first invocation, then only the two quote POSTs and one decision POST at 11:49 during the successful invocation.",
+    "media_decisions_before_reopen": 0,
+    "classification": "Browser observation timeout before a quote HTTP request was observed. The precise UI wait cause was not captured."
+  },
+  "first_browser": {
+    "observed_at": "2026-11-16T11:49:45.162Z",
+    "run": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+    "run_status": "completed",
+    "step": 2,
+    "task": "agc8c8a4808f4de566934890fae348a66d",
+    "task_status": "succeeded",
+    "request": "studio-agc8c8a4808f4de566934890fae348a66d",
+    "resource": "ab325efc-d53a-5d42-b673-3b0df7665561",
+    "node": "age38545a736e076d7985c6cab935338fc",
+    "nodes": [
+      {
+        "id": "wp019-agent-input",
+        "task": null,
+        "storage_key": "resource:6a49bd45-eebb-55ae-8780-66fc20595c4c"
+      },
+      {
+        "id": "age38545a736e076d7985c6cab935338fc",
+        "task": "agc8c8a4808f4de566934890fae348a66d",
+        "storage_key": "resource:ab325efc-d53a-5d42-b673-3b0df7665561"
+      }
+    ],
+    "connections": [
+      {
+        "fromNodeId": "wp019-agent-input",
+        "id": "agent-6c2cb7e4234deb3e4c58c13cda6afb2e",
+        "toNodeId": "age38545a736e076d7985c6cab935338fc"
+      }
+    ],
+    "original": {
+      "status": 200,
+      "bytes": 5337,
+      "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+      "width": 1024,
+      "height": 1024,
+      "mime": "image/png"
+    },
+    "image": {
+      "width": 320,
+      "height": 320,
+      "visible": true
+    },
+    "settled_points": "0"
+  },
+  "reopened_browser": {
+    "observed_at": "2026-11-16T11:50:21.522Z",
+    "run": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+    "run_status": "completed",
+    "step": 2,
+    "task": "agc8c8a4808f4de566934890fae348a66d",
+    "task_status": "succeeded",
+    "request": "studio-agc8c8a4808f4de566934890fae348a66d",
+    "resource": "ab325efc-d53a-5d42-b673-3b0df7665561",
+    "node": "age38545a736e076d7985c6cab935338fc",
+    "nodes": [
+      {
+        "id": "wp019-agent-input",
+        "task": null,
+        "storage_key": "resource:6a49bd45-eebb-55ae-8780-66fc20595c4c"
+      },
+      {
+        "id": "age38545a736e076d7985c6cab935338fc",
+        "task": "agc8c8a4808f4de566934890fae348a66d",
+        "storage_key": "resource:ab325efc-d53a-5d42-b673-3b0df7665561"
+      }
+    ],
+    "connections": [
+      {
+        "fromNodeId": "wp019-agent-input",
+        "id": "agent-6c2cb7e4234deb3e4c58c13cda6afb2e",
+        "toNodeId": "age38545a736e076d7985c6cab935338fc"
+      }
+    ],
+    "original": {
+      "status": 200,
+      "bytes": 5337,
+      "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+      "width": 1024,
+      "height": 1024,
+      "mime": "image/png"
+    },
+    "image": {
+      "width": 320,
+      "height": 320,
+      "visible": true
+    },
+    "settled_points": "0"
+  },
+  "same_original_after_browser_close": true,
+  "run_event_types": [
+    "context_pressure",
+    "canvas_updated",
+    "approval_requested",
+    "approval_quoted",
+    "canvas_updated",
+    "approval_decided",
+    "generation_task_created",
+    "canvas_updated",
+    "tool_completed",
+    "context_pressure",
+    "assistant_message",
+    "run_completed"
+  ],
+  "original_records": {
+    "platform": [
+      {
+        "section": "command",
+        "request_id": "studio-agc8c8a4808f4de566934890fae348a66d",
+        "task_id": "media_a5d5ff02f7bdd6365a923e3b57376a663a1a85dd4de480e789a86fd87ecbc335",
+        "operation_id": "op_b7028952071f88554c3d3b0c4e5a2d8c28233e3bce8ba072",
+        "product": "studio",
+        "product_task_id": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+        "authorization_id": "exa_0f76dbc4b333ca3952f267857d37aa80ac9daf224738e56c",
+        "gateway_request_id": "req_01a1e430-e91d-7442-bfb5-7abbd6936765",
+        "dispatch_state": "accepted",
+        "revision": 21,
+        "created_at": 1794829771,
+        "native_task_id": 821,
+        "status": "SUCCESS",
+        "quota": 0,
+        "submit_time": 1794829771,
+        "finish_time": 1794829776
+      },
+      {
+        "section": "operation",
+        "id": "op_81ad517e455881aeaee177df125af22880084d5a8d799b2e",
+        "kind": "model",
+        "item": "wp019-agent-free-planner",
+        "business_task_id": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+        "reserved_quota": 0,
+        "frozen_quota": 0,
+        "settled_quota": 0,
+        "charged_quota": 0,
+        "execution_state": "succeeded",
+        "funds_state": "settled",
+        "result_state": "pending",
+        "created_at": 1794829637
+      },
+      {
+        "section": "operation",
+        "id": "op_b7028952071f88554c3d3b0c4e5a2d8c28233e3bce8ba072",
+        "kind": "model",
+        "item": "fixture-openai",
+        "business_task_id": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+        "reserved_quota": 0,
+        "frozen_quota": 0,
+        "settled_quota": 0,
+        "charged_quota": 0,
+        "execution_state": "succeeded",
+        "funds_state": "settled",
+        "result_state": "saved",
+        "created_at": 1794829772
+      },
+      {
+        "section": "operation",
+        "id": "op_678571bae51d218fdbf4ab717b43d5627ee39f59f9479378",
+        "kind": "model",
+        "item": "wp019-agent-free-planner",
+        "business_task_id": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+        "reserved_quota": 0,
+        "frozen_quota": 0,
+        "settled_quota": 0,
+        "charged_quota": 0,
+        "execution_state": "succeeded",
+        "funds_state": "settled",
+        "result_state": "pending",
+        "created_at": 1794829781
+      },
+      {
+        "section": "ledger",
+        "entries": 6,
+        "available_delta": 0,
+        "frozen_delta": 0,
+        "token_delta": 0
+      },
+      {
+        "section": "authorization",
+        "id": "exa_0f76dbc4b333ca3952f267857d37aa80ac9daf224738e56c",
+        "product": "studio",
+        "task_reference": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+        "created_at": 1794829635,
+        "expires_at": 1795434435,
+        "revoked_at": 1794829793
+      },
+      {
+        "section": "material",
+        "version_id": "v_bf152e8881fac8497f463b879649868e79dca0bcbacc6e291ebdcd84dfeb",
+        "asset_id": "a_bf152e8881fac8497f463b879649868e79dca0bcbacc6e291ebdcd84dfeb",
+        "file_id": "f_bf152e8881fac8497f463b879649868e79dca0bcbacc6e291ebdcd84dfeb",
+        "operation_id": "media_a5d5ff02f7bdd6365a923e3b57376a663a1a85dd4de480e789a86fd87ecbc335",
+        "output_index": 0,
+        "bytes": 5337,
+        "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+        "mime": "image/png",
+        "file_state": "ready",
+        "width": 1024,
+        "height": 1024,
+        "metadata_state": "ready"
+      },
+      {
+        "section": "archive",
+        "id": "ma_bf152e8881fac8497f463b879649868e79dca0bcbacc6e291ebdcd84dfeb",
+        "task_id": "media_a5d5ff02f7bdd6365a923e3b57376a663a1a85dd4de480e789a86fd87ecbc335",
+        "state": "saved",
+        "attempts": 1,
+        "output_index": 0,
+        "bytes": 5337,
+        "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+        "mime": "image/png",
+        "cleaned": true,
+        "direct_original": true
+      },
+      {
+        "section": "binding",
+        "id": "binding_28a9d379c4264663d48134486cc29c748431b62172fb95a4",
+        "asset_id": "a_bf152e8881fac8497f463b879649868e79dca0bcbacc6e291ebdcd84dfeb",
+        "version_id": "v_bf152e8881fac8497f463b879649868e79dca0bcbacc6e291ebdcd84dfeb",
+        "target_app": "studio",
+        "target_type": "task_output",
+        "target_id": "media_a5d5ff02f7bdd6365a923e3b57376a663a1a85dd4de480e789a86fd87ecbc335",
+        "project_id": "",
+        "slot": "0",
+        "state": "active",
+        "managed_task_id": ""
+      },
+      {
+        "section": "binding",
+        "id": "binding_3f2932bf728395249b43b80572b74b63aaff64f73a4c9173",
+        "asset_id": "asset_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664",
+        "version_id": "version_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664",
+        "target_app": "studio",
+        "target_type": "task_input",
+        "target_id": "media_a5d5ff02f7bdd6365a923e3b57376a663a1a85dd4de480e789a86fd87ecbc335",
+        "project_id": "",
+        "slot": "/image/0",
+        "state": "released",
+        "managed_task_id": "media_a5d5ff02f7bdd6365a923e3b57376a663a1a85dd4de480e789a86fd87ecbc335"
+      },
+      {
+        "section": "binding",
+        "id": "binding_53e5e7a442a0b4b81d35f5cfa90bb6e0ba3f59c396b01c27",
+        "asset_id": "a_bf152e8881fac8497f463b879649868e79dca0bcbacc6e291ebdcd84dfeb",
+        "version_id": "v_bf152e8881fac8497f463b879649868e79dca0bcbacc6e291ebdcd84dfeb",
+        "target_app": "studio",
+        "target_type": "resource",
+        "target_id": "ab325efc-d53a-5d42-b673-3b0df7665561",
+        "project_id": "",
+        "slot": "original",
+        "state": "active",
+        "managed_task_id": ""
+      },
+      {
+        "section": "prior_unknown",
+        "native_task_id": 245,
+        "task_id": "media_ab6573aa05681021d0c7de6f8cea5da86955ccf96861ca7c",
+        "status": "UNKNOWN",
+        "quota": 125000,
+        "operation_id": "op_ff735d914673690e157446f11db105709d18eede207f189d",
+        "execution_state": "unknown",
+        "funds_state": "reserved",
+        "reserved_quota": 125000,
+        "settled_quota": 0
+      }
+    ],
+    "studio": [
+      {
+        "section": "run",
+        "id": "ag9b1d2cd40fe3225b73ef2699d22469b5",
+        "status": "failed",
+        "revision": 5,
+        "event_count": 2,
+        "canvas_id": "wp019-agent-free-88aba48f-5b0e-4726-b8c6-950983baa30c",
+        "active_task_id": "agfff144fce9054d4c326b4012b12b6279",
+        "media_task_id": "",
+        "cleanup_pending": false,
+        "created_at": "2026-11-16T11:08:29.276337+00:00",
+        "updated_at": "2026-11-16T11:08:37.686779+00:00"
+      },
+      {
+        "section": "run",
+        "id": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+        "status": "completed",
+        "revision": 18,
+        "event_count": 12,
+        "canvas_id": "wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94",
+        "active_task_id": "",
+        "media_task_id": "",
+        "cleanup_pending": false,
+        "created_at": "2026-11-16T11:47:15.686987+00:00",
+        "updated_at": "2026-11-16T11:49:41.963556+00:00"
+      },
+      {
+        "section": "task",
+        "id": "ag221101697b2a95bdc527038b1e790ecf",
+        "type": "canvas_text",
+        "status": "succeeded",
+        "stage": "生成完成",
+        "progress": 100,
+        "agent_run_id": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+        "authorized_charge_microcredits": 0,
+        "attempts": 1,
+        "platform_generation_request": "",
+        "created_at": "2026-11-16T11:47:17.842193+00:00",
+        "completed_at": "2026-11-16T11:47:18.075529+00:00"
+      },
+      {
+        "section": "task",
+        "id": "agc8c8a4808f4de566934890fae348a66d",
+        "type": "canvas_image",
+        "status": "succeeded",
+        "stage": "生成完成",
+        "progress": 100,
+        "agent_run_id": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+        "authorized_charge_microcredits": 0,
+        "attempts": 0,
+        "platform_generation_request": "studio-agc8c8a4808f4de566934890fae348a66d",
+        "created_at": "2026-11-16T11:49:31.783616+00:00",
+        "completed_at": "2026-11-16T11:49:38.891791+00:00"
+      },
+      {
+        "section": "task",
+        "id": "aga7bde247b81eb9f4aa91bb9aff867434",
+        "type": "canvas_text",
+        "status": "succeeded",
+        "stage": "生成完成",
+        "progress": 100,
+        "agent_run_id": "ag4b62b901f4d6bf3487b2d0b35c64da2d",
+        "authorized_charge_microcredits": 0,
+        "attempts": 1,
+        "platform_generation_request": "",
+        "created_at": "2026-11-16T11:49:41.068118+00:00",
+        "completed_at": "2026-11-16T11:49:41.770092+00:00"
+      },
+      {
+        "section": "execution",
+        "task_id": "ag221101697b2a95bdc527038b1e790ecf",
+        "command_id": "agent-step:ag221101697b2a95bdc527038b1e790ecf",
+        "state": "completed",
+        "released": true,
+        "created_at": "2026-11-16T11:47:17.839548+00:00",
+        "updated_at": "2026-11-16T11:47:18.07874+00:00"
+      },
+      {
+        "section": "execution",
+        "task_id": "agc8c8a4808f4de566934890fae348a66d",
+        "command_id": "studio-agc8c8a4808f4de566934890fae348a66d",
+        "state": "generation_v1",
+        "released": true,
+        "created_at": "2026-11-16T11:49:31.78315+00:00",
+        "updated_at": "2026-11-16T11:49:38.893051+00:00"
+      },
+      {
+        "section": "execution",
+        "task_id": "aga7bde247b81eb9f4aa91bb9aff867434",
+        "command_id": "agent-step:aga7bde247b81eb9f4aa91bb9aff867434",
+        "state": "completed",
+        "released": true,
+        "created_at": "2026-11-16T11:49:41.065398+00:00",
+        "updated_at": "2026-11-16T11:49:41.771299+00:00"
+      },
+      {
+        "section": "resource",
+        "id": "ab325efc-d53a-5d42-b673-3b0df7665561",
+        "status": "ready",
+        "provider": "platform",
+        "mime_type": "image/png",
+        "size": 5337,
+        "width": 1024,
+        "height": 1024,
+        "asset_id": "a_bf152e8881fac8497f463b879649868e79dca0bcbacc6e291ebdcd84dfeb",
+        "version_id": "v_bf152e8881fac8497f463b879649868e79dca0bcbacc6e291ebdcd84dfeb",
+        "file_id": "f_bf152e8881fac8497f463b879649868e79dca0bcbacc6e291ebdcd84dfeb",
+        "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+        "byte_length": "5337",
+        "binding_id": "binding_53e5e7a442a0b4b81d35f5cfa90bb6e0ba3f59c396b01c27"
+      },
+      {
+        "section": "leases",
+        "count": 0
+      }
+    ],
+    "runtime": {
+      "observed_at": "2026-11-16T11:50:27.680811+00:00",
+      "roles": [
+        {
+          "name": "oceanway-w7-test-platform-1",
+          "image": "oceanway-w7-test/wp019-platform:0ff8921e35d4",
+          "image_id": "sha256:598c44a159aaab6732a54414c580e0a84d42342b2298e870cbcc5960d95b7da0",
+          "labels": {
+            "org.opencontainers.image.revision": "0ff8921e35d460ee5e12c0bd42a07cbb9ffa499e",
+            "org.opencontainers.image.source": "https://github.com/Oceanway-AI/oceanway-platform"
+          }
+        },
+        {
+          "name": "oceanway-w7-test-material-worker-1",
+          "image": "oceanway-w7-test/wp019-material-worker:0ff8921e35d4",
+          "image_id": "sha256:6d084f5af16a2b9beba976b8e3bdc913e6bd50850b52cc426a1457d392af718d",
+          "labels": {
+            "org.opencontainers.image.revision": "0ff8921e35d460ee5e12c0bd42a07cbb9ffa499e",
+            "org.opencontainers.image.source": "https://github.com/Oceanway-AI/oceanway-platform"
+          }
+        },
+        {
+          "name": "oceanway-studio-preview-backend-1",
+          "image": "sha256:85bcce5b44451eb6976471aacc757d4889dff8e1c275191bcb4595278607aecf",
+          "image_id": "sha256:85bcce5b44451eb6976471aacc757d4889dff8e1c275191bcb4595278607aecf",
+          "labels": {
+            "org.opencontainers.image.revision": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+            "org.opencontainers.image.source": "https://github.com/Oceanway-AI/oceanway-canvas"
+          }
+        }
+      ],
+      "planner_witnesses": [
+        {
+          "at_ms": 1794827639208,
+          "operation_id": "",
+          "body_sha256": "b5098e41c875548ba3b40e4cf68b1521f2eb8f8b8681b538501ecbae5d681d92",
+          "phase": "request_approval"
+        },
+        {
+          "at_ms": 1794827777052,
+          "operation_id": "",
+          "body_sha256": "d2f19e24b82eda2e8fea3f2616e50d4a805618db99d2be29800d5e5b65fb9fce",
+          "phase": "complete"
+        },
+        {
+          "at_ms": 1794829638012,
+          "operation_id": "",
+          "body_sha256": "978131a6cba2b4d3a6b974e5de0da53c24ce1d2c92641fcc1822145573a6fd1c",
+          "phase": "request_approval"
+        },
+        {
+          "at_ms": 1794829781718,
+          "operation_id": "",
+          "body_sha256": "cd39bc17b6608c11c71ad5bce5eb16608e21bad2f0faf1305290f8068da69ee4",
+          "phase": "complete"
+        }
+      ]
+    }
+  },
+  "gateway": {
+    "clock": {
+      "host_before": "2026-11-16T11:51:59.792Z",
+      "db_at": "2026-11-16T11:51:59.943Z",
+      "host_after": "2026-11-16T11:51:59.955Z",
+      "roundtrip_ms": 163.444,
+      "NTP_synchronized": true
+    },
+    "names": [
+      "studio-agc8c8a4808f4de566934890fae348a66d@media_a5d5ff02f7bdd6365a923e3b57376a663a1a85dd4de480e789a86fd87ecbc335"
+    ],
+    "matches": [
+      {
+        "request_id": "studio-agc8c8a4808f4de566934890fae348a66d",
+        "platform_task_id": "media_a5d5ff02f7bdd6365a923e3b57376a663a1a85dd4de480e789a86fd87ecbc335",
+        "caller_id": "wp019-platform-image",
+        "gateway_request_id": "req_01a1e430-e91d-7442-bfb5-7abbd6936765",
+        "gateway_public_id": "req_01a1e430-e91d-7442-bfb5-7abbd6936765",
+        "gateway_task_id": "task_01a1e430-e936-731b-9348-6d54617d0884",
+        "accepted_at": "2026-11-16T11:49:33.085167+00:00",
+        "preparation_started_at": "2026-11-16T11:49:34.114324+00:00",
+        "preparation_complete_at": "2026-11-16T11:49:35.616594+00:00",
+        "permitted_at": "2026-11-16T11:49:35.680797+00:00",
+        "closed_at": null,
+        "execution_state": "succeeded",
+        "failure_code": null,
+        "inputs": [
+          {
+            "ordinal": 0,
+            "bytes": 112189,
+            "mime": "image/png",
+            "sha256": "2eb4128650f092899cb46de3a8a37bcbe643472e0a57ddc32ad01727738a9dee"
+          }
+        ],
+        "attempts": [
+          {
+            "id": "01a1e430-f345-7cb8-88d8-913cfb39cef0",
+            "number": 1,
+            "status": "succeeded",
+            "started_at": "2026-11-16T11:49:35.680651+00:00",
+            "finished_at": "2026-11-16T11:49:35.779898+00:00",
+            "provider_task": null,
+            "free_supplier_reads": {
+              "evidence": "unique ordered sealed input hashes inside the original attempt timestamps",
+              "at": "2026-11-16T11:49:35.722Z",
+              "range_reads": 0,
+              "inputs": [
+                {
+                  "kind": "multipart",
+                  "body_bytes": 112189,
+                  "sha256": "2eb4128650f092899cb46de3a8a37bcbe643472e0a57ddc32ad01727738a9dee"
+                }
+              ]
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "index": 0,
+            "id": "out_01a1e430-f345-759a-b3b6-55d6f0c931b1",
+            "attempt_id": "01a1e430-f345-7cb8-88d8-913cfb39cef0",
+            "state": "available",
+            "mime": "image/png",
+            "bytes": 5337,
+            "publication_row_at": "2026-11-16T11:49:35.768857+00:00",
+            "read_requests": [
+              {
+                "output": "out_01a1e430-f345-759a-b3b6-55d6f0c931b1",
+                "duration_s": 0.003,
+                "method": "GET",
+                "http": 200,
+                "bytes_sent": 5337,
+                "requested_range": "",
+                "content_range": "",
+                "end_at": "2026-11-16T11:49:37.831Z"
+              }
+            ],
+            "complete_or_partial_gets": 1,
+            "served_bytes": 5337,
+            "first_observed_get_complete_at": "2026-11-16T11:49:37.831Z"
+          }
+        ],
+        "lifecycle_result_published_at": "2026-11-16T11:49:35.768857+00:00"
+      }
+    ],
+    "sources": {
+      "publication_row_at": "UTC media_outputs.created_at from the immutable original output INSERT with status=available, after verified spool/object staging. The application timestamp precedes DB commit; the precise commit time is not recorded.",
+      "lifecycle_result_published_at": "UTC MIN(media_lifecycle_events.occurred_at) for result/published, if emitted for the request",
+      "read_requests": "Dedicated 18484 nginx only logs /v1/content/{output_id}; http status, requested/actual Range and actual response-body bytes, time at response end. A browser CDN read appears in browser evidence.",
+      "free_supplier_reads": "Local free supplier acceptance, observed multipart sizes, or per-reference-video transferred 206 ranges and bytes. Original signed URLs and content are excluded."
+    }
+  },
+  "studio_http_records": [
+    {
+      "at": "2026-11-16T11:47:10.543Z",
+      "method": "PATCH",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/operations",
+      "http_status": "200",
+      "latency_ms": "26",
+      "http_request_id": "req-6cfa180a0da7927ac6527833"
+    },
+    {
+      "at": "2026-11-16T11:47:48.232Z",
+      "method": "PATCH",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/operations",
+      "http_status": "200",
+      "latency_ms": "16",
+      "http_request_id": "req-25e6afdb7a4cb38cc2d6de3b"
+    },
+    {
+      "at": "2026-11-16T11:47:48.557Z",
+      "method": "PATCH",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/operations",
+      "http_status": "200",
+      "latency_ms": "11",
+      "http_request_id": "req-da66de2838a7d3a39e935a4d"
+    },
+    {
+      "at": "2026-11-16T11:47:50.082Z",
+      "method": "PATCH",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/operations",
+      "http_status": "200",
+      "latency_ms": "12",
+      "http_request_id": "req-41e6f48cc3d175bde407fbd9"
+    },
+    {
+      "at": "2026-11-16T11:47:58.411Z",
+      "method": "PATCH",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/operations",
+      "http_status": "200",
+      "latency_ms": "11",
+      "http_request_id": "req-f244dedd1733ae0a7159fe82"
+    },
+    {
+      "at": "2026-11-16T11:48:14.742Z",
+      "method": "PATCH",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/operations",
+      "http_status": "200",
+      "latency_ms": "12",
+      "http_request_id": "req-893f6411cb936d1a1a1a1ec5"
+    },
+    {
+      "at": "2026-11-16T11:48:18.413Z",
+      "method": "GET",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/realtime",
+      "http_status": "101",
+      "latency_ms": "31003",
+      "http_request_id": "req-1b802a46466660a3db24bb4e"
+    },
+    {
+      "at": "2026-11-16T11:49:25.791Z",
+      "method": "POST",
+      "path": "/api/agent/runs/ag4b62b901f4d6bf3487b2d0b35c64da2d/approvals/ag4b62b901f4d6bf3487b2d0b35c64da2d-1-0/quote",
+      "http_status": "200",
+      "latency_ms": "4910",
+      "http_request_id": "req-a0bbab283639652311be1a7e"
+    },
+    {
+      "at": "2026-11-16T11:49:31.141Z",
+      "method": "POST",
+      "path": "/api/agent/runs/ag4b62b901f4d6bf3487b2d0b35c64da2d/approvals/ag4b62b901f4d6bf3487b2d0b35c64da2d-1-0/quote",
+      "http_status": "200",
+      "latency_ms": "4693",
+      "http_request_id": "req-9071dd12d7b4937140195549"
+    },
+    {
+      "at": "2026-11-16T11:49:32.241Z",
+      "method": "POST",
+      "path": "/api/agent/runs/ag4b62b901f4d6bf3487b2d0b35c64da2d/approvals/ag4b62b901f4d6bf3487b2d0b35c64da2d-1-0/decision",
+      "http_status": "200",
+      "latency_ms": "526",
+      "http_request_id": "req-67dd792f0abc0b142bc50336"
+    },
+    {
+      "at": "2026-11-16T11:49:33.804Z",
+      "method": "PATCH",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/operations",
+      "http_status": "200",
+      "latency_ms": "22",
+      "http_request_id": "req-ab2ade84bd1f27488ff29136"
+    },
+    {
+      "at": "2026-11-16T11:49:35.371Z",
+      "method": "PATCH",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/operations",
+      "http_status": "200",
+      "latency_ms": "10",
+      "http_request_id": "req-895a92937ddb0b658ac043c5"
+    },
+    {
+      "at": "2026-11-16T11:49:40.571Z",
+      "method": "PATCH",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/operations",
+      "http_status": "200",
+      "latency_ms": "13",
+      "http_request_id": "req-f01e69a6e0a58fca32778e27"
+    },
+    {
+      "at": "2026-11-16T11:49:42.412Z",
+      "method": "PATCH",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/operations",
+      "http_status": "200",
+      "latency_ms": "15",
+      "http_request_id": "req-49cdcf39112ac1f864926f99"
+    },
+    {
+      "at": "2026-11-16T11:49:45.338Z",
+      "method": "GET",
+      "path": "/api/canvas-projects/wp019-agent-ui-be46abdf-648b-465f-966b-1aa0a5383f94/realtime",
+      "http_status": "101",
+      "latency_ms": "25487",
+      "http_request_id": "req-4525e22e0a840517b4377f5c"
+    }
+  ],
+  "invariants": {
+    "new_runs": 1,
+    "media_requests": 1,
+    "gateway_supply_attempts": 1,
+    "planner_calls_for_this_run": 2,
+    "planner_witness_count_before": 2,
+    "planner_witness_count_after": 4,
+    "media_archive_attempts": 1,
+    "material_versions": 1,
+    "media_settled_points": "0",
+    "planner_settled_points": "0",
+    "execution_authorization_revoked": true,
+    "studio_execution_rows_released": 3,
+    "agent_resource_leases": 0,
+    "input_binding_released": true,
+    "original_png_bytes": 5337,
+    "original_png_sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+    "old_task_245_state": "UNKNOWN/reserved"
+  },
+  "limitations": [
+    "This cohort measures actual UI approval and original restoration. It is one free media action and does not supply a performance percentile.",
+    "Manual-versus-Agent races and multi-output failure recovery are covered by the separate formal local HTTP/PostgreSQL evidence.",
+    "The API approval cohort is preserved separately in w7-agent-api-approval.json.",
+    "The initial UI wait timeout remains in this record alongside the successful continuation of the same Run."
+  ]
+}

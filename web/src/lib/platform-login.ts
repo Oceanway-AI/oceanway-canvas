@@ -1,8 +1,11 @@
+import { appRoute } from "./app-path";
+
 const nextKey = "oceanway:studio:login-next";
 
 export function platformLoginNext(value?: string | null) {
     if (!value?.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u0020]/.test(value)) return "/";
     const url = new URL(value, "https://studio.invalid");
+    url.pathname = appRoute(url.pathname);
     const path = url.pathname.replace(/\/+$/, "").toLowerCase();
     if (url.pathname.startsWith("//") || ["/platform/login/complete", "/login", "/register", "/forgot-password"].includes(path)) return "/";
     return url.pathname + url.search + url.hash;

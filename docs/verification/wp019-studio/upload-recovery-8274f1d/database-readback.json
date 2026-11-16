@@ -1,0 +1,82 @@
+{
+  "revision": "69c7d4c712be1c865f028d121960b00eb6420eae",
+  "collected_at": "2026-11-16T14:29:09.097152+00:00",
+  "query_mode": "BEGIN READ ONLY / ROLLBACK for the named original upload, command, asset, version and file",
+  "capacity_used_delta": 34621850,
+  "capacity_reserved_delta": 0,
+  "rows": [
+    {
+      "mime": "image/png",
+      "width": 4096,
+      "height": 2816,
+      "file_id": "file_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+      "asset_id": "asset_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+      "variants": [
+        {
+          "id": "variant_81a7d1b280957824e26d1d7de8e8f1a2b6a9231c8c80056d",
+          "bytes": 8144,
+          "state": "ready",
+          "width": 1280,
+          "height": 880,
+          "recipe": "v1",
+          "sha256": "0ce6de78aa5963a5682ba540bda76dd15074cbbda474af5181ef73ebc9c4761b",
+          "variant": "preview",
+          "attempts": 1
+        },
+        {
+          "id": "variant_ca935e620e2dfd3218208d46b976bd4649f804e2c3d57505",
+          "bytes": 1272,
+          "state": "ready",
+          "width": 320,
+          "height": 220,
+          "recipe": "v1",
+          "sha256": "cd46e731f7d3ce9c73e6e8e61aee0e6d29fda71d682064aa9f5567f114cf1ce8",
+          "variant": "thumbnail",
+          "attempts": 1
+        }
+      ],
+      "file_rows": 1,
+      "part_size": 8388608,
+      "upload_id": "upload_75412da0e5ecdaacb8bac9cef7ad3c592da7dd41d4ab1df8",
+      "command_id": "studio-upload-1149a612-2809-553c-aac8-39b6e4895fb3",
+      "file_bytes": 34621850,
+      "file_state": "ready",
+      "used_bytes": 123118624,
+      "version_id": "version_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+      "asset_state": "ready",
+      "file_sha256": "6169b16d719435bfa8d9b506c00461bb32c0f96d3ac810c7b38b834df47117c0",
+      "source_type": "upload",
+      "command_rows": 1,
+      "upload_bytes": 34621850,
+      "upload_state": "ready",
+      "upload_sha256": "6169b16d719435bfa8d9b506c00461bb32c0f96d3ac810c7b38b834df47117c0",
+      "metadata_state": "ready",
+      "reserved_bytes": 0,
+      "confirmed_parts": [
+        {
+          "etag": "\"3a2f99b4e2a3eaa4af60b544c01689a3\"",
+          "part_number": 1
+        },
+        {
+          "etag": "\"a519eb10a0ec7f9252bc8503eecc7624\"",
+          "part_number": 2
+        },
+        {
+          "etag": "\"847788218c8faf51541b1e73403c66a7\"",
+          "part_number": 3
+        },
+        {
+          "etag": "\"348e468ea2e038952528c36bbaa0e2fd\"",
+          "part_number": 4
+        },
+        {
+          "etag": "\"99de3eb6000b8bfa28b57647af168007\"",
+          "part_number": 5
+        }
+      ],
+      "upload_attempts": 0,
+      "metadata_attempts": 1,
+      "asset_version_rows": 1
+    }
+  ]
+}

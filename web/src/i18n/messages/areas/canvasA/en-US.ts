@@ -124,6 +124,12 @@ export const enUS: DeepStringRecord<typeof zhCN> = {
         collapse: "Hide connectors",
     },
     fileUpload: {
+        resumeOriginal: "Select the same file to resume the original upload",
+        recoveryInvalid: "The upload recovery record is invalid. Keep the file and check the original upload",
+        progressStorageFailed: "Upload progress could not be saved. Check browser storage and try again",
+        accountChanged: "The upload was interrupted by an account change",
+        resumeContextMismatch: "Resume the upload in its original account and canvas",
+        interrupted: "Upload interrupted. Select the original file to continue",
         retryHint: "Choose the file again to upload",
         saving: "File received, saving and processing",
         uploadedPercent: "{{percent}}% uploaded",

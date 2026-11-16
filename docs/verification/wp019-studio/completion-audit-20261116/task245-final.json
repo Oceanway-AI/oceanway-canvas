@@ -1,0 +1,13 @@
+{
+  "observed_utc": "2026-11-16T14:50:28.336273+00:00",
+  "query_mode": "BEGIN READ ONLY / ROLLBACK, task245 named fields only",
+  "original": {
+    "id": 245,
+    "task_id": "media_ab6573aa05681021d0c7de6f8cea5da86955ccf96861ca7c",
+    "task_status": "UNKNOWN",
+    "operation_id": "op_ff735d914673690e157446f11db105709d18eede207f189d",
+    "funds_state": "reserved",
+    "reserved_quota": 125000,
+    "settled_quota": 0
+  }
+}

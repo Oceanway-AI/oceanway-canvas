@@ -109,11 +109,7 @@ func (s *Service) cloudAgentPiModel(ctx context.Context, userID, runID string, p
 	var correction []map[string]any
 	for attempt := 0; attempt <= cloudAgentModelStepRetries; attempt++ {
 		if attempt > 0 {
-			base := s.cloudAgentModelRetryBase
-			if base <= 0 {
-				base = time.Second
-			}
-			delay := time.Duration(1<<(attempt-1)) * base
+			delay := s.cloudAgentModelRetryDelay(attempt)
 			log.Printf("[Agent] model step retry run=%s attempt=%d/%d after %s: %v", runID, attempt, cloudAgentModelStepRetries, delay, lastErr)
 			select {
 			case <-ctx.Done():
@@ -170,6 +166,14 @@ func (s *Service) broadcastCloudAgentPiContextPressure(userID, runID string, usa
 
 // cloudAgentModelStepRetries 是单步模型调用首次失败后的最大重试次数。
 const cloudAgentModelStepRetries = 3
+
+func (s *Service) cloudAgentModelRetryDelay(attempt int) time.Duration {
+	base := s.cloudAgentModelRetryBase
+	if base <= 0 {
+		base = time.Second
+	}
+	return time.Duration(1<<(attempt-1)) * base
+}
 
 // errCloudAgentAwaitingApproval 运行正在等用户审批，本步模型请求被拒绝（未入队、未计费）。
 var errCloudAgentAwaitingApproval = errors.New("run is waiting for approval")

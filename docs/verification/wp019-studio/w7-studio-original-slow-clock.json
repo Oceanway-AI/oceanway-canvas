@@ -1,0 +1,311 @@
+{
+  "source": "86608743d8240c54b036b07151e20255cd7631bb",
+  "platform": "cb3510f60a771a2fe0ccd28bf2b1d9b5b5ea879b",
+  "measurement": "Trusted DOM event, committed IndexedDB row, XHR send and response, original Studio task/execution rows, same-origin Gin and Studio end times. Service starts use the logged latency. The source had no network write marker. Multiple identity windows can overlap each original.",
+  "originals": [
+    {
+      "ordinal": 5,
+      "command": "6b22cc9f-5da5-4551-b1a1-fc56e5a1f908",
+      "task": "0a1db983-c281-5734-a94d-6840e22b59da",
+      "platformTask": "media_abc401a3ceea59df404fe361d9ee0f26d79879278ebc44107db971631d2b2597",
+      "host_db": {
+        "pre_register": "2026-11-16T09:44:58.990429+00:00",
+        "task_recorded": "2026-11-16T09:44:58.991911+00:00",
+        "command_recorded": "2026-11-16T09:44:58.991212+00:00",
+        "command": "6b22cc9f-5da5-4551-b1a1-fc56e5a1f908",
+        "host_task": "0a1db983-c281-5734-a94d-6840e22b59da"
+      },
+      "clockMs": {
+        "click": 1794822298462,
+        "put": 1794822298477,
+        "idbCommit": 1794822298533,
+        "browserSend": 1794822298536,
+        "hostStart": 1794822298540.291,
+        "platformStart": 1794822298996.898,
+        "platformEnd": 1794822299622.85,
+        "hostEnd": 1794822299629.291,
+        "browserReceived": 1794822299632
+      },
+      "platform_calls_in_window": [
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 122.214,
+          "endedUtc": "2026-11-16T09:44:57.187713779Z",
+          "trace": "202611160944570651986768268d9d6cjigvtcZ"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 23.678,
+          "endedUtc": "2026-11-16T09:44:57.201489607Z",
+          "trace": "202611160944571775995878268d9d6Pogr1lxc"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 13.07,
+          "endedUtc": "2026-11-16T09:44:57.236195893Z",
+          "trace": "202611160944572228222838268d9d61F8SWXkk"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 6.234,
+          "endedUtc": "2026-11-16T09:44:57.241167792Z",
+          "trace": "202611160944572347869258268d9d6tuUOfalt"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 9.616,
+          "endedUtc": "2026-11-16T09:44:57.246048480Z",
+          "trace": "202611160944572362603848268d9d6U2xejav2"
+        },
+        {
+          "path": "/api/platform/v1/products/studio/media/price-preview",
+          "status": 200,
+          "durationMs": 65.455,
+          "endedUtc": "2026-11-16T09:44:57.261267622Z",
+          "trace": "202611160944571955794488268d9d6TtVZ4Y5b"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 10.459,
+          "endedUtc": "2026-11-16T09:44:57.280994237Z",
+          "trace": "202611160944572703037098268d9d6ioXPIWTB"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 41.156,
+          "endedUtc": "2026-11-16T09:44:57.436044148Z",
+          "trace": "202611160944573946991498268d9d67X3M2VKp"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 5.756,
+          "endedUtc": "2026-11-16T09:44:57.512866187Z",
+          "trace": "202611160944575068917868268d9d6qjGXmP4A"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 6.666,
+          "endedUtc": "2026-11-16T09:44:57.588203435Z",
+          "trace": "202611160944575810152848268d9d6YdNm6yxV"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 5.091,
+          "endedUtc": "2026-11-16T09:44:57.793137656Z",
+          "trace": "202611160944577878556908268d9d6gcUwBdJw"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 12.441,
+          "endedUtc": "2026-11-16T09:44:58.101552577Z",
+          "trace": "202611160944580888356268268d9d6wOi2LNUp"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 5.688,
+          "endedUtc": "2026-11-16T09:44:58.218863340Z",
+          "trace": "202611160944582129338148268d9d6uehlWsGB"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 5.747,
+          "endedUtc": "2026-11-16T09:44:58.438003249Z",
+          "trace": "202611160944584320265138268d9d6JPQDuiLk"
+        },
+        {
+          "path": "/api/platform/v1/products/studio/media/price-preview",
+          "status": 200,
+          "durationMs": 52.95,
+          "endedUtc": "2026-11-16T09:44:58.497438897Z",
+          "trace": "202611160944584442930768268d9d65jdSeA1H"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 432.625,
+          "endedUtc": "2026-11-16T09:44:58.973313792Z",
+          "trace": "202611160944585402798108268d9d6OBMDxruj"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 317.297,
+          "endedUtc": "2026-11-16T09:44:58.976585354Z",
+          "trace": "202611160944586585503038268d9d6kq1g0wZN"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 285.439,
+          "endedUtc": "2026-11-16T09:44:58.987775814Z",
+          "trace": "202611160944587021295688268d9d6OBTbbCi8"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 297.337,
+          "endedUtc": "2026-11-16T09:44:58.998949144Z",
+          "trace": "202611160944587013720198268d9d6sshBCSho"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 311.109,
+          "endedUtc": "2026-11-16T09:44:59.006563459Z",
+          "trace": "202611160944586916503588268d9d6ATChqMMC"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 256.864,
+          "endedUtc": "2026-11-16T09:44:59.548709725Z",
+          "trace": "202611160944592914705408268d9d6rOcKbohA"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 165.156,
+          "endedUtc": "2026-11-16T09:44:59.562788756Z",
+          "trace": "202611160944593974218028268d9d6nAEOZoHJ"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 185.592,
+          "endedUtc": "2026-11-16T09:44:59.571264446Z",
+          "trace": "202611160944593854077588268d9d6DS2pE7OO"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 188.416,
+          "endedUtc": "2026-11-16T09:44:59.585906399Z",
+          "trace": "202611160944593972445488268d9d644xaRwaX"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 192.262,
+          "endedUtc": "2026-11-16T09:44:59.589393096Z",
+          "trace": "202611160944593967513088268d9d608kshRnD"
+        },
+        {
+          "path": "/internal/products/v1/media-generations",
+          "status": 202,
+          "durationMs": 625.952,
+          "endedUtc": "2026-11-16T09:44:59.622850996Z",
+          "trace": "202611160944589966645648268d9d6SHL8gRXL"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 47.398,
+          "endedUtc": "2026-11-16T09:44:59.653462577Z",
+          "trace": "202611160944596058258088268d9d6CARcLbCc"
+        }
+      ]
+    },
+    {
+      "ordinal": 27,
+      "command": "dea6b81f-ddd2-4b22-9ff6-d492529b5ce7",
+      "task": "708ac11a-24c3-50e7-83ec-cdd09157254e",
+      "platformTask": "media_ae1d0f56b6ee600c2ff142ee8b10630a9ac469598d860f002ab896668b2f28c7",
+      "host_db": {
+        "pre_register": "2026-11-16T09:49:26.989806+00:00",
+        "task_recorded": "2026-11-16T09:49:26.990671+00:00",
+        "command_recorded": "2026-11-16T09:49:26.990041+00:00",
+        "command": "dea6b81f-ddd2-4b22-9ff6-d492529b5ce7",
+        "host_task": "708ac11a-24c3-50e7-83ec-cdd09157254e"
+      },
+      "clockMs": {
+        "click": 1794822566671,
+        "put": 1794822566687,
+        "idbCommit": 1794822566712,
+        "browserSend": 1794822566714,
+        "hostStart": 1794822566717.578,
+        "platformStart": 1794822567003.367,
+        "platformEnd": 1794822568473.8,
+        "hostEnd": 1794822568486.578,
+        "browserReceived": 1794822568493
+      },
+      "platform_calls_in_window": [
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 124.454,
+          "endedUtc": "2026-11-16T09:49:25.919394143Z",
+          "trace": "202611160949257946512348268d9d68rjvKYh9"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 241.434,
+          "endedUtc": "2026-11-16T09:49:26.650749136Z",
+          "trace": "202611160949264090639188268d9d6vrubAkxA"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 186.645,
+          "endedUtc": "2026-11-16T09:49:26.788873110Z",
+          "trace": "202611160949265964303428268d9d65x6m9K5i"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 235.62,
+          "endedUtc": "2026-11-16T09:49:26.974679682Z",
+          "trace": "202611160949267388169448268d9d6lmFOdZMn"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 138.508,
+          "endedUtc": "2026-11-16T09:49:27.100256373Z",
+          "trace": "202611160949269614920728268d9d6gw5XdBXk"
+        },
+        {
+          "path": "/api/platform/v1/products/studio/media/price-preview",
+          "status": 200,
+          "durationMs": 601.818,
+          "endedUtc": "2026-11-16T09:49:27.411928150Z",
+          "trace": "202611160949268098442268268d9d63AjqaLHX"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 801.807,
+          "endedUtc": "2026-11-16T09:49:28.430656236Z",
+          "trace": "202611160949276284130258268d9d6InNj7ssI"
+        },
+        {
+          "path": "/internal/products/v1/media-generations",
+          "status": 202,
+          "durationMs": 1470.433,
+          "endedUtc": "2026-11-16T09:49:28.473800877Z",
+          "trace": "202611160949270031147148268d9d6QTF6rmDI"
+        },
+        {
+          "path": "/api/platform/v1/identity",
+          "status": 200,
+          "durationMs": 37.288,
+          "endedUtc": "2026-11-16T09:49:28.497024211Z",
+          "trace": "202611160949284595562258268d9d66XpQGJZl"
+        }
+      ]
+    }
+  ]
+}

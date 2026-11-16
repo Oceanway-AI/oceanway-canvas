@@ -105,6 +105,42 @@ func (r *Repository) SubmitStudioExecution(task *model.Task) (bool, error) {
 	return changed, err
 }
 
+// Serialize retry reservation and dispatch with cancellation and replacement
+// of the active Pi step. Querying an already submitted request needs no such gate.
+func (r *Repository) WithActiveStudioAgentStep(task *model.Task, fn func(*Repository) error) (bool, error) {
+	active := false
+	err := r.Transaction(func(repo *Repository) error {
+		var parent model.CloudAgentExecution
+		row := repo.db.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id").
+			Where("id = ? AND user_id = ? AND active_task_id = ? AND status IN ? AND cleanup_pending = ?", task.AgentRunID, task.UserID, task.ID, []string{"queued", "running"}, false).
+			Limit(1).Find(&parent)
+		if row.Error != nil || row.RowsAffected == 0 {
+			return row.Error
+		}
+		active = true
+		return fn(repo)
+	})
+	return active, err
+}
+
+func (r *Repository) PrepareStudioAgentTextRetry(task *model.Task, previous, next string, delay time.Duration) (bool, error) {
+	return r.WithActiveStudioAgentStep(task, func(repo *Repository) error {
+		if err := repo.DeferRunningTaskForProviderPoll(task.ID, task.LeaseOwner, "平台确认本次未执行，等待重试", delay); err != nil {
+			return err
+		}
+		updated := repo.db.Model(&model.StudioExecution{}).
+			Where("task_id = ? AND user_id = ? AND state = ? AND envelope_encrypted = ? AND response_encrypted = ''", task.ID, task.UserID, "submitted", previous).
+			Updates(map[string]any{"state": "prepared", "envelope_encrypted": next})
+		if updated.Error != nil {
+			return updated.Error
+		}
+		if updated.RowsAffected != 1 {
+			return ErrTaskStateConflict
+		}
+		return repo.UpdateTaskExecutionDiagnostic(task.UserID, task.ID, "")
+	})
+}
+
 func (r *Repository) SaveStudioExecutionResponse(task *model.Task, encrypted string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		lock := taskLeaseWriter(tx.Model(&model.Task{}), task.LeaseOwner).Where("id = ? AND status = ?", task.ID, model.TaskStatusRunning).Update("updated_at", time.Now())
@@ -152,4 +188,48 @@ func (r *Repository) StudioExecutionsToRelease() ([]model.StudioExecution, error
 
 func (r *Repository) ReleaseStudioExecution(taskID string) error {
 	return r.db.Model(&model.StudioExecution{}).Where("task_id = ? AND state = ?", taskID, "completed").Update("released", true).Error
+}
+
+// The insert winner owns the single dispatch. Persist the request and its
+// product identity together before any network I/O, including on restart.
+func (r *Repository) RegisterStudioGeneration(execution model.StudioExecution, task *model.Task) (bool, error) {
+	var first bool
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		put := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&execution)
+		if put.Error != nil {
+			return put.Error
+		}
+		if put.RowsAffected == 0 {
+			var previous model.StudioExecution
+			if err := tx.First(&previous, "task_id = ? AND user_id = ?", task.ID, task.UserID).Error; err != nil {
+				return err
+			}
+			if previous.IntentHash != execution.IntentHash {
+				return ErrTaskStateConflict
+			}
+			return nil
+		}
+		first = true
+		return tx.Create(task).Error
+	})
+	return first, err
+}
+
+func (r *Repository) SaveStudioGenerationProjection(task *model.Task, receipt string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		w := tx.Model(&model.Task{}).Where("id = ? AND user_id = ? AND platform_generation_request = ? AND (provider_request_id = '' OR provider_request_id = ?) AND (platform_revision < ? OR (platform_revision = ? AND platform_projection_pending = ?))", task.ID, task.UserID, task.PlatformGenerationRequest, task.ProviderRequestID, task.PlatformRevision, task.PlatformRevision, true).
+			Updates(map[string]any{"platform_revision": task.PlatformRevision, "provider_request_id": task.ProviderRequestID, "platform_retry_after_ms": task.PlatformRetryAfterMS, "result_json": task.ResultJSON, "platform_projection_pending": task.PlatformProjectionPending, "status": task.Status, "progress": task.Progress, "stage": task.Stage, "error": task.Error, "completed_at": task.CompletedAt, "execution_diagnostic_json": task.ExecutionDiagnosticJSON})
+		if w.Error != nil || w.RowsAffected == 0 {
+			return w.Error
+		}
+		return tx.Model(&model.StudioExecution{}).Where("task_id = ? AND user_id = ?", task.ID, task.UserID).Update("response_encrypted", receipt).Error
+	})
+}
+
+func (r *Repository) RejectStudioGeneration(task *model.Task, message, diagnostic string) error {
+	return r.db.Model(&model.Task{}).Where("id=? AND user_id=? AND platform_revision=0 AND platform_generation_request=?", task.ID, task.UserID, task.PlatformGenerationRequest).Updates(map[string]any{"status": model.TaskStatusFailed, "stage": "平台未受理", "error": message, "execution_diagnostic_json": diagnostic, "completed_at": time.Now()}).Error
+}
+
+func (r *Repository) MarkStudioGenerationUnknown(task *model.Task, diagnostic string) error {
+	return r.db.Model(&model.Task{}).Where("id=? AND user_id=? AND platform_revision=0 AND status=? AND platform_generation_request=?", task.ID, task.UserID, model.TaskStatusRunning, task.PlatformGenerationRequest).Updates(map[string]any{"stage": "正在查询原生成请求", "execution_diagnostic_json": diagnostic}).Error
 }

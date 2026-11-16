@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 // 素材库的批量操作条、空态、筛选组、详情抽屉与图片放大。
 
 import { Button, Drawer, Tag } from "antd";
@@ -92,9 +93,9 @@ export function AssetsBatchBar({
 }
 
 export const assetsEmptyBannerFrames = [
-    { src: "/short-drama-styles/retro-hong-kong.jpg", caption: "ASSET.01 · 天台重逢" },
-    { src: "/short-drama-styles/cyberpunk-neon.jpg", caption: "ASSET.02 · 雨夜霓虹" },
-    { src: "/short-drama-styles/suspense-noir.jpg", caption: "ASSET.03 · 暗巷追逐" },
+    { src: appURL("/short-drama-styles/retro-hong-kong.jpg"), caption: "ASSET.01 · 天台重逢" },
+    { src: appURL("/short-drama-styles/cyberpunk-neon.jpg"), caption: "ASSET.02 · 雨夜霓虹" },
+    { src: appURL("/short-drama-styles/suspense-noir.jpg"), caption: "ASSET.03 · 暗巷追逐" },
 ];
 
 export function AssetsEmptyState({ onNew, onImport, onGoCanvas, uploadOnly = false, sharedFiles = false }: { uploadOnly?: boolean; sharedFiles?: boolean; onNew: () => void; onImport: () => void; onGoCanvas: () => void }) {

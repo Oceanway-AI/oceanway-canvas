@@ -12,7 +12,7 @@ import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation"
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
-import { nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits } from "@/lib/platform-native-media";
+import { nativeCreationSettings, nativeMediaProfile, studioMediaGenerationVariant, nativeMediaReferenceLimits } from "@/lib/platform-native-media";
 import { assignFrameSlots, publishedFrameRoles, type FrameRole } from "@/lib/media-reference-slots";
 import { creationResultAssetIds, creationResultResourceIds, type CreationCanvasSelection } from "@/lib/canvas/canvas-asset-handoff";
 import { loadCanvasResourceHandoffPayloads } from "@/services/canvas-resource-handoff";
@@ -34,6 +34,8 @@ import { useAssetStore, type Asset } from "@/stores/use-asset-store";
 import { loadAssetsForUse, saveRemoteUserDataNow } from "@/services/user-data-sync";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { cn } from "@/lib/utils";
+import { createClientUUID } from "@/lib/client-id";
+import { studioGenerationCommandWasSent } from "@/services/platform-task-submission";
 import { useUserStore } from "@/stores/use-user-store";
 import type { PromptOptimizerProvider } from "@/lib/plugins/plugin-types";
 import { promptOptimizerPlugin, PROMPT_OPTIMIZER_PLUGIN_ID } from "@/lib/plugins/builtin/prompt-optimizer";
@@ -65,8 +67,10 @@ import {
     splitCreationAttachments,
     type CreationAttachment,
 } from "./creation-assets";
+import { loadCreationRuntime, type CreationRuntime } from "./creation-runtime-loader";
 import { creationLibraryDisabledReason, creationLibrarySelectionToAttachments } from "./creation-library";
 import { defaultCreationMode, modeLabels, type CreationConversation, type CreationMessage, type CreationMode, type CreationRetryContext, type CreationSettings, type CreationShotRailEntry, type CreationStatus } from "./creation-types";
+import { studioCreationOutputSnapshot } from "./creation-conversations";
 import {
     attachCreationTaskContexts,
     completedCreationGenerationTask,
@@ -94,8 +98,6 @@ import { creationVideoConfig } from "./creation-generation-config";
 const PlatformMaterialPicker = lazy(() => import("@/components/assets/platform-material-picker").then((module) => ({ default: module.PlatformMaterialPicker })));
 const AssetLibraryPickerModal = lazy(() => import("@/components/assets/asset-library-picker-modal").then((module) => ({ default: module.AssetLibraryPickerModal })));
 const InspirationHall = lazy(() => import("@/pages/inspirations"));
-const loadCreationRuntime = () => import("./creation-runtime");
-type CreationRuntime = Awaited<ReturnType<typeof loadCreationRuntime>>;
 
 const TEXT_STREAMING_PREF_KEY = "creation.composer.text-streaming";
 // 思考档位按模型分别记住：{ [model]: level }。只存小型 UI 偏好。
@@ -166,6 +168,7 @@ export default function CreatePage() {
     const initialConversationSnapshot = userSessionHydrated ? readCreationConversationSnapshot<CreationConversation>(activeConversationScope) : null;
     const [conversations, setConversations] = useState<CreationConversation[]>(() => initialConversationSnapshot || []);
     const conversationsRef = useRef<CreationConversation[]>(initialConversationSnapshot || []);
+    const persistedIntentRef = useRef<CreationConversation[] | null>(null);
     const [activeId, setActiveId] = useState(() => initialConversationSnapshot?.[0]?.id || "");
     const activeIdRef = useRef(activeId);
     const [hydrated, setHydrated] = useState(() => Boolean(initialConversationSnapshot?.length));
@@ -207,6 +210,7 @@ export default function CreatePage() {
     const followLatestMessageRef = useRef(true);
     const taskSyncWarningRef = useRef(false);
     const activeGenerationTaskIdsRef = useRef(new Set<string>());
+    const submittingCommands = useRef(new Set<string>());
     const retryPreparingRef = useRef(new Set<string>());
     const submitGateRef = useRef(createCreationSubmitGate());
     const pendingRetryRef = useRef<{ context: CreationRetryContext; lockKey: string } | null>(null);
@@ -454,6 +458,9 @@ export default function CreatePage() {
         conversationsRef.current = conversations;
         if (!userSessionHydrated || !hydrated || !conversationStorageReady || conversationScope !== getActiveUserScope()) return;
         writeCreationConversationSnapshot(conversationScope, conversations);
+        const alreadyPersisted = persistedIntentRef.current === conversations;
+        persistedIntentRef.current = null;
+        if (alreadyPersisted) return;
         void saveCreationConversations(conversations).catch((error) => {
             console.warn("创作会话持久化失败；当前会话仍保留在内存快照", error);
         });
@@ -597,6 +604,26 @@ export default function CreatePage() {
             unsubscribe();
         };
     }, [applyCreationTaskSnapshots, hydrated, recoveryTaskKey, toast]);
+
+    const unboundCommandKey = JSON.stringify(conversations.flatMap((c) => c.messages.flatMap((m) => (m.studioGenerationCommand && !m.taskIds?.length && m.status === "pending" ? [[c.id, m.id, m.studioGenerationCommand]] : []))));
+    useEffect(() => {
+        if (!hydrated) return;
+        const controller = new AbortController();
+        const commands = JSON.parse(unboundCommandKey) as [string, string, string][];
+        for (const [conversationId, messageId, command] of commands) {
+            if (submittingCommands.current.has(command)) continue;
+            void loadCreationRuntime()
+                .then((runtime) => runtime.recoverStudioGenerationCommand(command, controller.signal))
+                .then((task) => {
+                    if (!task || controller.signal.aborted) return;
+                    updateConversationMessage(conversationId, messageId, (item) =>
+                        item.studioGenerationCommand === command ? { ...item, studioGenerationCommand: undefined, taskIds: [task.id], clientOperationId: command, status: "pending", generationStatus: task.status } : item,
+                    );
+                })
+                .catch(() => {});
+        }
+        return () => controller.abort();
+    }, [hydrated, unboundCommandKey, updateConversationMessage, recoveryEpoch, activeConversationScope]);
 
     const beginResultRefresh = (messageId: string) => {
         if (resultRefreshIdsRef.current.has(messageId)) return null;
@@ -990,9 +1017,23 @@ export default function CreatePage() {
         }
         const expandedPrompt = skillExecution.prompt;
         const referenceMetadata = skillExecution.metadata;
+        if (getActiveUserScope() !== activeConversationScope) {
+            releaseRetryLock();
+            releaseSubmitGate();
+            return;
+        }
         followLatestMessageRef.current = true;
         const userMessage = newMessage("user", text, { mode, model: selectedModel, attachments, references, settings });
-        const assistantMessage = newMessage("assistant", "", { mode, model: selectedModel, status: mode === "text" && textStreaming ? "streaming" : "pending", settings, ...retryContext });
+        const command = (mode === "image" || mode === "video") && studioMediaGenerationVariant(generationConfig, selectedModel) ? retryContext?.clientOperationId || createClientUUID() : undefined;
+        if (command) submittingCommands.current.add(command);
+        const assistantMessage = newMessage("assistant", "", {
+            mode,
+            model: selectedModel,
+            status: mode === "text" && textStreaming ? "streaming" : "pending",
+            settings,
+            ...retryContext,
+            ...(command ? { studioGenerationCommand: command, clientOperationId: command } : {}),
+        });
         const originConversationId = activeConversation.id;
         const updateOriginAssistant = (updater: (item: CreationMessage) => CreationMessage) => updateConversationMessage(originConversationId, assistantMessage.id, updater);
         const boundTaskIds = new Set<string>();
@@ -1014,6 +1055,7 @@ export default function CreatePage() {
             updateOriginAssistant((item) => ({
                 ...item,
                 generationStage: task.stage,
+                ...studioCreationOutputSnapshot(Array.from(boundTasks.values())),
                 generationStatus: task.status,
                 generationMediaStage: task.mediaStage,
                 generationProgress: typeof task.progress === "number" && Number.isFinite(task.progress) ? Math.round(task.progress) : undefined,
@@ -1021,7 +1063,8 @@ export default function CreatePage() {
                 generationOperation: task.operation,
                 generationErrorCode: task.errorCode,
                 taskIds: Array.from(new Set([...(item.taskIds || []), task.id])),
-                clientOperationId: task.clientOperationId,
+                clientOperationId: task.clientOperationId || item.clientOperationId,
+                studioGenerationCommand: undefined,
                 retryOf: task.retryOf,
                 attemptGroupId: task.attemptGroupId,
             }));
@@ -1033,17 +1076,24 @@ export default function CreatePage() {
                 releaseSubmitGate();
             }
         };
-        updateActive((conversation) => ({
+        const submittedConversation = updateCreationConversationSnapshot(conversationsRef.current, originConversationId, (conversation) => ({
             ...conversation,
             title: conversation.messages.length ? conversation.title : text.slice(0, 24),
             updatedAt: new Date().toISOString(),
             messages: [...conversation.messages, userMessage, assistantMessage],
         }));
-        if (!holdDraftForPreview) clearSubmittedDraft();
-        setBusy(true);
+        conversationsRef.current = submittedConversation;
+        const showSubmission = () => {
+            setConversations(conversationsRef.current);
+            if (!boundTaskIds.size && abortRef.current === controller) {
+                if (!holdDraftForPreview) clearSubmittedDraft();
+                setBusy(true);
+            }
+        };
         const controller = new AbortController();
         const requestLifecycle = runtime.beginGenerationConsumer(controller.signal);
         abortRef.current = controller;
+        if (!command) showSubmission();
         const normalizedImage =
             mode === "image" && imageProfile
                 ? imageProfile.parameters
@@ -1062,6 +1112,18 @@ export default function CreatePage() {
         };
         let handedOverToRecovery = false;
         try {
+            if (command) {
+                // The acknowledgement may never reach this tab. Persist the
+                // message-to-command mapping before the first network POST.
+                await saveCreationConversations(submittedConversation);
+                if (requestLifecycle.signal.aborted || getActiveUserScope() !== activeConversationScope) throw new DOMException("Aborted", "AbortError");
+                persistedIntentRef.current = submittedConversation;
+                // Rendering a new attachment may load its preview. Dispatch the
+                // committed command before spending the next frame on the thread.
+                window.requestAnimationFrame(() => {
+                    if (!requestLifecycle.signal.aborted && getActiveUserScope() === activeConversationScope) showSubmission();
+                });
+            }
             if (mode === "text") {
                 const result = await runtime.runGenerationOperationOnce(retryContext?.clientOperationId, () =>
                     runtime.runBackendGenerationTask({
@@ -1084,18 +1146,20 @@ export default function CreatePage() {
                 if (!result.text?.trim()) throw new Error(t("create.page.noTextResult"));
                 updateOriginAssistant((item) => ({ ...item, content: result.text || "", reasoning: result.reasoning }));
             } else if (mode === "image" && imageProfile) {
-                const taskCount = nativeProfile ? 1 : Math.max(1, Math.min(imageProfile.maxOutputs, Math.floor(Number(count) || 1)));
+                const v1Image = studioMediaGenerationVariant(requestConfig);
+                const taskCount = nativeProfile || v1Image ? 1 : Math.max(1, Math.min(imageProfile.maxOutputs, Math.floor(Number(count) || 1)));
                 const settled = await runtime.runGenerationOperationOnce(retryContext?.clientOperationId, () =>
                     runtime.runBackendGenerationTaskBatch({
                         mode: "image",
                         prompt: expandedPrompt,
-                        config: { ...requestConfig, count: "1" },
+                        config: v1Image ? requestConfig : { ...requestConfig, count: "1" },
                         referenceImages,
                         signal: requestLifecycle.signal,
                         metadata: { source: "create-page", conversationId: activeConversation.id, messageId: assistantMessage.id, ...referenceMetadata },
                         onTaskUpdate: bindTask,
                         count: taskCount,
                         ...retryContext,
+                        ...(command ? { clientOperationId: command } : {}),
                     }),
                 );
                 if (requestLifecycle.signal.aborted) throw new DOMException("Aborted", "AbortError");
@@ -1170,6 +1234,7 @@ export default function CreatePage() {
                         referenceAudios,
                         signal: requestLifecycle.signal,
                         metadata: { source: "create-page", conversationId: activeConversation.id, messageId: assistantMessage.id, videoEditOperation: videoOperation, ...referenceMetadata },
+                        ...(command ? { clientOperationId: command } : {}),
                         onTaskUpdate: bindTask,
                         ...retryContext,
                     }),
@@ -1199,8 +1264,8 @@ export default function CreatePage() {
             }
             updateOriginAssistant((item) => ({ ...item, status: "done" }));
         } catch (error) {
+            if (getActiveUserScope() !== activeConversationScope) return;
             if (error instanceof PlatformBudgetDeclined && !boundTaskIds.size) {
-                if (getActiveUserScope() !== activeConversationScope) return;
                 updateActive((conversation) => {
                     const messages = conversation.messages.filter((item) => item.id !== userMessage.id && item.id !== assistantMessage.id);
                     return { ...conversation, title: messages.length ? conversation.title : activeConversation.title, messages };
@@ -1212,7 +1277,7 @@ export default function CreatePage() {
                 updateOriginAssistant((item) => ({ ...item, status: "cancelled", content: t("create.status.stopped") }));
                 return;
             }
-            if (boundTaskIds.size && !runtime.isGenerationTaskTerminalError(error)) {
+            if ((boundTaskIds.size || (command && studioGenerationCommandWasSent(activeConversationScope, command))) && !runtime.isGenerationTaskTerminalError(error)) {
                 // 任务已在后端建立，只是页面没等到终态或没读到结果（轮询中断、网络抖动、结果下载失败）：
                 // 这不是生成失败。交给恢复监听继续跟进原任务；默认引导重新生成会让用户再付一次费。
                 handedOverToRecovery = true;
@@ -1235,6 +1300,7 @@ export default function CreatePage() {
                 content: t("create.status.failed"),
             }));
         } finally {
+            if (command) submittingCommands.current.delete(command);
             for (const taskId of boundTaskIds) activeGenerationTaskIdsRef.current.delete(taskId);
             if (handedOverToRecovery) setRecoveryEpoch((value) => value + 1);
             requestLifecycle.release();

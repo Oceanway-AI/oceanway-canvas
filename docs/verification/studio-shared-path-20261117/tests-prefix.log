@@ -1,0 +1,38 @@
+$ tsc --noEmit
+bun test v1.3.9 (cf6cdbbb)
+
+test/platform-material-upload.test.ts:
+(pass) a reopened upload keeps confirmed parts and renews the original session for the same account [18.00ms]
+(pass) Platform upload uses credential-free tickets and recovers a lost completion without a new command [3.00ms]
+(pass) a lost create receipt preserves the original filename and metadata when local media sync resumes [1.00ms]
+(pass) corrupt recovery records and unavailable checkpoint storage fail before creating an upload [1.00ms]
+(pass) Switching accounts after upload preparation cannot send ticket bytes or complete the upload [1.00ms]
+(pass) Untrusted ticket headers and expired URLs are rejected before disclosing file bytes [2.00ms]
+
+test/canvas-realtime-client.test.ts:
+(pass) cookie rotation refreshes HTTP identity before reconnecting, revocation stops [1.00ms]
+(pass) realtime URL follows API deployment path, HTTPS and encoded canvas identity
+(pass) presence coalesces rapid pointer and drag frames, retaining final coordinates [1.00ms]
+(pass) congested transport eventually delivers the final drag cancellation
+(pass) outgoing presence does not echo into subscribers and identical state is not resent
+(pass) disconnect clears peers and reconnect invalidates the document; policy denial stops retries
+(pass) leave removes ghosts and malformed remote coordinates cannot enter the renderer
+
+test/app-path.test.ts:
+(pass) browser URLs use the configured application path exactly once
+(pass) login restores a route within the application basename [1.00ms]
+(pass) existing resource URLs and realtime use the configured browser API
+
+test/platform-material-selection.test.ts:
+(pass) Canvas insertion adopts the selected immutable version and stores a stable resource URL [1.00ms]
+
+test/auth-entry.test.ts:
+(pass) 登录链接只携带站内工作区地址，并保留查询和锚点
+
+test/platform-login.test.ts:
+(pass) Platform callback returns only to a local non-auth page
+
+ 19 pass
+ 0 fail
+ 114 expect() calls
+Ran 19 tests across 6 files. [247.00ms]

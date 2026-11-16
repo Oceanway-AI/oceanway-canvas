@@ -23,6 +23,7 @@ type studioExecutionEnvelope struct {
 	Task               model.Task                                  `json:"task"`
 	Selection          platformintegration.ModelSelection          `json:"selection"`
 	RequestID          string                                      `json:"requestId"`
+	TextRetries        int                                         `json:"textRetries,omitempty"`
 	ContentType        string                                      `json:"contentType"`
 	Body               []byte                                      `json:"body"`
 	Consumption        *platformclient.MediaConsumptionConstraints `json:"consumption,omitempty"`
@@ -44,15 +45,25 @@ func (s *Service) StudioTaskByCommand(userID, commandID, expectedUserID string) 
 	}
 	task, err := s.Task(userID, studioTaskID(userID, commandID))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
+		alias, e := s.repo.StudioActionAlias(userID, commandID)
+		if e == nil {
+			return s.Task(userID, alias.TaskID)
+		}
+		if !errors.Is(e, gorm.ErrRecordNotFound) {
+			return nil, e
+		}
 		return nil, NotFound("未找到原任务")
 	}
 	return task, err
 }
 
-func (s *Service) StudioCreateTask(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest) (*model.Task, *platformclient.Response, error) {
+func (s *Service) StudioCreateTask(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest, verifiedSessionID ...string) (*model.Task, *platformclient.Response, error) {
 	response := &platformclient.Response{Header: make(http.Header)}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
+	if req.Platform != nil && req.Platform.ExpectedUserID != "" && req.Platform.ExpectedUserID != userID {
+		return nil, response, studioPreviewAccountChanged()
+	}
 	if !studioMaterialID.MatchString(req.CommandID) {
 		return nil, response, BadAuthRequest("请提供稳定的任务命令标识")
 	}
@@ -93,15 +104,22 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 			return task, response, e
 		}
 	} else {
-		if !hasReceipt && (req.Type == "canvas_image" || req.Type == "canvas_video") {
-			return nil, response, studioPreviewAccountChanged()
-		}
 		if err := s.ensureTaskProjectActive(userID, req.ProjectID); err != nil {
 			return nil, response, err
 		}
-		selected, e := s.studioSelectTaskModel(ctx, session, req, response)
+		scope := studioCatalogScopeFor(userID, session, verifiedSessionID...)
+		if !hasReceipt && s.studioMediaCatalog.requiresPreview(scope, req) {
+			return nil, response, studioPreviewAccountChanged()
+		}
+		selected, e := s.studioSelectTaskModel(ctx, session, req, response, scope)
 		if e != nil {
 			return nil, response, e
+		}
+		if selected.GenerationV1 {
+			return s.createStudioGeneration(ctx, userID, session, req, selected, id, hash, response)
+		}
+		if !hasReceipt && (req.Type == "canvas_image" || req.Type == "canvas_video") {
+			return nil, response, studioPreviewAccountChanged()
 		}
 		var body []byte
 		var consumption *platformclient.MediaConsumptionConstraints
@@ -210,7 +228,7 @@ func studioPublicTaskInput(kind string, req CreateTaskRequest) (string, error) {
 func studioTaskMetadata(input map[string]any) map[string]any {
 	source, _ := input["metadata"].(map[string]any)
 	metadata := map[string]any{}
-	for _, key := range []string{"clientOperationId", "nodeId", "conversationId", "messageId", "batchId", "batchIndex", "batchCount", "source"} {
+	for _, key := range []string{"clientOperationId", "nodeId", "sourceNodeId", "studioPendingRunId", "conversationId", "messageId", "batchId", "batchIndex", "batchCount", "source"} {
 		if v, ok := source[key]; ok {
 			metadata[key] = v
 		}

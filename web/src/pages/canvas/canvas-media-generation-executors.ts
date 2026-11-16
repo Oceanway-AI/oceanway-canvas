@@ -1,3 +1,5 @@
+import { createClientUUID } from "@/lib/client-id";
+import { studioMediaGenerationVariant } from "@/lib/platform-native-media";
 import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation";
 import { restoreCanvasBudgetDraft } from "@/lib/canvas/canvas-task-state";
 import { nanoid } from "nanoid";
@@ -45,6 +47,7 @@ export async function executeVideoGeneration({
     const reuseSourceNode = canGenerateMediaInPlace(sourceNode, CanvasNodeType.Video);
     const isExistingVideoNode = sourceNode?.type === CanvasNodeType.Video && Boolean(sourceNode.metadata?.content) && !reuseSourceNode;
     const videoId = reuseSourceNode ? nodeId : nanoid();
+    const command = studioMediaGenerationVariant(generationConfig) ? retryContext?.clientOperationId || createClientUUID() : undefined;
     const versionRootId = isExistingVideoNode && sourceNode ? sourceNode.metadata?.versionOfNodeId || sourceNode.id : undefined;
     const parent = sourceNode?.position || { x: 0, y: 0 };
     const videoGenerationMetadata = buildVideoGenerationMetadata(sourceNode, generationContext, generationConfig);
@@ -60,6 +63,7 @@ export async function executeVideoGeneration({
         metadata: {
             // 就地重生成不能继承旧任务的计时字段；媒体内容与提示词不在清理范围内。
             ...resetGenerationTaskMetadata(reuseSourceNode ? sourceNode?.metadata : undefined, NODE_STATUS_LOADING),
+            studioGenerationCommand: command,
             ...(reuseSourceNode ? mediaVersionFieldsBeforeReplace(sourceNode) : {}),
             taskCreatedAt: new Date().toISOString(),
             ...canvasGenerationPromptMetadata(prompt, effectivePrompt),
@@ -95,7 +99,16 @@ export async function executeVideoGeneration({
         return [
             ...current.map((node) => {
                 if ((node.metadata?.versionOfNodeId || node.id) !== rootId) return node;
-                return { ...node, metadata: { ...node.metadata, versionOfNodeId: rootId, versionLabel: node.metadata?.versionLabel || "A", versionPrimary: node.metadata?.versionPrimary || (!hasPrimaryVersion && node.id === sourceNode.id), status: node.id === nodeId ? NODE_STATUS_SUCCESS : node.metadata?.status } };
+                return {
+                    ...node,
+                    metadata: {
+                        ...node.metadata,
+                        versionOfNodeId: rootId,
+                        versionLabel: node.metadata?.versionLabel || "A",
+                        versionPrimary: node.metadata?.versionPrimary || (!hasPrimaryVersion && node.id === sourceNode.id),
+                        status: node.id === nodeId ? NODE_STATUS_SUCCESS : node.metadata?.status,
+                    },
+                };
             }),
             { ...videoNode, metadata: { ...videoNode.metadata, versionOfNodeId: rootId, versionLabel: nextLabel, versionPrimary: false } },
         ];
@@ -115,6 +128,7 @@ export async function executeVideoGeneration({
                 projectId,
                 nodeId: videoId,
                 ...retryContext,
+                ...(command ? { clientOperationId: command } : {}),
                 mode: "video",
                 prompt: effectivePrompt,
                 config: generationConfig,
@@ -124,6 +138,7 @@ export async function executeVideoGeneration({
                 signal: controller.signal,
                 metadata: {
                     sourceNodeId: nodeId,
+                    studioPendingRunId: sourceNode?.metadata?.agentDraftRunId,
                     ...taskContext,
                     resolvedCharacterVersions: generationContext.resolvedCharacterVersions,
                     resolvedCharacterVoices: generationContext.resolvedCharacterVoices,
@@ -225,7 +240,11 @@ export async function executeAudioGeneration({
 function doubaoAudioPrompt(config: CanvasGenerationExecution["generationConfig"], prompt: string, audioCount: number, imageCount: number) {
     if (!isDoubaoAudioConfig(config)) return prompt;
     // 参考图片模式的 text_prompt 只保留要合成的文本，图片走 references。
-    if (imageCount > 0) return prompt.replace(/@(图片|音频|视频|绘图|角色|文本)\d+/g, " ").replace(/[ \t]{2,}/g, " ").trim();
+    if (imageCount > 0)
+        return prompt
+            .replace(/@(图片|音频|视频|绘图|角色|文本)\d+/g, " ")
+            .replace(/[ \t]{2,}/g, " ")
+            .trim();
     if (audioCount <= 0) return prompt;
     // 官方参考音频用 @Audio1、@Audio2，和 references 的顺序一致。画布里的 @音频N 只是编辑器槽位。
     const next = prompt.replace(/@音频(\d+)/g, "@Audio$1");

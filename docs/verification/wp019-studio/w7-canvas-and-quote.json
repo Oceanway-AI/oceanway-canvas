@@ -1,0 +1,227 @@
+{
+  "studio": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+  "platform": "813ebf1bbc2da9fa6ae053b4c6fd93811584238c",
+  "sdk": "v1.0.0-rc.1",
+  "ordinary_subject_username_sha256_prefix": "56dc9f94b8d5",
+  "independent_product_quote": {
+    "source": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+    "platform": "813ebf1bbc2da9fa6ae053b4c6fd93811584238c",
+    "family": "image",
+    "command": "6d1a1871-28b2-473a-ba42-283120a4847a",
+    "asset": "asset_fd9578d51fa77318d6cc26b83b5ee238c542a94c69192d17",
+    "version": "version_fd9578d51fa77318d6cc26b83b5ee238c542a94c69192d17",
+    "sha256": "ac0e11ca95751e43b6da5b22877ceb308a8fc3fadad6dc975ffb849bf8584838",
+    "studioResource": "48f2ee30-e537-5981-83f0-367f45b05e03",
+    "model": "fixture-openai",
+    "variant": "816da6c2b7aeadcb9e8f58590a17e49b35b4c64041fbac23cdb69c6a055672ea",
+    "price": "657ec8b549ca39cf09e2637fb5ef0b77d9360fb24ea8cd9046ea192aa3093fcd",
+    "actual_generation_posts": 0,
+    "quote": {
+      "sentMs": 1794818716065,
+      "receivedMs": 1794818716776,
+      "http": 200,
+      "code": 0,
+      "allowed": true,
+      "standardPoints": "0",
+      "walletPoints": "0",
+      "price": "657ec8b549ca39cf09e2637fb5ef0b77d9360fb24ea8cd9046ea192aa3093fcd",
+      "capability": "d23833c2e653f2ddc7c9b500094e6e28140cbc8a8ffe19d00e4a7e54cb5fac0e",
+      "connection": 1,
+      "combinationSupported": true,
+      "allocations": [],
+      "trace": "req-28d77db1d1bf813c11bf32a0",
+      "upstreamTrace": null
+    },
+    "platform_http": {
+      "trace": "202611160845160945628588268d9d6oNHbBeKQ",
+      "ended_utc": "2026-11-16T08:45:16.391693202Z",
+      "duration_ms": 296.915,
+      "status": 200
+    },
+    "studio_http": {
+      "trace": "req-28d77db1d1bf813c11bf32a0",
+      "ended_utc": "2026-11-16T08:45:16.392569561Z",
+      "duration_ms": 320,
+      "status": 200
+    }
+  },
+  "actual_canvas_node": {
+    "project": "qg1rF37oaLjkkbU_cSTLl",
+    "original_canvas_node": "image-1794818718450-0l6e3",
+    "input_node_after_reopen": {
+      "id": "image-1794818809819-x5b3l",
+      "kind": "image",
+      "task": null,
+      "command": null,
+      "index": null,
+      "ref": "resource:6a49bd45-eebb-55ae-8780-66fc20595c4c"
+    },
+    "result_node_after_reopen": {
+      "id": "image-1794818718450-0l6e3",
+      "kind": "image",
+      "task": "94e96240-06f7-5bf9-9e81-3b4c13a9a7e1",
+      "command": "0e1b2c63-bf0d-40cf-84f8-faad7735610e",
+      "index": 0,
+      "ref": "resource:5265992f-2450-5836-b797-851275a08d84"
+    },
+    "single_form_submission": 1,
+    "published_zero_price": true,
+    "request_wallet_max": null,
+    "price_version": "657ec8b549ca39cf09e2637fb5ef0b77d9360fb24ea8cd9046ea192aa3093fcd",
+    "reopened_same_original": true,
+    "frozen_input": {
+      "asset": "asset_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664",
+      "version": "version_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664",
+      "file": "file_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664",
+      "sha256": "2eb4128650f092899cb46de3a8a37bcbe643472e0a57ddc32ad01727738a9dee"
+    },
+    "receipt": {
+      "original_request": "0e1b2c63-bf0d-40cf-84f8-faad7735610e",
+      "studio_task": "94e96240-06f7-5bf9-9e81-3b4c13a9a7e1",
+      "platform_task": "media_7a1a6d3c18dea6d0bf9b284115f8c6e0702cad1335ff44dbf62d8a67bea21162",
+      "gateway_public_id": "req_01a1e389-a68b-7e5d-9439-1c20ef6a3d03",
+      "gateway_task_id": "task_01a1e389-a69c-700d-b30e-ee986e07b223",
+      "source_attempt_ids": [
+        "01a1e389-a9e2-78fa-b71b-5d17da7bd798"
+      ],
+      "source_attempts": 1,
+      "funds": {
+        "operation_id": "op_fafc24baca87583b5d0096826b0be913a75a9fb5f581b5c0",
+        "funds_state": "settled",
+        "reserved_points": "0",
+        "settled_points": "0",
+        "reserved_quota": "0",
+        "settled_quota": "0",
+        "ledger_rows": "2"
+      },
+      "material_archive": [
+        {
+          "platform_http_observations": [],
+          "output_index": 0,
+          "archive_state": "saved",
+          "direct_original": true,
+          "archive_attempts": 1,
+          "archived_bytes": 5337,
+          "recorded_sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+          "version_id": "v_9580d079956e9271abf9fa20c613407f762718b2155165224f4efc2700e9",
+          "asset_id": "a_9580d079956e9271abf9fa20c613407f762718b2155165224f4efc2700e9",
+          "file_id": "f_9580d079956e9271abf9fa20c613407f762718b2155165224f4efc2700e9",
+          "charged_original_bytes": 5337,
+          "stored_sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+          "mime": "image/png",
+          "width": 1024,
+          "height": 1024,
+          "duration_ms": 0,
+          "task_output_binding": "binding_1be5abdd69aa631edda18c111b9b0d200252bdb0043f302b",
+          "account_used_bytes_at_observation": 10542023,
+          "account_reserved_bytes_at_observation": 0
+        }
+      ],
+      "studio_material_references": [
+        {
+          "resource_id": "5265992f-2450-5836-b797-851275a08d84",
+          "asset_id": "a_9580d079956e9271abf9fa20c613407f762718b2155165224f4efc2700e9",
+          "version_id": "v_9580d079956e9271abf9fa20c613407f762718b2155165224f4efc2700e9",
+          "file_id": "f_9580d079956e9271abf9fa20c613407f762718b2155165224f4efc2700e9",
+          "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+          "byte_length": "5337",
+          "binding_id": "binding_1d740f7c447d9bc59e9ce4831d22a1ea5530813e80f16877",
+          "size": 5337,
+          "width": 1024,
+          "height": 1024,
+          "duration_ms": 0,
+          "mime_type": "image/png"
+        }
+      ],
+      "live_input": [
+        {
+          "ordinal": 0,
+          "bytes": 112189,
+          "mime": "image/png",
+          "sha256": "2eb4128650f092899cb46de3a8a37bcbe643472e0a57ddc32ad01727738a9dee"
+        }
+      ],
+      "supplier_input_bytes": [
+        {
+          "kind": "multipart",
+          "body_bytes": 112189,
+          "sha256": "2eb4128650f092899cb46de3a8a37bcbe643472e0a57ddc32ad01727738a9dee"
+        }
+      ],
+      "gateway_published_at": "2026-11-16T08:46:52.476628+00:00",
+      "delivery_read_requests": [
+        {
+          "output": "out_01a1e389-a9e2-7d58-86a4-37bd11f7efb9",
+          "duration_s": 0.004,
+          "method": "GET",
+          "http": 200,
+          "bytes_sent": 5337,
+          "requested_range": "",
+          "content_range": "",
+          "end_at": "2026-11-16T08:46:54.700Z"
+        },
+        {
+          "output": "out_01a1e389-a9e2-7d58-86a4-37bd11f7efb9",
+          "duration_s": 0.004,
+          "method": "GET",
+          "http": 200,
+          "bytes_sent": 5337,
+          "requested_range": "",
+          "content_range": "",
+          "end_at": "2026-11-16T08:46:55.151Z"
+        }
+      ],
+      "gateway_output_bytes": 5337,
+      "studio": {
+        "path": "/api/tasks",
+        "http": 200,
+        "ms": 537.0,
+        "ended_ms": 1794818810743.517,
+        "ended_utc": "2026-11-16T08:46:50.743517213Z"
+      },
+      "platform": {
+        "path": "/internal/products/v1/media-generations",
+        "http": 202,
+        "ms": 486.987,
+        "ended_ms": 1794818810739.582,
+        "ended_utc": "2026-11-16T08:46:50.739582946Z"
+      },
+      "original_outputs": [
+        {
+          "index": 0,
+          "kind": "image",
+          "materialState": "saved",
+          "contentState": "available",
+          "previewState": "available",
+          "resourceId": "5265992f-2450-5836-b797-851275a08d84",
+          "failureCode": null,
+          "bytes": 5337,
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null
+        }
+      ]
+    },
+    "counts": {
+      "reserved_and_settled_zero": 1,
+      "one_supplier_attempt": 1,
+      "saved_outputs": 1,
+      "immutable_archived_files": 1,
+      "charged_original_bytes": 5337,
+      "studio_resources_pinned_to_platform_files": 1
+    }
+  },
+  "w7_agent": {
+    "observed_utc": "2026-11-16T08:50:32.709648+00:00",
+    "ordinary_subject_sha256_prefix": "56dc9f94b8d5",
+    "scope": "existing waiting approvals for the ordinary canvas actor",
+    "counts": {
+      "actor_count": 1,
+      "current_waiting_approvals": 0,
+      "current_studio_media_approvals": 0,
+      "current_preexisting_zero_quotes": 0,
+      "studio_v1_action_rows": 0
+    },
+    "planner_or_model_requests": 0
+  }
+}

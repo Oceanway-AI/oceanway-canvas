@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -30,12 +31,14 @@ type studioFixture struct {
 	unavailable  bool
 	revoked      bool
 	rotate       bool
+	mu           sync.Mutex
 	requests     int
 	catalog      string
 	catalogCalls int
 	avatar       string
 	account      http.HandlerFunc
 	materials    http.HandlerFunc
+	delivery     http.HandlerFunc
 	execution    http.HandlerFunc
 	restart      func()
 }
@@ -46,12 +49,18 @@ func newStudioFixture(t *testing.T) *studioFixture {
 	gin.SetMode(gin.TestMode)
 	f := &studioFixture{}
 	platform := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
 		f.requests++
+		f.mu.Unlock()
+		if f.delivery != nil && strings.HasPrefix(r.URL.Path, "/api/platform/v1/media-previews/") {
+			f.delivery(w, r)
+			return
+		}
 		if r.URL.Path == "/api/platform/v1/account/summary" && f.account != nil {
 			f.account(w, r)
 			return
 		}
-		if f.execution != nil && (strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/internal/materials/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
+		if f.execution != nil && (strings.HasPrefix(r.URL.Path, "/internal/products/v1/media-generations") || strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/internal/materials/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || strings.HasSuffix(r.URL.Path, "/media/price-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
 			f.execution(w, r)
 			return
 		}
@@ -63,7 +72,9 @@ func newStudioFixture(t *testing.T) *studioFixture {
 			return
 		}
 		if r.URL.Path == "/api/platform/v1/products/studio/models" {
+			f.mu.Lock()
 			f.catalogCalls++
+			f.mu.Unlock()
 			if r.Header.Get("X-Platform-Product-Key") != "fixture.secret" || r.Header.Get("Cookie") == "" {
 				t.Error("catalog did not carry both product and current account authority")
 			}

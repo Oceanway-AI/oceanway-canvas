@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,6 +11,26 @@ import (
 )
 
 func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
+	r.POST("/tasks/estimate", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16<<20)
+		var req service.CreateTaskRequest
+		if c.ShouldBindJSON(&req) != nil {
+			failService(c, service.BadAuthRequest("估价参数无效"))
+			return
+		}
+		price, response, err := svc.StudioEstimateMediaPrice(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req, user.PlatformSessionID)
+		response.AppendCookies(c.Writer.Header())
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, price)
+	})
 	r.POST("/tasks/preview", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -22,7 +43,7 @@ func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
 			failService(c, service.BadAuthRequest("任务输入无效"))
 			return
 		}
-		quote, response, err := svc.StudioPreviewTask(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req)
+		quote, response, err := svc.StudioPreviewTask(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req, user.PlatformSessionID)
 		response.AppendCookies(c.Writer.Header())
 		if err != nil {
 			failService(c, err)
@@ -47,7 +68,7 @@ func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		req.TraceID, req.RequestID = TraceID(c), RequestID(c)
-		task, response, err := svc.StudioCreateTask(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req)
+		task, response, err := svc.StudioCreateTask(c.Request.Context(), user.ID, platformintegration.Session(c.Request), req, user.PlatformSessionID)
 		response.AppendCookies(c.Writer.Header())
 		if err != nil {
 			failService(c, err)
@@ -62,6 +83,12 @@ func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		task, err := svc.StudioTaskByCommand(user.ID, c.Param("command"), c.Query("expectedUserId"))
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		task, response, err := svc.StudioReadGeneration(c.Request.Context(), task, platformintegration.Session(c.Request))
+		response.AppendCookies(c.Writer.Header())
 		if err != nil {
 			failService(c, err)
 			return
@@ -97,8 +124,58 @@ func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
 			fail(c, 404, err)
 			return
 		}
+		task, response, err := svc.StudioReadGeneration(c.Request.Context(), task, platformintegration.Session(c.Request))
+		response.AppendCookies(c.Writer.Header())
+		if err != nil {
+			failService(c, err)
+			return
+		}
 		ok(c, task)
 	})
+	r.POST("/tasks/:id/adopt-outputs", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		task, err := svc.Task(user.ID, c.Param("id"))
+		if err != nil {
+			fail(c, 404, err)
+			return
+		}
+		task, response, err := svc.StudioAdoptGenerationOutputs(c.Request.Context(), task, platformintegration.Session(c.Request))
+		response.AppendCookies(c.Writer.Header())
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, task)
+	})
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		r.Handle(method, "/tasks/:id/previews/:index", func(c *gin.Context) {
+			c.Header("Cache-Control", "private, no-store")
+			c.Header("Referrer-Policy", "no-referrer")
+			user, err := currentUser(c, svc)
+			if err != nil {
+				failService(c, err)
+				return
+			}
+			raw := c.Param("index")
+			index, err := strconv.Atoi(raw)
+			if err != nil || index < 0 || index >= 128 || strconv.Itoa(index) != raw {
+				failService(c, service.NewAppError(404, "任务预览不存在"))
+				return
+			}
+			c.Header("Cache-Control", "private, no-store")
+			target, response, err := svc.StudioGenerationPreview(c.Request.Context(), user.ID, c.Param("id"), index, platformintegration.Session(c.Request))
+			response.AppendCookies(c.Writer.Header())
+			if err != nil {
+				failService(c, err)
+				return
+			}
+			c.Redirect(http.StatusTemporaryRedirect, target)
+		})
+	}
 	r.GET("/tasks/:id/logs", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

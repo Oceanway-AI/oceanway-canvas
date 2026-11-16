@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, ConfigProvider, Tabs } from "antd";
 import { ArrowDown, ArrowRight, ArrowUpRight, Code2, Menu, Pause, Play, X } from "lucide-react";
@@ -109,7 +110,7 @@ function WelcomeExperience({ look, brandName, onLookChange }: { look: WelcomeLoo
                 {t("account.welcome.skip")}
             </a>
             <header className="welcome-header">
-                <a className="welcome-brand" href="/welcome" aria-label={t("shell.brandHome", { brand: brandName })}>
+                <a className="welcome-brand" href={appURL("/welcome")} aria-label={t("shell.brandHome", { brand: brandName })}>
                     <BrandLogo theme="dark" className="welcome-brand-logo" alt="" fallback={<span className="welcome-brand-logo is-fallback" />} />
                     {brandName}
                 </a>
@@ -125,7 +126,7 @@ function WelcomeExperience({ look, brandName, onLookChange }: { look: WelcomeLoo
                         <ArrowUpRight size={13} />
                     </a>
                 </nav>
-                <Button className="welcome-header-cta" type="primary" href="/create" icon={<ArrowUpRight size={16} />} iconPlacement="end">
+                <Button className="welcome-header-cta" type="primary" href={appURL("/create")} icon={<ArrowUpRight size={16} />} iconPlacement="end">
                     {t("account.welcome.start")}
                 </Button>
                 <IconButton className="welcome-icon mobile-menu" variant="ghost" size="lg" icon={menu ? X : Menu} aria-label={menu ? t("account.welcome.closeMenu") : t("account.welcome.openMenu")} aria-expanded={menu} onClick={() => setMenu(!menu)} />
@@ -133,7 +134,7 @@ function WelcomeExperience({ look, brandName, onLookChange }: { look: WelcomeLoo
             <aside className="welcome-look-picker" aria-label={t("account.welcome.lookPicker")}>
                 <Select id="welcome-look-select" aria-label={t("account.welcome.look")} value={look.id} options={welcomeLooks.map((item) => ({ label: t(item.label), value: item.id }))} onChange={onLookChange} popupMatchSelectWidth={false} />
                 {look.credit && (
-                    <a href={`/welcome/credits.html#${look.id}`} target="_blank" rel="noreferrer" title={t(look.credit)}>
+                    <a href={appURL(`/welcome/credits.html#${look.id}`)} target="_blank" rel="noreferrer" title={t(look.credit)}>
                         {t("account.welcome.demoCredit")}
                         <ArrowUpRight size={12} />
                     </a>
@@ -228,7 +229,7 @@ function WelcomeExperience({ look, brandName, onLookChange }: { look: WelcomeLoo
                     </div>
                     <div className="welcome-workbench-bar">
                         <Tabs activeKey={String(showcase)} aria-label={t("account.welcome.workbenchPreview")} items={showcases.map((item, index) => ({ key: String(index), label: t(item.name) }))} onChange={(key) => setShowcase(Number(key))} />
-                        <Button type="link" href={active.href} icon={<ArrowUpRight size={16} />} iconPlacement="end">
+                        <Button type="link" href={appURL(active.href)} icon={<ArrowUpRight size={16} />} iconPlacement="end">
                             {t("account.welcome.enterShowcase", { name: t(active.name) })}
                         </Button>
                     </div>
@@ -250,7 +251,7 @@ function WelcomeExperience({ look, brandName, onLookChange }: { look: WelcomeLoo
                 </section>
             </main>
             <footer className="welcome-footer">
-                <a href="/welcome">{brandName}</a>
+                <a href={appURL("/welcome")}>{brandName}</a>
                 <span>{t("account.welcome.footer")}</span>
                 <a href={`${github}/blob/main/LICENSE`} target="_blank" rel="noreferrer">
                     Open Source · MIT License
@@ -259,7 +260,7 @@ function WelcomeExperience({ look, brandName, onLookChange }: { look: WelcomeLoo
             </footer>
             {look.credit && (
                 <div className="welcome-media-credit">
-                    <a href={`/welcome/credits.html#${look.id}`} target="_blank" rel="noreferrer">
+                    <a href={appURL(`/welcome/credits.html#${look.id}`)} target="_blank" rel="noreferrer">
                         {t("account.welcome.creditLicense", { credit: t(look.credit) })}
                         <ArrowUpRight size={12} />
                     </a>

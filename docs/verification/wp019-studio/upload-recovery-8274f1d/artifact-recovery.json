@@ -1,0 +1,139 @@
+{
+  "reason": "The external volume became unavailable after successful readback and database collection, before copying evidence into this worktree.",
+  "source": "Original files now available and verified. The earlier exact tool-return recovery remains recorded below.",
+  "records": [
+    {
+      "tool_call_id": "call_wTITla7XvcIpa3Fo164TPJyk",
+      "chunk_id": "d6fae0"
+    },
+    {
+      "tool_call_id": "call_wTITla7XvcIpa3Fo164TPJyk",
+      "chunk_id": "53e37d"
+    },
+    {
+      "tool_call_id": "call_u1hIAE5IIdVZrBLmJwuwMjxT",
+      "chunk_id": "9b6e2c"
+    },
+    {
+      "tool_call_id": "call_vfFDIzf3NI8XbXHN7mt1tuIG",
+      "chunk_id": "d63339"
+    },
+    {
+      "tool_call_id": "call_McLR5unIDpYDFIxoNYVxKtav",
+      "chunk_id": "750237"
+    },
+    {
+      "tool_call_id": "call_McLR5unIDpYDFIxoNYVxKtav",
+      "chunk_id": "01c474"
+    }
+  ],
+  "raw_external_files": "Available again and compared. All original JSON values match the tool-return transcriptions. The readback JSON differed only in whitespace and has been replaced with the original file. Original screenshots are now included.",
+  "image": {
+    "file": "studio-recovered-ready.png",
+    "tool_call_id": "call_McLR5unIDpYDFIxoNYVxKtav",
+    "source": "view_image displayed image data",
+    "original_screenshot_byte_identity": "Verified identical SHA256 40f8ce80c39a47a8448258d203ddedfc7accc0bee3ae1b52c8d937ccd44b535d after the external volume returned."
+  },
+  "files": {
+    "studio-browser-recovery.json": {
+      "bytes": 7762,
+      "sha256": "5c27d075c3d40af003cc9abe349e748bfe5358b79ecbb914adb68443dea0897d"
+    },
+    "worker-object-observations.json": {
+      "bytes": 10116,
+      "sha256": "bd0a6e4428656bc73667d460aea5c537badfea8296ea595137998b9f8437da9f"
+    },
+    "summary.json": {
+      "bytes": 4385,
+      "sha256": "a3a305d540aee1e0e89f1631a52ef5639fa1c86244bb713bc003de722e54b426"
+    },
+    "studio-recovered-ready.png": {
+      "bytes": 375646,
+      "sha256": "40f8ce80c39a47a8448258d203ddedfc7accc0bee3ae1b52c8d937ccd44b535d"
+    },
+    "run-browser-recovery.cjs": {
+      "bytes": 15208,
+      "sha256": "0c70ad5e7d73b8dfd6ff8870a8d02058c8beccfe0cb335bbc32475c7514e7ea8"
+    },
+    "studio-reopened-pending.png": {
+      "bytes": 315359,
+      "sha256": "eb88824dd6309895895dfc34b07591df025ba6f6eea324453e6e1bac8fc268ca"
+    },
+    "README.md": {
+      "bytes": 3478,
+      "sha256": "7e94a5f9cdcb9399595d4f60c61d319b80b6a7e01e3958f2f673dbaa324be381"
+    },
+    "studio-before-close.png": {
+      "bytes": 359595,
+      "sha256": "ad2268c8a4f65847de28323c7e4952f481ea5978608000d6187762c8074c5e9b"
+    },
+    "studio-readback.json": {
+      "bytes": 4349,
+      "sha256": "a14bf2dc3ebe707bade57fb6af0b00f0e78b87402a3c3e040a03846728e21321"
+    },
+    "database-readback.json": {
+      "bytes": 2724,
+      "sha256": "7eaebb9b05ff7f22c44f6eaaef18745370caf068d3551e802a3398e74831ad67"
+    },
+    "local-and-runtime.json": {
+      "bytes": 4518,
+      "sha256": "bbd36df0e7cc2677090dc00e65b9a8aba5f5fa109b9c015daafe7a3de01a6a67"
+    }
+  },
+  "original_volume_returned_at": "2026-11-16T14:39:15.038994+00:00",
+  "original_file_verification": [
+    {
+      "file": "studio-browser-recovery.json",
+      "original_sha256": "5c27d075c3d40af003cc9abe349e748bfe5358b79ecbb914adb68443dea0897d",
+      "previous_committed_sha256": "5c27d075c3d40af003cc9abe349e748bfe5358b79ecbb914adb68443dea0897d",
+      "previous_bytes_equal": true,
+      "json_values_equal": true,
+      "published_original_bytes_equal": true
+    },
+    {
+      "file": "studio-readback.json",
+      "original_sha256": "a14bf2dc3ebe707bade57fb6af0b00f0e78b87402a3c3e040a03846728e21321",
+      "previous_committed_sha256": "a6a0c9bffd2bd6aae9470ead293916888d798c1f089b20bda32ff61a708c249f",
+      "previous_bytes_equal": false,
+      "json_values_equal": true,
+      "published_original_bytes_equal": true
+    },
+    {
+      "file": "database-readback.json",
+      "original_sha256": "7eaebb9b05ff7f22c44f6eaaef18745370caf068d3551e802a3398e74831ad67",
+      "previous_committed_sha256": "7eaebb9b05ff7f22c44f6eaaef18745370caf068d3551e802a3398e74831ad67",
+      "previous_bytes_equal": true,
+      "json_values_equal": true,
+      "published_original_bytes_equal": true
+    },
+    {
+      "file": "worker-object-observations.json",
+      "original_sha256": "bd0a6e4428656bc73667d460aea5c537badfea8296ea595137998b9f8437da9f",
+      "previous_committed_sha256": "bd0a6e4428656bc73667d460aea5c537badfea8296ea595137998b9f8437da9f",
+      "previous_bytes_equal": true,
+      "json_values_equal": true,
+      "published_original_bytes_equal": true
+    },
+    {
+      "file": "studio-recovered-ready.png",
+      "original_sha256": "40f8ce80c39a47a8448258d203ddedfc7accc0bee3ae1b52c8d937ccd44b535d",
+      "previous_committed_sha256": "40f8ce80c39a47a8448258d203ddedfc7accc0bee3ae1b52c8d937ccd44b535d",
+      "previous_bytes_equal": true,
+      "published_original_bytes_equal": true
+    },
+    {
+      "file": "studio-before-close.png",
+      "original_sha256": "ad2268c8a4f65847de28323c7e4952f481ea5978608000d6187762c8074c5e9b",
+      "previous_committed_sha256": null,
+      "previous_bytes_equal": null,
+      "published_original_bytes_equal": true
+    },
+    {
+      "file": "studio-reopened-pending.png",
+      "original_sha256": "eb88824dd6309895895dfc34b07591df025ba6f6eea324453e6e1bac8fc268ca",
+      "previous_committed_sha256": null,
+      "previous_bytes_equal": null,
+      "published_original_bytes_equal": true
+    }
+  ]
+}

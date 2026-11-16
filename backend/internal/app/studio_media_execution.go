@@ -20,6 +20,8 @@ import (
 )
 
 type StudioTaskOptions struct {
+	ExpectedUserID             string `json:"expectedUserId,omitempty"`
+	WorkspaceID                string `json:"workspaceId,omitempty"`
 	PreviewUserID              string `json:"previewUserId,omitempty"`
 	PreviewBinding             string `json:"previewBinding,omitempty"`
 	VariantID                  string `json:"variantId,omitempty"`
@@ -54,12 +56,7 @@ func (o *StudioTaskOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (s *Service) studioSelectTaskModel(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response) (platformintegration.ModelSelection, error) {
-	catalog, err := s.studioPlatform.Client.Models(ctx, session)
-	catalog.Response.AppendCookies(response.Header)
-	if err != nil {
-		return platformintegration.ModelSelection{}, platformIdentityError(err)
-	}
+func (s *Service) studioSelectTaskModel(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response, scopes ...studioCatalogScope) (platformintegration.ModelSelection, error) {
 	config, _ := req.Input["config"].(map[string]any)
 	name := firstNonEmpty(stringValue(config["model"]), req.Model)
 	variant := stringValue(config["nativeVariantId"])
@@ -69,18 +66,42 @@ func (s *Service) studioSelectTaskModel(ctx context.Context, session platformcli
 		}
 		variant = firstNonEmpty(req.Platform.VariantID, variant)
 	}
-	for _, m := range catalog.Data.Items {
-		if m.ModelName == name {
-			selected, err := platformintegration.SelectModel(m, variant)
-			if err != nil {
-				return selected, BadAuthRequest(err.Error())
+	selectModel := func(m platformclient.Model) (platformintegration.ModelSelection, error) {
+		selected, err := platformintegration.SelectModel(m, variant)
+		if err != nil {
+			return selected, BadAuthRequest(err.Error())
+		}
+		if req.Type != "canvas_"+selected.Kind || strings.TrimSpace(req.Prompt) == "" {
+			return selected, BadAuthRequest("任务类型或提示词无效")
+		}
+		return selected, nil
+	}
+	var scope studioCatalogScope
+	if len(scopes) == 1 {
+		scope = scopes[0]
+		// An exact variant and price identify the schema shown on this signed-in
+		// page. Platform still checks publication, current price, entitlement
+		// and any capability/connection constraints when it accepts the command.
+		pinned := req.Platform != nil && studioSHA256.MatchString(variant) && studioSHA256.MatchString(req.Platform.ExpectedPriceVersion)
+		if m, ok := s.studioMediaCatalog.lookup(scope, name, pinned); ok {
+			selected, err := selectModel(m)
+			if err == nil && selected.GenerationV1 && (req.Platform == nil || req.Platform.ExpectedPriceVersion == "" || req.Platform.ExpectedPriceVersion == selected.Price.Version) {
+				return selected, nil
 			}
-			if req.Type != "canvas_"+selected.Kind || strings.TrimSpace(req.Prompt) == "" {
-				return selected, BadAuthRequest("任务类型或提示词无效")
-			}
-			return selected, nil
 		}
 	}
+	catalog, err := s.studioPlatform.Client.Models(ctx, session)
+	catalog.Response.AppendCookies(response.Header)
+	if err != nil {
+		return platformintegration.ModelSelection{}, platformIdentityError(err)
+	}
+	s.studioMediaCatalog.remember(scope, catalog.Data.Items)
+	for _, m := range catalog.Data.Items {
+		if m.ModelName == name {
+			return selectModel(m)
+		}
+	}
+
 	return platformintegration.ModelSelection{}, BadAuthRequest("所选平台模型暂不可用，请刷新模型目录")
 }
 
@@ -122,14 +143,14 @@ func (s *Service) verifyStudioPreviewAccount(userID string, req CreateTaskReques
 	return nil
 }
 
-func (s *Service) StudioPreviewTask(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest) (*StudioTaskPreview, *platformclient.Response, error) {
+func (s *Service) StudioPreviewTask(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest, verifiedSessionID ...string) (*StudioTaskPreview, *platformclient.Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	response := &platformclient.Response{Header: make(http.Header)}
 	if !studioMaterialID.MatchString(req.CommandID) {
 		return nil, response, BadAuthRequest("请提供稳定的任务命令标识")
 	}
-	selected, err := s.studioSelectTaskModel(ctx, session, req, response)
+	selected, err := s.studioSelectTaskModel(ctx, session, req, response, studioCatalogScopeFor(userID, session, verifiedSessionID...))
 	if err != nil {
 		return nil, response, err
 	}

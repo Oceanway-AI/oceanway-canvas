@@ -18,6 +18,7 @@ import { getNodeDefinition } from "@/lib/canvas/node-registry";
 import { ART_CRITIQUE_NODE_TYPE } from "@/lib/art-critique/contracts";
 import { CanvasResourceMentionTextarea } from "./canvas-resource-mention-textarea";
 import { CanvasVideoPreviewImage } from "./canvas-video-preview-image";
+import { TaskEarlyMedia } from "@/components/task-early-media";
 import { CanvasFileUploadContent } from "./canvas-file-upload-content";
 import { MarkdownNodeContent } from "./nodes/markdown-node";
 import { ChartNodeContent } from "./nodes/chart-node";
@@ -87,6 +88,33 @@ export function canvasNodeRendersStatusContent(node: CanvasNodeData, options: { 
 }
 
 export function CanvasNodeContent(props: CanvasNodeContentProps) {
+    const meta = props.node.metadata;
+    if (
+        meta?.taskProvider === "platform" &&
+        meta.taskId &&
+        meta.taskStatus !== "failed" &&
+        meta.taskStatus !== "cancelled" &&
+        (props.node.type === CanvasNodeType.Video || props.node.type === CanvasNodeType.Image) &&
+        props.renderLOD !== "shell" &&
+        !props.isBatchRoot
+    ) {
+        const refs = (meta.taskEarlyPreviews || []).filter((ref) => ref.taskId === meta.taskId);
+        return (
+            <TaskEarlyMedia
+                key={meta.taskId}
+                previews={refs}
+                preload={props.mediaActive ? "metadata" : "none"}
+                show={meta.status === "loading"}
+                playbackKey={refs.length && meta.taskStatus === "succeeded" && props.node.type === CanvasNodeType.Video && meta.storageKey?.startsWith("resource:") ? meta.storageKey : undefined}
+            >
+                <CanvasNodeBody {...props} />
+            </TaskEarlyMedia>
+        );
+    }
+    return <CanvasNodeBody {...props} />;
+}
+
+function CanvasNodeBody(props: CanvasNodeContentProps) {
     if (props.node.metadata?.fileUpload) return <CanvasFileUploadContent node={props.node} theme={props.theme} reduceMotion={props.disableMediaEffects} />;
     // Preserve the decoded image across LOD changes; only its surrounding
     // controls and batch previews become lighter in overview mode.

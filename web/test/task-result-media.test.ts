@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { taskResultMedia, taskResultMediaAccess } from "../src/pages/tasks/task-result-media";
+import { taskPlaybackPreview, taskResultMedia, taskResultMediaAccess } from "../src/pages/tasks/task-result-media";
 import type { GenerationTask } from "../src/services/api/task-center";
 import type { ResourceAccess } from "../src/services/api/resources";
 
@@ -18,6 +18,26 @@ const task = (result: unknown, extra: Partial<GenerationTask> = {}): GenerationT
 const access = (resourceId: string, url: string): ResourceAccess => ({ resourceId, url, requestedVariant: "preview", actualVariant: "preview", delivery: "cdn", issuedAt: "", refreshAt: "", revision: "v1" });
 
 describe("task detail media uses adopted Platform resources", () => {
+    test("displays only verified early output slots while waiting for the resource", () => {
+        const early = task(null, {
+            type: "canvas_video",
+            status: "running",
+            earlyPreviews: [
+                { index: 0, kind: "video" },
+                { index: 0, kind: "video" },
+                { index: -1, kind: "video" },
+            ],
+        });
+        expect(taskResultMedia(early).map((item) => item.url)).toEqual(["/api/tasks/task-1/previews/0"]);
+        expect(taskResultMedia({ ...early, id: "../other" })).toEqual([]);
+        expect(taskResultMedia({ ...early, status: "failed" })).toEqual([]);
+        expect(taskResultMedia({ ...early, status: "succeeded", resultJson: JSON.stringify({ video: { storageKey: "resource:archived" } }) })).toEqual([{ key: "archived", resourceId: "archived", kind: "video" }]);
+    });
+    test("opens history list playback by stable Resource when the summary omits resultJson", () => {
+        const summary = task(null, { previewKind: "video", previewUrl: "/api/resources/history-1/file" });
+        expect(taskPlaybackPreview(summary)).toEqual({ key: "history-1", resourceId: "history-1", kind: "video" });
+        expect(taskPlaybackPreview({ ...summary, previewUrl: "https://other.test/api/resources/history-1/file" })).toBeUndefined();
+    });
     test("reads the real successful result shape without requiring a URL extension", () => {
         const items = taskResultMedia(task({ mode: "image", images: [{ storageKey: "resource:material-1", dataUrl: "/api/resources/material-1/file", mimeType: "image/png", bytes: 1755769 }] }));
         expect(items).toEqual([{ key: "material-1", resourceId: "material-1", kind: "image" }]);

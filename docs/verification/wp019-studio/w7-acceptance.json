@@ -1,0 +1,486 @@
+{
+  "environment": "W7 Studio 18448, Platform 18447, dedicated zero-priced supplier fixtures",
+  "ordinary_subject_username_sha256_prefix": "56dc9f94b8d5",
+  "sdk": {
+    "version": "v1.0.0-rc.1",
+    "git": "fb2c4ee8e18329e534620b99b2b11b35e2dad13c"
+  },
+  "deployments": [
+    {
+      "source": "937e1108ded61e7f72031b3ecdce8a4b5d7fce1a",
+      "from": "09f389cc1f3cf8e37d19f2cf5c05b1fa5979f047",
+      "images": {
+        "backend": "sha256:57635e8c120af847c530fe2d4d7dbe669571cb24c9ccf0320ecd5c19b80863d4",
+        "web": "sha256:fd8216a4087637d8edfb28734d25fdfadbbcd0173c9da04a41bba364b6188bb8"
+      },
+      "dump_sha256": "6c2f70369d7f64948a5058378300d5f7e06f1d8aa7af40f3baf254976eb86832",
+      "dump_bytes": 136578919,
+      "restored": true,
+      "shadow_pre_schema": 95,
+      "shadow_post_schema": 97,
+      "changed_env_keys": [
+        "CANVAS_BACKEND_IMAGE",
+        "CANVAS_WEB_IMAGE"
+      ],
+      "compose_otherwise_equal": true
+    },
+    {
+      "source": "6bdb41256f309b204e376c5a265e88d446817270",
+      "from": "937e1108ded61e7f72031b3ecdce8a4b5d7fce1a",
+      "images": {
+        "backend": "sha256:c636286bcd804771f885b62a5a2c43187a230665e35f7d89bf65e1a132789e57",
+        "web": "sha256:f7b3f90d9b029ca54c2c4c78304b1fd991c0007d6f2b167b824a53d0b06fea9f"
+      },
+      "dump_sha256": "e0583e82d2840715ea4ff384e80fa52cb0a78e8ab59e8d9299a680542dbaa162",
+      "dump_bytes": 136587083,
+      "restored": true,
+      "shadow_pre_schema": 97,
+      "shadow_post_schema": 97,
+      "changed_env_keys": [
+        "CANVAS_BACKEND_IMAGE",
+        "CANVAS_WEB_IMAGE"
+      ],
+      "compose_otherwise_equal": true
+    },
+    {
+      "source": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+      "from": "6bdb41256f309b204e376c5a265e88d446817270",
+      "images": {
+        "backend": "sha256:a44631401e1a162ce0b211fe15518af85e49b6dc4d6542230d72fceb272018bb",
+        "web": "sha256:921de6c30ff05f9f9f4ce1ca2c069aaba085b57d42a91269cf01fe2a065bf08d"
+      },
+      "dump_sha256": "db704c590d894a98957c5c26676e7542dc551bbc63bb406cbb69224038ff4df8",
+      "dump_bytes": 136590581,
+      "restored": true,
+      "shadow_pre_schema": 97,
+      "shadow_post_schema": 97,
+      "changed_env_keys": [
+        "CANVAS_BACKEND_IMAGE",
+        "CANVAS_WEB_IMAGE"
+      ],
+      "compose_otherwise_equal": true
+    }
+  ],
+  "initial_browser_requests": [
+    {
+      "family": "image",
+      "submitted_studio_revision": "937e1108ded61e7f72031b3ecdce8a4b5d7fce1a",
+      "recovered_studio_revision": "6bdb41256f309b204e376c5a265e88d446817270",
+      "submitted_at": "2026-11-16T06:49:38.193Z",
+      "clicked_at": "2026-11-16T06:49:37.990Z",
+      "received_at": "2026-11-16T06:49:47.452Z",
+      "click_to_host_receipt_ms": 9462,
+      "original_submission_count": 1,
+      "activation_quote_count": 0,
+      "browser_supplied_wallet_max": null,
+      "request_id": "6aea9b0e-174c-4a78-a00e-516508769e3f",
+      "studio_task_id": "539f6f25-3c92-5865-948f-e9db9c24e87b",
+      "platform_task_id": "media_23443aa176cebe6d56fd85404c27a3e940393a37c51b1fa2c331144ce6c8a85f",
+      "original_input": {
+        "asset": "asset_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664",
+        "version": "version_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664",
+        "file": "file_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664",
+        "sha256": "2eb4128650f092899cb46de3a8a37bcbe643472e0a57ddc32ad01727738a9dee",
+        "mime": "image/png",
+        "bytes": 112189
+      },
+      "gateway": {
+        "accepted_at": "2026-11-16T06:49:59.051291+00:00",
+        "published_at": "2026-11-16T06:50:02.080372+00:00",
+        "attempt_count": 1,
+        "source_reads": [
+          {
+            "kind": "multipart",
+            "body_bytes": 112189,
+            "sha256": "2eb4128650f092899cb46de3a8a37bcbe643472e0a57ddc32ad01727738a9dee"
+          }
+        ]
+      },
+      "wallet": {
+        "operation_id": "op_fb6ac517eb0165ee3ba29964bc36bbc1d0ae19ca3461db65",
+        "funds_state": "settled",
+        "reserved_quota": "0",
+        "settled_quota": "0",
+        "reserved_points": "0",
+        "settled_points": "0"
+      },
+      "ledger_rows": "2",
+      "browser": {
+        "initial_failure": "original material was not saved",
+        "original_read_after_reopen": true,
+        "final_revision": 20,
+        "last_material_state": "saved",
+        "first_decoded_after_recovery": {
+          "width": 1024,
+          "height": 1024
+        }
+      },
+      "studio_resource": {
+        "ordinal": 0,
+        "resource_id": "1f1d76a0-952c-5326-9299-b8c48010bf6e",
+        "asset_id": "a_bd46816f9dd9a8d16b93332e643eb3761a291c738ecfdd81914e2809e753",
+        "version_id": "v_bd46816f9dd9a8d16b93332e643eb3761a291c738ecfdd81914e2809e753",
+        "file_id": "f_bd46816f9dd9a8d16b93332e643eb3761a291c738ecfdd81914e2809e753",
+        "has_active_host_binding": true,
+        "original_download": {
+          "resource": "1f1d76a0-952c-5326-9299-b8c48010bf6e",
+          "http": 200,
+          "contentType": "image/png",
+          "bytes": 5337,
+          "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9"
+        },
+        "width": 1024,
+        "height": 1024,
+        "duration_ms": null
+      }
+    },
+    {
+      "family": "video",
+      "submitted_studio_revision": "937e1108ded61e7f72031b3ecdce8a4b5d7fce1a",
+      "recovered_studio_revision": "6bdb41256f309b204e376c5a265e88d446817270",
+      "submitted_at": "2026-11-16T06:49:56.807Z",
+      "clicked_at": "2026-11-16T06:49:56.602Z",
+      "received_at": "2026-11-16T06:50:05.695Z",
+      "click_to_host_receipt_ms": 9093,
+      "original_submission_count": 1,
+      "activation_quote_count": 0,
+      "browser_supplied_wallet_max": null,
+      "request_id": "14966b30-c95f-4d9a-ab46-96a611e9618e",
+      "studio_task_id": "5583c97d-957d-5e01-860e-9d2d115db35e",
+      "platform_task_id": "media_dce75b8c9edc4575433636321ff22e2d38eaac56ebd8934243b6b600ad1a7e4e",
+      "original_input": {
+        "asset": "asset_ec786933bb98e132d569b9c10bc20c1d4cb89401b78bc66e",
+        "version": "version_ec786933bb98e132d569b9c10bc20c1d4cb89401b78bc66e",
+        "file": "file_ec786933bb98e132d569b9c10bc20c1d4cb89401b78bc66e",
+        "sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf",
+        "mime": "video/mp4",
+        "bytes": 773745
+      },
+      "gateway": {
+        "accepted_at": "2026-11-16T06:50:31.909947+00:00",
+        "published_at": "2026-11-16T06:50:35.601064+00:00",
+        "attempt_count": 1,
+        "source_reads": [
+          {
+            "kind": "original_range",
+            "sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf",
+            "ranges": [
+              {
+                "range_start": 0,
+                "range_end": 65535,
+                "object_bytes": 773745,
+                "body_bytes": 65536,
+                "http": 206
+              },
+              {
+                "range_start": 65536,
+                "range_end": 773744,
+                "object_bytes": 773745,
+                "body_bytes": 708209,
+                "http": 206
+              }
+            ]
+          }
+        ]
+      },
+      "wallet": {
+        "operation_id": "op_f5b3a9d392200b890e11922ab90bd07c258172bd935aff9d",
+        "funds_state": "settled",
+        "reserved_quota": "0",
+        "settled_quota": "0",
+        "reserved_points": "0",
+        "settled_points": "0"
+      },
+      "ledger_rows": "2",
+      "browser": {
+        "initial_failure": "original material was not saved",
+        "original_read_after_reopen": true,
+        "final_revision": 19,
+        "last_material_state": "saved",
+        "first_decoded_after_recovery": {
+          "width": 1280,
+          "height": 720,
+          "duration": 4,
+          "time": 0.0257,
+          "frames": [
+            {
+              "at": 1794812693123,
+              "width": 1280,
+              "height": 720,
+              "seconds": 0.0016
+            },
+            {
+              "at": 1794812693123,
+              "width": 1280,
+              "height": 720,
+              "seconds": 0.0016
+            }
+          ]
+        }
+      },
+      "studio_resource": {
+        "ordinal": 0,
+        "resource_id": "4c1f2e86-d767-5da2-929d-cb22aba02380",
+        "asset_id": "a_50913c3f89ed09bb541676accdce178885bd2f0df4920a6a2d3b8f8a60b9",
+        "version_id": "v_50913c3f89ed09bb541676accdce178885bd2f0df4920a6a2d3b8f8a60b9",
+        "file_id": "f_50913c3f89ed09bb541676accdce178885bd2f0df4920a6a2d3b8f8a60b9",
+        "has_active_host_binding": true,
+        "original_download": {
+          "resource": "4c1f2e86-d767-5da2-929d-cb22aba02380",
+          "http": 200,
+          "contentType": "video/mp4",
+          "bytes": 4217,
+          "sha256": "cf9bfef1bcad035ad377c9dc61074de57ac9b4e65e583aa2571aab64ae214c8e"
+        },
+        "width": 1280,
+        "height": 720,
+        "duration_ms": 4000
+      }
+    }
+  ],
+  "canvas_handoff": {
+    "started": "2026-11-16T07:08:23.692Z",
+    "ids": [
+      "1f1d76a0-952c-5326-9299-b8c48010bf6e",
+      "4c1f2e86-d767-5da2-929d-cb22aba02380"
+    ],
+    "taskPosts": 0,
+    "project": "zr1_9Ok9UPPHNA8VbHoag",
+    "nodes": [
+      {
+        "id": "image-1794812924387-27xh5",
+        "kind": "image",
+        "key": "resource:1f1d76a0-952c-5326-9299-b8c48010bf6e",
+        "width": 1024,
+        "height": 1024,
+        "durationMs": null
+      },
+      {
+        "id": "video-1794812924388-wqcl7",
+        "kind": "video",
+        "key": "resource:4c1f2e86-d767-5da2-929d-cb22aba02380",
+        "width": 1280,
+        "height": 720,
+        "durationMs": 4000
+      }
+    ],
+    "reopened": true,
+    "replayedNoNewNodes": true,
+    "finished": "2026-11-16T07:14:41.374Z"
+  },
+  "host_admission_diagnosis": {
+    "platform": "d5354f9e8d149623cd4272c356431217ae8db0fa",
+    "studio": "6bdb41256f309b204e376c5a265e88d446817270",
+    "ordinary_visible_catalog": [
+      {
+        "http": 200,
+        "bytes": 6840074,
+        "elapsedMs": 5960,
+        "models": 69,
+        "availableMedia": 39,
+        "rawCacheSizeEstimateBytes": 5854461,
+        "declaredV1": 2,
+        "negotiatedCacheBytes": 58529
+      },
+      {
+        "http": 200,
+        "bytes": 6840074,
+        "elapsedMs": 5615,
+        "models": 69,
+        "availableMedia": 39,
+        "rawCacheSizeEstimateBytes": 5854461,
+        "declaredV1": 2,
+        "negotiatedCacheBytes": 58529
+      },
+      {
+        "http": 200,
+        "bytes": 6840074,
+        "elapsedMs": 5489,
+        "models": 69,
+        "availableMedia": 39,
+        "rawCacheSizeEstimateBytes": 5854461,
+        "declaredV1": 2,
+        "negotiatedCacheBytes": 58529
+      }
+    ],
+    "bounded_schema_cache_bytes": 2097152,
+    "freshness_seconds": 60,
+    "source": "Authenticated Studio HTTP and W7 service logs. Only calls ending inside the chronological POST interval are associated with the command. Earlier identity calls belong to page activity."
+  },
+  "next_node_formal_browser_submission": {
+    "method": "A real /create form with a controlled request override supplies the previously saved Resource and explicit walletMaxPoints=0. The standard button omits an optional cap.",
+    "request_id": "d461a071-65d7-4a41-827a-a6d84d89867e",
+    "studio_task_id": "0dd0e05a-1dc0-5c17-b74b-b4a50052aedf",
+    "platform_task_id": "media_1c24ff34a7584162d528cc9027a2d1d21e24b3321c5ef3668dd43102e1e45fd1",
+    "input": {
+      "asset": "a_bd46816f9dd9a8d16b93332e643eb3761a291c738ecfdd81914e2809e753",
+      "version": "v_bd46816f9dd9a8d16b93332e643eb3761a291c738ecfdd81914e2809e753",
+      "file": "f_bd46816f9dd9a8d16b93332e643eb3761a291c738ecfdd81914e2809e753",
+      "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+      "previousResourceId": "1f1d76a0-952c-5326-9299-b8c48010bf6e"
+    },
+    "original_submission_count": 1,
+    "original_supplier_attempts": 1,
+    "supplier_reads": [
+      {
+        "kind": "multipart",
+        "body_bytes": 5337,
+        "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9"
+      }
+    ],
+    "explicit_max": "0",
+    "operation_id": "op_82deb1d7e2b9ad9043a929a1b992427e656f203243316d01",
+    "reserved_points": "0",
+    "settled_points": "0",
+    "ledger_rows": "2",
+    "first_result": {
+      "id": "0dd0e05a-1dc0-5c17-b74b-b4a50052aedf",
+      "command": "d461a071-65d7-4a41-827a-a6d84d89867e",
+      "revision": 20,
+      "status": "succeeded",
+      "stage": "生成完成",
+      "outputs": [
+        {
+          "index": 0,
+          "kind": "image",
+          "materialState": "saved",
+          "contentState": "available",
+          "previewState": "available",
+          "resourceId": "ba8fd7f3-aa61-5604-8f58-0cdd86dbb0b4",
+          "failureCode": null,
+          "bytes": 5337,
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null
+        }
+      ],
+      "errorCode": null,
+      "retryAfterMs": 0,
+      "early": [
+        0
+      ]
+    },
+    "clicked_at": "2026-11-16T07:19:29.475Z",
+    "host_post_at": "2026-11-16T07:19:29.859Z",
+    "host_receipt_at": "2026-11-16T07:19:35.044Z",
+    "click_to_host_receipt_ms": 5569,
+    "host_post_ms": 4931.0,
+    "platform_stages": [
+      {
+        "at": "2026-11-16T07:19:30.005793837Z",
+        "method": "GET",
+        "path": "/api/platform/v1/identity",
+        "http": 200,
+        "duration_ms": 14.914
+      },
+      {
+        "at": "2026-11-16T07:19:34.267393316Z",
+        "method": "GET",
+        "path": "/api/platform/v1/products/studio/models",
+        "http": 200,
+        "duration_ms": 4255.294
+      },
+      {
+        "at": "2026-11-16T07:19:34.918458919Z",
+        "method": "POST",
+        "path": "/internal/products/v1/media-generations",
+        "http": 202,
+        "duration_ms": 437.216
+      }
+    ],
+    "initial_browser_reopen_error": "page.evaluate: TypeError: Failed to fetch",
+    "reopened": true
+  },
+  "latency_scope": "Initial examples are individual pre-fix observations. Frozen >=30 same-region timing groups are reported separately.",
+  "w7_revision_1decbb41": {
+    "compiled_source": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+    "actual_route_comparison": [
+      {
+        "at": "2026-11-16T07:29:16.420541141Z",
+        "method": "POST",
+        "path": "/api/tasks",
+        "http": 200,
+        "duration_ms": 512.0
+      },
+      {
+        "at": "2026-11-16T07:29:15.914926174Z",
+        "method": "GET",
+        "path": "/api/platform/v1/identity",
+        "http": 200,
+        "duration_ms": 5.964
+      },
+      {
+        "at": "2026-11-16T07:29:16.415914735Z",
+        "method": "POST",
+        "path": "/internal/products/v1/media-generations",
+        "http": 202,
+        "duration_ms": 485.386
+      }
+    ],
+    "request_id": "5b5b7e52-dace-47f6-9912-7500722b3d77",
+    "studio_task_id": "d9e19765-b26b-5ecc-ae0a-03e30fb77847",
+    "platform_task_id": "media_8085fec8b34f25021e6dd104bbcc677ba1ef2a225459698ccec6da93d9e7f5a6",
+    "click_to_browser_receipt_ms": 878,
+    "post_to_browser_receipt_ms": 668,
+    "wallet": {
+      "operation_id": "op_75d0d6f4a07b7cdf771a7411ece5970c9b4e64ea489fe14c",
+      "reserved_points": "0",
+      "settled_points": "0",
+      "funds_state": "settled"
+    },
+    "source_attempts": 1,
+    "reopened_same_original": true,
+    "output": {
+      "index": 0,
+      "kind": "image",
+      "materialState": "saved",
+      "contentState": "available",
+      "previewState": "available",
+      "resourceId": "e6191fb0-ae16-59a1-8777-eae33134142e",
+      "failureCode": null,
+      "bytes": 5337,
+      "width": 1024,
+      "height": 1024,
+      "durationMs": null
+    },
+    "targeted_go_race": {
+      "top_level": 6,
+      "including_subtests": 8,
+      "fail": 0,
+      "skip": 0,
+      "elapsed_s": 77.041
+    },
+    "chrome_region": "Mac Chrome over W7 HTTPS"
+  },
+  "same_region_video_pilot": {
+    "platform": "d5354f9e8d149623cd4272c356431217ae8db0fa",
+    "studio": "1decbb410bafb261e638096e25fc3a1c9ec34868",
+    "client": "W7 host, independent Linux/amd64 Chromium 156.0.8078.79",
+    "request_id": "c8b8dcf0-5ee7-44b3-ab80-204c953dd2d1",
+    "platform_task_id": "media_3f0ec58cf3c8a09e121f25a8758d5d1c977c120d3a7b73d89b7d8633efb4f394",
+    "input_bytes": 773745,
+    "explicit_quote": {
+      "studio_ms": 251,
+      "platform_ms": 234.18,
+      "points": "0"
+    },
+    "real_dom_click_ms": 1794814486883,
+    "browser_driver_observed_post_ms": 1794814487867,
+    "studio_post_ms": 554,
+    "platform_admission_ms": 523.97,
+    "result_publication_utc": "2026-11-16T07:34:52.146435+00:00",
+    "actual_frame": {
+      "timeMs": 1794814495683,
+      "hostTask": "23395e3a-ecbb-5890-a2ca-6e2664d1e80c",
+      "resource": null,
+      "mediaTime": 0,
+      "presentedFrames": 1,
+      "width": 1280,
+      "height": 720
+    },
+    "published_to_frame_ms": 3536.565,
+    "click_to_browser_receipt_ms": 1601,
+    "original_attempts": 1,
+    "source": "W7 Studio and Platform access logs, scoped Gateway original, requestVideoFrameCallback for this Studio task preview. This n=1 pilot is separate from the fixed group."
+  }
+}

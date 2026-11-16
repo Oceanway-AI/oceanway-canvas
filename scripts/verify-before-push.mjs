@@ -102,7 +102,7 @@ if (dirty.length) console.log("⚠ 工作区有未提交改动：本次结果包
 /** @type {Array<{name: string, cwd: string, cmd: string, args?: string[], env?: Record<string,string>, weight: number, after?: string, check?: (output: string) => string, build?: () => {args: string[]} }>} */
 const tasks = [];
 const skipped = [];
-const notCovered = ["Payment plugin artifacts（需要 Docker 双架构构建，由 CI 检查）"];
+const notCovered = ["Payment plugin artifacts（需要 Docker linux/amd64 构建，由 CI 检查）"];
 
 if (wantWeb) {
     const leftovers = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock"].filter((file) => existsSync(path.join(WEB, file)));

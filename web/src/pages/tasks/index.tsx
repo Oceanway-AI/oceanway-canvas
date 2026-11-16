@@ -23,6 +23,7 @@ import {
     listTaskLogs,
     queryFailedVideoProviderTask,
     queryGenerationTask,
+    subscribeGenerationTasks,
     retryGenerationTask,
     recoverGenerationTaskMedia,
     type CreateTaskInput,
@@ -34,7 +35,9 @@ import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { resolveModelRequestConfig, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { listProjects, type ProjectSummary } from "@/services/api/projects";
-import { TaskDetailModal } from "./task-detail-modal";
+import { TaskDetailModal, TaskResultPreview } from "./task-detail-modal";
+import { taskPlaybackPreview, type TaskResultMedia } from "./task-result-media";
+import { earlyPreviewURL, taskEarlyPreviews } from "@/services/task-early-previews";
 import { TaskGridCard } from "./task-grid-card";
 import { TaskGroupHeader, type TaskGroup } from "./task-group-header";
 import { TaskListRow } from "./task-list-row";
@@ -109,7 +112,7 @@ export default function TasksPage() {
     const [detailLoading, setDetailLoading] = useState(false);
     const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
     const [logsLoading, setLogsLoading] = useState(false);
-    const [mediaPreview, setMediaPreview] = useState<{ url: string; kind: "image" | "video"; title: string } | null>(null);
+    const [mediaPreview, setMediaPreview] = useState<{ url: string; kind: "image" | "video"; title: string; item?: TaskResultMedia } | null>(null);
     const [tasks, setTasks] = useState<GenerationTask[]>([]);
     const syncedCanvasTaskIdsRef = useRef(new Set<string>());
     const tasksRef = useRef<GenerationTask[]>([]);
@@ -199,7 +202,11 @@ export default function TasksPage() {
             actingId={actingId}
             onOpen={() => void openTaskDetail(task)}
             onRetry={() => void runAction(task.id)}
-            onPreview={() => task.previewUrl && setMediaPreview({ url: task.previewUrl, kind: task.previewKind === "video" ? "video" : "image", title: task.prompt || formatTaskKind(task) })}
+            onPreview={() => {
+                const early = taskEarlyPreviews(task)[0];
+                const url = task.previewUrl || (early && earlyPreviewURL(early));
+                if (url) setMediaPreview({ url, kind: task.previewKind || early?.kind || "image", title: task.prompt || formatTaskKind(task), item: taskPlaybackPreview(task) });
+            }}
         />
     );
 
@@ -275,21 +282,43 @@ export default function TasksPage() {
         async (task: GenerationTask) => {
             setDetailTask(task);
             setTaskLogs([]);
-            setDetailLoading(true);
             setLogsLoading(true);
             try {
-                const [detail, logs] = await Promise.all([queryGenerationTask(task.id), listTaskLogs(task.id)]);
-                setDetailTask(detail);
+                const logs = await listTaskLogs(task.id);
                 setTaskLogs(logs);
             } catch (error) {
                 message.error(error instanceof Error ? error.message : t("library.tasks.page.detailLoadFailed"));
             } finally {
-                setDetailLoading(false);
                 setLogsLoading(false);
             }
         },
         [message, t],
     );
+
+    const detailID = detailTask?.id;
+    const observedDetail = tasks.find((item) => item.id === detailID);
+    useEffect(() => {
+        if (!detailID) return;
+        const controller = new AbortController();
+        setDetailLoading(true);
+        void queryGenerationTask(detailID, { signal: controller.signal })
+            .then((detail) => {
+                if (!controller.signal.aborted) setDetailTask(detail);
+            })
+            .catch(() => {
+                if (!controller.signal.aborted) message.error(t("library.tasks.page.detailLoadFailed"));
+            })
+            .finally(() => {
+                if (!controller.signal.aborted) setDetailLoading(false);
+            });
+        return () => controller.abort();
+    }, [detailID, observedDetail, message, t]);
+
+    const observedRequest = detailTask?.platformGenerationRequest;
+    useEffect(() => {
+        if (!detailID || !observedRequest) return;
+        return subscribeGenerationTasks([detailID], (task) => setDetailTask((current) => (current?.id === task.id && (task.platformRevision ?? 0) >= (current.platformRevision ?? 0) ? { ...current, ...task } : current)));
+    }, [detailID, observedRequest]);
 
     useEffect(() => {
         tasksRef.current = tasks;
@@ -603,7 +632,9 @@ export default function TasksPage() {
                 width="min(1040px, calc(100vw - 32px))"
                 className="library-modal task-center-preview-modal"
             >
-                {mediaPreview ? (
+                {mediaPreview?.item ? (
+                    <TaskResultPreview item={mediaPreview.item} variant="playback" alt={mediaPreview.title} controls className="max-h-[76vh] w-full bg-black object-contain" />
+                ) : mediaPreview ? (
                     <MediaPreview
                         src={mediaPreview.url}
                         kind={mediaPreview.kind}
@@ -660,6 +691,7 @@ function reconcileTaskSummaries(current: GenerationTask[], next: GenerationTask[
             previous?.updatedAt === task.updatedAt &&
             previous.previewUrl === task.previewUrl &&
             previous.previewPosterUrl === task.previewPosterUrl &&
+            JSON.stringify(previous.earlyPreviews) === JSON.stringify(task.earlyPreviews) &&
             previous.billing?.status === task.billing?.status &&
             previous.billing?.amountMicrocredits === task.billing?.amountMicrocredits &&
             previous.billing?.chargedMicrocredits === task.billing?.chargedMicrocredits &&

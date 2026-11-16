@@ -1,0 +1,148 @@
+{
+  "startedAt": "2026-11-16T14:28:16.193Z",
+  "canvas": "qg1rF37oaLjkkbU_cSTLl",
+  "resource": "57948541-ffb5-58cc-88ea-879c8dc37af1",
+  "upload": "1149a612-2809-553c-aac8-39b6e4895fb3",
+  "nodeId": "upload-1794838842877-oz4gi",
+  "observedAccess": [
+    {
+      "request": [
+        {
+          "resourceId": "57948541-ffb5-58cc-88ea-879c8dc37af1",
+          "purpose": "display",
+          "variant": "thumbnail"
+        }
+      ],
+      "status": 200,
+      "items": [
+        {
+          "resourceId": "57948541-ffb5-58cc-88ea-879c8dc37af1",
+          "access": {
+            "requestedVariant": "thumbnail",
+            "actualVariant": "thumbnail",
+            "delivery": "cdn",
+            "revision": "1"
+          }
+        }
+      ]
+    },
+    {
+      "request": [
+        {
+          "resourceId": "57948541-ffb5-58cc-88ea-879c8dc37af1",
+          "purpose": "download",
+          "variant": "original",
+          "downloadName": "自由画布 1_wp019-large-valid-rgb.png_20261116.png"
+        }
+      ],
+      "status": 200,
+      "items": [
+        {
+          "resourceId": "57948541-ffb5-58cc-88ea-879c8dc37af1",
+          "access": {
+            "requestedVariant": "original",
+            "actualVariant": "original",
+            "delivery": "cdn",
+            "revision": "1"
+          }
+        }
+      ]
+    }
+  ],
+  "directFileRequests": [],
+  "uploadsCreated": 0,
+  "storage": {
+    "usedBytes": "123118624",
+    "reservedBytes": "0"
+  },
+  "originalUpload": {
+    "id": "1149a612-2809-553c-aac8-39b6e4895fb3",
+    "uploadId": "upload_75412da0e5ecdaacb8bac9cef7ad3c592da7dd41d4ab1df8",
+    "state": "ready",
+    "asset": {
+      "asset_id": "asset_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+      "owner": {
+        "kind": "account",
+        "id": "2"
+      },
+      "origin_app": "studio",
+      "origin_project_id": null,
+      "source_type": "upload",
+      "title": "wp019-large-valid-rgb.png",
+      "kind": "image",
+      "starred": false,
+      "state": "ready",
+      "current_version_id": "version_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+      "revision": "1",
+      "created_at": "2026-11-16T14:21:55Z",
+      "updated_at": "2026-11-16T14:21:55Z",
+      "tags": [],
+      "version": {
+        "version_id": "version_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+        "asset_id": "asset_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+        "file_id": "file_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+        "created_app": "studio",
+        "parent_version_id": null,
+        "operation_id": null,
+        "output_index": 0,
+        "created_at": "2026-11-16T14:21:55Z"
+      },
+      "file": {
+        "file_id": "file_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+        "sha256": "6169b16d719435bfa8d9b506c00461bb32c0f96d3ac810c7b38b834df47117c0",
+        "byte_length": "34621850",
+        "content_type": "image/png",
+        "width": 4096,
+        "height": 2816,
+        "state": "ready",
+        "created_at": "2026-11-16T14:21:55Z"
+      },
+      "bindings": [
+        {
+          "binding_id": "binding_fc58dfa6ed4909233a8b83b7e8fad0b9689b81ba3a689f72",
+          "asset_id": "asset_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+          "version_id": "version_edd2780a4a89be9ddeb600ab65894c4a64bfc29ae6d3f6a4",
+          "target_app": "studio",
+          "target_type": "resource",
+          "target_id": "57948541-ffb5-58cc-88ea-879c8dc37af1",
+          "project_id": null,
+          "slot": "original",
+          "state": "active",
+          "created_at": "2026-11-16T14:21:57Z",
+          "updated_at": "2026-11-16T14:21:57Z"
+        }
+      ],
+      "projects": []
+    },
+    "resource": {
+      "id": "57948541-ffb5-58cc-88ea-879c8dc37af1",
+      "width": 4096,
+      "height": 2816
+    }
+  },
+  "images": [
+    {
+      "complete": true,
+      "naturalWidth": 320,
+      "naturalHeight": 220
+    }
+  ],
+  "buttons": [
+    {
+      "text": "",
+      "label": "下载",
+      "title": null
+    }
+  ],
+  "download": {
+    "method": "Canvas normal download button and browser download",
+    "bytes": 34621850,
+    "sha256": "6169b16d719435bfa8d9b506c00461bb32c0f96d3ac810c7b38b834df47117c0"
+  },
+  "directFileReadback": {
+    "status": 307,
+    "responseContainsLocation": true
+  },
+  "result": "passed",
+  "completedAt": "2026-11-16T14:28:33.001Z"
+}

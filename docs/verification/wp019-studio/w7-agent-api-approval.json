@@ -1,0 +1,691 @@
+{
+  "scope": "W7 ordinary Studio session creates a dedicated free Agent run, requests approval, quotes an explicit zero maximum, accepts through the normal decision API, and restores the original completed image task after browser close and Platform cutover.",
+  "execution_platform_source": "ba9de1cb0a623230579a031424529f94b1f6dc1d",
+  "readback_platform_source": "0ff8921e35d460ee5e12c0bd42a07cbb9ffa499e",
+  "platform_cutover_utc": "2026-11-16T11:18:28.495433+00:00",
+  "platform_cutover_evidence": "Oceanway-AI/oceanway-platform docs/verification/wp019-media-generations/w7-gallery-and-static-limit-cutover.json",
+  "studio_source": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+  "sdk_module": "platformclient/v1.0.0-rc.2",
+  "method": {
+    "session": "Existing ordinary test user through actual Chrome 157. Session and fixture credentials remain private.",
+    "approval": "POST quote and decision from page.fetch in the actual browser session. This cohort covers the normal API and original task. Approval-button clicks are outside this cohort.",
+    "reads": "Formal Studio APIs, read-only original Platform/Studio/Gateway PostgreSQL rows, actual CDN thumbnails, and explicit original download.",
+    "fixture": "Dedicated no-outbound scripted text planner returns one generate_media tool call followed by completion. Existing zero-price fixture-openai processes the sealed input.",
+    "visibility": "Dedicated text model is published only to the Studio product. Other W7 Studio users may see it. Replies require a private fixture nonce."
+  },
+  "fixture_model": {
+    "id": 126,
+    "model": "wp019-agent-free-planner",
+    "channel_id": 22,
+    "price_version": "7071d6ba0b5d6ea0b552e758038881e5f989402df81028178384c638bc3ab12d",
+    "all_token_rates": 0,
+    "product_scope": [
+      "studio"
+    ]
+  },
+  "run_id": "agafaa90e90cb0c67767aa0cfb47e0072b",
+  "approval_id": "agafaa90e90cb0c67767aa0cfb47e0072b-1-0",
+  "quote": {
+    "id": "0c8a35f4840f5c7c6b0568c84e885ea4",
+    "estimatedPoints": "0",
+    "walletMaxPoints": "0",
+    "priceVersion": "85f50b2a989c76f1739c4938def4896f77deb37d16f288b5b1f7c15a2bcb84c5",
+    "expiresAt": "2026-11-16T11:45:44.285439646Z",
+    "parameters": {
+      "/background": "auto",
+      "/moderation": "auto",
+      "/n": 1,
+      "/output_format": "png",
+      "/quality": "auto",
+      "/size": "1024x1024"
+    }
+  },
+  "observed_events": [
+    {
+      "at": "2026-11-16T11:08:11.309Z",
+      "name": "canvas_created",
+      "canvas": "wp019-agent-free-88aba48f-5b0e-4726-b8c6-950983baa30c",
+      "revision": 1
+    },
+    {
+      "at": "2026-11-16T11:13:56.915Z",
+      "name": "run_created",
+      "run": "agafaa90e90cb0c67767aa0cfb47e0072b",
+      "status": "running"
+    },
+    {
+      "at": "2026-11-16T11:14:28.375Z",
+      "name": "run_observed",
+      "run": "agafaa90e90cb0c67767aa0cfb47e0072b",
+      "status": "waiting_approval",
+      "step": 1
+    },
+    {
+      "at": "2026-11-16T11:15:36.701Z",
+      "name": "waiting_approval_reopened",
+      "run": "agafaa90e90cb0c67767aa0cfb47e0072b",
+      "approval": "agafaa90e90cb0c67767aa0cfb47e0072b-1-0"
+    },
+    {
+      "at": "2026-11-16T11:15:44.288Z",
+      "name": "zero_quote",
+      "quoteId": "0c8a35f4840f5c7c6b0568c84e885ea4",
+      "priceVersion": "85f50b2a989c76f1739c4938def4896f77deb37d16f288b5b1f7c15a2bcb84c5",
+      "max": "0",
+      "estimated": "0"
+    },
+    {
+      "at": "2026-11-16T11:16:06.151Z",
+      "name": "approved",
+      "run": "agafaa90e90cb0c67767aa0cfb47e0072b",
+      "approval": "agafaa90e90cb0c67767aa0cfb47e0072b-1-0",
+      "quoteId": "0c8a35f4840f5c7c6b0568c84e885ea4"
+    },
+    {
+      "at": "2026-11-16T11:16:18.504Z",
+      "name": "run_observed",
+      "run": "agafaa90e90cb0c67767aa0cfb47e0072b",
+      "status": "completed",
+      "step": 2
+    }
+  ],
+  "first_new_run_failure": {
+    "id": "ag9b1d2cd40fe3225b73ef2699d22469b5",
+    "status": "failed",
+    "failureMessage": "模型调用失败：当前渠道没有可用的所选模型，请检查模型选择。"
+  },
+  "publication_gap": {
+    "trigger": "Formal disabled-model creation followed by pricing publication makes the catalog available without refreshing native channel/ability projection.",
+    "observed": "First new run failed before supplier dispatch because the native distributor had no matching enabled ability.",
+    "formal_remediation": "Resaved model 126 via the existing Admin model PATCH with its current revision. Native channel22 and ability then appeared. A separate unique new run completed.",
+    "code_status": "Underlying pricing projection gap is preserved for follow-up. This performance candidate contains no fix for it."
+  },
+  "first_browser": {
+    "observed_at": "2026-11-16T11:28:21.103Z",
+    "phase": "first",
+    "browser": "157.0.8103.51",
+    "studio": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+    "run": {
+      "id": "agafaa90e90cb0c67767aa0cfb47e0072b",
+      "status": "completed",
+      "step": 2,
+      "event_count": 12
+    },
+    "canvas": {
+      "id": "wp019-agent-free-88aba48f-5b0e-4726-b8c6-950983baa30c",
+      "nodes": [
+        {
+          "id": "wp019-agent-input",
+          "task": null,
+          "storage_key": "resource:6a49bd45-eebb-55ae-8780-66fc20595c4c",
+          "status": "success"
+        },
+        {
+          "id": "agd5eac2ca5b17ccdf78ca8a5785428c60",
+          "task": "ag893c17c91a2ba1fb4d83f92422783b03",
+          "storage_key": "resource:29acebf9-a514-5c72-9d6c-cb941e5c9193",
+          "status": "success"
+        }
+      ],
+      "connections": [
+        {
+          "fromNodeId": "wp019-agent-input",
+          "id": "agent-c4df8191264d1bce770bf4bcb97f3071",
+          "toNodeId": "agd5eac2ca5b17ccdf78ca8a5785428c60"
+        }
+      ]
+    },
+    "task": {
+      "id": "ag893c17c91a2ba1fb4d83f92422783b03",
+      "status": "succeeded",
+      "request": "studio-ag893c17c91a2ba1fb4d83f92422783b03",
+      "resource": "29acebf9-a514-5c72-9d6c-cb941e5c9193",
+      "output_count": 1,
+      "funds_state": "settled",
+      "settled_points": "0"
+    },
+    "images": [
+      {
+        "alt": "WP019 free approval input",
+        "decoded": true,
+        "width": 320,
+        "height": 320,
+        "visible": true,
+        "srcPath": "/materials/version_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664/file_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664/thumbnail/v1.webp"
+      },
+      {
+        "alt": "WP019 Agent free result",
+        "decoded": true,
+        "width": 320,
+        "height": 320,
+        "visible": true,
+        "srcPath": "/materials/v_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6/f_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6/thumbnail/v1.webp"
+      }
+    ],
+    "failedRequests": [],
+    "imageReady": true,
+    "original": {
+      "status": 200,
+      "bytes": 5337,
+      "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+      "mime": "image/png",
+      "width": 1024,
+      "height": 1024
+    }
+  },
+  "reopened_browser": {
+    "observed_at": "2026-11-16T11:29:41.817Z",
+    "phase": "reopened",
+    "browser": "157.0.8103.51",
+    "studio": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+    "run": {
+      "id": "agafaa90e90cb0c67767aa0cfb47e0072b",
+      "status": "completed",
+      "step": 2,
+      "event_count": 12
+    },
+    "canvas": {
+      "id": "wp019-agent-free-88aba48f-5b0e-4726-b8c6-950983baa30c",
+      "nodes": [
+        {
+          "id": "wp019-agent-input",
+          "task": null,
+          "storage_key": "resource:6a49bd45-eebb-55ae-8780-66fc20595c4c",
+          "status": "success"
+        },
+        {
+          "id": "agd5eac2ca5b17ccdf78ca8a5785428c60",
+          "task": "ag893c17c91a2ba1fb4d83f92422783b03",
+          "storage_key": "resource:29acebf9-a514-5c72-9d6c-cb941e5c9193",
+          "status": "success"
+        }
+      ],
+      "connections": [
+        {
+          "fromNodeId": "wp019-agent-input",
+          "id": "agent-c4df8191264d1bce770bf4bcb97f3071",
+          "toNodeId": "agd5eac2ca5b17ccdf78ca8a5785428c60"
+        }
+      ]
+    },
+    "task": {
+      "id": "ag893c17c91a2ba1fb4d83f92422783b03",
+      "status": "succeeded",
+      "request": "studio-ag893c17c91a2ba1fb4d83f92422783b03",
+      "resource": "29acebf9-a514-5c72-9d6c-cb941e5c9193",
+      "output_count": 1,
+      "funds_state": "settled",
+      "settled_points": "0"
+    },
+    "images": [
+      {
+        "alt": "WP019 free approval input",
+        "decoded": true,
+        "width": 320,
+        "height": 320,
+        "visible": true,
+        "srcPath": "/materials/version_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664/file_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664/thumbnail/v1.webp"
+      },
+      {
+        "alt": "WP019 Agent free result",
+        "decoded": true,
+        "width": 320,
+        "height": 320,
+        "visible": true,
+        "srcPath": "/materials/v_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6/f_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6/thumbnail/v1.webp"
+      }
+    ],
+    "failedRequests": [],
+    "imageReady": true,
+    "original": {
+      "status": 200,
+      "bytes": 5337,
+      "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+      "mime": "image/png",
+      "width": 1024,
+      "height": 1024
+    },
+    "same_original_after_browser_close": true
+  },
+  "original_records": {
+    "platform": [
+      {
+        "section": "command",
+        "request_id": "studio-ag893c17c91a2ba1fb4d83f92422783b03",
+        "task_id": "media_debae1f41bb8451409c577f17386ff350b51e025c92b902ef845cacc24d78710",
+        "operation_id": "op_f97281a008e72ac92763a4ef64a44d3632cc6d07feee03a2",
+        "product": "studio",
+        "product_task_id": "agafaa90e90cb0c67767aa0cfb47e0072b",
+        "authorization_id": "exa_fa970f8ca552380912312e40283a25b866667c51f2133daf",
+        "gateway_request_id": "req_01a1e412-4a9c-71f2-a2aa-75a972fd87f3",
+        "dispatch_state": "accepted",
+        "revision": 21,
+        "created_at": 1794827765,
+        "native_task_id": 758,
+        "status": "SUCCESS",
+        "quota": 0,
+        "submit_time": 1794827765,
+        "finish_time": 1794827770
+      },
+      {
+        "section": "operation",
+        "id": "op_b297737b69dd8b89aed8f00f0dffa8157feab0a6c5fe7ba1",
+        "kind": "model",
+        "item": "wp019-agent-free-planner",
+        "business_task_id": "agafaa90e90cb0c67767aa0cfb47e0072b",
+        "reserved_quota": 0,
+        "frozen_quota": 0,
+        "settled_quota": 0,
+        "charged_quota": 0,
+        "execution_state": "succeeded",
+        "funds_state": "settled",
+        "result_state": "pending",
+        "created_at": 1794827639
+      },
+      {
+        "section": "operation",
+        "id": "op_f97281a008e72ac92763a4ef64a44d3632cc6d07feee03a2",
+        "kind": "model",
+        "item": "fixture-openai",
+        "business_task_id": "agafaa90e90cb0c67767aa0cfb47e0072b",
+        "reserved_quota": 0,
+        "frozen_quota": 0,
+        "settled_quota": 0,
+        "charged_quota": 0,
+        "execution_state": "succeeded",
+        "funds_state": "settled",
+        "result_state": "saved",
+        "created_at": 1794827766
+      },
+      {
+        "section": "operation",
+        "id": "op_13fcc294657078504d2bc1738b3a5628c77b6bf7516e3d73",
+        "kind": "model",
+        "item": "wp019-agent-free-planner",
+        "business_task_id": "agafaa90e90cb0c67767aa0cfb47e0072b",
+        "reserved_quota": 0,
+        "frozen_quota": 0,
+        "settled_quota": 0,
+        "charged_quota": 0,
+        "execution_state": "succeeded",
+        "funds_state": "settled",
+        "result_state": "pending",
+        "created_at": 1794827777
+      },
+      {
+        "section": "ledger",
+        "entries": 6,
+        "available_delta": 0,
+        "frozen_delta": 0,
+        "token_delta": 0
+      },
+      {
+        "section": "authorization",
+        "id": "exa_fa970f8ca552380912312e40283a25b866667c51f2133daf",
+        "product": "studio",
+        "task_reference": "agafaa90e90cb0c67767aa0cfb47e0072b",
+        "created_at": 1794827636,
+        "expires_at": 1795432436,
+        "revoked_at": 1794827783
+      },
+      {
+        "section": "material",
+        "version_id": "v_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6",
+        "asset_id": "a_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6",
+        "file_id": "f_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6",
+        "operation_id": "media_debae1f41bb8451409c577f17386ff350b51e025c92b902ef845cacc24d78710",
+        "output_index": 0,
+        "bytes": 5337,
+        "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+        "mime": "image/png",
+        "file_state": "ready",
+        "width": 1024,
+        "height": 1024,
+        "metadata_state": "ready"
+      },
+      {
+        "section": "archive",
+        "id": "ma_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6",
+        "task_id": "media_debae1f41bb8451409c577f17386ff350b51e025c92b902ef845cacc24d78710",
+        "state": "saved",
+        "attempts": 1,
+        "output_index": 0,
+        "bytes": 5337,
+        "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+        "mime": "image/png",
+        "cleaned": true,
+        "direct_original": true
+      },
+      {
+        "section": "binding",
+        "id": "binding_7a4e949815e0c5efda1802e2104e3b4bacc88f310c109394",
+        "asset_id": "a_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6",
+        "version_id": "v_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6",
+        "target_app": "studio",
+        "target_type": "task_output",
+        "target_id": "media_debae1f41bb8451409c577f17386ff350b51e025c92b902ef845cacc24d78710",
+        "project_id": "",
+        "slot": "0",
+        "state": "active",
+        "managed_task_id": ""
+      },
+      {
+        "section": "binding",
+        "id": "binding_c1bb0a845b21f1d44c4bfe2565ab2e58e2ad460526a86c18",
+        "asset_id": "asset_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664",
+        "version_id": "version_8e8f2ea4d5dcfb26018e9faebd021aea4faf86499a0b5664",
+        "target_app": "studio",
+        "target_type": "task_input",
+        "target_id": "media_debae1f41bb8451409c577f17386ff350b51e025c92b902ef845cacc24d78710",
+        "project_id": "",
+        "slot": "/image/0",
+        "state": "released",
+        "managed_task_id": "media_debae1f41bb8451409c577f17386ff350b51e025c92b902ef845cacc24d78710"
+      },
+      {
+        "section": "binding",
+        "id": "binding_e3f9af96ae62f2bbe672dd56a0befffbea3b2149d6696036",
+        "asset_id": "a_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6",
+        "version_id": "v_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6",
+        "target_app": "studio",
+        "target_type": "resource",
+        "target_id": "29acebf9-a514-5c72-9d6c-cb941e5c9193",
+        "project_id": "",
+        "slot": "original",
+        "state": "active",
+        "managed_task_id": ""
+      },
+      {
+        "section": "prior_unknown",
+        "native_task_id": 245,
+        "task_id": "media_ab6573aa05681021d0c7de6f8cea5da86955ccf96861ca7c",
+        "status": "UNKNOWN",
+        "quota": 125000,
+        "operation_id": "op_ff735d914673690e157446f11db105709d18eede207f189d",
+        "execution_state": "unknown",
+        "funds_state": "reserved",
+        "reserved_quota": 125000,
+        "settled_quota": 0
+      }
+    ],
+    "studio": [
+      {
+        "section": "run",
+        "id": "ag9b1d2cd40fe3225b73ef2699d22469b5",
+        "status": "failed",
+        "revision": 5,
+        "event_count": 2,
+        "canvas_id": "wp019-agent-free-88aba48f-5b0e-4726-b8c6-950983baa30c",
+        "active_task_id": "agfff144fce9054d4c326b4012b12b6279",
+        "media_task_id": "",
+        "cleanup_pending": false,
+        "created_at": "2026-11-16T11:08:29.276337+00:00",
+        "updated_at": "2026-11-16T11:08:37.686779+00:00"
+      },
+      {
+        "section": "run",
+        "id": "agafaa90e90cb0c67767aa0cfb47e0072b",
+        "status": "completed",
+        "revision": 18,
+        "event_count": 12,
+        "canvas_id": "wp019-agent-free-88aba48f-5b0e-4726-b8c6-950983baa30c",
+        "active_task_id": "",
+        "media_task_id": "",
+        "cleanup_pending": false,
+        "created_at": "2026-11-16T11:13:56.898299+00:00",
+        "updated_at": "2026-11-16T11:16:17.383396+00:00"
+      },
+      {
+        "section": "task",
+        "id": "aga1156f9a8a191d7a60a76d6faffd56cd",
+        "type": "canvas_text",
+        "status": "succeeded",
+        "stage": "生成完成",
+        "progress": 100,
+        "agent_run_id": "agafaa90e90cb0c67767aa0cfb47e0072b",
+        "authorized_charge_microcredits": 0,
+        "attempts": 1,
+        "platform_generation_request": "",
+        "created_at": "2026-11-16T11:13:59.03415+00:00",
+        "completed_at": "2026-11-16T11:13:59.264684+00:00"
+      },
+      {
+        "section": "task",
+        "id": "ag893c17c91a2ba1fb4d83f92422783b03",
+        "type": "canvas_image",
+        "status": "succeeded",
+        "stage": "生成完成",
+        "progress": 100,
+        "agent_run_id": "agafaa90e90cb0c67767aa0cfb47e0072b",
+        "authorized_charge_microcredits": 0,
+        "attempts": 0,
+        "platform_generation_request": "studio-ag893c17c91a2ba1fb4d83f92422783b03",
+        "created_at": "2026-11-16T11:16:05.691545+00:00",
+        "completed_at": "2026-11-16T11:16:14.869427+00:00"
+      },
+      {
+        "section": "task",
+        "id": "ag5dddaaa21c8df4023679d6e25cfb836e",
+        "type": "canvas_text",
+        "status": "succeeded",
+        "stage": "生成完成",
+        "progress": 100,
+        "agent_run_id": "agafaa90e90cb0c67767aa0cfb47e0072b",
+        "authorized_charge_microcredits": 0,
+        "attempts": 1,
+        "platform_generation_request": "",
+        "created_at": "2026-11-16T11:16:16.868072+00:00",
+        "completed_at": "2026-11-16T11:16:17.098354+00:00"
+      },
+      {
+        "section": "execution",
+        "task_id": "aga1156f9a8a191d7a60a76d6faffd56cd",
+        "command_id": "agent-step:aga1156f9a8a191d7a60a76d6faffd56cd",
+        "state": "completed",
+        "released": true,
+        "created_at": "2026-11-16T11:13:59.031243+00:00",
+        "updated_at": "2026-11-16T11:13:59.266007+00:00"
+      },
+      {
+        "section": "execution",
+        "task_id": "ag893c17c91a2ba1fb4d83f92422783b03",
+        "command_id": "studio-ag893c17c91a2ba1fb4d83f92422783b03",
+        "state": "generation_v1",
+        "released": true,
+        "created_at": "2026-11-16T11:16:05.690693+00:00",
+        "updated_at": "2026-11-16T11:16:14.870461+00:00"
+      },
+      {
+        "section": "execution",
+        "task_id": "ag5dddaaa21c8df4023679d6e25cfb836e",
+        "command_id": "agent-step:ag5dddaaa21c8df4023679d6e25cfb836e",
+        "state": "completed",
+        "released": true,
+        "created_at": "2026-11-16T11:16:16.864453+00:00",
+        "updated_at": "2026-11-16T11:16:17.099407+00:00"
+      },
+      {
+        "section": "resource",
+        "id": "29acebf9-a514-5c72-9d6c-cb941e5c9193",
+        "status": "ready",
+        "provider": "platform",
+        "mime_type": "image/png",
+        "size": 5337,
+        "width": 1024,
+        "height": 1024,
+        "asset_id": "a_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6",
+        "version_id": "v_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6",
+        "file_id": "f_3b664b81fe9f858820cea46da4539569c7a0d3ef07f17c9a666426babdd6",
+        "sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+        "byte_length": "5337",
+        "binding_id": "binding_e3f9af96ae62f2bbe672dd56a0befffbea3b2149d6696036"
+      },
+      {
+        "section": "leases",
+        "count": 0
+      }
+    ],
+    "runtime": {
+      "observed_at": "2026-11-16T11:31:01.267677+00:00",
+      "roles": [
+        {
+          "name": "oceanway-w7-test-platform-1",
+          "image": "oceanway-w7-test/wp019-platform:0ff8921e35d4",
+          "image_id": "sha256:598c44a159aaab6732a54414c580e0a84d42342b2298e870cbcc5960d95b7da0",
+          "labels": {
+            "org.opencontainers.image.revision": "0ff8921e35d460ee5e12c0bd42a07cbb9ffa499e",
+            "org.opencontainers.image.source": "https://github.com/Oceanway-AI/oceanway-platform"
+          }
+        },
+        {
+          "name": "oceanway-w7-test-material-worker-1",
+          "image": "oceanway-w7-test/wp019-material-worker:0ff8921e35d4",
+          "image_id": "sha256:6d084f5af16a2b9beba976b8e3bdc913e6bd50850b52cc426a1457d392af718d",
+          "labels": {
+            "org.opencontainers.image.revision": "0ff8921e35d460ee5e12c0bd42a07cbb9ffa499e",
+            "org.opencontainers.image.source": "https://github.com/Oceanway-AI/oceanway-platform"
+          }
+        },
+        {
+          "name": "oceanway-studio-preview-backend-1",
+          "image": "sha256:85bcce5b44451eb6976471aacc757d4889dff8e1c275191bcb4595278607aecf",
+          "image_id": "sha256:85bcce5b44451eb6976471aacc757d4889dff8e1c275191bcb4595278607aecf",
+          "labels": {
+            "org.opencontainers.image.revision": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+            "org.opencontainers.image.source": "https://github.com/Oceanway-AI/oceanway-canvas"
+          }
+        }
+      ],
+      "planner_witnesses": [
+        {
+          "at_ms": 1794827639208,
+          "operation_id": "",
+          "body_sha256": "b5098e41c875548ba3b40e4cf68b1521f2eb8f8b8681b538501ecbae5d681d92",
+          "phase": "request_approval"
+        },
+        {
+          "at_ms": 1794827777052,
+          "operation_id": "",
+          "body_sha256": "d2f19e24b82eda2e8fea3f2616e50d4a805618db99d2be29800d5e5b65fb9fce",
+          "phase": "complete"
+        }
+      ]
+    }
+  },
+  "gateway": {
+    "clock": {
+      "host_before": "2026-11-16T11:24:46.834Z",
+      "db_at": "2026-11-16T11:24:47.000Z",
+      "host_after": "2026-11-16T11:24:47.014Z",
+      "roundtrip_ms": 180.241,
+      "NTP_synchronized": true
+    },
+    "names": [
+      "studio-ag893c17c91a2ba1fb4d83f92422783b03@media_debae1f41bb8451409c577f17386ff350b51e025c92b902ef845cacc24d78710"
+    ],
+    "matches": [
+      {
+        "request_id": "studio-ag893c17c91a2ba1fb4d83f92422783b03",
+        "platform_task_id": "media_debae1f41bb8451409c577f17386ff350b51e025c92b902ef845cacc24d78710",
+        "caller_id": "wp019-platform-image",
+        "gateway_request_id": "req_01a1e412-4a9c-71f2-a2aa-75a972fd87f3",
+        "gateway_public_id": "req_01a1e412-4a9c-71f2-a2aa-75a972fd87f3",
+        "gateway_task_id": "task_01a1e412-4ab0-79f7-86af-53290e9999cc",
+        "accepted_at": "2026-11-16T11:16:06.428054+00:00",
+        "preparation_started_at": "2026-11-16T11:16:07.452631+00:00",
+        "preparation_complete_at": "2026-11-16T11:16:09.113373+00:00",
+        "permitted_at": "2026-11-16T11:16:09.176491+00:00",
+        "closed_at": null,
+        "execution_state": "succeeded",
+        "failure_code": null,
+        "inputs": [
+          {
+            "ordinal": 0,
+            "bytes": 112189,
+            "mime": "image/png",
+            "sha256": "2eb4128650f092899cb46de3a8a37bcbe643472e0a57ddc32ad01727738a9dee"
+          }
+        ],
+        "attempts": [
+          {
+            "id": "01a1e412-555b-737b-aaa4-881ed33302e8",
+            "number": 1,
+            "status": "succeeded",
+            "started_at": "2026-11-16T11:16:09.176385+00:00",
+            "finished_at": "2026-11-16T11:16:09.2669+00:00",
+            "provider_task": null,
+            "free_supplier_reads": {
+              "evidence": "unique ordered sealed input hashes inside the original attempt timestamps",
+              "at": "2026-11-16T11:16:09.211Z",
+              "range_reads": 0,
+              "inputs": [
+                {
+                  "kind": "multipart",
+                  "body_bytes": 112189,
+                  "sha256": "2eb4128650f092899cb46de3a8a37bcbe643472e0a57ddc32ad01727738a9dee"
+                }
+              ]
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "index": 0,
+            "id": "out_01a1e412-555b-7cea-bbd7-b8934d1dd44e",
+            "attempt_id": "01a1e412-555b-737b-aaa4-881ed33302e8",
+            "state": "available",
+            "mime": "image/png",
+            "bytes": 5337,
+            "publication_row_at": "2026-11-16T11:16:09.258502+00:00",
+            "read_requests": [
+              {
+                "output": "out_01a1e412-555b-7cea-bbd7-b8934d1dd44e",
+                "duration_s": 0.006,
+                "method": "GET",
+                "http": 200,
+                "bytes_sent": 5337,
+                "requested_range": "",
+                "content_range": "",
+                "end_at": "2026-11-16T11:16:12.311Z"
+              }
+            ],
+            "complete_or_partial_gets": 1,
+            "served_bytes": 5337,
+            "first_observed_get_complete_at": "2026-11-16T11:16:12.311Z"
+          }
+        ],
+        "lifecycle_result_published_at": "2026-11-16T11:16:09.258502+00:00"
+      }
+    ],
+    "sources": {
+      "publication_row_at": "UTC media_outputs.created_at from the immutable original output INSERT with status=available, after verified spool/object staging. The application timestamp precedes DB commit; the precise commit time is not recorded.",
+      "lifecycle_result_published_at": "UTC MIN(media_lifecycle_events.occurred_at) for result/published, if emitted for the request",
+      "read_requests": "Dedicated 18484 nginx only logs /v1/content/{output_id}; http status, requested/actual Range and actual response-body bytes, time at response end. A browser CDN read appears in browser evidence.",
+      "free_supplier_reads": "Local free supplier acceptance, observed multipart sizes, or per-reference-video transferred 206 ranges and bytes. Original signed URLs and content are excluded."
+    }
+  },
+  "invariants": {
+    "planner_calls": 2,
+    "media_supplier_attempts": 1,
+    "outputs": 1,
+    "archive_attempts": 1,
+    "material_versions": 1,
+    "matching_original_bytes": 5337,
+    "matching_original_sha256": "b664e910209f282958fd787b9703fc828e65e1a595c47d5a90c1f971187819d9",
+    "all_three_operations_zero_settled": true,
+    "input_binding_released": true,
+    "execution_authorization_revoked": true,
+    "studio_executions_released": 3,
+    "agent_resource_leases": 0,
+    "same_original_records_after_browser_close": true,
+    "extra_media_commands_after_browser_close": 0,
+    "extra_resource_adoptions_after_browser_close": 0,
+    "extra_planner_calls_after_browser_close": 0
+  },
+  "limitations": [
+    "This cohort has no approval-button click and no measured submission percentile.",
+    "Cloud per-object GET/PUT counters were not collected. Gateway attempt/content reads and actual browser file bytes are separately recorded.",
+    "The original historical Task245 remains UNKNOWN/reserved and was only read.",
+    "The default Studio resource file is display delivery. The explicit purpose=download and variant=original request was used for original byte/hash comparison."
+  ]
+}

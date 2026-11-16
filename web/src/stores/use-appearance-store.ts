@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import { create } from "zustand";
 import { DEFAULT_CANVAS_APPEARANCE } from "@/lib/canvas/agent-appearance";
 import { DEFAULT_UPDATE_ANNOUNCEMENT, normalizeUpdateAnnouncement } from "@/lib/update-announcement";
@@ -15,8 +16,8 @@ export const DEFAULT_PUBLIC_APPEARANCE: PublicAppearance = {
     brandSlug: "oceanway-studio",
     authHeroTitle: "让灵感，\n自由流动。",
     authHeroDescription: "在图片、视频、音频与画布之间，开启你的下一次创作。",
-    logoUrl: "/oceanway/oceanway-ai-symbol-blue.svg",
-    darkLogoUrl: "/oceanway/oceanway-ai-symbol-blue.svg",
+    logoUrl: appURL("/oceanway/oceanway-ai-symbol-blue.svg"),
+    darkLogoUrl: appURL("/oceanway/oceanway-ai-symbol-blue.svg"),
     logoFrameEnabled: false,
     authVideoUrl: "",
     authVideoPosterUrl: "",
@@ -192,7 +193,7 @@ function normalizeBrandSlug(value: unknown) {
 function safeAppearanceURL(value: unknown, fallback: string) {
     const candidate = String(value || "").trim();
     if (!candidate) return fallback;
-    if (candidate.startsWith("/") && !candidate.startsWith("//")) return candidate;
+    if (candidate.startsWith("/") && !candidate.startsWith("//")) return appURL(candidate);
     try {
         const parsed = new URL(candidate);
         if (parsed.protocol === "https:") return parsed.toString();

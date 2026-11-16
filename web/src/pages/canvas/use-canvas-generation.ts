@@ -9,7 +9,7 @@ import { reconcileImageBatchRoot } from "@/lib/canvas/canvas-image-batch-retry";
 import { canvasTaskBindingStatus, markCanvasTaskRecoveryUnconfirmed } from "@/lib/canvas/canvas-task-state";
 import { applyCanvasGenerationTaskNodeEffect, CanvasGenerationDurableAckError, isCanvasGenerationDurableAckError } from "@/services/canvas-generation-consumer";
 import { consumeGenerationTaskNode, ensureCanvasNodeAsset, isGenerationOutputAssetDeletedError, retryCanvasAssetSyncAfterRateLimit, subscribeCanvasProjectAssetLinkFailures } from "@/services/project-asset-sync";
-import { listGenerationTasks, listTaskLogs, queryGenerationTask, subscribeGenerationTasks, type GenerationTask, type TaskLog } from "@/services/api/task-center";
+import { listGenerationTasks, listTaskLogs, queryGenerationTask, recoverStudioGenerationCommand, subscribeGenerationTasks, type GenerationTask, type TaskLog } from "@/services/api/task-center";
 import { CanvasNodeType, type CanvasNodeData } from "@/types/canvas";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { cinematicStoryboardColumns, storyboardRowsFromTask } from "@/lib/canvas/canvas-project-domain";
@@ -262,7 +262,7 @@ export function useCanvasGeneration({ projectId, domainProjectId, projectLoaded,
         (targetNodeId: string, task: GenerationTask) => {
             setNodes((current) =>
                 current.map((node) => {
-                    if (node.id !== targetNodeId) return node;
+                    if (node.id !== targetNodeId || (task.platformGenerationRequest && node.metadata?.taskId && node.metadata.taskId !== task.id)) return node;
                     const failed = task.status === "failed" || task.status === "cancelled";
                     const extraction = node.metadata?.layerExtraction;
                     const rejectedLayer = extraction?.rejectedTaskId === task.id;
@@ -280,8 +280,15 @@ export function useCanvasGeneration({ projectId, domainProjectId, projectLoaded,
                     };
                 }),
             );
+            if (task.platformGenerationRequest && task.resultJson) {
+                void import("@/services/studio-canvas-generation")
+                    .then(({ adoptStudioCanvasGeneration }) => adoptStudioCanvasGeneration(projectId, targetNodeId, task, { nodesRef, setNodes }, consumerControllerRef.current.signal))
+                    .catch((error) => {
+                        if (!(error instanceof DOMException && error.name === "AbortError")) console.warn("画布输出仍待采用", { taskId: task.id });
+                    });
+            }
         },
-        [setNodes],
+        [nodesRef, projectId, setNodes],
     );
 
     const saveGeneratedAsset = useCallback(
@@ -322,6 +329,11 @@ export function useCanvasGeneration({ projectId, domainProjectId, projectLoaded,
         async (nodeId: string, task: GenerationTask) => {
             const requestSignal = generationRequestsRef.current.get(nodeId)?.controller.signal;
             const signal = requestSignal ? AbortSignal.any([consumerControllerRef.current.signal, requestSignal]) : consumerControllerRef.current.signal;
+            if (task.platformGenerationRequest) {
+                const { adoptStudioCanvasGeneration } = await import("@/services/studio-canvas-generation");
+                await adoptStudioCanvasGeneration(projectId, nodeId, task, { nodesRef, setNodes }, signal);
+                return;
+            }
             const applyStoredTaskResult = async () => {
                 const before = nodesRef.current.find((node) => node.id === nodeId);
                 if (!before) throw new Error(translate("canvasPage.taskRecovery.nodeMissing"));
@@ -446,7 +458,7 @@ export function useCanvasGeneration({ projectId, domainProjectId, projectLoaded,
                     Boolean(node.metadata?.taskId && node.metadata.status !== NODE_STATUS_SUCCESS)
                 );
             });
-            const needsDiscovery = recoveryNodes.some((node) => !node.metadata?.taskId && !node.metadata?.agentGenerationContinuation?.taskId);
+            const needsDiscovery = recoveryNodes.some((node) => !node.metadata?.studioGenerationCommand && !node.metadata?.taskId && !node.metadata?.agentGenerationContinuation?.taskId);
             let projectTasks: GenerationTask[] = [];
             if (needsDiscovery) {
                 try {
@@ -456,14 +468,23 @@ export function useCanvasGeneration({ projectId, domainProjectId, projectLoaded,
                     // 发现接口失败不影响已有 taskId 的精确恢复，也不是“查无任务”的证据。
                     message.warning({ key: `canvas-task-recovery:${startedProjectId}`, content: translate("canvasPage.taskRecovery.listUnavailable"), duration: 6 });
                 }
-                if (isCurrentProject() && recoveryNodes.some((node) => !node.metadata?.taskId && !node.metadata?.agentGenerationContinuation?.taskId && !projectTasks.some((task) => generationTaskNodeId(task) === node.id))) {
+                if (
+                    isCurrentProject() &&
+                    recoveryNodes.some((node) => !node.metadata?.studioGenerationCommand && !node.metadata?.taskId && !node.metadata?.agentGenerationContinuation?.taskId && !projectTasks.some((task) => generationTaskNodeId(task) === node.id))
+                ) {
                     message.warning({ key: `canvas-task-recovery:${startedProjectId}`, content: translate("canvasPage.taskRecovery.someNotFound"), duration: 6 });
                 }
             }
             if (!isCurrentProject()) return;
             await Promise.all(
                 recoveryNodes.map(async (node) => {
-                    const discoveredTask = projectTasks.find((task) => generationTaskNodeId(task) === node.id);
+                    let discoveredTask = projectTasks.find((task) => generationTaskNodeId(task) === node.id);
+                    const command = node.metadata?.studioGenerationCommand;
+                    if (command && !node.metadata?.taskId) {
+                        const recovered = await recoverStudioGenerationCommand(command, signal).catch(() => undefined);
+                        if (!isCurrentProject() || signal.aborted || nodesRef.current.find((n) => n.id === node.id)?.metadata?.studioGenerationCommand !== command) return;
+                        if (recovered?.projectId === startedProjectId) discoveredTask = recovered;
+                    }
                     const taskId = node.metadata?.taskId || node.metadata?.agentGenerationContinuation?.taskId || discoveredTask?.id;
                     if (!taskId) {
                         if (!isCurrentProject()) return;

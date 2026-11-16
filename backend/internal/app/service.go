@@ -31,6 +31,7 @@ import (
 
 type Service struct {
 	studioPlatform           *platformintegration.Gateway
+	studioMediaCatalog       studioMediaCatalogCache
 	repo                     *repository.Repository
 	dataDir                  string
 	cancelMu                 sync.Mutex

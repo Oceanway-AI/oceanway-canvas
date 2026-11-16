@@ -53,6 +53,8 @@ export const deDE: DeepStringRecord<typeof zhCN> = {
             previewVideo: "Generiertes Video vergrößern",
             previewImage: "Generiertes Bild vergrößern",
             previewUnavailable: "Vorschau nicht verfügbar",
+            preparingPlayback: "Video erstellt. Wiedergabe wird vorbereitet…",
+            waitingForArchivedPreview: "Warten auf die Vorschau des gespeicherten Mediums…",
             videoPreview: "Videovorschau",
         },
         page: {
@@ -139,6 +141,7 @@ export const deDE: DeepStringRecord<typeof zhCN> = {
             copyPrompt: "Kopieren",
             copied: "Kopiert",
             copyFailed: "Kopieren fehlgeschlagen. Text bitte manuell markieren.",
+            requestId: "Anfrage-ID",
             taskId: "Aufgaben-ID",
         },
         empty: {

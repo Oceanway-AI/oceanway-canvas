@@ -53,6 +53,8 @@ export const enUS: DeepStringRecord<typeof zhCN> = {
             previewVideo: "Enlarge generated video",
             previewImage: "Enlarge generated image",
             previewUnavailable: "Preview unavailable",
+            preparingPlayback: "Video generated. Preparing playback…",
+            waitingForArchivedPreview: "Waiting for the archived preview…",
             videoPreview: "Video preview",
         },
         page: {
@@ -139,6 +141,7 @@ export const enUS: DeepStringRecord<typeof zhCN> = {
             copyPrompt: "Copy",
             copied: "Copied",
             copyFailed: "Copy failed. Select the text manually.",
+            requestId: "Request ID",
             taskId: "Task ID",
         },
         empty: {

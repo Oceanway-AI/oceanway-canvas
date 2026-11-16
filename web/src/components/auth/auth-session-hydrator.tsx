@@ -5,6 +5,7 @@ import { getAuthSession, invalidateAuthSessionCache, type AuthSessionPayload } f
 import { ApiError } from "@/services/api/request";
 import { ACTIVE_USER_SCOPE_KEY } from "@/lib/user-scope";
 import { appQueryClient } from "@/lib/query-client";
+import { appRoute } from "@/lib/app-path";
 import { FullScreenLoader } from "@/components/ui/aceternity/full-screen-loader";
 import { preloadWorkspaceRoute } from "@/lib/workspace-route-modules";
 import { useUserStore } from "@/stores/use-user-store";
@@ -102,7 +103,7 @@ export function AuthSessionHydrator({ children }: { children: ReactNode }) {
                     message: "登录工作区已解除启动阻塞",
                     durationMs: performance.now() - startedAt,
                 });
-                preloadWorkspaceRoute(window.location.pathname);
+                preloadWorkspaceRoute(appRoute(window.location.pathname));
             })
             .catch(async () => {
                 if (!cancelled) {

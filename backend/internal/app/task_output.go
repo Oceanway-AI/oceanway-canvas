@@ -14,6 +14,10 @@ import (
 // TaskSummary 是任务列表/会话详情的读模型，不直接复用数据库 Task，避免把
 // 渠道模型、供应线路和受保护输入泄露到普通用户接口。
 type TaskSummary struct {
+	EarlyPreviews             []model.TaskPreviewOutput      `json:"earlyPreviews,omitempty"`
+	PlatformGenerationRequest string                         `json:"platformGenerationRequest,omitempty"`
+	PlatformRevision          int64                          `json:"platformRevision,omitempty"`
+	PlatformRetryAfterMS      int64                          `json:"retryAfterMs,omitempty"`
 	Diagnostic                *model.TaskExecutionDiagnostic `json:"diagnostic,omitempty"`
 	ID                        string                         `json:"id"`
 	ProjectID                 string                         `json:"projectId,omitempty"`
@@ -126,7 +130,7 @@ func taskSummaryForOutput(task model.Task) TaskSummary {
 		errorCode = contentModerationErrorCode
 	}
 	previewURL, previewKind, previewPosterURL := taskMediaPreviewWithPoster(task.ResultJSON, task.Type)
-	return TaskSummary{
+	return TaskSummary{EarlyPreviews: studioGenerationPreviewSlots(task), PlatformGenerationRequest: task.PlatformGenerationRequest, PlatformRevision: task.PlatformRevision, PlatformRetryAfterMS: task.PlatformRetryAfterMS,
 		Diagnostic:                taskExecutionDiagnostic(&task),
 		ID:                        task.ID,
 		ProjectID:                 task.ProjectID,
@@ -327,6 +331,7 @@ func truncateRunes(value string, limit int) string {
 }
 
 func taskForOutput(task model.Task) *model.Task {
+	task.EarlyPreviews = studioGenerationPreviewSlots(task)
 	task.CanRecoverMedia = canRecoverTaskMedia(task)
 	task.Diagnostic = taskExecutionDiagnostic(&task)
 	task.InputJSON = publicTaskInputJSON(task.InputJSON)

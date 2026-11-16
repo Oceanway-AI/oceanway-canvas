@@ -6,7 +6,7 @@ import { getRemoteAsset, upsertRemoteAsset } from "./api/user-data";
 import { ApiError } from "./api/request";
 import { resourceIdFromStorageKey } from "./api/resources";
 import type { Asset } from "@/stores/use-asset-store";
-import { getResourceAccess } from "./api/resources";
+import { getResourceAccess, resolveResourceAccessURL } from "./api/resources";
 import { loadRasterImage } from "@/lib/image-raster";
 
 // A native creative record refers to an already adopted file, without creating
@@ -40,7 +40,7 @@ export async function saveAdoptedLibraryAsset(payload: InsertAssetPayload, folde
         // original once; preview dimensions and guessed defaults are incorrect.
         const access = await getResourceAccess(payload.storageKey, "browser-process", "original");
         assertCurrent();
-        const image = await loadRasterImage(access.url);
+        const image = await loadRasterImage(resolveResourceAccessURL(access.url));
         assertCurrent();
         imageWidth = image.naturalWidth;
         imageHeight = image.naturalHeight;

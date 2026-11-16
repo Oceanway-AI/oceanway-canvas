@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 // 短剧风格库：按“爆款题材 × 视觉媒介”组织。每个风格的 prompt 只描述全剧长期稳定的美术基线
 // （媒介、题材场景、色彩光影、服化道、禁用项），具体构图与动作由分镜决定。
 // 只有与题材确实匹配的内置样图才作为封面，其余使用风格主色生成的海报占位，避免误导。
@@ -43,7 +44,7 @@ const FORBID: Record<DramaStyleCategory, string> = {
     art: "风格混杂、畸形手指、文字水印",
 };
 
-const cover = (name: string) => `/short-drama-styles/${name}.jpg`;
+const cover = (name: string) => appURL(`/short-drama-styles/${name}.jpg`);
 
 const SPECS: Spec[] = [
     // ===== 真人短剧 =====

@@ -1,0 +1,119 @@
+{
+  "implementation_commit": "8274f1d0841760b3e66916d5921de53f04fc0831",
+  "verified_commit": "fd7a896b2c7def48f2e5ecb21f2105eb28540578",
+  "candidate_runtime_commit": "8274f1d0841760b3e66916d5921de53f04fc0831",
+  "production_source_equal": true,
+  "differences": [
+    "web/test/creation-task-recovery.test.ts",
+    "web/test/ecommerce-long-reference.test.ts"
+  ],
+  "full_web": {
+    "files": 500,
+    "passed": 3394,
+    "failed": 0,
+    "assertions": 78186
+  },
+  "checks": [
+    "typecheck",
+    "lint",
+    "changed-format",
+    "full-web-test",
+    "production-build"
+  ],
+  "first_full_red": {
+    "passed": 3388,
+    "failed": 6,
+    "reason": "happy-dom localStorage persisted checkpoints between independent fixtures; per-test localStorage.clear restored isolation without changing business assertions",
+    "format_failure": "existing creation-task-recovery final test formatting"
+  },
+  "logs": {
+    "targeted": {
+      "path": "web/.local-upload-tests.log",
+      "sha256": "b87b6c39180e4f6298c8f001121b97099ba62711cd261907b5169c0248a800ec"
+    },
+    "production_build": {
+      "path": "web/.local-upload-build.log",
+      "sha256": "03da9760bdce6d43a99df43748c5fec42b7d663ff1fb9e6a0e4e843ec201042e"
+    },
+    "full_final": {
+      "path": ".local/wp019/upload-recovery-final-verify.log",
+      "sha256": "b34e508d0b2bd8c35986db53f4bc339e05d7b092906ef8e982c2016cba18b924"
+    },
+    "first_red": {
+      "path": ".local/wp019/upload-recovery-verify.log",
+      "sha256": "aefe0e929b8826c4cbc809e5253be30ea7284bc0b3b594eafb279dba1bb98793"
+    }
+  },
+  "actual_w7_browser_upload": "pending",
+  "pull_request": 4,
+  "ci": "no checks reported on PR4 when queried after push",
+  "built_candidate": {
+    "source": "8274f1d0841760b3e66916d5921de53f04fc0831",
+    "images": [
+      {
+        "source": "8274f1d0841760b3e66916d5921de53f04fc0831",
+        "sourceTree": "9187d04d16e4d2bad7d38fdd10a330c8c9cdcfe6",
+        "component": "backend",
+        "image": "sha256:e9b6644e86718aa061b0c15fda216238f53630aafc32819a472c50240562b9ff",
+        "platform": "linux/amd64",
+        "gitDockerfileSHA256": "f2b00b9f38e9c9cf027b4deed6a4367c65a2d82f7dc69c256ba0a40112794dda",
+        "buildLogSHA256": "c17065d01484ab1d732414dab2c74495af7ab9162e07821b58a5f524a9ea68d8",
+        "privateModule": "github.com/Oceanway-AI/oceanway-platform/platformclient@v1.0.0-rc.2",
+        "effectiveDockerfileSHA256": "1131cdfe032a16cf369908cd33eac129a1bc9650bbfdb2117ffa8dc2a61b99bd"
+      },
+      {
+        "source": "8274f1d0841760b3e66916d5921de53f04fc0831",
+        "sourceTree": "9187d04d16e4d2bad7d38fdd10a330c8c9cdcfe6",
+        "component": "web",
+        "image": "sha256:0e9dd0b59cd7dc330cbd96269d6b308e17b67e480ea95110e18a385215590d2b",
+        "platform": "linux/amd64",
+        "gitDockerfileSHA256": "8d774d88453d500f84219d6f6d7326ac661845aab1ed5a7f7fffa751a15af16e",
+        "buildLogSHA256": "c6d3d5f9679698a5af2098ce03093058b3721db9d01ed41f7663b5df2e282d38"
+      }
+    ],
+    "deployment": "activated"
+  },
+  "backup_rehearsal": {
+    "source": "8274f1d0841760b3e66916d5921de53f04fc0831",
+    "from": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+    "images": {
+      "backend": "sha256:e9b6644e86718aa061b0c15fda216238f53630aafc32819a472c50240562b9ff",
+      "web": "sha256:0e9dd0b59cd7dc330cbd96269d6b308e17b67e480ea95110e18a385215590d2b"
+    },
+    "dump_sha256": "bf465ee4278933820f8a501c36f9bc29c5c02bd0e81ee4ab36d6c8f4eb1dccad",
+    "dump_bytes": 158014442,
+    "restored": true,
+    "shadow_pre_schema": 97,
+    "shadow_post_schema": 97,
+    "changed_env_keys": [
+      "CANVAS_BACKEND_IMAGE",
+      "CANVAS_WEB_IMAGE"
+    ],
+    "compose_otherwise_equal": true
+  },
+  "deployment": {
+    "target": "https://test.oceanway.tech:18448/api/health/ready",
+    "previous": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+    "commit": "8274f1d0841760b3e66916d5921de53f04fc0831",
+    "ready": true,
+    "schema": {
+      "current": 97,
+      "expected": 97,
+      "ready": true
+    },
+    "old_backend_stopped_before_activation": true,
+    "images": {
+      "backend": "sha256:e9b6644e86718aa061b0c15fda216238f53630aafc32819a472c50240562b9ff",
+      "web": "sha256:0e9dd0b59cd7dc330cbd96269d6b308e17b67e480ea95110e18a385215590d2b"
+    },
+    "unmodified_services": [
+      "postgres",
+      "redis",
+      "yingce-agent",
+      "edge"
+    ],
+    "reloaded_w7_edge": false,
+    "dump_sha256": "bf465ee4278933820f8a501c36f9bc29c5c02bd0e81ee4ab36d6c8f4eb1dccad",
+    "utc": "2026-11-16T14:17:59.302199+00:00"
+  }
+}

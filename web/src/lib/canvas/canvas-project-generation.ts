@@ -1,4 +1,5 @@
 import { type GenerationTask } from "@/services/api/task-center";
+import { taskEarlyPreviews } from "@/services/task-early-previews";
 import { backendProviderConfig, logicalModelIDForConfig, runBackendGenerationTask, type GenerationTaskDependencies } from "@/services/api/generation-task";
 import { configuredModelMatchesCapability, defaultConfig, normalizeModelOptionValue, normalizeRunningHubCapability, type AiConfig, type WorkflowFieldMapping } from "@/stores/use-config-store";
 import { resolveImageUrl, uploadImage } from "@/services/image-storage";
@@ -153,8 +154,10 @@ export function createGenerationBatchRetryContexts(taskIds: readonly string[], a
 
 export function generationTaskMetadata(task: GenerationTask): CanvasNodeMetadata {
     const progress = normalizeTaskProgress(task.progress, task.status);
+    const early = taskEarlyPreviews(task);
     return {
         taskId: task.id,
+        studioGenerationCommand: undefined,
         taskClientOperationId: task.clientOperationId,
         retryOf: task.retryOf,
         attemptGroupId: task.attemptGroupId,
@@ -162,6 +165,7 @@ export function generationTaskMetadata(task: GenerationTask): CanvasNodeMetadata
         taskProgress: progress,
         taskStage: task.stage,
         taskMediaStage: task.mediaStage,
+        taskEarlyPreviews: early.length ? early : undefined,
         taskCanRecoverMedia: task.canRecoverMedia,
         taskProvider: task.provider,
         taskStartedAt: task.startedAt,

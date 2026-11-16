@@ -18,6 +18,7 @@ import { useCanvasPromptPreferencesStore } from "@/stores/canvas/use-canvas-prom
 import { CanvasPromptFontSizeControl } from "./canvas-prompt-font-size-control";
 import { CreditSymbol, requestCreditCost } from "@/constant/credits";
 import { canvasThemes } from "@/lib/canvas-theme";
+import { useStudioMediaPrice } from "@/services/studio-media-price";
 import { modelQuoteDescription, modelQuoteRequest } from "@/lib/model-pricing";
 import { modelCompatibilityError, modelRequestOptions, defaultImageParamsForModel, type ModelRequirements } from "@/lib/model-selection";
 import { referenceImageSizeSelection, type ImageDimensions } from "@/lib/canvas/canvas-reference-image-size";
@@ -255,6 +256,13 @@ export function CanvasNodePromptPanel({
     const quoteRequestKey = JSON.stringify(quoteRequest || null);
     const [routeQuote, setRouteQuote] = useState<LogicalModelQuote | null>(null);
     const credits = routeQuote ? routeQuote.amountMicrocredits / 1_000_000 : configuredCredits;
+    const standardPrice = useStudioMediaPrice(
+        config,
+        mode,
+        prompt,
+        activeReferences.map((item) => ({ kind: item.kind, storageKey: item.storageKey, role: frameSlots.find((slot) => slot.attachment?.id === item.id)?.role })),
+        projectId,
+    );
     const activeReferenceCount = activeReferences.length;
     const videoFrameOptions = resolvedMentionReferences.filter((item) => item.active && item.kind === "image").map((item) => ({ nodeId: item.nodeId, label: item.label, title: item.title, previewUrl: item.previewUrl }));
     const hasVideoPromptTools = mode === "video" && !native && !simpleMode && videoFrameOptions.length > 0;
@@ -499,9 +507,9 @@ export function CanvasNodePromptPanel({
     );
 
     const renderSubmitButton = (expanded: boolean) => {
-        const showCost = creditsEnabled && credits !== null;
+        const showCost = Boolean(standardPrice) || (creditsEnabled && credits !== null);
         const formattedCredits = credits?.toLocaleString("zh-CN", { maximumFractionDigits: 6 });
-        const actionLabel = isRunning ? "生成中" : showCost ? `${routeQuote?.estimated ? "预估" : "消耗"} ${formattedCredits} 积分，生成` : "生成";
+        const actionLabel = isRunning ? "生成中" : standardPrice ? `${standardPrice}，生成` : showCost ? `${routeQuote?.estimated ? "预估" : "消耗"} ${formattedCredits} 积分，生成` : "生成";
         return (
             <Button
                 type="text"
@@ -521,7 +529,7 @@ export function CanvasNodePromptPanel({
                 {showCost ? (
                     <span className="canvas-node-composer-submit-cost">
                         <CreditSymbol />
-                        <span>{routeQuote?.estimated ? `预估:${formattedCredits}` : formattedCredits}</span>
+                        <span>{standardPrice || (routeQuote?.estimated ? `预估:${formattedCredits}` : formattedCredits)}</span>
                     </span>
                 ) : null}
                 <span className="canvas-node-composer-submit-action" aria-hidden>

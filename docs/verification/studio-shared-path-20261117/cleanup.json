@@ -1,0 +1,41 @@
+{
+  "started_at": "2026-11-16T19:52:20.265Z",
+  "checks": [
+    {
+      "name": "drama-same-session",
+      "status": 200,
+      "id": "platform:1",
+      "keys": [
+        "assets",
+        "context",
+        "deliveries",
+        "episodes",
+        "ledger",
+        "models",
+        "productions",
+        "projects",
+        "provenance",
+        "providers",
+        "quota",
+        "schedules",
+        "scripts",
+        "shots",
+        "spaces",
+        "tasks",
+        "teams",
+        "user",
+        "workspaceView"
+      ],
+      "projectsPageVisible": true
+    },
+    {
+      "name": "temporary-canvas-deleted",
+      "status": 200,
+      "remaining": 0
+    },
+    {
+      "name": "AssertionError",
+      "message": "Expected values to be strictly equal:"
+    }
+  ]
+}

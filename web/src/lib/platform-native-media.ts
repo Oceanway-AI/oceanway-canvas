@@ -16,6 +16,7 @@ export type NativeImageOutputSize = {
     max_aspect_ratio: number;
 };
 export type NativeMediaVariant = {
+    media_generation_v1?: boolean;
     workbench_parameters?: string[];
     id: string;
     gateway_protocol: string;
@@ -81,8 +82,18 @@ export function nativeMediaVariantOptions(variants: NativeMediaVariant[]) {
     return options.map((option, i) => (options.some((other, j) => j !== i && other.label === option.label) ? { ...option, label: `${option.label} · ${variants[i].native_request_variant.id || option.value}` } : option));
 }
 
+function publishedMediaProfile(config: AiConfig, model: string) {
+    return resolveModelChannel(config, model).modelCosts?.find((item) => item.model === modelOptionName(model))?.platform?.media_generation_profile;
+}
+
+export function studioMediaGenerationVariant(config: AiConfig, model = config.model) {
+    const source = publishedMediaProfile(config, model);
+    const id = (model === config.model && config.nativeVariantId) || source?.default_variant;
+    return typeof id === "string" && Array.isArray(source?.variants) && source.variants.some((variant: { id?: string; media_generation_v1?: boolean }) => variant.id === id && variant.media_generation_v1 === true) ? id : undefined;
+}
+
 export function nativeMediaProfile(config: AiConfig, model = config.model) {
-    const source = resolveModelChannel(config, model).modelCosts?.find((item) => item.model === modelOptionName(model))?.platform?.media_generation_profile;
+    const source = publishedMediaProfile(config, model);
     if (!source?.native_request_variant && !source?.gateway_protocol) return undefined;
     const variants = (Array.isArray(source.variants) ? source.variants : []) as NativeMediaVariant[];
     return { defaultId: typeof source.default_variant === "string" ? source.default_variant : "", variants: variants.filter((v) => v.native_request_variant && v.specifications_schema?.properties) };

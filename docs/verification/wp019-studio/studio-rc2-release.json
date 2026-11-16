@@ -1,0 +1,138 @@
+{
+  "sdk": {
+    "version": "v1.0.0-rc.2",
+    "module": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+    "tag_commit": "cb3510f60a771a2fe0ccd28bf2b1d9b5b5ea879b",
+    "module_sum": "h1:9Gk60TKrf1m1l1/IqXrcUYFL7VOJecO8Ba6+ka25N3g=",
+    "go_mod_sum": "h1:bNGb+1LnSL/X/hNdSFqXzKE5olaJAhYrJxsEwBSXZZQ=",
+    "empty_cache": true,
+    "official_origin": "https://github.com/Oceanway-AI/oceanway-platform",
+    "zip_sha256": "72eabfde8cab2e4235a820affa5ada7c70d2dc91167973e5b77862e222e29944",
+    "mod_sha256": "a747ffc9234c7e43602d919954d3cbc0f7ac3d1666b0c4e756aca53050048ce2",
+    "info_sha256": "2997293dcfdac3e06941c893fec362a17f0b175e5800311ab0bd578bcc115bcc"
+  },
+  "pre_update_w7": {
+    "source": "86608743d8240c54b036b07151e20255cd7631bb",
+    "from": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+    "images": {
+      "backend": "sha256:326cdf53298455455fc86d4030e85d3a758633a256fe9844e99d5ec8f5714a59",
+      "web": "sha256:7a235ce6fce25f52e88e3f31a48b61bcff43a699c224bf8e065a9325766d449d"
+    },
+    "dump_sha256": "8893bad60ac16871ed43441f9ebfe56b834e25a4f31e38242341824852f1dbfa",
+    "dump_bytes": 136826073,
+    "restored": true,
+    "shadow_pre_schema": 97,
+    "shadow_post_schema": 97,
+    "changed_env_keys": [
+      "CANVAS_BACKEND_IMAGE",
+      "CANVAS_WEB_IMAGE"
+    ],
+    "compose_otherwise_equal": true
+  },
+  "applied": {
+    "target": "https://test.oceanway.tech:18448/api/health/ready",
+    "previous": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+    "commit": "86608743d8240c54b036b07151e20255cd7631bb",
+    "ready": true,
+    "schema": {
+      "current": 97,
+      "expected": 97,
+      "ready": true
+    },
+    "old_backend_stopped_before_activation": true,
+    "images": {
+      "backend": "sha256:326cdf53298455455fc86d4030e85d3a758633a256fe9844e99d5ec8f5714a59",
+      "web": "sha256:7a235ce6fce25f52e88e3f31a48b61bcff43a699c224bf8e065a9325766d449d"
+    },
+    "unmodified_services": [
+      "postgres",
+      "redis",
+      "yingce-agent",
+      "edge"
+    ],
+    "reloaded_w7_edge": false,
+    "dump_sha256": "8893bad60ac16871ed43441f9ebfe56b834e25a4f31e38242341824852f1dbfa",
+    "utc": "2026-11-16T09:43:16.665975+00:00"
+  },
+  "builds": [
+    {
+      "source": "86608743d8240c54b036b07151e20255cd7631bb",
+      "sourceTree": "40c85338bfd1f2771f86fe25e5aa58050b15d13d",
+      "component": "backend",
+      "image": "sha256:326cdf53298455455fc86d4030e85d3a758633a256fe9844e99d5ec8f5714a59",
+      "platform": "linux/amd64",
+      "gitDockerfileSHA256": "f2b00b9f38e9c9cf027b4deed6a4367c65a2d82f7dc69c256ba0a40112794dda",
+      "buildLogSHA256": "14cf9a8ad522f015ed73a9d5d147ffca30e7d1860de2d87a16b0378f63258569",
+      "privateModule": "github.com/Oceanway-AI/oceanway-platform/platformclient@v1.0.0-rc.2",
+      "effectiveDockerfileSHA256": "1131cdfe032a16cf369908cd33eac129a1bc9650bbfdb2117ffa8dc2a61b99bd"
+    },
+    {
+      "source": "86608743d8240c54b036b07151e20255cd7631bb",
+      "sourceTree": "40c85338bfd1f2771f86fe25e5aa58050b15d13d",
+      "component": "web",
+      "image": "sha256:7a235ce6fce25f52e88e3f31a48b61bcff43a699c224bf8e065a9325766d449d",
+      "platform": "linux/amd64",
+      "gitDockerfileSHA256": "8d774d88453d500f84219d6f6d7326ac661845aab1ed5a7f7fffa751a15af16e",
+      "buildLogSHA256": "7b7069a5035e91432b758efd9d2fce4cbbc98a06c0420c6b3ea5875bf8816555"
+    }
+  ],
+  "local_web": {
+    "tests": 3387,
+    "files": 499,
+    "fail": 0,
+    "type": true,
+    "touched_lint": true
+  },
+  "local_go": {
+    "mode": "GOWORK=off, real rc.2, Go race",
+    "prior_broad": {
+      "top_level_pass": 25,
+      "top_level_fail": 1,
+      "failure": "Missing cached unsigned legacy media emitted one extra catalog lookup. The established identity, no-task and no-approval assertions held."
+    },
+    "legacy_catalog_fix": "0d2ad3c",
+    "top_level_pass_after_fix": 27,
+    "including_subtests": {
+      "pass": 52,
+      "skipped_without_PG": 2
+    },
+    "independent_PG16": {
+      "test": "TestStudioPiGenerationActionPostgres",
+      "manual_race_lost": "pass",
+      "approval_race_lost": "pass"
+    },
+    "vet": true
+  },
+  "old_records_reopened": {
+    "at_utc": "2026-11-16T09:08:45.590Z",
+    "studio": "22529d5c5f2d6ade2fd02c3da1de5675fb7fc4b2",
+    "platform": "3197d9720238500e66740ff5f375f07133802851",
+    "role": "original ordinary fixture owner",
+    "browser": "157.0.8103.51",
+    "route": "/tasks",
+    "read_originals": [
+      {
+        "original": "6b7d9a7f-60cd-4e86-a972-8ce4707c7972",
+        "host": "442c3503-c544-5394-b2bf-8b48cf0e22da",
+        "http": 200,
+        "status": "succeeded",
+        "resources": [
+          "9ba4a171-3a7a-59d5-ae4b-8406f35e7b10"
+        ],
+        "revision": 20
+      },
+      {
+        "original": "0e1b2c63-bf0d-40cf-84f8-faad7735610e",
+        "host": "94e96240-06f7-5bf9-9e81-3b4c13a9a7e1",
+        "http": 200,
+        "status": "succeeded",
+        "resources": [
+          "5265992f-2450-5836-b797-851275a08d84"
+        ],
+        "revision": 19
+      }
+    ],
+    "original_posts": 0,
+    "adoptions": 0
+  }
+}

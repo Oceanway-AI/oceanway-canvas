@@ -63,6 +63,7 @@ type ModelSelection struct {
 	TextProtocol platformclient.TextProtocol
 	MediaRoute   platformclient.MediaRoute
 	PreferAsync  bool
+	GenerationV1 bool
 }
 
 // SelectModel is shared by display and admission. Alternatives are never
@@ -131,6 +132,7 @@ func SelectModel(m platformclient.Model, variant string) (ModelSelection, error)
 			}
 		}
 	}
+	selected.GenerationV1 = m.SupportsMediaGeneration(selected.ID)
 	if selected.Method != "POST" || len(selected.Schema) == 0 {
 		return selected, errors.New("模型能力合同不完整")
 	}

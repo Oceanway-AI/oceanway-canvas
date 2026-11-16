@@ -124,6 +124,12 @@ export const deDE: DeepStringRecord<typeof zhCN> = {
         collapse: "Konnektoren ausblenden",
     },
     fileUpload: {
+        resumeOriginal: "Wählen Sie dieselbe Datei, um den ursprünglichen Upload fortzusetzen",
+        recoveryInvalid: "Die Wiederherstellungsdaten sind ungültig. Bewahren Sie die Datei auf und prüfen Sie den ursprünglichen Upload",
+        progressStorageFailed: "Der Upload-Fortschritt konnte nicht gespeichert werden. Prüfen Sie den Browserspeicher und versuchen Sie es erneut",
+        accountChanged: "Der Upload wurde durch einen Kontowechsel unterbrochen",
+        resumeContextMismatch: "Setzen Sie den Upload im ursprünglichen Konto und Canvas fort",
+        interrupted: "Upload unterbrochen. Wählen Sie die ursprüngliche Datei, um fortzufahren",
         retryHint: "Datei zum Hochladen erneut auswählen",
         saving: "Datei übertragen, wird gespeichert und verarbeitet",
         uploadedPercent: "{{percent}} % hochgeladen",

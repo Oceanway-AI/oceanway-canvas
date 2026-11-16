@@ -2,6 +2,7 @@ import { getActiveUserScope } from "@/lib/user-scope";
 import { localForageStorageForScope } from "@/lib/localforage-storage";
 import { http, apiBaseURL, ApiError } from "@/services/api/request";
 import { getPlatformMaterialStorage, uploadPlatformResource } from "./platform-materials";
+import { delay } from "./video-response";
 import type { OSSConnectionTestInput, OSSConnectionTestResult, OSSProvider, S3Preset } from "@/lib/oss-settings";
 
 export type RemoteResource = {
@@ -135,7 +136,7 @@ export type ResourceAccessFetchOptions = {
     forceRefresh?: boolean;
 };
 
-type ResourceAccessBatchItem = { resourceId: string; access?: ResourceAccess; error?: { msg?: string } };
+type ResourceAccessBatchItem = { resourceId: string; access?: ResourceAccess; error?: { code?: number; reason?: string; msg?: string } };
 type CachedResourceAccess = { value: ResourceAccess; expiresAt: number };
 type ResourceAccessRequestPayload = {
     resourceId: string;
@@ -266,7 +267,7 @@ export function resourceIdFromStorageKey(storageKey?: string) {
 
 export function isResourceUrl(url?: string) {
     const base = String(apiBaseURL).replace(/\/+$/, "");
-    const path = url?.split(/[?#]/, 1)[0] || "";
+    const path = resolveResourceAccessURL(url || "").split(/[?#]/, 1)[0];
     return path.startsWith(`${base}/resources/`) && path.endsWith("/file");
 }
 
@@ -399,7 +400,7 @@ function enqueueResourceAccess(entry: Omit<PendingResourceAccess, "resolve" | "r
 
 async function completeResourceAccessBatchEntry(entry: PendingResourceAccess, item: ResourceAccessBatchItem | undefined) {
     if (entry.generation !== accessGeneration || entry.scope !== getActiveUserScope()) throw resourceAccessAbortError();
-    if (!item?.access?.url) throw new Error(item?.error?.msg || "后端未返回资源访问地址");
+    if (!item?.access?.url) throw new ApiError(item?.error?.msg || "后端未返回资源访问地址", { code: item?.error?.code, reason: item?.error?.reason });
     const value = item.access;
     const cachedEntry = { value, expiresAt: resourceAccessCacheExpiry(value) } satisfies CachedResourceAccess;
     if (cachedEntry.expiresAt > Date.now()) {
@@ -492,15 +493,33 @@ export async function getResourceAccess(storageKey: string | undefined, purpose:
                 generation,
                 payload: { resourceId: id, purpose, variant, ...(downloadName ? { downloadName } : {}) },
             });
-        } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message || "获取对象存储地址失败");
-            throw error;
         } finally {
             if (accessRequests.get(key) === request) accessRequests.delete(key);
         }
     })();
     accessRequests.set(key, request);
     return request;
+}
+
+/** 只在平台明确报告派生处理中时等待；离开预览或切换账号即停止。 */
+export async function waitForResourcePreview(storageKey: string, variant: ResourceAccessVariant, signal: AbortSignal, options?: ResourceAccessFetchOptions) {
+    const scope = getActiveUserScope();
+    const generation = accessGeneration;
+    let delayMs = 2_000;
+    for (;;) {
+        signal.throwIfAborted();
+        assertResourceRequestCurrent(generation, scope);
+        try {
+            const access = await getResourceAccess(storageKey, "display", variant, "", options);
+            signal.throwIfAborted();
+            assertResourceRequestCurrent(generation, scope);
+            return access;
+        } catch (error) {
+            if (!(error instanceof ApiError) || error.reason !== "materials_variant_not_ready") throw error;
+        }
+        await delay(delayMs, signal);
+        delayMs = Math.min(delayMs * 2, 10_000);
+    }
 }
 
 /** 模型上游读取资源使用更长 TTL，但仍走统一资源访问合同。 */
@@ -518,7 +537,8 @@ export async function getResourceInputURL(storageKey?: string) {
  */
 export function resolveResourceAccessURL(url: string) {
     if (!url || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(url)) return url;
-    const base = String(apiBaseURL).trim();
+    const base = String(apiBaseURL).trim().replace(/\/+$/, "");
+    if (url.startsWith("/api/")) return `${base}${url.slice("/api".length)}`;
     if (!/^https?:\/\//i.test(base)) return url;
     return new URL(url, `${base.replace(/\/+$/, "")}/`).toString();
 }

@@ -12,6 +12,7 @@ import type { GenerationTask } from "@/services/api/task-center";
 import type { AiConfig } from "@/stores/use-config-store";
 import { formatModelName, getTaskCanvasContext, isTaskActive, isTaskFailed, isTaskRetryBlocked, taskAttentionReason, TaskBilling, TaskDate, taskKindIcon, TaskStatusPill, taskTone } from "./task-shared";
 import { TaskVideoThumbnail } from "./task-video-thumbnail";
+import { earlyPreviewURL, taskEarlyPreviews } from "@/services/task-early-previews";
 import { progressFillStyle } from "@/lib/progress-fill";
 
 /** 列表行：缩略图 / 标题与状态 / 时间 / 积分 / 操作。点行内空白处也能打开详情，键盘走标题按钮。 */
@@ -113,11 +114,13 @@ export function TaskListRow({
 
 function TaskPreviewThumbnail({ task, onOpen }: { task: GenerationTask; onOpen: () => void }) {
     const { t } = useTranslation();
-    const isVideo = task.previewKind === "video";
+    const early = taskEarlyPreviews(task)[0];
+    const url = task.previewUrl || (early && earlyPreviewURL(early));
+    const isVideo = (task.previewKind || early?.kind) === "video";
     const [unavailableUrl, setUnavailableUrl] = useState("");
-    const thumbnailUrl = isVideo ? task.previewPosterUrl : task.previewUrl;
-    const previewUnavailable = Boolean(thumbnailUrl && unavailableUrl === thumbnailUrl);
-    if (!task.previewUrl) {
+    const thumbnailUrl = isVideo ? task.previewPosterUrl : url;
+    const previewUnavailable = Boolean(thumbnailUrl && unavailableUrl === thumbnailUrl && !(isVideo && task.provider === "platform"));
+    if (!url) {
         const Icon = taskKindIcon(task);
         return (
             <span className="task-center-thumb" aria-hidden="true">
@@ -137,7 +140,7 @@ function TaskPreviewThumbnail({ task, onOpen }: { task: GenerationTask; onOpen: 
             {thumbnailUrl ? (
                 <MediaPreview src={thumbnailUrl} kind="image" width={64} height={48} loading="lazy" fallbackLabel={t("library.tasks.row.previewUnavailable")} onUnavailable={() => setUnavailableUrl(thumbnailUrl)} />
             ) : (
-                <TaskVideoThumbnail src={task.previewUrl} />
+                <TaskVideoThumbnail src={url} />
             )}
             {!previewUnavailable ? <span className="task-center-thumb-hover">{isVideo ? <Play aria-hidden="true" /> : <Eye aria-hidden="true" />}</span> : null}
         </button>

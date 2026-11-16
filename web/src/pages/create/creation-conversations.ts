@@ -3,6 +3,8 @@ import { createClientId } from "@/lib/client-id";
 import { generationErrorMessage } from "@/lib/generation-error";
 import type { BackendGenerationResult } from "@/services/api/generation-task";
 import type { GenerationTask } from "@/services/api/task-center";
+import { studioGenerationOutputs } from "@/services/studio-generation-outputs";
+import { taskEarlyPreviews } from "@/services/task-early-previews";
 import { creationAttachmentKind, type CreationAttachment } from "./creation-assets";
 import type { CreationConversation, CreationMessage, CreationShotRailEntry } from "./creation-types";
 
@@ -36,14 +38,30 @@ export function creationShotRail(messages: CreationMessage[]): CreationShotRailE
 }
 
 export function creationVideoShotOrdinal(shots: CreationShotRailEntry[], item: CreationMessage): number {
-    const own = shots.find((entry) => item.role === "user" ? entry.user.id === item.id : entry.result?.id === item.id);
+    const own = shots.find((entry) => (item.role === "user" ? entry.user.id === item.id : entry.result?.id === item.id));
     return own?.ordinal || 0;
 }
 
-export function completedCreationGenerationTask(runtime: CreationRuntime, input: { taskId: string; task?: GenerationTask; mode: "image" | "video"; prompt: string; result: BackendGenerationResult; conversationId: string; messageId: string; batchIndex?: number; batchCount?: number }): GenerationTask {
+export function completedCreationGenerationTask(
+    runtime: CreationRuntime,
+    input: { taskId: string; task?: GenerationTask; mode: "image" | "video"; prompt: string; result: BackendGenerationResult; conversationId: string; messageId: string; batchIndex?: number; batchCount?: number },
+): GenerationTask {
     const now = new Date().toISOString();
     const task = input.task ?? { id: input.taskId, type: input.mode, status: "succeeded" as const, prompt: input.prompt, attempts: 1, createdAt: now, updatedAt: now };
-    return runtime.projectGenerationTaskResult({ ...task, status: "succeeded", prompt: input.prompt, clientContext: { conversationId: input.conversationId, messageId: input.messageId, ...(typeof input.batchIndex === "number" ? { batchIndex: input.batchIndex } : {}), ...(typeof input.batchCount === "number" ? { batchCount: input.batchCount } : {}) } }, input.result);
+    return runtime.projectGenerationTaskResult(
+        {
+            ...task,
+            status: "succeeded",
+            prompt: input.prompt,
+            clientContext: {
+                conversationId: input.conversationId,
+                messageId: input.messageId,
+                ...(typeof input.batchIndex === "number" ? { batchIndex: input.batchIndex } : {}),
+                ...(typeof input.batchCount === "number" ? { batchCount: input.batchCount } : {}),
+            },
+        },
+        input.result,
+    );
 }
 
 export function isVideoAttachment(attachment: CreationAttachment): attachment is CreationAttachment & { url: string } {
@@ -53,7 +71,6 @@ export function isVideoAttachment(attachment: CreationAttachment): attachment is
 export function isImageAttachment(attachment: CreationAttachment): attachment is CreationAttachment & { dataUrl: string; width?: number; height?: number } {
     return creationAttachmentKind(attachment) === "image";
 }
-
 
 export function attachCreationTaskContexts(tasks: GenerationTask[], conversations: CreationConversation[]) {
     const contexts = new Map<string, { prompt: string; clientContext: NonNullable<GenerationTask["clientContext"]> }>();
@@ -71,18 +88,22 @@ export function attachCreationTaskContexts(tasks: GenerationTask[], conversation
 }
 
 export async function materializeCreationTaskResults(runtime: CreationRuntime, tasks: GenerationTask[], signal?: AbortSignal): Promise<PersistedCreationTask[]> {
-    return Promise.all(tasks.map(async (task): Promise<PersistedCreationTask> => {
-        // 文本正文保存在 resultJson，不进入媒体资源化链路。
-        if (task.status !== "succeeded" || !task.clientContext || task.type === "canvas_text") return task;
-        try {
-            const materialized = await runtime.runGenerationConsumer(signal, (managedSignal: AbortSignal) => runtime.materializeGenerationTaskAssets(task, managedSignal));
-            const creationResultUrls = runtime.generationTaskMaterializedUrls(materialized);
-            const creationResultStorageKeys = runtime.generationTaskMaterializedStorageKeys(materialized);
-            return creationResultUrls.length || creationResultStorageKeys.length ? { ...materialized, ...(creationResultUrls.length ? { creationResultUrls } : {}), ...(creationResultStorageKeys.length ? { creationResultStorageKeys } : {}) } : materialized;
-        } catch (error) {
-            return { ...task, creationError: error instanceof Error ? error.message : translate("create.conversation.materializeFailed") };
-        }
-    }));
+    return Promise.all(
+        tasks.map(async (task): Promise<PersistedCreationTask> => {
+            // 文本正文保存在 resultJson，不进入媒体资源化链路。
+            if (task.status !== "succeeded" || !task.clientContext || task.type === "canvas_text") return task;
+            try {
+                const materialized = await runtime.runGenerationConsumer(signal, (managedSignal: AbortSignal) => runtime.materializeGenerationTaskAssets(task, managedSignal));
+                const creationResultUrls = runtime.generationTaskMaterializedUrls(materialized);
+                const creationResultStorageKeys = runtime.generationTaskMaterializedStorageKeys(materialized);
+                return creationResultUrls.length || creationResultStorageKeys.length
+                    ? { ...materialized, ...(creationResultUrls.length ? { creationResultUrls } : {}), ...(creationResultStorageKeys.length ? { creationResultStorageKeys } : {}) }
+                    : materialized;
+            } catch (error) {
+                return { ...task, creationError: error instanceof Error ? error.message : translate("create.conversation.materializeFailed") };
+            }
+        }),
+    );
 }
 
 /** 失败但后端没有确认任务失败（含旧版本未分类的失败）：作品可能已生成，应提供“重新获取结果”。 */
@@ -98,17 +119,40 @@ function creationMediaMessageAwaitsTask(message: CreationMessage, revive: boolea
 
 const clearedCreationSyncState = { syncInterrupted: undefined, errorKind: undefined, mediaRecoverable: undefined } satisfies Partial<CreationMessage>;
 
+export function studioCreationOutputSnapshot(tasks: GenerationTask[]) {
+    const keys: string[] = [],
+        urls: string[] = [];
+    const earlyPreviews = tasks.flatMap((task) => {
+        const saved = new Set<number>();
+        for (const slot of studioGenerationOutputs(task).sort((a, b) => a.index - b.index)) {
+            if (slot.materialState !== "saved" || !slot.resourceId || slot.media?.storageKey !== `resource:${slot.resourceId}`) continue;
+            saved.add(slot.index);
+            keys.push(slot.media.storageKey);
+            urls.push(slot.media.dataUrl);
+        }
+        // A saved video can still be waiting for its playback rendition.
+        return taskEarlyPreviews(task).filter((ref) => ref.kind === "video" || !saved.has(ref.index));
+    });
+    return { earlyPreviews, ...(keys.length ? { resultStorageKeys: keys, resultUrls: urls } : {}) };
+}
+
 /** 任务仍在进行：消息回到生成中，并刷新阶段与真实进度；没有变化时返回原对象，避免无谓重渲染与持久化。 */
-function creationMessageWithObservedTask(message: CreationMessage, task: GenerationTask): CreationMessage {
+function creationMessageWithObservedTask(message: CreationMessage, task: GenerationTask, matches: GenerationTask[]): CreationMessage {
+    const visible = studioCreationOutputSnapshot(matches);
+    const earlyPreviews = visible.earlyPreviews;
+    const taskIds = Array.from(new Set([...(message.taskIds || []), ...matches.map((entry) => entry.id)]));
     const progress = typeof task.progress === "number" && Number.isFinite(task.progress) ? Math.round(task.progress) : undefined;
     const unchanged =
         message.status === "pending" &&
         !message.syncInterrupted &&
         !message.error &&
         !message.errorKind &&
+        (!visible.resultStorageKeys || JSON.stringify(visible.resultStorageKeys) === JSON.stringify(message.resultStorageKeys)) &&
         message.generationStatus === task.status &&
         message.generationStage === task.stage &&
         message.generationMediaStage === task.mediaStage &&
+        JSON.stringify(message.earlyPreviews || []) === JSON.stringify(earlyPreviews) &&
+        taskIds.length === message.taskIds?.length &&
         message.generationProgress === progress;
     if (unchanged) return message;
     return {
@@ -121,6 +165,8 @@ function creationMessageWithObservedTask(message: CreationMessage, task: Generat
         generationStage: task.stage,
         generationMediaStage: task.mediaStage,
         generationProgress: progress,
+        ...visible,
+        taskIds,
     };
 }
 
@@ -144,7 +190,7 @@ export function reconcileCreationTaskMessages(runtime: CreationRuntime, conversa
                     changed = true;
                     return { ...message, syncInterrupted: undefined };
                 }
-                completedAt = matches.reduce((latest, task) => conversationTimestamp(task.updatedAt) > conversationTimestamp(latest) ? task.updatedAt : latest, completedAt);
+                completedAt = matches.reduce((latest, task) => (conversationTimestamp(task.updatedAt) > conversationTimestamp(latest) ? task.updatedAt : latest), completedAt);
                 conversationChanged = true;
                 changed = true;
                 return { ...message, ...recovery, syncInterrupted: undefined };
@@ -153,7 +199,7 @@ export function reconcileCreationTaskMessages(runtime: CreationRuntime, conversa
             const expectedTaskCount = Math.max(0, ...matches.map((task) => task.clientContext?.batchCount || 0));
             if (!matches.length || (expectedTaskCount > 0 && matches.length < expectedTaskCount)) return message;
             if (active.length) {
-                const observed = creationMessageWithObservedTask(message, active[0]);
+                const observed = creationMessageWithObservedTask(message, active[0], matches);
                 if (observed === message) return message;
                 conversationChanged = true;
                 changed = true;
@@ -165,13 +211,30 @@ export function reconcileCreationTaskMessages(runtime: CreationRuntime, conversa
             const resultStorageKeys = Array.from(new Set(succeeded.flatMap(creationTaskResultStorageKeys)));
             const failedCount = matches.filter((task) => task.status !== "succeeded" || Boolean(task.creationError)).length;
             const nextTaskIds = Array.from(new Set([...(message.taskIds || []), ...matches.map((task) => task.id)]));
-            completedAt = matches.reduce((latest, task) => conversationTimestamp(task.updatedAt) > conversationTimestamp(latest) ? task.updatedAt : latest, completedAt);
+            completedAt = matches.reduce((latest, task) => (conversationTimestamp(task.updatedAt) > conversationTimestamp(latest) ? task.updatedAt : latest), completedAt);
             conversationChanged = true;
             changed = true;
 
             if (resultUrls.length || resultStorageKeys.length) {
-                const content = message.mode === "video" ? translate("create.status.videoGenerated") : failedCount ? translate("create.status.imagesPartiallyGenerated", { done: resultStorageKeys.length || resultUrls.length, failed: failedCount }) : translate("create.status.imageGenerated");
-                return { ...message, ...clearedCreationSyncState, status: "done" as const, content, ...(resultUrls.length ? { resultUrls } : {}), ...(resultStorageKeys.length ? { resultStorageKeys } : {}), error: undefined, generationStatus: "succeeded" as const, taskIds: nextTaskIds };
+                const content =
+                    message.mode === "video"
+                        ? translate("create.status.videoGenerated")
+                        : failedCount
+                          ? translate("create.status.imagesPartiallyGenerated", { done: resultStorageKeys.length || resultUrls.length, failed: failedCount })
+                          : translate("create.status.imageGenerated");
+                const earlyPreviews = succeeded.flatMap(taskEarlyPreviews);
+                return {
+                    ...message,
+                    ...clearedCreationSyncState,
+                    status: "done" as const,
+                    content,
+                    ...(resultUrls.length ? { resultUrls } : {}),
+                    ...(resultStorageKeys.length ? { resultStorageKeys } : {}),
+                    ...(earlyPreviews.length ? { earlyPreviews } : {}),
+                    error: undefined,
+                    generationStatus: "succeeded" as const,
+                    taskIds: nextTaskIds,
+                };
             }
             if (matches.every((task) => task.status === "cancelled")) {
                 return { ...message, ...clearedCreationSyncState, status: "cancelled" as const, content: translate("create.status.stopped"), error: undefined, generationStatus: "cancelled" as const, taskIds: nextTaskIds };
@@ -180,7 +243,16 @@ export function reconcileCreationTaskMessages(runtime: CreationRuntime, conversa
             const unavailable = succeeded.find((task) => task.creationError) || succeeded[0];
             const failed = matches.find((task) => task.status === "failed");
             if (unavailable) {
-                return { ...message, ...clearedCreationSyncState, status: "error" as const, content: translate("create.status.failed"), errorKind: "sync" as const, error: generationErrorMessage(unavailable.creationError || translate("create.conversation.resultUnreadable")), generationStatus: "succeeded" as const, taskIds: nextTaskIds };
+                return {
+                    ...message,
+                    ...clearedCreationSyncState,
+                    status: "error" as const,
+                    content: translate("create.status.failed"),
+                    errorKind: "sync" as const,
+                    error: generationErrorMessage(unavailable.creationError || translate("create.conversation.resultUnreadable")),
+                    generationStatus: "succeeded" as const,
+                    taskIds: nextTaskIds,
+                };
             }
             return {
                 ...message,

@@ -303,7 +303,8 @@ func validateCloudAgentRuntime(run *model.CloudAgentExecution, state *cloudAgent
 		if state.Approval.Call.ID != current.ID || state.Approval.Call.Function.Name != current.Function.Name || state.Approval.Call.Function.Arguments != current.Function.Arguments {
 			return errors.New("Agent runtime approval does not match current call")
 		}
-		if state.Approval.Decision != "" && state.Approval.Decision != "approve" && state.Approval.Decision != "reject" {
+		manualMedia := state.Approval.StudioMedia && state.Approval.Decision == "manual" && state.Decisions[state.Approval.ID] == "manual"
+		if state.Approval.Decision != "" && state.Approval.Decision != "approve" && state.Approval.Decision != "reject" && !manualMedia {
 			return errors.New("Agent runtime approval decision is invalid")
 		}
 	}

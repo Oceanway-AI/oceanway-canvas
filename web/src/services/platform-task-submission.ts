@@ -1,3 +1,5 @@
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 import { createClientUUID } from "@/lib/client-id";
 import { ApiError } from "@/services/api/request";
 import type { CreateTaskInput, GenerationTask } from "@/services/api/task-center";
@@ -29,6 +31,7 @@ export async function submitPlatformTask(input: CreateTaskInput, deps: Submissio
     }
     if (submission.owner !== scope) throw new Error("账号已切换，请在原账号中查看任务状态");
     const { commandId } = submission;
+    if (input.platform?.mediaGenerationV1 === true) return submitGenerationV1(input, scope, commandId, deps, assertScope);
     let prepared = submission.prepared;
     if (!prepared) {
         prepared = { ...input, commandId };
@@ -78,4 +81,65 @@ export async function submitPlatformTask(input: CreateTaskInput, deps: Submissio
     }
     assertScope();
     return task;
+}
+
+const activeCommands = new Map<string, { intent: string; promise: Promise<GenerationTask> }>();
+const sentCommands = new Map<string, string>();
+
+// Only a digest and the original command identifier survive page closure.
+function stableIntent(input: CreateTaskInput) {
+    return JSON.stringify(input, (_key, value) =>
+        value && typeof value === "object" && !Array.isArray(value)
+            ? Object.fromEntries(
+                  Object.keys(value)
+                      .sort()
+                      .map((key) => [key, value[key]]),
+              )
+            : value,
+    );
+}
+
+function commandKey(owner: string, workspace: string, commandId: string) {
+    return JSON.stringify(["studio-media-v1", owner, workspace, commandId]);
+}
+
+export function studioGenerationCommandWasSent(owner: string, commandId: string, workspace = "") {
+    const key = commandKey(owner, workspace, commandId);
+    return sentCommands.has(key) || (typeof window !== "undefined" && window.localStorage.getItem(key) !== null);
+}
+
+async function submitGenerationV1(input: CreateTaskInput, owner: string, commandId: string, deps: SubmissionDependencies, assertScope: () => void) {
+    const key = commandKey(owner, input.platform?.workspaceId || "", commandId);
+    const intent = stableIntent({ ...input, commandId });
+    const running = activeCommands.get(key);
+    if (running) {
+        if (running.intent !== intent) throw new Error("此任务命令已用于不同的创作意图");
+        return running.promise;
+    }
+    const run = async () => {
+        const digest = bytesToHex(sha256(new TextEncoder().encode(intent)));
+        assertScope();
+        const sent = sentCommands.get(key) ?? (typeof window === "undefined" ? null : window.localStorage.getItem(key));
+        if (sent && sent !== digest) throw new Error("此任务命令已用于不同的创作意图");
+        if (!sent) {
+            if (typeof window !== "undefined") window.localStorage.setItem(key, digest);
+            sentCommands.set(key, digest);
+            try {
+                const task = await deps.create({ ...input, commandId, platform: { ...input.platform!, expectedUserId: owner } });
+                assertScope();
+                return task;
+            } catch (error) {
+                assertScope();
+                if (error instanceof ApiError && error.status && error.status >= 400 && error.status < 500) throw error;
+            }
+        }
+        const task = await deps.recover(commandId, owner);
+        assertScope();
+        return task;
+    };
+    const promise = run().finally(() => {
+        if (activeCommands.get(key)?.promise === promise) activeCommands.delete(key);
+    });
+    activeCommands.set(key, { intent, promise });
+    return promise;
 }

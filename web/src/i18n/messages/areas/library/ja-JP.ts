@@ -53,6 +53,8 @@ export const jaJP: DeepStringRecord<typeof zhCN> = {
             previewVideo: "生成された動画を拡大プレビュー",
             previewImage: "生成された画像を拡大プレビュー",
             previewUnavailable: "プレビューを利用できません",
+            preparingPlayback: "動画を生成しました。再生を準備しています…",
+            waitingForArchivedPreview: "保存後のプレビューを待っています…",
             videoPreview: "動画プレビュー",
         },
         page: {
@@ -139,6 +141,7 @@ export const jaJP: DeepStringRecord<typeof zhCN> = {
             copyPrompt: "コピー",
             copied: "コピーしました",
             copyFailed: "コピーできませんでした。テキストを手動で選択してください",
+            requestId: "リクエスト ID",
             taskId: "タスク ID",
         },
         empty: {

@@ -46,6 +46,8 @@ jobs:
     needs: reuse
     if: ${{ needs.reuse.outputs.verified != 'true' }}
     uses: ./.github/workflows/quality.yml
+    secrets:
+      PLATFORM_SDK_READ_TOKEN: ${{ secrets.PLATFORM_SDK_READ_TOKEN }}
 
   prepare:
     name: Resolve build version

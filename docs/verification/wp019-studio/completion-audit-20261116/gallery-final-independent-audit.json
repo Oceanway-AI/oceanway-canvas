@@ -1,0 +1,42 @@
+{
+  "reviewed_at": "2026-11-16T14:42:29.510168+00:00",
+  "reviewer": "completion_audit independent agent",
+  "source": {
+    "repository": "Oceanway-AI/oceanway-platform",
+    "path": "docs/verification/wp019-gallery/measurements-69c7d4c7-video-source-ready-final.json",
+    "artifact_revision": "e2ec8f24aa620c07549ace23b6305ad7b77b1998"
+  },
+  "source_sha256": "3bad6ecb8cf708a830208aaec0cd5d3004864c9bd77764126a20f2d2e8a29bf1",
+  "runtime": "69c7d4c712be1c865f028d121960b00eb6420eae",
+  "samples": 30,
+  "indices": "1-30 exact once",
+  "per_video_samples": {
+    "wp019-gallery-resume-video-05.mp4": 6,
+    "wp019-gallery-resume-video-04.mp4": 6,
+    "wp019-gallery-resume-video-03.mp4": 6,
+    "wp019-gallery-resume-video-02.mp4": 6,
+    "wp019-gallery-resume-video-01.mp4": 6
+  },
+  "trusted_inputs": 30,
+  "native_play_and_decoded_frames": 30,
+  "source_readiness_included_in_preview_to_frame": true,
+  "first_frame_p50_ms": 485.4999999046322,
+  "first_frame_p95_ms": 1040.3999999999996,
+  "first_frame_max_ms": 2076.5999999523165,
+  "over_2000_indices": [
+    1
+  ],
+  "play_to_frame_p95_ms": 693.2999998569485,
+  "original_group": {
+    "planned": 30,
+    "measured": 25,
+    "missing": 5,
+    "preserved": true
+  },
+  "scope": "Recomputed source SHA, sample indices, native playback/frames, timing order and nearest-rank percentiles. inspected sampleVideo source without rerunning browser traffic.",
+  "script": {
+    "repository": "Oceanway-AI/oceanway-platform",
+    "path": "docs/verification/wp019-gallery/gallery-performance.cjs",
+    "artifact_revision": "e2ec8f24aa620c07549ace23b6305ad7b77b1998"
+  }
+}

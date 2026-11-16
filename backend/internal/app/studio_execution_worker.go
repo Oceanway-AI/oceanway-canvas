@@ -86,7 +86,22 @@ func (s *Service) processStudioTask(ctx context.Context, task *model.Task) error
 			return err
 		}
 	} else {
-		first, err := s.repo.SubmitStudioExecution(task)
+		var first bool
+		if envelope.TextRetries > 0 && execution.State == "prepared" {
+			active, claimErr := s.repo.WithActiveStudioAgentStep(task, func(repo *repository.Repository) error {
+				var err error
+				first, err = repo.SubmitStudioExecution(task)
+				return err
+			})
+			if claimErr != nil {
+				return claimErr
+			}
+			if !active {
+				return s.failStudioTaskWithState(task, "模型步骤已停止", "本轮已停止，未重新提交模型请求", "")
+			}
+		} else {
+			first, err = s.repo.SubmitStudioExecution(task)
+		}
 		if err != nil {
 			return err
 		}
@@ -108,6 +123,9 @@ func (s *Service) processStudioTask(ctx context.Context, task *model.Task) error
 			if receipt.RequestID != envelope.RequestID || (receipt.Version != "" && receipt.Version != "oceanway.text-request.v1") {
 				return s.deferStudioTask(task)
 			}
+			if envelope.AgentRunID != "" && (receipt.Version != "oceanway.text-request.v1" || receipt.TaskID == "" || (receipt.Status != "failed" && receipt.Status != "ready") || receipt.Ready != (receipt.Status == "ready")) {
+				return s.deferStudioTask(task)
+			}
 			failed := receipt.Status == "FAILURE" || receipt.Status == "failed"
 			if !receipt.Ready && !failed {
 				return s.deferStudioTask(task)
@@ -117,7 +135,7 @@ func (s *Service) processStudioTask(ctx context.Context, task *model.Task) error
 				return s.deferStudioTask(task)
 			}
 			if !receipt.Ready {
-				return s.failStudioTextRequest(task, receipt)
+				return s.handleStudioTextFailure(task, execution, envelope, receipt)
 			}
 			raw = receipt.Response
 		}

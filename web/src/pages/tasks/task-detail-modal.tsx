@@ -13,9 +13,11 @@ import { generationErrorMessage } from "@/lib/generation-error";
 import { formatTaskKind, generationTaskShowsProgress, generationTaskStageLabel, generationTaskStatusLabel, mediaDeliverySummary } from "@/lib/generation-task-display";
 import { progressFillStyle } from "@/lib/progress-fill";
 import { getActiveUserScope } from "@/lib/user-scope";
-import { getResourceAccess, resolveResourceAccessURL, type ResourceAccessVariant } from "@/services/api/resources";
+import { getResourceAccess, resolveResourceAccessURL, type ResourceAccessVariant, waitForResourcePreview } from "@/services/api/resources";
 import { formatTaskLog, type GenerationTask, type TaskLog } from "@/services/api/task-center";
-import { taskResultMedia, taskResultMediaAccess, type TaskResultMedia } from "./task-result-media";
+import { taskResultMedia, taskResultMediaAccess, withEarlyPreview, type TaskResultMedia } from "./task-result-media";
+import { earlyPreviewURL } from "@/services/task-early-previews";
+import { TaskEarlyMedia } from "@/components/task-early-media";
 import { isTaskActive, isTaskFailed, isTaskRetryBlocked, providerCancelStatusLabel, taskAttentionReason, TaskBilling, taskKindIcon, TaskStatusPill, taskTone } from "./task-shared";
 
 type TaskDetailModalProps = {
@@ -105,7 +107,7 @@ function TaskDetailContent({
     const failed = isTaskFailed(task);
     const retryBlocked = isTaskRetryBlocked(task);
     const stageLabel = generationTaskStageLabel(task);
-    const media = taskResultMedia(task);
+    const media = taskResultMedia(task).map((item) => withEarlyPreview(task, item));
     const title = task.prompt || t("library.tasks.row.untitled");
     const parameters = taskParameterFields(task.inputJson);
     const platformMedia = task.provider === "platform" && (task.type === "canvas_image" || task.type === "canvas_video");
@@ -278,6 +280,13 @@ function TaskDetailContent({
                     <code>{task.id}</code>
                     <Copy aria-hidden="true" />
                 </button>
+                {task.platformGenerationRequest && (
+                    <button type="button" className="task-detail-id" onClick={() => onCopy(task.platformGenerationRequest!)}>
+                        <span>{t("library.tasks.detail.requestId")}</span>
+                        <code>{task.platformGenerationRequest}</code>
+                        <Copy aria-hidden="true" />
+                    </button>
+                )}
                 <div className="task-detail-actions">
                     {failed ? (
                         <Button icon={<Bug className="size-4" />} onClick={onExportDiagnostics}>
@@ -316,7 +325,7 @@ function TaskResultGallery({ items, title, onPreview }: { items: TaskResultMedia
         const scope = getActiveUserScope();
         try {
             const url = await taskResultMediaAccess(current, "original", getResourceAccess);
-            if (scope === getActiveUserScope()) onPreview({ url: resolveResourceAccessURL(url), kind: current.kind, title });
+            if (scope === getActiveUserScope()) onPreview({ url: current.early && !current.resourceId ? earlyPreviewURL(current.early) : resolveResourceAccessURL(url), kind: current.kind, title });
         } catch {
             message.error(t("library.tasks.row.previewUnavailable"));
         }
@@ -324,7 +333,13 @@ function TaskResultGallery({ items, title, onPreview }: { items: TaskResultMedia
     return (
         <div className="task-detail-gallery">
             <div className="task-detail-stage">
-                <TaskResultPreview key={current.key} item={current} variant={currentIsVideo ? "playback" : "preview"} alt={t("library.tasks.detail.generatedItem", { index: index + 1 })} controls={currentIsVideo} />
+                <TaskResultPreview
+                    key={current.early ? earlyPreviewURL(current.early) : current.key}
+                    item={current}
+                    variant={currentIsVideo ? "playback" : "preview"}
+                    alt={t("library.tasks.detail.generatedItem", { index: index + 1 })}
+                    controls={currentIsVideo}
+                />
                 {!currentIsVideo ? (
                     <button type="button" className="task-detail-zoom" aria-label={t("library.tasks.row.previewImage")} title={t("library.tasks.row.previewImage")} onClick={() => void openOriginal()}>
                         <Maximize2 aria-hidden="true" />
@@ -344,28 +359,39 @@ function TaskResultGallery({ items, title, onPreview }: { items: TaskResultMedia
     );
 }
 
-function TaskResultPreview({ item, variant, alt, controls = false }: { item: TaskResultMedia; variant: ResourceAccessVariant; alt: string; controls?: boolean }) {
+export function TaskResultPreview({ item, variant, alt, controls = false, className }: { item: TaskResultMedia; variant: ResourceAccessVariant; alt: string; controls?: boolean; className?: string }) {
     const { t } = useTranslation();
     const scope = getActiveUserScope();
     const identity = `${scope}:${item.key}:${variant}`;
     const [resolved, setResolved] = useState<{ identity: string; url: string; failed?: boolean }>();
     const { key, resourceId, url, kind } = item;
     useEffect(() => {
-        let cancelled = false;
-        void taskResultMediaAccess({ key, resourceId, url, kind }, variant, getResourceAccess)
+        const controller = new AbortController();
+        void taskResultMediaAccess({ key, resourceId, url, kind }, variant, (storageKey, _purpose, requestedVariant) => waitForResourcePreview(storageKey, requestedVariant, controller.signal))
             .then((value) => {
-                if (!cancelled && scope === getActiveUserScope()) setResolved({ identity, url: resolveResourceAccessURL(value) });
+                if (!controller.signal.aborted && scope === getActiveUserScope()) setResolved({ identity, url: !resourceId && value.startsWith("/api/tasks/") ? value : resolveResourceAccessURL(value) });
             })
             .catch(() => {
-                if (!cancelled && scope === getActiveUserScope()) setResolved({ identity, url: "", failed: true });
+                if (!controller.signal.aborted && scope === getActiveUserScope()) setResolved({ identity, url: "", failed: true });
             });
-        return () => {
-            cancelled = true;
-        };
+        return () => controller.abort();
     }, [identity, key, resourceId, url, kind, variant, scope]);
-    if (resolved?.identity !== identity) return <div className="task-detail-empty">{t("library.tasks.detail.loading")}</div>;
-    if (resolved.failed) return <div className="task-detail-stage-unavailable">{t("library.tasks.row.previewUnavailable")}</div>;
-    return <MediaPreview src={resolved.url} kind={variant === "thumbnail" && resourceId ? "image" : kind} alt={alt} controls={controls} fallbackClassName="task-detail-stage-unavailable" />;
+    const media =
+        resolved?.identity !== identity ? (
+            <div className="task-detail-empty" role="status">
+                {t(variant === "playback" && resourceId ? "library.tasks.row.preparingPlayback" : "library.tasks.detail.loading")}
+            </div>
+        ) : resolved.failed ? (
+            <div className="task-detail-stage-unavailable">{t("library.tasks.row.previewUnavailable")}</div>
+        ) : (
+            <MediaPreview src={resolved.url} kind={variant === "thumbnail" && resourceId ? "image" : kind} alt={alt} controls={controls} className={className} fallbackClassName="task-detail-stage-unavailable" />
+        );
+    if (!item.early || variant === "thumbnail" || (resolved?.identity === identity && resolved.failed)) return media;
+    return (
+        <TaskEarlyMedia key={scope} previews={[item.early]} show={!resourceId || resolved?.identity !== identity}>
+            {media}
+        </TaskEarlyMedia>
+    );
 }
 
 function canQueryProviderTask(task: GenerationTask) {

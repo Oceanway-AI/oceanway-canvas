@@ -7,11 +7,17 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"os/exec"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/repository"
@@ -31,6 +37,41 @@ func TestStudioPiNativeMediaApprovalPreservesProtocolAndRequest(t *testing.T) {
 	}
 }
 
+func TestStudioPiGenerationAction(t *testing.T) {
+	for _, scenario := range []string{"v1_manual_first", "v1_approval_first", "v1_manual_lost", "v1_approval_lost"} {
+		t.Run(scenario, func(t *testing.T) { studioPiMediaApprovalScenario(t, scenario) })
+	}
+}
+
+func TestStudioPiGenerationActionPostgres(t *testing.T) {
+	if dsn := os.Getenv("STUDIO_TEST_GENERATION_RESUME_DB"); dsn != "" {
+		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		sql, err := db.DB()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer sql.Close()
+		gateway, err := platformintegration.NewGatewayFromEnv(os.Getenv)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resumed := &Service{repo: repository.New(db), dataDir: os.Getenv("STUDIO_TEST_GENERATION_DATA"), studioPlatform: gateway}
+		ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+		defer cancel()
+		task, err := resumed.waitStudioAgentGeneration(ctx, "user", os.Getenv("STUDIO_TEST_GENERATION_RUN"), os.Getenv("STUDIO_TEST_GENERATION_TASK"))
+		if err != nil || task == nil || task.Status != model.TaskStatusFailed {
+			t.Fatalf("process failed to resume original operation %v", err)
+		}
+		return
+	}
+	for _, scenario := range []string{"v1_manual_race_lost", "v1_approval_race_lost"} {
+		t.Run(scenario, func(t *testing.T) { studioPiMediaApprovalScenario(t, scenario, true) })
+	}
+}
+
 func TestStudioPiMediaPreviewDoesNotAuthorize(t *testing.T) {
 	studioPiMediaApprovalScenario(t, "preview_only")
 }
@@ -39,9 +80,16 @@ func TestStudioPiMediaRetainsApprovedReferenceInput(t *testing.T) {
 	studioPiMediaApprovalScenario(t, "reference_input")
 }
 
-func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
-	s, db, _, _ := creationTestService(t)
-	if err := db.AutoMigrate(&model.StudioExecution{}, &model.StudioMaterialReference{}); err != nil {
+func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ...bool) {
+	var s *Service
+	var db *gorm.DB
+	if len(usePostgres) > 0 && usePostgres[0] {
+		_, db = newProjectNameConflictPostgresService(t)
+		s, db, _, _ = creationTestServiceOnDatabase(t, db)
+	} else {
+		s, db, _, _ = creationTestService(t)
+	}
+	if err := db.AutoMigrate(&model.StudioExecution{}, &model.StudioMaterialReference{}, &model.StudioMediaAction{}, &model.StudioMediaActionAlias{}); err != nil {
 		t.Fatal(err)
 	}
 	s.legacyCloudAgentRootTask = false
@@ -50,6 +98,17 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	submits, recoveries := 0, 0
 	currentCapability, currentConnection := strings.Repeat("a", 64), int64(7)
 	catalog := studioAgentMediaFixtureCatalog
+	v1 := strings.HasPrefix(scenario, "v1_")
+	postedID := ""
+	postedLimit := ""
+	runRef := ""
+	race := strings.Contains(scenario, "race")
+	entered := make(chan struct{}, 1)
+	release := make(chan struct{}, 1)
+	var complete atomic.Bool
+	if v1 {
+		catalog = strings.Replace(catalog, `"id":"generate","protocol"`, `"id":"generate","media_generation_v1":true,"protocol"`, 1)
+	}
 	kind, submitPath := "image", "/internal/relay/images/generations"
 	nativeProtocol := ""
 	if strings.HasPrefix(scenario, "native_") {
@@ -120,6 +179,53 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 				quote.ConnectionRevision = 0
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": quote})
+		case v1 && strings.HasPrefix(r.URL.Path, "/internal/products/v1/media-generations"):
+
+			if r.Method == "POST" {
+				submits++
+				var in platformclient.MediaCommand
+				_ = json.NewDecoder(r.Body).Decode(&in)
+				if in.RequestID == "manual-next" {
+					if r.Header.Get("X-Platform-Execution-Authorization") != "" || r.Header.Get("Cookie") == "" || in.ProductTaskID == runRef {
+						t.Error("fresh manual action inherited old approval grant")
+					}
+					_ = json.NewEncoder(w).Encode(map[string]any{"request_id": in.RequestID, "task_id": "fresh-manual", "revision": 1, "execution_state": "accepted", "funds_state": "reserved", "outputs": []any{}})
+					return
+				}
+				if r.Header.Get("X-Platform-Execution-Authorization") != "exa_media_run" {
+					t.Error("winner lost original run authority")
+				}
+				postedID = in.RequestID
+				runRef = in.ProductTaskID
+				if in.Consumption != nil {
+					postedLimit = in.Consumption.WalletMaxPoints
+				}
+				if race {
+					entered <- struct{}{}
+					select {
+					case <-release:
+					case <-time.After(8 * time.Second):
+						t.Error("winning POST was not released")
+					}
+				}
+				if strings.HasSuffix(scenario, "lost") {
+					w.WriteHeader(503)
+					return
+				}
+			} else {
+				recoveries++
+				if r.Header.Get("X-Platform-Execution-Authorization") != "exa_media_run" {
+					t.Error("read lost original run authority")
+				}
+				if !strings.HasSuffix(r.URL.Path, "/"+postedID) {
+					t.Error("changed recovery id")
+				}
+			}
+			if complete.Load() {
+				_ = json.NewEncoder(w).Encode(map[string]any{"request_id": postedID, "task_id": "original-pi", "revision": 2, "execution_state": "failed", "funds_state": "released", "outputs": []any{}})
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"request_id": postedID, "task_id": "original-pi", "revision": 1, "execution_state": "running", "funds_state": "reserved", "outputs": []any{}, "retry_after_ms": 500})
 		case r.URL.Path == submitPath:
 			submits++
 			if nativeProtocol != "" && kind == "image" && r.Header.Get("Prefer") != "respond-async" {
@@ -391,6 +497,109 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string) {
 	// Hold the native waiter so this fixture can inspect the atomic queued checkpoint.
 	s.claimCloudAgentApprovalFollowUp(cloudAgentApprovalFollowUpKey(run.ID, approval))
 	defer s.releaseCloudAgentApprovalFollowUp(cloudAgentApprovalFollowUpKey(run.ID, approval))
+	if v1 {
+		// Exercise the actual action while the live Pi continuation is held.
+		s.approvedMediaClosed = true
+		others := []model.StudioMediaAction{{UserID: "user", ProjectID: "media-canvas", NodeID: "other-node", RunID: "other-run", ApprovalID: "other-approval"}, {UserID: "user", ProjectID: "different-canvas", NodeID: "image-node", RunID: "different-project-run", ApprovalID: "different-approval"}}
+		for _, other := range others {
+			if err := s.repo.OpenStudioMediaAction(other); err != nil {
+				t.Fatal(err)
+			}
+		}
+		manual := func() *model.Task {
+			req := CreateTaskRequest{CommandID: "manual-original", ProjectID: "media-canvas", Type: "canvas_image", Operation: "image", Prompt: "manual image", Model: "image-model", Platform: &StudioTaskOptions{ExpectedPriceVersion: "price-1", WalletMaxPoints: "0"}, Input: map[string]any{"mode": "image", "config": map[string]any{"model": "image-model", "channelId": StudioPlatformChannelID, "imageParameters": map[string]any{"count": 1, "size": "1:1"}}, "metadata": map[string]any{"nodeId": "batch-child", "sourceNodeId": "image-node", "studioPendingRunId": run.ID}}}
+			task, _, err := s.StudioCreateTask(context.Background(), "user", session, req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return task
+		}
+		approve := func() {
+			if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", quote.ID, nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		var winner *model.Task
+		manualFirst := strings.HasPrefix(scenario, "v1_manual")
+		if race {
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				if manualFirst {
+					winner = manual()
+				} else {
+					approve()
+				}
+			}()
+			select {
+			case <-entered:
+			case <-time.After(8 * time.Second):
+				t.Fatal("winning action did not dispatch")
+			}
+			if manualFirst {
+				approve()
+			} else {
+				winner = manual()
+			}
+			release <- struct{}{}
+			<-done
+		} else if manualFirst {
+			winner = manual()
+			approve()
+		} else {
+			approve()
+			winner = manual()
+		}
+		approve()
+		original, err := s.StudioTaskByCommand("user", "manual-original", "user")
+		if err != nil || original.ID != winner.ID {
+			t.Fatalf("manual alias lost %v %+v", err, original)
+		}
+		latest, _ := s.repo.CloudAgent("user", run.ID)
+		checkpoint, _ := cloudAgentDecode(latest)
+		if submits != 1 || runRef != run.ID || checkpoint.MediaTaskID != winner.ID || winner.PlatformGenerationRequest != postedID || latest.Status != "running" {
+			t.Fatalf("posts=%d request=%s ref=%s winner=%s active=%s state=%s", submits, postedID, runRef, winner.ID, checkpoint.MediaTaskID, latest.Status)
+		}
+		if manualFirst && (postedID != "manual-original" || postedLimit != "0") || !manualFirst && postedLimit != maximum {
+			t.Fatalf("changed winner scope %s", postedLimit)
+		}
+		complete.Store(true)
+		var got *model.Task
+		var e error
+		if race {
+			driver, ok := db.Dialector.(*postgres.Dialector)
+			if !ok {
+				t.Fatal("missing isolated PostgreSQL database")
+			}
+			child := exec.Command(os.Args[0], "-test.run=^TestStudioPiGenerationActionPostgres$", "-test.timeout=20s")
+			child.Env = append(os.Environ(), "STUDIO_TEST_GENERATION_RESUME_DB="+driver.Config.DSN, "STUDIO_TEST_GENERATION_DATA="+s.dataDir, "STUDIO_TEST_GENERATION_RUN="+run.ID, "STUDIO_TEST_GENERATION_TASK="+winner.ID)
+			for key, value := range env {
+				child.Env = append(child.Env, key+"="+value)
+			}
+			if output, err := child.CombinedOutput(); err != nil {
+				t.Fatalf("independent Studio process: %s", output)
+			}
+			got, e = s.repo.TaskForUser("user", winner.ID)
+		} else {
+			got, e = s.waitStudioAgentGeneration(context.Background(), "user", run.ID, winner.ID)
+		}
+		if e != nil || got.Status != model.TaskStatusFailed || submits != 1 || recoveries != 1 {
+			t.Fatalf("original waiter grant/ID recovery task=%v err=%v POST=%d GET=%d", got, e, submits, recoveries)
+		}
+		fresh := CreateTaskRequest{CommandID: "manual-next", ProjectID: "media-canvas", Type: "canvas_image", Operation: "image", Model: "image-model", Prompt: "new user generation", Platform: &StudioTaskOptions{WalletMaxPoints: "0", ExpectedPriceVersion: "price-1"}, Input: map[string]any{"mode": "image", "config": map[string]any{"model": "image-model", "channelId": StudioPlatformChannelID, "imageParameters": map[string]any{"count": 1, "size": "1:1"}}, "metadata": map[string]any{"nodeId": "image-node"}}}
+		newTask, _, err := s.StudioCreateTask(context.Background(), "user", session, fresh)
+		if err != nil || newTask == nil || newTask.ID == winner.ID || newTask.PlatformGenerationRequest != "manual-next" || submits != 2 {
+			t.Fatalf("fresh action reused completed winner %v", err)
+		}
+		for _, other := range others {
+			unchanged, e := s.repo.StudioMediaAction(other.UserID, other.RunID, other.ApprovalID)
+			if e != nil || unchanged.Winner != "" || unchanged.TaskID != "" {
+				t.Fatalf("unrelated approval changed %+v %v", unchanged, e)
+			}
+		}
+		return
+	}
+
 	if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", quote.ID, nil); err != nil {
 		t.Fatal(err)
 	}

@@ -21,6 +21,7 @@ type TaskExecutionDiagnostic struct {
 	FieldPath            string `json:"fieldPath,omitempty"`
 	TaskSubmitted        bool   `json:"taskSubmitted"`
 	SubmissionOutcome    string `json:"submissionOutcome"`
+	SubmissionHTTPStatus int    `json:"submissionHttpStatus,omitempty"`
 	RetryClass           string `json:"retryClass"`
 	SafeMessage          string `json:"safeMessage"`
 	DiagnosticID         string `json:"diagnosticId"`

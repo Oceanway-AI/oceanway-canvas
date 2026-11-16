@@ -192,7 +192,11 @@ func (s *Service) studioNativeMediaReferences(ctx context.Context, userID string
 			return BadAuthRequest("参考素材超出所选模型的文件限制")
 		}
 		resources[slot.Pointer] = append(resources[slot.Pointer], resource)
-		uri := "material://" + pin.AssetID + "/" + pin.VersionID
+		uris, err := platformclient.MediaReferenceURIs([]platformclient.MediaReference{{AssetID: pin.AssetID, VersionID: pin.VersionID}})
+		if err != nil {
+			return BadAuthRequest("参考素材版本无效")
+		}
+		uri := uris[0]
 		if err := studioAppendNativeReference(body, v, *slot, uri, resource.MimeType); err != nil {
 			return err
 		}
