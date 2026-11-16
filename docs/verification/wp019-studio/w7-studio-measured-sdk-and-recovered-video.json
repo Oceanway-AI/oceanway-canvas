@@ -1,0 +1,1734 @@
+{
+  "group": "w7-346f61-studio42-video-focus-probes",
+  "family": "video",
+  "requested": 3,
+  "source": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+  "platform": "346f61c824d61a0e66000187a68b0d81b96d3833",
+  "region": "Chromium container on W7 host",
+  "input": {
+    "asset": "asset_ec786933bb98e132d569b9c10bc20c1d4cb89401b78bc66e",
+    "version": "version_ec786933bb98e132d569b9c10bc20c1d4cb89401b78bc66e",
+    "file": "file_ec786933bb98e132d569b9c10bc20c1d4cb89401b78bc66e",
+    "sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf"
+  },
+  "started": "2026-11-16T10:05:19.782Z",
+  "finished": "2026-11-16T10:06:22.215Z",
+  "chromium": "156.0.8078.79",
+  "clock": {
+    "host_before": "2026-11-16T10:07:07.746Z",
+    "db_at": "2026-11-16T10:07:07.912Z",
+    "host_after": "2026-11-16T10:07:07.923Z",
+    "roundtrip_ms": 177.491,
+    "NTP_synchronized": true
+  },
+  "latency_definition": "Nearest-rank p95; missing or failed measurements sort last. Click is the trusted DOM click event and Platform receipt is the completion of the original Product v1 POST containing the durable receipt. Frame is requestVideoFrameCallback on the exact original preview task, formal Resource, or the visible assistant message whose ID and original command were committed in the pre-submit IndexedDB transaction. Standard estimates are actual editor-triggered product price reads; quote_* records a separate explicit complete consumption preview issued after the original receipt. Studio host traces correlate by HTTP response X-Request-ID, provider is the unique matching call in that host span.",
+  "summaries": {
+    "standard_estimate_platform": {
+      "group_size": 3,
+      "observed": 2,
+      "missing_or_failed": 1,
+      "p50_ms": 64.954,
+      "p95_ms": null,
+      "threshold_ms": 300,
+      "within_target": false
+    },
+    "standard_estimate_studio": {
+      "group_size": 3,
+      "observed": 2,
+      "missing_or_failed": 1,
+      "p50_ms": 83.0,
+      "p95_ms": null,
+      "threshold_ms": 300,
+      "within_target": false
+    },
+    "quote_platform": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 283.529,
+      "p95_ms": 366.016,
+      "threshold_ms": 300,
+      "within_target": false
+    },
+    "quote_studio": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 302.0,
+      "p95_ms": 383.0,
+      "threshold_ms": 300,
+      "within_target": false
+    },
+    "click_platform": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 626.19,
+      "p95_ms": 1215.214,
+      "threshold_ms": 1000,
+      "within_target": false
+    },
+    "click_browser": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 637,
+      "p95_ms": 1223,
+      "threshold_ms": 1000,
+      "within_target": false
+    },
+    "publication_frame": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 2088.098,
+      "p95_ms": 2236.085,
+      "threshold_ms": 5000,
+      "within_target": false
+    },
+    "locator_to_trusted": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 157,
+      "p95_ms": 322,
+      "threshold_ms": null,
+      "within_target": false
+    },
+    "click_to_idb_put": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 42,
+      "p95_ms": 76,
+      "threshold_ms": null,
+      "within_target": false
+    },
+    "idb_transaction": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 6,
+      "p95_ms": 13,
+      "threshold_ms": null,
+      "within_target": false
+    },
+    "click_to_xhr": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 56,
+      "p95_ms": 84,
+      "threshold_ms": null,
+      "within_target": false
+    },
+    "studio_duration": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 547.0,
+      "p95_ms": 1162.0,
+      "threshold_ms": null,
+      "within_target": false
+    },
+    "platform_duration": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 519.141,
+      "p95_ms": 909.151,
+      "threshold_ms": null,
+      "within_target": false
+    },
+    "click_to_gateway_receipt": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 969.878,
+      "p95_ms": 1499.942,
+      "threshold_ms": null,
+      "within_target": false
+    },
+    "click_to_supplier_start": {
+      "group_size": 3,
+      "observed": 3,
+      "missing_or_failed": 0,
+      "p50_ms": 1920.486,
+      "p95_ms": 2261.471,
+      "threshold_ms": null,
+      "within_target": false
+    }
+  },
+  "counts": {
+    "reserved_and_settled_zero": 3,
+    "one_supplier_attempt": 3,
+    "saved_outputs": 3,
+    "immutable_archived_files": 3,
+    "charged_original_bytes": 12651,
+    "studio_resources_pinned_to_platform_files": 3
+  },
+  "samples": [
+    {
+      "ordinal": 1,
+      "original_request": "b664ea6d-3ab3-413e-941b-b8f21f14ff8e",
+      "material_archive": [
+        {
+          "platform_http_observations": [],
+          "output_index": 0,
+          "archive_state": "saved",
+          "direct_original": true,
+          "archive_attempts": 1,
+          "archived_bytes": 4217,
+          "recorded_sha256": "cf9bfef1bcad035ad377c9dc61074de57ac9b4e65e583aa2571aab64ae214c8e",
+          "version_id": "v_c908275b9cf2177abb364dbe828d9fdf76e2f026b4057da516fa2697c692",
+          "asset_id": "a_c908275b9cf2177abb364dbe828d9fdf76e2f026b4057da516fa2697c692",
+          "file_id": "f_c908275b9cf2177abb364dbe828d9fdf76e2f026b4057da516fa2697c692",
+          "charged_original_bytes": 4217,
+          "stored_sha256": "cf9bfef1bcad035ad377c9dc61074de57ac9b4e65e583aa2571aab64ae214c8e",
+          "mime": "video/mp4",
+          "width": 1280,
+          "height": 720,
+          "duration_ms": 4000,
+          "task_output_binding": "binding_923d41c034f3c0400240fc260aaa11d5524d24ea40dd88d7",
+          "account_used_bytes_at_observation": 11556393,
+          "account_reserved_bytes_at_observation": 0
+        }
+      ],
+      "studio_task": "4816fac9-b1dc-5fc4-bcd8-345044e66243",
+      "platform_task": "media_033db2930cec94040936c2deb490261842cd896cb4374f92b99adefd1fe8ba35",
+      "locator_start_ms": 1794823535392,
+      "trusted_click_event_ms": 1794823535475,
+      "click_handler_ms": 1794823535494,
+      "original_indexeddb": [
+        {
+          "command": "b664ea6d-3ab3-413e-941b-b8f21f14ff8e",
+          "messageID": "LurXRMWD5XTy6P6KicmU8",
+          "bytes": 1543,
+          "putMs": 1794823535517,
+          "committedMs": 1794823535523
+        }
+      ],
+      "click_ms": 1794823535475,
+      "browser_send_ms": 1794823535531,
+      "browser_receipt_ms": 1794823536698,
+      "studio": {
+        "path": "/api/tasks",
+        "http": 200,
+        "ms": 1162.0,
+        "ended_ms": 1794823536696.287,
+        "ended_utc": "2026-11-16T10:05:36.696287628Z"
+      },
+      "platform": {
+        "path": "/internal/products/v1/media-generations",
+        "http": 202,
+        "ms": 909.151,
+        "ended_ms": 1794823536690.214,
+        "ended_utc": "2026-11-16T10:05:36.690214556Z"
+      },
+      "studio_quote": {
+        "path": "/api/tasks/preview",
+        "http": 200,
+        "ms": 295.0,
+        "ended_ms": 1794823545708.297,
+        "ended_utc": "2026-11-16T10:05:45.708297462Z"
+      },
+      "platform_quote": {
+        "path": "/api/platform/v1/products/studio/media/consumption-preview",
+        "http": 200,
+        "ms": 277.184,
+        "ended_ms": 1794823545707.271,
+        "ended_utc": "2026-11-16T10:05:45.707271932Z"
+      },
+      "frozen_input_sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf",
+      "live_input": [
+        {
+          "ordinal": 0,
+          "bytes": 773745,
+          "mime": "video/mp4",
+          "sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf"
+        }
+      ],
+      "gateway_public_id": "req_01a1e3d1-c14f-7064-b3a9-98ac14aaaab1",
+      "gateway_task_id": "task_01a1e3d1-c165-73ce-b62a-802f058830c3",
+      "gateway_accepted_at": "2026-11-16T10:05:36.974942+00:00",
+      "gateway_preparation_started_at": "2026-11-16T10:05:37.672926+00:00",
+      "gateway_preparation_complete_at": "2026-11-16T10:05:37.721946+00:00",
+      "gateway_permitted_at": "2026-11-16T10:05:37.736574+00:00",
+      "source_attempt_ids": [
+        "01a1e3d1-c44b-742d-8736-fd48894a22ee"
+      ],
+      "source_attempts": 1,
+      "supplier_input_bytes": [
+        {
+          "kind": "original_range",
+          "sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf",
+          "ranges": [
+            {
+              "range_start": 0,
+              "range_end": 65535,
+              "object_bytes": 773745,
+              "body_bytes": 65536,
+              "http": 206
+            },
+            {
+              "range_start": 65536,
+              "range_end": 773744,
+              "object_bytes": 773745,
+              "body_bytes": 708209,
+              "http": 206
+            }
+          ]
+        }
+      ],
+      "gateway_published_at": "2026-11-16T10:05:41.172902+00:00",
+      "gateway_output_bytes": 4217,
+      "delivery_read_requests": [
+        {
+          "output": "out_7dd53a2e69315726b58271b4492b5291",
+          "duration_s": 0.01,
+          "method": "GET",
+          "http": 206,
+          "bytes_sent": 4217,
+          "requested_range": "bytes=0-",
+          "content_range": "bytes 0-4216/4217",
+          "end_at": "2026-11-16T10:05:43.205Z"
+        },
+        {
+          "output": "out_7dd53a2e69315726b58271b4492b5291",
+          "duration_s": 0.006,
+          "method": "GET",
+          "http": 200,
+          "bytes_sent": 4217,
+          "requested_range": "",
+          "content_range": "",
+          "end_at": "2026-11-16T10:05:43.306Z"
+        }
+      ],
+      "delivery_gets": 2,
+      "delivery_bytes": 8434,
+      "initial_frame": {
+        "timeMs": 1794823543261,
+        "messageID": "LurXRMWD5XTy6P6KicmU8",
+        "messageCommand": "b664ea6d-3ab3-413e-941b-b8f21f14ff8e",
+        "hostTask": "4816fac9-b1dc-5fc4-bcd8-345044e66243",
+        "resource": null,
+        "mediaTime": 0,
+        "presentedFrames": 1,
+        "width": 1280,
+        "height": 720,
+        "displayed": true
+      },
+      "studio_observations": [
+        {
+          "atMs": 1794823538266,
+          "revision": 5,
+          "waitMs": 1500,
+          "early": [],
+          "stage": "running",
+          "funds": "reserved",
+          "outputs": [],
+          "projected": false
+        },
+        {
+          "atMs": 1794823539943,
+          "revision": 6,
+          "waitMs": 1500,
+          "early": [],
+          "stage": "running",
+          "funds": "reserved",
+          "outputs": [],
+          "projected": false
+        },
+        {
+          "atMs": 1794823541533,
+          "revision": 6,
+          "waitMs": 1500,
+          "early": [],
+          "stage": "running",
+          "funds": "reserved",
+          "outputs": [],
+          "projected": false
+        },
+        {
+          "atMs": 1794823543110,
+          "revision": 11,
+          "waitMs": 2000,
+          "early": [
+            0
+          ],
+          "stage": "running",
+          "funds": "settled",
+          "outputs": [
+            {
+              "index": 0,
+              "material": "saving",
+              "preview": "available",
+              "content": "available"
+            }
+          ],
+          "projected": false
+        },
+        {
+          "atMs": 1794823545172,
+          "revision": 20,
+          "waitMs": 0,
+          "early": [
+            0
+          ],
+          "stage": "running",
+          "funds": "settled",
+          "outputs": [
+            {
+              "index": 0,
+              "material": "saved",
+              "preview": "available",
+              "content": "available"
+            }
+          ],
+          "projected": false
+        },
+        {
+          "atMs": 1794823545299,
+          "revision": 20,
+          "waitMs": 0,
+          "early": [
+            0
+          ],
+          "stage": "succeeded",
+          "funds": "settled",
+          "outputs": [
+            {
+              "index": 0,
+              "material": "saved",
+              "preview": "available",
+              "content": "available"
+            }
+          ],
+          "projected": true
+        }
+      ],
+      "video_network": [
+        {
+          "hostTask": "4816fac9-b1dc-5fc4-bcd8-345044e66243",
+          "resource": null,
+          "kind": "studio_authorization",
+          "http": 307,
+          "atMs": 1794823543167,
+          "startMs": 1794823543109,
+          "firstByteMs": 1794823543161
+        },
+        {
+          "hostTask": "4816fac9-b1dc-5fc4-bcd8-345044e66243",
+          "resource": null,
+          "kind": "platform_authorization",
+          "http": 206,
+          "atMs": 1794823543212,
+          "startMs": 1794823543166,
+          "firstByteMs": 1794823543207
+        }
+      ],
+      "browser_video_states": [
+        {
+          "name": "waiting",
+          "atMs": 1794823543130,
+          "messageID": "LurXRMWD5XTy6P6KicmU8",
+          "messageCommand": "b664ea6d-3ab3-413e-941b-b8f21f14ff8e",
+          "hostTask": "4816fac9-b1dc-5fc4-bcd8-345044e66243",
+          "resource": null,
+          "readyState": 0
+        },
+        {
+          "name": "loadstart",
+          "atMs": 1794823543141,
+          "messageID": "LurXRMWD5XTy6P6KicmU8",
+          "messageCommand": "b664ea6d-3ab3-413e-941b-b8f21f14ff8e",
+          "hostTask": "4816fac9-b1dc-5fc4-bcd8-345044e66243",
+          "resource": null,
+          "readyState": 0
+        },
+        {
+          "name": "loadedmetadata",
+          "atMs": 1794823543218,
+          "messageID": "LurXRMWD5XTy6P6KicmU8",
+          "messageCommand": "b664ea6d-3ab3-413e-941b-b8f21f14ff8e",
+          "hostTask": "4816fac9-b1dc-5fc4-bcd8-345044e66243",
+          "resource": null,
+          "readyState": 1
+        },
+        {
+          "name": "loadeddata",
+          "atMs": 1794823543226,
+          "messageID": "LurXRMWD5XTy6P6KicmU8",
+          "messageCommand": "b664ea6d-3ab3-413e-941b-b8f21f14ff8e",
+          "hostTask": "4816fac9-b1dc-5fc4-bcd8-345044e66243",
+          "resource": null,
+          "readyState": 4
+        },
+        {
+          "name": "canplay",
+          "atMs": 1794823543226,
+          "messageID": "LurXRMWD5XTy6P6KicmU8",
+          "messageCommand": "b664ea6d-3ab3-413e-941b-b8f21f14ff8e",
+          "hostTask": "4816fac9-b1dc-5fc4-bcd8-345044e66243",
+          "resource": null,
+          "readyState": 4
+        },
+        {
+          "name": "playing",
+          "atMs": 1794823543226,
+          "messageID": "LurXRMWD5XTy6P6KicmU8",
+          "messageCommand": "b664ea6d-3ab3-413e-941b-b8f21f14ff8e",
+          "hostTask": "4816fac9-b1dc-5fc4-bcd8-345044e66243",
+          "resource": null,
+          "readyState": 4
+        }
+      ],
+      "renderer_frames_before_send": [],
+      "click_to_platform_ms": 1215.214,
+      "publication_to_frame_ms": 2088.098,
+      "confirmation": true,
+      "activation_quote_count": 0,
+      "original_posts": 1,
+      "close_reopen": {
+        "sameOriginal": true,
+        "resources": [
+          "632c42f1-6c2f-54d0-855f-506fdda6cae0"
+        ],
+        "newCommands": 0,
+        "newAdoptions": 0,
+        "atMs": 1794823550137
+      },
+      "close_reopen_error": null,
+      "studio_material_references": [
+        {
+          "resource_id": "632c42f1-6c2f-54d0-855f-506fdda6cae0",
+          "asset_id": "a_c908275b9cf2177abb364dbe828d9fdf76e2f026b4057da516fa2697c692",
+          "version_id": "v_c908275b9cf2177abb364dbe828d9fdf76e2f026b4057da516fa2697c692",
+          "file_id": "f_c908275b9cf2177abb364dbe828d9fdf76e2f026b4057da516fa2697c692",
+          "sha256": "cf9bfef1bcad035ad377c9dc61074de57ac9b4e65e583aa2571aab64ae214c8e",
+          "byte_length": "4217",
+          "binding_id": "binding_466f5ba82874f3f7e655444cd204f4afbe92d7ea5643560a",
+          "size": 4217,
+          "width": 1280,
+          "height": 720,
+          "duration_ms": 4000,
+          "mime_type": "video/mp4"
+        }
+      ],
+      "original_outputs": [
+        {
+          "index": 0,
+          "kind": "video",
+          "materialState": "saved",
+          "contentState": "available",
+          "previewState": "available",
+          "resourceId": "632c42f1-6c2f-54d0-855f-506fdda6cae0",
+          "failureCode": null,
+          "bytes": 4217,
+          "width": 1280,
+          "height": 720,
+          "durationMs": 4000
+        }
+      ],
+      "funds": {
+        "operation_id": "op_b2bb9c967155837f3be5ea8b84fc6230be8d3b3acaa649b3",
+        "funds_state": "settled",
+        "reserved_points": "0",
+        "settled_points": "0",
+        "reserved_quota": "0",
+        "settled_quota": "0",
+        "ledger_rows": "2"
+      },
+      "error": null,
+      "quote_http": 200,
+      "browser_http": 200,
+      "editor_estimates": [],
+      "studio_standard_estimate": null,
+      "platform_standard_estimate": null,
+      "frame_linked_by_original_assistant": true,
+      "observed_sdk_clock_epoch_us": {
+        "host_trace": "req-b8aa84c13c32a0332ffd83f1",
+        "identity_trace": "202611161005355440994818268d9d6w7SQqItj",
+        "identity_start": 1794823535534112,
+        "identity_completed": 1794823535769283,
+        "sdk_entered": 1794823535780153,
+        "native_http_written": 1794823535780309,
+        "native_http_first_response_byte": 1794823536690475,
+        "sdk_returned": 1794823536690779
+      },
+      "focused_video_events": [
+        {
+          "messageID": "LurXRMWD5XTy6P6KicmU8",
+          "messageCommand": "b664ea6d-3ab3-413e-941b-b8f21f14ff8e",
+          "seenMs": 1794823543092,
+          "tag": "current-result",
+          "states": [
+            {
+              "name": "waiting",
+              "atMs": 1794823543111,
+              "connected": true,
+              "ready": 0,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "loadstart",
+              "atMs": 1794823543141,
+              "connected": true,
+              "ready": 0,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "loadedmetadata",
+              "atMs": 1794823543214,
+              "connected": true,
+              "ready": 1,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "loadeddata",
+              "atMs": 1794823543226,
+              "connected": true,
+              "ready": 4,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "canplay",
+              "atMs": 1794823543226,
+              "connected": true,
+              "ready": 4,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "playing",
+              "atMs": 1794823543226,
+              "connected": true,
+              "ready": 4,
+              "paused": false,
+              "visible": true,
+              "error": null
+            }
+          ],
+          "displayed": true,
+          "play": "resolved"
+        }
+      ],
+      "segments_ms": {
+        "trusted_click_to_xhr": 56,
+        "live_identity": 235.171,
+        "post_identity_to_sdk": 10.87,
+        "sdk_entry_to_written": 0.156,
+        "written_to_gin_start": 0.754,
+        "platform_gin": 909.151,
+        "gin_end_to_first_byte": 0.261,
+        "sdk_first_byte_to_return": 0.304,
+        "sdk_return_to_host_return": 5.508,
+        "host_return_to_browser": 1.713
+      }
+    },
+    {
+      "ordinal": 2,
+      "original_request": "9f329c57-b1b0-42cf-9be0-af7c7f703c6c",
+      "material_archive": [
+        {
+          "platform_http_observations": [],
+          "output_index": 0,
+          "archive_state": "saved",
+          "direct_original": true,
+          "archive_attempts": 1,
+          "archived_bytes": 4217,
+          "recorded_sha256": "cf9bfef1bcad035ad377c9dc61074de57ac9b4e65e583aa2571aab64ae214c8e",
+          "version_id": "v_726e0f3212e6abdf1165854ec8f0abfcccc3c926ac793adef83b133c6a75",
+          "asset_id": "a_726e0f3212e6abdf1165854ec8f0abfcccc3c926ac793adef83b133c6a75",
+          "file_id": "f_726e0f3212e6abdf1165854ec8f0abfcccc3c926ac793adef83b133c6a75",
+          "charged_original_bytes": 4217,
+          "stored_sha256": "cf9bfef1bcad035ad377c9dc61074de57ac9b4e65e583aa2571aab64ae214c8e",
+          "mime": "video/mp4",
+          "width": 1280,
+          "height": 720,
+          "duration_ms": 4000,
+          "task_output_binding": "binding_7ad550b846309ab446e2492c3150b4f830c102f08aae1ef9",
+          "account_used_bytes_at_observation": 11556393,
+          "account_reserved_bytes_at_observation": 0
+        }
+      ],
+      "studio_task": "70bf1de5-1d20-5a1d-9c42-3734259293fa",
+      "platform_task": "media_f12439805ee9c4552d1d260c3ad94a0b801e9da2f5777b1c714fffbcc1caaf65",
+      "locator_start_ms": 1794823560312,
+      "trusted_click_event_ms": 1794823560469,
+      "click_handler_ms": 1794823560479,
+      "original_indexeddb": [
+        {
+          "command": "9f329c57-b1b0-42cf-9be0-af7c7f703c6c",
+          "messageID": "bakI6c14wrOxuYzayWBoh",
+          "bytes": 3363,
+          "putMs": 1794823560545,
+          "committedMs": 1794823560547
+        }
+      ],
+      "click_ms": 1794823560469,
+      "browser_send_ms": 1794823560553,
+      "browser_receipt_ms": 1794823561106,
+      "studio": {
+        "path": "/api/tasks",
+        "http": 200,
+        "ms": 547.0,
+        "ended_ms": 1794823561103.344,
+        "ended_utc": "2026-11-16T10:06:01.103344187Z"
+      },
+      "platform": {
+        "path": "/internal/products/v1/media-generations",
+        "http": 202,
+        "ms": 519.141,
+        "ended_ms": 1794823561095.19,
+        "ended_utc": "2026-11-16T10:06:01.095190196Z"
+      },
+      "studio_quote": {
+        "path": "/api/tasks/preview",
+        "http": 200,
+        "ms": 383.0,
+        "ended_ms": 1794823570154.695,
+        "ended_utc": "2026-11-16T10:06:10.154695582Z"
+      },
+      "platform_quote": {
+        "path": "/api/platform/v1/products/studio/media/consumption-preview",
+        "http": 200,
+        "ms": 366.016,
+        "ended_ms": 1794823570153.866,
+        "ended_utc": "2026-11-16T10:06:10.153866772Z"
+      },
+      "frozen_input_sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf",
+      "live_input": [
+        {
+          "ordinal": 0,
+          "bytes": 773745,
+          "mime": "video/mp4",
+          "sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf"
+        }
+      ],
+      "gateway_public_id": "req_01a1e3d2-20df-701b-a0d9-4731a11bac90",
+      "gateway_task_id": "task_01a1e3d2-20e8-7aaa-b2f6-b782609807fe",
+      "gateway_accepted_at": "2026-11-16T10:06:01.438878+00:00",
+      "gateway_preparation_started_at": "2026-11-16T10:06:02.344692+00:00",
+      "gateway_preparation_complete_at": "2026-11-16T10:06:02.363417+00:00",
+      "gateway_permitted_at": "2026-11-16T10:06:02.389598+00:00",
+      "source_attempt_ids": [
+        "01a1e3d2-2498-70f7-b45f-e47b6daca038"
+      ],
+      "source_attempts": 1,
+      "supplier_input_bytes": [
+        {
+          "kind": "original_range",
+          "sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf",
+          "ranges": [
+            {
+              "range_start": 0,
+              "range_end": 65535,
+              "object_bytes": 773745,
+              "body_bytes": 65536,
+              "http": 206
+            },
+            {
+              "range_start": 65536,
+              "range_end": 773744,
+              "object_bytes": 773745,
+              "body_bytes": 708209,
+              "http": 206
+            }
+          ]
+        }
+      ],
+      "gateway_published_at": "2026-11-16T10:06:05.349915+00:00",
+      "gateway_output_bytes": 4217,
+      "delivery_read_requests": [
+        {
+          "output": "out_667c6e4769485e23a6230b69ece755d0",
+          "duration_s": 0.005,
+          "method": "GET",
+          "http": 200,
+          "bytes_sent": 4217,
+          "requested_range": "",
+          "content_range": "",
+          "end_at": "2026-11-16T10:06:07.305Z"
+        },
+        {
+          "output": "out_667c6e4769485e23a6230b69ece755d0",
+          "duration_s": 0.004,
+          "method": "GET",
+          "http": 206,
+          "bytes_sent": 4217,
+          "requested_range": "bytes=0-",
+          "content_range": "bytes 0-4216/4217",
+          "end_at": "2026-11-16T10:06:07.558Z"
+        }
+      ],
+      "delivery_gets": 2,
+      "delivery_bytes": 8434,
+      "initial_frame": {
+        "timeMs": 1794823567586,
+        "messageID": "bakI6c14wrOxuYzayWBoh",
+        "messageCommand": "9f329c57-b1b0-42cf-9be0-af7c7f703c6c",
+        "hostTask": "70bf1de5-1d20-5a1d-9c42-3734259293fa",
+        "resource": null,
+        "mediaTime": 0,
+        "presentedFrames": 1,
+        "width": 1280,
+        "height": 720,
+        "displayed": true
+      },
+      "studio_observations": [
+        {
+          "atMs": 1794823562663,
+          "revision": 5,
+          "waitMs": 1500,
+          "early": [],
+          "stage": "running",
+          "funds": "reserved",
+          "outputs": [],
+          "projected": false
+        },
+        {
+          "atMs": 1794823564221,
+          "revision": 6,
+          "waitMs": 1500,
+          "early": [],
+          "stage": "running",
+          "funds": "reserved",
+          "outputs": [],
+          "projected": false
+        },
+        {
+          "atMs": 1794823565787,
+          "revision": 6,
+          "waitMs": 1500,
+          "early": [],
+          "stage": "running",
+          "funds": "reserved",
+          "outputs": [],
+          "projected": false
+        },
+        {
+          "atMs": 1794823567343,
+          "revision": 11,
+          "waitMs": 2000,
+          "early": [
+            0
+          ],
+          "stage": "running",
+          "funds": "settled",
+          "outputs": [
+            {
+              "index": 0,
+              "material": "saving",
+              "preview": "available",
+              "content": "available"
+            }
+          ],
+          "projected": false
+        },
+        {
+          "atMs": 1794823569395,
+          "revision": 22,
+          "waitMs": 0,
+          "early": [
+            0
+          ],
+          "stage": "running",
+          "funds": "settled",
+          "outputs": [
+            {
+              "index": 0,
+              "material": "saved",
+              "preview": "available",
+              "content": "available"
+            }
+          ],
+          "projected": false
+        },
+        {
+          "atMs": 1794823569505,
+          "revision": 22,
+          "waitMs": 0,
+          "early": [
+            0
+          ],
+          "stage": "succeeded",
+          "funds": "settled",
+          "outputs": [
+            {
+              "index": 0,
+              "material": "saved",
+              "preview": "available",
+              "content": "available"
+            }
+          ],
+          "projected": true
+        }
+      ],
+      "video_network": [
+        {
+          "hostTask": "70bf1de5-1d20-5a1d-9c42-3734259293fa",
+          "resource": null,
+          "kind": "studio_authorization",
+          "http": 307,
+          "atMs": 1794823567370,
+          "startMs": 1794823567330,
+          "firstByteMs": 1794823567368
+        },
+        {
+          "hostTask": "70bf1de5-1d20-5a1d-9c42-3734259293fa",
+          "resource": null,
+          "kind": "platform_authorization",
+          "http": 206,
+          "atMs": 1794823567563,
+          "startMs": 1794823567369,
+          "firstByteMs": 1794823567560
+        }
+      ],
+      "browser_video_states": [
+        {
+          "name": "waiting",
+          "atMs": 1794823567352,
+          "messageID": "bakI6c14wrOxuYzayWBoh",
+          "messageCommand": "9f329c57-b1b0-42cf-9be0-af7c7f703c6c",
+          "hostTask": "70bf1de5-1d20-5a1d-9c42-3734259293fa",
+          "resource": null,
+          "readyState": 0
+        },
+        {
+          "name": "loadstart",
+          "atMs": 1794823567353,
+          "messageID": "bakI6c14wrOxuYzayWBoh",
+          "messageCommand": "9f329c57-b1b0-42cf-9be0-af7c7f703c6c",
+          "hostTask": "70bf1de5-1d20-5a1d-9c42-3734259293fa",
+          "resource": null,
+          "readyState": 0
+        },
+        {
+          "name": "loadedmetadata",
+          "atMs": 1794823567570,
+          "messageID": "bakI6c14wrOxuYzayWBoh",
+          "messageCommand": "9f329c57-b1b0-42cf-9be0-af7c7f703c6c",
+          "hostTask": "70bf1de5-1d20-5a1d-9c42-3734259293fa",
+          "resource": null,
+          "readyState": 1
+        },
+        {
+          "name": "loadeddata",
+          "atMs": 1794823567592,
+          "messageID": "bakI6c14wrOxuYzayWBoh",
+          "messageCommand": "9f329c57-b1b0-42cf-9be0-af7c7f703c6c",
+          "hostTask": "70bf1de5-1d20-5a1d-9c42-3734259293fa",
+          "resource": null,
+          "readyState": 4
+        },
+        {
+          "name": "canplay",
+          "atMs": 1794823567592,
+          "messageID": "bakI6c14wrOxuYzayWBoh",
+          "messageCommand": "9f329c57-b1b0-42cf-9be0-af7c7f703c6c",
+          "hostTask": "70bf1de5-1d20-5a1d-9c42-3734259293fa",
+          "resource": null,
+          "readyState": 4
+        },
+        {
+          "name": "playing",
+          "atMs": 1794823567593,
+          "messageID": "bakI6c14wrOxuYzayWBoh",
+          "messageCommand": "9f329c57-b1b0-42cf-9be0-af7c7f703c6c",
+          "hostTask": "70bf1de5-1d20-5a1d-9c42-3734259293fa",
+          "resource": null,
+          "readyState": 4
+        }
+      ],
+      "renderer_frames_before_send": [
+        {
+          "startMs": 1794823560463,
+          "durationMs": 104,
+          "blockingMs": 0,
+          "styleLayoutMs": 0
+        }
+      ],
+      "click_to_platform_ms": 626.19,
+      "publication_to_frame_ms": 2236.085,
+      "confirmation": true,
+      "activation_quote_count": 0,
+      "original_posts": 1,
+      "close_reopen": null,
+      "close_reopen_error": null,
+      "studio_material_references": [
+        {
+          "resource_id": "d8f35cc1-e498-59f0-b092-c202542f16cf",
+          "asset_id": "a_726e0f3212e6abdf1165854ec8f0abfcccc3c926ac793adef83b133c6a75",
+          "version_id": "v_726e0f3212e6abdf1165854ec8f0abfcccc3c926ac793adef83b133c6a75",
+          "file_id": "f_726e0f3212e6abdf1165854ec8f0abfcccc3c926ac793adef83b133c6a75",
+          "sha256": "cf9bfef1bcad035ad377c9dc61074de57ac9b4e65e583aa2571aab64ae214c8e",
+          "byte_length": "4217",
+          "binding_id": "binding_4f153c62b49b6e04593a80328be7a35460dd24645ad6decb",
+          "size": 4217,
+          "width": 1280,
+          "height": 720,
+          "duration_ms": 4000,
+          "mime_type": "video/mp4"
+        }
+      ],
+      "original_outputs": [
+        {
+          "index": 0,
+          "kind": "video",
+          "materialState": "saved",
+          "contentState": "available",
+          "previewState": "available",
+          "resourceId": "d8f35cc1-e498-59f0-b092-c202542f16cf",
+          "failureCode": null,
+          "bytes": 4217,
+          "width": 1280,
+          "height": 720,
+          "durationMs": 4000
+        }
+      ],
+      "funds": {
+        "operation_id": "op_0f7b56cae813af81bda4884b4ee50dc68978a5694b249a17",
+        "funds_state": "settled",
+        "reserved_points": "0",
+        "settled_points": "0",
+        "reserved_quota": "0",
+        "settled_quota": "0",
+        "ledger_rows": "2"
+      },
+      "error": null,
+      "quote_http": 200,
+      "browser_http": 200,
+      "editor_estimates": [
+        {
+          "trace": "req-6f601e5378c04e3073ade52f",
+          "http": 200,
+          "code": 0,
+          "state": "available",
+          "points": "0",
+          "variant": "ef23ef7a5d8468bbd8f5a17d0898138b5568ec87a54d758c9842f868f15caff8",
+          "price": "fadde6c641df1a9dff8fa56edece01d0afc8d7b56d77a0086fc19fa702760007",
+          "atMs": 1794823560669
+        }
+      ],
+      "studio_standard_estimate": {
+        "path": "/api/tasks/estimate",
+        "http": 200,
+        "ms": 83.0,
+        "ended_ms": 1794823560628.203,
+        "ended_utc": "2026-11-16T10:06:00.628203412Z"
+      },
+      "platform_standard_estimate": {
+        "path": "/api/platform/v1/products/studio/media/price-preview",
+        "http": 200,
+        "ms": 64.954,
+        "ended_ms": 1794823560626.045,
+        "ended_utc": "2026-11-16T10:06:00.626045440Z"
+      },
+      "frame_linked_by_original_assistant": true,
+      "observed_sdk_clock_epoch_us": {
+        "host_trace": "req-7140943f41e4834f63975432",
+        "identity_trace": "202611161006005566856058268d9d6Ch4tycBS",
+        "identity_start": 1794823560555961,
+        "identity_completed": 1794823560566265,
+        "sdk_entered": 1794823560574667,
+        "native_http_written": 1794823560574828,
+        "native_http_first_response_byte": 1794823561098788,
+        "sdk_returned": 1794823561098963
+      },
+      "focused_video_events": [
+        {
+          "messageID": "bakI6c14wrOxuYzayWBoh",
+          "messageCommand": "9f329c57-b1b0-42cf-9be0-af7c7f703c6c",
+          "seenMs": 1794823567323,
+          "tag": "current-result",
+          "states": [
+            {
+              "name": "waiting",
+              "atMs": 1794823567345,
+              "connected": true,
+              "ready": 0,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "loadstart",
+              "atMs": 1794823567353,
+              "connected": true,
+              "ready": 0,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "loadedmetadata",
+              "atMs": 1794823567565,
+              "connected": true,
+              "ready": 1,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "loadeddata",
+              "atMs": 1794823567592,
+              "connected": true,
+              "ready": 4,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "canplay",
+              "atMs": 1794823567592,
+              "connected": true,
+              "ready": 4,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "playing",
+              "atMs": 1794823567593,
+              "connected": true,
+              "ready": 4,
+              "paused": false,
+              "visible": true,
+              "error": null
+            }
+          ],
+          "displayed": true,
+          "play": "resolved"
+        }
+      ],
+      "segments_ms": {
+        "trusted_click_to_xhr": 84,
+        "live_identity": 10.304,
+        "post_identity_to_sdk": 8.402,
+        "sdk_entry_to_written": 0.161,
+        "written_to_gin_start": 1.221,
+        "platform_gin": 519.141,
+        "gin_end_to_first_byte": 3.598,
+        "sdk_first_byte_to_return": 0.175,
+        "sdk_return_to_host_return": 4.381,
+        "host_return_to_browser": 2.656
+      }
+    },
+    {
+      "ordinal": 3,
+      "original_request": "6fc9517a-97a0-4584-8eb5-08f090214a48",
+      "material_archive": [
+        {
+          "platform_http_observations": [],
+          "output_index": 0,
+          "archive_state": "saved",
+          "direct_original": true,
+          "archive_attempts": 1,
+          "archived_bytes": 4217,
+          "recorded_sha256": "cf9bfef1bcad035ad377c9dc61074de57ac9b4e65e583aa2571aab64ae214c8e",
+          "version_id": "v_bea70f375c9d47f0cc0ca53bddc411314baf962f98f75057fc66c37aa966",
+          "asset_id": "a_bea70f375c9d47f0cc0ca53bddc411314baf962f98f75057fc66c37aa966",
+          "file_id": "f_bea70f375c9d47f0cc0ca53bddc411314baf962f98f75057fc66c37aa966",
+          "charged_original_bytes": 4217,
+          "stored_sha256": "cf9bfef1bcad035ad377c9dc61074de57ac9b4e65e583aa2571aab64ae214c8e",
+          "mime": "video/mp4",
+          "width": 1280,
+          "height": 720,
+          "duration_ms": 4000,
+          "task_output_binding": "binding_c00412815eb6a155ecf4f1f50ee06b45ee7d44a762a1ac9b",
+          "account_used_bytes_at_observation": 11556393,
+          "account_reserved_bytes_at_observation": 0
+        }
+      ],
+      "studio_task": "c28f4c76-6e46-5dfc-aee6-e25e232d6378",
+      "platform_task": "media_82c21c82e0499e0f6a59c50a4015acde2d2c0bd9b51a47697a6b6ef1765d8fe6",
+      "locator_start_ms": 1794823572168,
+      "trusted_click_event_ms": 1794823572490,
+      "click_handler_ms": 1794823572499,
+      "original_indexeddb": [
+        {
+          "command": "6fc9517a-97a0-4584-8eb5-08f090214a48",
+          "messageID": "X-KKRQWkg6RtQ34NKxQUp",
+          "bytes": 5183,
+          "putMs": 1794823572500,
+          "committedMs": 1794823572513
+        }
+      ],
+      "click_ms": 1794823572490,
+      "browser_send_ms": 1794823572516,
+      "browser_receipt_ms": 1794823573028,
+      "studio": {
+        "path": "/api/tasks",
+        "http": 200,
+        "ms": 506.0,
+        "ended_ms": 1794823573026.249,
+        "ended_utc": "2026-11-16T10:06:13.026249486Z"
+      },
+      "platform": {
+        "path": "/internal/products/v1/media-generations",
+        "http": 202,
+        "ms": 482.438,
+        "ended_ms": 1794823573017.48,
+        "ended_utc": "2026-11-16T10:06:13.017480717Z"
+      },
+      "studio_quote": {
+        "path": "/api/tasks/preview",
+        "http": 200,
+        "ms": 302.0,
+        "ended_ms": 1794823582019.36,
+        "ended_utc": "2026-11-16T10:06:22.019360622Z"
+      },
+      "platform_quote": {
+        "path": "/api/platform/v1/products/studio/media/consumption-preview",
+        "http": 200,
+        "ms": 283.529,
+        "ended_ms": 1794823582018.836,
+        "ended_utc": "2026-11-16T10:06:22.018836725Z"
+      },
+      "frozen_input_sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf",
+      "live_input": [
+        {
+          "ordinal": 0,
+          "bytes": 773745,
+          "mime": "video/mp4",
+          "sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf"
+        }
+      ],
+      "gateway_public_id": "req_01a1e3d2-4fc5-71a1-99e3-36ac04adf51b",
+      "gateway_task_id": "task_01a1e3d2-4fd3-71f2-98ce-9b96fea79a03",
+      "gateway_accepted_at": "2026-11-16T10:06:13.44492+00:00",
+      "gateway_preparation_started_at": "2026-11-16T10:06:13.891162+00:00",
+      "gateway_preparation_complete_at": "2026-11-16T10:06:13.920996+00:00",
+      "gateway_permitted_at": "2026-11-16T10:06:13.946268+00:00",
+      "source_attempt_ids": [
+        "01a1e3d2-51c1-77df-8f69-8e3b0fec56eb"
+      ],
+      "source_attempts": 1,
+      "supplier_input_bytes": [
+        {
+          "kind": "original_range",
+          "sha256": "2f9dbf3d07a56e71d58bbb6eeedbcd3c95cde41caffc160d0574b2193e22bddf",
+          "ranges": [
+            {
+              "range_start": 0,
+              "range_end": 65535,
+              "object_bytes": 773745,
+              "body_bytes": 65536,
+              "http": 206
+            },
+            {
+              "range_start": 65536,
+              "range_end": 773744,
+              "object_bytes": 773745,
+              "body_bytes": 708209,
+              "http": 206
+            }
+          ]
+        }
+      ],
+      "gateway_published_at": "2026-11-16T10:06:17.516466+00:00",
+      "gateway_output_bytes": 4217,
+      "delivery_read_requests": [
+        {
+          "output": "out_50e816004ed2578c85d89f3758272094",
+          "duration_s": 0.005,
+          "method": "GET",
+          "http": 200,
+          "bytes_sent": 4217,
+          "requested_range": "",
+          "content_range": "",
+          "end_at": "2026-11-16T10:06:19.306Z"
+        },
+        {
+          "output": "out_50e816004ed2578c85d89f3758272094",
+          "duration_s": 0.004,
+          "method": "GET",
+          "http": 206,
+          "bytes_sent": 4217,
+          "requested_range": "bytes=0-",
+          "content_range": "bytes 0-4216/4217",
+          "end_at": "2026-11-16T10:06:19.327Z"
+        }
+      ],
+      "delivery_gets": 2,
+      "delivery_bytes": 8434,
+      "initial_frame": {
+        "timeMs": 1794823579350,
+        "messageID": "X-KKRQWkg6RtQ34NKxQUp",
+        "messageCommand": "6fc9517a-97a0-4584-8eb5-08f090214a48",
+        "hostTask": "c28f4c76-6e46-5dfc-aee6-e25e232d6378",
+        "resource": null,
+        "mediaTime": 0,
+        "presentedFrames": 1,
+        "width": 1280,
+        "height": 720,
+        "displayed": true
+      },
+      "studio_observations": [
+        {
+          "atMs": 1794823574599,
+          "revision": 5,
+          "waitMs": 1500,
+          "early": [],
+          "stage": "running",
+          "funds": "reserved",
+          "outputs": [],
+          "projected": false
+        },
+        {
+          "atMs": 1794823576159,
+          "revision": 6,
+          "waitMs": 1500,
+          "early": [],
+          "stage": "running",
+          "funds": "reserved",
+          "outputs": [],
+          "projected": false
+        },
+        {
+          "atMs": 1794823577721,
+          "revision": 6,
+          "waitMs": 1500,
+          "early": [],
+          "stage": "running",
+          "funds": "reserved",
+          "outputs": [],
+          "projected": false
+        },
+        {
+          "atMs": 1794823579260,
+          "revision": 11,
+          "waitMs": 2000,
+          "early": [
+            0
+          ],
+          "stage": "running",
+          "funds": "settled",
+          "outputs": [
+            {
+              "index": 0,
+              "material": "saving",
+              "preview": "available",
+              "content": "available"
+            }
+          ],
+          "projected": false
+        },
+        {
+          "atMs": 1794823581289,
+          "revision": 22,
+          "waitMs": 0,
+          "early": [
+            0
+          ],
+          "stage": "running",
+          "funds": "settled",
+          "outputs": [
+            {
+              "index": 0,
+              "material": "saved",
+              "preview": "available",
+              "content": "available"
+            }
+          ],
+          "projected": false
+        },
+        {
+          "atMs": 1794823581364,
+          "revision": 22,
+          "waitMs": 0,
+          "early": [
+            0
+          ],
+          "stage": "succeeded",
+          "funds": "settled",
+          "outputs": [
+            {
+              "index": 0,
+              "material": "saved",
+              "preview": "available",
+              "content": "available"
+            }
+          ],
+          "projected": true
+        }
+      ],
+      "video_network": [
+        {
+          "hostTask": "c28f4c76-6e46-5dfc-aee6-e25e232d6378",
+          "resource": null,
+          "kind": "studio_authorization",
+          "http": 307,
+          "atMs": 1794823579309,
+          "startMs": 1794823579261,
+          "firstByteMs": 1794823579306
+        },
+        {
+          "hostTask": "c28f4c76-6e46-5dfc-aee6-e25e232d6378",
+          "resource": null,
+          "kind": "platform_authorization",
+          "http": 206,
+          "atMs": 1794823579331,
+          "startMs": 1794823579308,
+          "firstByteMs": 1794823579329
+        }
+      ],
+      "browser_video_states": [
+        {
+          "name": "waiting",
+          "atMs": 1794823579276,
+          "messageID": "X-KKRQWkg6RtQ34NKxQUp",
+          "messageCommand": "6fc9517a-97a0-4584-8eb5-08f090214a48",
+          "hostTask": "c28f4c76-6e46-5dfc-aee6-e25e232d6378",
+          "resource": null,
+          "readyState": 0
+        },
+        {
+          "name": "loadstart",
+          "atMs": 1794823579277,
+          "messageID": "X-KKRQWkg6RtQ34NKxQUp",
+          "messageCommand": "6fc9517a-97a0-4584-8eb5-08f090214a48",
+          "hostTask": "c28f4c76-6e46-5dfc-aee6-e25e232d6378",
+          "resource": null,
+          "readyState": 0
+        },
+        {
+          "name": "loadedmetadata",
+          "atMs": 1794823579343,
+          "messageID": "X-KKRQWkg6RtQ34NKxQUp",
+          "messageCommand": "6fc9517a-97a0-4584-8eb5-08f090214a48",
+          "hostTask": "c28f4c76-6e46-5dfc-aee6-e25e232d6378",
+          "resource": null,
+          "readyState": 1
+        },
+        {
+          "name": "loadeddata",
+          "atMs": 1794823579346,
+          "messageID": "X-KKRQWkg6RtQ34NKxQUp",
+          "messageCommand": "6fc9517a-97a0-4584-8eb5-08f090214a48",
+          "hostTask": "c28f4c76-6e46-5dfc-aee6-e25e232d6378",
+          "resource": null,
+          "readyState": 4
+        },
+        {
+          "name": "canplay",
+          "atMs": 1794823579346,
+          "messageID": "X-KKRQWkg6RtQ34NKxQUp",
+          "messageCommand": "6fc9517a-97a0-4584-8eb5-08f090214a48",
+          "hostTask": "c28f4c76-6e46-5dfc-aee6-e25e232d6378",
+          "resource": null,
+          "readyState": 4
+        },
+        {
+          "name": "playing",
+          "atMs": 1794823579346,
+          "messageID": "X-KKRQWkg6RtQ34NKxQUp",
+          "messageCommand": "6fc9517a-97a0-4584-8eb5-08f090214a48",
+          "hostTask": "c28f4c76-6e46-5dfc-aee6-e25e232d6378",
+          "resource": null,
+          "readyState": 4
+        }
+      ],
+      "renderer_frames_before_send": [
+        {
+          "startMs": 1794823572511,
+          "durationMs": 56,
+          "blockingMs": 0,
+          "styleLayoutMs": 1
+        }
+      ],
+      "click_to_platform_ms": 527.48,
+      "publication_to_frame_ms": 1833.534,
+      "confirmation": true,
+      "activation_quote_count": 0,
+      "original_posts": 1,
+      "close_reopen": null,
+      "close_reopen_error": null,
+      "studio_material_references": [
+        {
+          "resource_id": "6581975c-8803-57ac-8f99-50cbc45a4a02",
+          "asset_id": "a_bea70f375c9d47f0cc0ca53bddc411314baf962f98f75057fc66c37aa966",
+          "version_id": "v_bea70f375c9d47f0cc0ca53bddc411314baf962f98f75057fc66c37aa966",
+          "file_id": "f_bea70f375c9d47f0cc0ca53bddc411314baf962f98f75057fc66c37aa966",
+          "sha256": "cf9bfef1bcad035ad377c9dc61074de57ac9b4e65e583aa2571aab64ae214c8e",
+          "byte_length": "4217",
+          "binding_id": "binding_7de21ca651ffb71f7533ce93048cd4bde961429bab355a00",
+          "size": 4217,
+          "width": 1280,
+          "height": 720,
+          "duration_ms": 4000,
+          "mime_type": "video/mp4"
+        }
+      ],
+      "original_outputs": [
+        {
+          "index": 0,
+          "kind": "video",
+          "materialState": "saved",
+          "contentState": "available",
+          "previewState": "available",
+          "resourceId": "6581975c-8803-57ac-8f99-50cbc45a4a02",
+          "failureCode": null,
+          "bytes": 4217,
+          "width": 1280,
+          "height": 720,
+          "durationMs": 4000
+        }
+      ],
+      "funds": {
+        "operation_id": "op_f10ec0837dc08f1b0b22065301288b9f633c34f773d14ab1",
+        "funds_state": "settled",
+        "reserved_points": "0",
+        "settled_points": "0",
+        "reserved_quota": "0",
+        "settled_quota": "0",
+        "ledger_rows": "2"
+      },
+      "error": null,
+      "quote_http": 200,
+      "browser_http": 200,
+      "editor_estimates": [
+        {
+          "trace": "req-baadcde71a08f98557d85e74",
+          "http": 200,
+          "code": 0,
+          "state": "available",
+          "points": "0",
+          "variant": "ef23ef7a5d8468bbd8f5a17d0898138b5568ec87a54d758c9842f868f15caff8",
+          "price": "fadde6c641df1a9dff8fa56edece01d0afc8d7b56d77a0086fc19fa702760007",
+          "atMs": 1794823572484
+        }
+      ],
+      "studio_standard_estimate": {
+        "path": "/api/tasks/estimate",
+        "http": 200,
+        "ms": 77.0,
+        "ended_ms": 1794823572460.963,
+        "ended_utc": "2026-11-16T10:06:12.460963723Z"
+      },
+      "platform_standard_estimate": {
+        "path": "/api/platform/v1/products/studio/media/price-preview",
+        "http": 200,
+        "ms": 52.007,
+        "ended_ms": 1794823572460.289,
+        "ended_utc": "2026-11-16T10:06:12.460289374Z"
+      },
+      "frame_linked_by_original_assistant": true,
+      "observed_sdk_clock_epoch_us": {
+        "host_trace": "req-8ae264dc19e49661b9b7d705",
+        "identity_trace": "202611161006125196133388268d9d60btPylcJ",
+        "identity_start": 1794823572518948,
+        "identity_completed": 1794823572528163,
+        "sdk_entered": 1794823572534029,
+        "native_http_written": 1794823572534138,
+        "native_http_first_response_byte": 1794823573017776,
+        "sdk_returned": 1794823573017952
+      },
+      "focused_video_events": [
+        {
+          "messageID": "X-KKRQWkg6RtQ34NKxQUp",
+          "messageCommand": "6fc9517a-97a0-4584-8eb5-08f090214a48",
+          "seenMs": 1794823579255,
+          "tag": "current-result",
+          "states": [
+            {
+              "name": "waiting",
+              "atMs": 1794823579274,
+              "connected": true,
+              "ready": 0,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "loadstart",
+              "atMs": 1794823579277,
+              "connected": true,
+              "ready": 0,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "loadedmetadata",
+              "atMs": 1794823579339,
+              "connected": true,
+              "ready": 1,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "loadeddata",
+              "atMs": 1794823579345,
+              "connected": true,
+              "ready": 4,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "canplay",
+              "atMs": 1794823579346,
+              "connected": true,
+              "ready": 4,
+              "paused": false,
+              "visible": true,
+              "error": null
+            },
+            {
+              "name": "playing",
+              "atMs": 1794823579346,
+              "connected": true,
+              "ready": 4,
+              "paused": false,
+              "visible": true,
+              "error": null
+            }
+          ],
+          "displayed": true,
+          "play": "resolved"
+        }
+      ],
+      "segments_ms": {
+        "trusted_click_to_xhr": 26,
+        "live_identity": 9.215,
+        "post_identity_to_sdk": 5.866,
+        "sdk_entry_to_written": 0.109,
+        "written_to_gin_start": 0.904,
+        "platform_gin": 482.438,
+        "gin_end_to_first_byte": 0.296,
+        "sdk_first_byte_to_return": 0.176,
+        "sdk_return_to_host_return": 8.297,
+        "host_return_to_browser": 1.751
+      }
+    }
+  ],
+  "independent_recovery": {
+    "prior_30_frame_missing": 3,
+    "task_list_probe": {
+      "source": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+      "platform": "346f61c824d61a0e66000187a68b0d81b96d3833",
+      "browser": "156.0.8078.79",
+      "observedAt": "2026-11-16T10:05:19.867Z",
+      "generationPosts": 0,
+      "adoptions": 0,
+      "rows": [],
+      "error": "locator.click: Timeout 18000ms exceeded."
+    },
+    "original_isolated_browser": {
+      "source": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+      "platform": "346f61c824d61a0e66000187a68b0d81b96d3833",
+      "browser": "156.0.8078.79",
+      "observedAt": "2026-11-16T10:07:02.188Z",
+      "generationPosts": 0,
+      "adoptions": 0,
+      "rows": [
+        {
+          "original": "c0fa9dc1-5236-4d3e-9352-44f307fcd16b",
+          "host": "fc1c1687-146d-5d2f-9c71-0d7a5751e265",
+          "resource": "6872bd79-5ab4-5ada-8d68-df188eebf597",
+          "oldOriginalFrameAbsent": true,
+          "observation": "native Chromium playback of the authorized Studio original after authenticated by-command recovery",
+          "http": 200,
+          "independentRestoredFrame": {
+            "width": 1280,
+            "height": 720,
+            "presented": 1,
+            "mediaTime": 0,
+            "visible": true,
+            "elapsed": 22
+          }
+        },
+        {
+          "original": "d150f762-4fdd-4b2b-bdff-370b99cc8c14",
+          "host": "c89650f1-c157-5bd6-8979-06ade27cdc44",
+          "resource": "3fcb047b-6138-564e-b9a9-8a33752292fd",
+          "oldOriginalFrameAbsent": true,
+          "observation": "native Chromium playback of the authorized Studio original after authenticated by-command recovery",
+          "http": 200,
+          "independentRestoredFrame": {
+            "width": 1280,
+            "height": 720,
+            "presented": 1,
+            "mediaTime": 0,
+            "visible": true,
+            "elapsed": 136
+          }
+        },
+        {
+          "original": "dea6b81f-ddd2-4b22-9ff6-d492529b5ce7",
+          "host": "708ac11a-24c3-50e7-83ec-cdd09157254e",
+          "resource": "5644829b-c23a-58c0-b953-0ac7f40dbb88",
+          "oldOriginalFrameAbsent": true,
+          "observation": "native Chromium playback of the authorized Studio original after authenticated by-command recovery",
+          "http": 200,
+          "independentRestoredFrame": {
+            "width": 1280,
+            "height": 720,
+            "presented": 1,
+            "mediaTime": 0,
+            "visible": true,
+            "elapsed": 134
+          }
+        }
+      ]
+    },
+    "scope": "Later original-ID lookup and authorized Chromium playback. Historical publication-to-frame measurements are preserved."
+  },
+  "release": {
+    "w7": {
+      "target": "https://test.oceanway.tech:18448/api/health/ready",
+      "previous": "86608743d8240c54b036b07151e20255cd7631bb",
+      "commit": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+      "ready": true,
+      "schema": {
+        "current": 97,
+        "expected": 97,
+        "ready": true
+      },
+      "old_backend_stopped_before_activation": true,
+      "images": {
+        "backend": "sha256:85bcce5b44451eb6976471aacc757d4889dff8e1c275191bcb4595278607aecf",
+        "web": "sha256:cf93196738775c4e9319f30b41c43b4f67264bde8b201fa8790a0a34e128e5a9"
+      },
+      "unmodified_services": [
+        "postgres",
+        "redis",
+        "yingce-agent",
+        "edge"
+      ],
+      "reloaded_w7_edge": false,
+      "dump_sha256": "7fd6f547568567e47adc023c968e2ee304c0aae58785daa2cd3b5d77906113a5",
+      "utc": "2026-11-16T10:04:06.669372+00:00"
+    },
+    "restored_shadow": {
+      "source": "42a14804cbec9a1cc5fa7d46a876ca448ef13fae",
+      "from": "86608743d8240c54b036b07151e20255cd7631bb",
+      "images": {
+        "backend": "sha256:85bcce5b44451eb6976471aacc757d4889dff8e1c275191bcb4595278607aecf",
+        "web": "sha256:cf93196738775c4e9319f30b41c43b4f67264bde8b201fa8790a0a34e128e5a9"
+      },
+      "dump_sha256": "7fd6f547568567e47adc023c968e2ee304c0aae58785daa2cd3b5d77906113a5",
+      "dump_bytes": 137025834,
+      "restored": true,
+      "shadow_pre_schema": 97,
+      "shadow_post_schema": 97,
+      "changed_env_keys": [
+        "CANVAS_BACKEND_IMAGE",
+        "CANVAS_WEB_IMAGE"
+      ],
+      "compose_otherwise_equal": true
+    }
+  }
+}
