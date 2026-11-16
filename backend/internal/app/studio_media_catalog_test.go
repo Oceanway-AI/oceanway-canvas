@@ -14,6 +14,31 @@ import (
 	"yingce/backend/internal/platformintegration"
 )
 
+func TestStudioUnsignedLegacySelectionRequiresTheSameLiveCatalog(t *testing.T) {
+	scope := studioCatalogScope{user: "alice", session: "sid", host: "studio.example.test"}
+	published := platformclient.Model{ModelName: "photo", ModelType: "image", InvocationStatus: "available", Price: json.RawMessage(`{"version":"p1"}`), MediaGenerationProfile: json.RawMessage(`{"variants":[{"id":"original"}]}`)}
+	var cache studioMediaCatalogCache
+	cache.remember(scope, []platformclient.Model{published})
+	req := CreateTaskRequest{Model: "photo", Type: "canvas_image", Platform: &StudioTaskOptions{ExpectedPriceVersion: "p1"}}
+	if !cache.requiresPreview(scope, req) || cache.requiresPreview(studioCatalogScope{user: "bob", session: "sid", host: scope.host}, req) {
+		t.Fatal("legacy preview decision escaped the authenticated catalog")
+	}
+	req.Platform.ExpectedPriceVersion = "p2"
+	if cache.requiresPreview(scope, req) {
+		t.Fatal("a changed price did not refresh the selection")
+	}
+	req.Platform.ExpectedPriceVersion = "p1"
+	req.Platform.VariantID = "newly-published"
+	if cache.requiresPreview(scope, req) {
+		t.Fatal("a newly selected variant was inferred from a legacy catalog")
+	}
+	req.Platform.VariantID = ""
+	cache.snapshots[0].expires = time.Now().Add(-time.Second)
+	if cache.requiresPreview(scope, req) {
+		t.Fatal("expired catalog rejected an unsigned creation")
+	}
+}
+
 func TestStudioOpenTabUsesOnlyAnExactPublishedSchemaAfterCatalogExpiry(t *testing.T) {
 	const host = "studio.example.test"
 	variant, price := strings.Repeat("a", 64), strings.Repeat("b", 64)

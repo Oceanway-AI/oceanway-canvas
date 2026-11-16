@@ -22,9 +22,10 @@ func studioCatalogScopeFor(user string, session platformclient.SessionContext, v
 }
 
 type studioMediaCatalogSnapshot struct {
-	scope   studioCatalogScope
-	expires time.Time
-	models  map[string]platformclient.Model
+	scope       studioCatalogScope
+	expires     time.Time
+	models      map[string]platformclient.Model
+	previewOnly map[string]string
 }
 
 // Cache only the published schemas used to compile native media requests.
@@ -39,6 +40,7 @@ func (c *studioMediaCatalogCache) remember(scope studioCatalogScope, items []pla
 		return
 	}
 	models := make(map[string]platformclient.Model)
+	previewOnly := make(map[string]string)
 	size := 0
 	for _, m := range items {
 		if (m.ModelType != "image" && m.ModelType != "video") || m.InvocationStatus != "available" {
@@ -61,7 +63,16 @@ func (c *studioMediaCatalogCache) remember(scope studioCatalogScope, items []pla
 			}
 		}
 		cost := len(m.Price) + len(m.MediaGenerationProfile) + len(m.ModelName) + 512
-		if !enabled || size+cost > 2<<20 {
+		if !enabled {
+			// A legacy selection still needs its account-bound confirmation.
+			// A newly selected variant or price still gets a fresh catalog.
+			var price struct{ Version string }
+			if len(profile.Variants) > 0 && len(previewOnly) < 1024 && json.Unmarshal(m.Price, &price) == nil && price.Version != "" {
+				previewOnly[m.ModelName] = price.Version
+			}
+			continue
+		}
+		if size+cost > 2<<20 {
 			continue
 		}
 		size += cost
@@ -79,17 +90,33 @@ func (c *studioMediaCatalogCache) remember(scope studioCatalogScope, items []pla
 			slot = i
 		}
 	}
-	c.snapshots[slot] = studioMediaCatalogSnapshot{scope, time.Now().Add(time.Minute), models}
+	c.snapshots[slot] = studioMediaCatalogSnapshot{scope: scope, expires: time.Now().Add(time.Minute), models: models, previewOnly: previewOnly}
+}
+
+func (c *studioMediaCatalogCache) requiresPreview(scope studioCatalogScope, req CreateTaskRequest) bool {
+	if req.Platform == nil || req.Platform.ExpectedPriceVersion == "" || req.Platform.VariantID != "" || (req.Type != "canvas_image" && req.Type != "canvas_video") {
+		return false
+	}
+	config, _ := req.Input["config"].(map[string]any)
+	if stringValue(config["nativeVariantId"]) != "" {
+		return false
+	}
+	name := firstNonEmpty(stringValue(config["model"]), req.Model)
+	return c.snapshot(scope, false).previewOnly[name] == req.Platform.ExpectedPriceVersion
 }
 
 func (c *studioMediaCatalogCache) lookup(scope studioCatalogScope, name string, explicitlyVersioned bool) (platformclient.Model, bool) {
+	m, ok := c.snapshot(scope, explicitlyVersioned).models[name]
+	return m, ok
+}
+
+func (c *studioMediaCatalogCache) snapshot(scope studioCatalogScope, explicitlyVersioned bool) studioMediaCatalogSnapshot {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for _, snapshot := range c.snapshots {
 		if snapshot.scope == scope && (explicitlyVersioned || time.Now().Before(snapshot.expires)) {
-			m, ok := snapshot.models[name]
-			return m, ok
+			return snapshot
 		}
 	}
-	return platformclient.Model{}, false
+	return studioMediaCatalogSnapshot{}
 }

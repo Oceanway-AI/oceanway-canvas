@@ -107,7 +107,11 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 		if err := s.ensureTaskProjectActive(userID, req.ProjectID); err != nil {
 			return nil, response, err
 		}
-		selected, e := s.studioSelectTaskModel(ctx, session, req, response, studioCatalogScopeFor(userID, session, verifiedSessionID...))
+		scope := studioCatalogScopeFor(userID, session, verifiedSessionID...)
+		if !hasReceipt && s.studioMediaCatalog.requiresPreview(scope, req) {
+			return nil, response, studioPreviewAccountChanged()
+		}
+		selected, e := s.studioSelectTaskModel(ctx, session, req, response, scope)
 		if e != nil {
 			return nil, response, e
 		}
