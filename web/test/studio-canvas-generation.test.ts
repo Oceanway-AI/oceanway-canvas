@@ -43,3 +43,15 @@ test("one permanently unavailable output stops loading while a recoverable archi
     const transient = projectStudioCanvasOutput([root], "root", task, { ...slot, recoverable: true });
     expect(transient.target?.metadata?.status).toBe("loading");
 });
+
+test("a restored child attachment resolves through its original root without generating sibling copies", () => {
+    const task = { id: "r-task", platformGenerationRequest: "r-cmd", platformRevision: 1, projectId: "project" } as GenerationTask;
+    const root = { id: "root", title: "root", type: CanvasNodeType.Image, position: { x: 1, y: 2 }, width: 45, height: 45, metadata: { taskId: task.id } } as CanvasNodeData;
+    const slot = (index: number) => ({ index, kind: "image" as const, contentState: "available", previewState: "pending", materialState: "saved", resourceId: "res" + index, media: { storageKey: "resource:res" + index, dataUrl: "/res" + index } });
+    let nodes = [root];
+    for (const i of [0, 1, 2]) nodes = projectStudioCanvasOutput(nodes, root.id, task, slot(i)).nodes;
+    const child = nodes.find((n) => n.metadata?.platformOutputIndex === 1)!;
+    for (const i of [0, 1, 2]) nodes = projectStudioCanvasOutput(nodes, child.id, task, slot(i)).nodes;
+    expect(nodes.map((n) => n.metadata?.platformOutputIndex)).toEqual([0, 1, 2]);
+    expect(nodes[1].metadata?.storageKey).toBe("resource:res1");
+});

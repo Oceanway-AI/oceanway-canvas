@@ -1097,6 +1097,12 @@ export default function CreatePage() {
         };
         let handedOverToRecovery = false;
         try {
+            if (command) {
+                // The acknowledgement may never reach this tab. Persist the
+                // message-to-command mapping before the first network POST.
+                await saveCreationConversations(conversationsRef.current);
+                if (requestLifecycle.signal.aborted || getActiveUserScope() !== activeConversationScope) throw new DOMException("Aborted", "AbortError");
+            }
             if (mode === "text") {
                 const result = await runtime.runGenerationOperationOnce(retryContext?.clientOperationId, () =>
                     runtime.runBackendGenerationTask({

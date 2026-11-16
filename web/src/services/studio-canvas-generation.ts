@@ -3,13 +3,15 @@ import type { Dispatch, SetStateAction } from "react";
 import type { CanvasNodeData } from "@/types/canvas";
 import type { GenerationTask } from "@/services/api/task-center";
 import { getActiveUserScope } from "@/lib/user-scope";
-import { projectStudioCanvasOutput } from "@/lib/canvas/studio-generation-outputs";
+import { projectStudioCanvasOutput, studioGenerationRoot } from "@/lib/canvas/studio-generation-outputs";
 import { persistCanvasGenerationEffect, prepareCanvasMediaNodeAsset } from "@/services/canvas-generation-consumer";
 
 type View = { nodesRef: { current: CanvasNodeData[] }; setNodes: Dispatch<SetStateAction<CanvasNodeData[]>> };
 const observations = new Map<string, Promise<void>>();
 
-export function adoptStudioCanvasGeneration(projectId: string, rootId: string, task: GenerationTask, view: View, signal?: AbortSignal) {
+export function adoptStudioCanvasGeneration(projectId: string, targetId: string, task: GenerationTask, view: View, signal?: AbortSignal) {
+    const rootId = studioGenerationRoot(view.nodesRef.current, targetId, task)?.id;
+    if (!rootId) return Promise.resolve();
     const scope = getActiveUserScope();
     const key = JSON.stringify([scope, projectId, rootId, task.id]);
     const check = () => {

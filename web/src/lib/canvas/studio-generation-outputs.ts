@@ -4,10 +4,19 @@ import { resolveResourceUrl } from "@/services/api/resources";
 
 import type { StudioGenerationSlot } from "@/services/studio-generation-outputs";
 
-export function projectStudioCanvasOutput(nodes: CanvasNodeData[], rootId: string, task: GenerationTask, slot: StudioGenerationSlot) {
-    const root = nodes.find((n) => n.id === rootId);
+export function studioGenerationRoot(nodes: CanvasNodeData[], targetId: string, task: GenerationTask) {
+    const target = nodes.find((n) => n.id === targetId);
+    if (!target || target.metadata?.taskId !== task.id) return undefined;
+    const ordinal = target.metadata.platformOutputIndex;
+    if (target.metadata.platformOutputRequest !== task.platformGenerationRequest || ordinal === undefined || ordinal === 0) return target;
+    return nodes.find((n) => n.metadata?.taskId === task.id && n.metadata.platformOutputRequest === task.platformGenerationRequest && n.metadata.platformOutputNodeIds?.[ordinal] === targetId);
+}
+
+export function projectStudioCanvasOutput(nodes: CanvasNodeData[], targetId: string, task: GenerationTask, slot: StudioGenerationSlot) {
+    const root = studioGenerationRoot(nodes, targetId, task);
+    const rootId = root?.id;
     const unchanged = { nodes, target: undefined as CanvasNodeData | undefined, effectKey: "" };
-    if (!root || root.metadata?.taskId !== task.id || !Number.isSafeInteger(slot.index) || slot.index < 0) return unchanged;
+    if (!root || !rootId || root.metadata?.taskId !== task.id || !Number.isSafeInteger(slot.index) || slot.index < 0) return unchanged;
     const bound = root.metadata.platformOutputRequest === task.platformGenerationRequest ? root.metadata.platformOutputNodeIds || {} : {};
     const id = slot.index === 0 ? rootId : `${rootId}:task:${task.id}:image:${slot.index}`;
     const previous = nodes.find((n) => n.id === id);
