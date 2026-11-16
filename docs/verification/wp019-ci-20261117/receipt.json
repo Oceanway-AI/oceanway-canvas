@@ -1,0 +1,81 @@
+{
+  "recorded_at": "2026-11-16T21:00:21.670285+00:00",
+  "repository": "Oceanway-AI/oceanway-canvas",
+  "source_commit": "7be7d08608f28e2e359a21ed1d68409d730ce7c2",
+  "workspace_clean_at_verification": true,
+  "verification": {
+    "command": "bun scripts/verify-before-push.mjs --jobs 6",
+    "checks": 12,
+    "failed": 0,
+    "seconds": 172.7,
+    "web_files": 501,
+    "web_tests": 3399,
+    "web_failed": 0,
+    "web_assertions": 78204,
+    "chrome_assertions": 76,
+    "chrome_failed": 0,
+    "postgres": "isolated UTF8 local database, shut down after verification",
+    "redis_server": "available",
+    "pi_dependencies": "npm ci --omit=dev --ignore-scripts",
+    "not_covered": [
+      "Payment plugin artifacts Docker linux/amd64 smoke",
+      "golangci-lint v2.5.0"
+    ]
+  },
+  "workflow_validation": {
+    "actionlint": "v1.7.11 passed",
+    "node_syntax": "scripts/verify-before-push.mjs passed"
+  },
+  "historical_red": {
+    "directory": ".local/cache/verify-red",
+    "causes": [
+      "Vite font access rejected because node_modules was a symlink outside the worktree",
+      "PostgreSQL default SQL_ASCII fixture encoding",
+      "Shared-path entry tests omitted BASE_URL and appRoute fixture context"
+    ],
+    "resolution": [
+      "Worktree-local dependency tree with identical bun.lock",
+      "Isolated UTF8 test database",
+      "7be7d08608f28e2e359a21ed1d68409d730ce7c2 fixes entry fixtures and preserves behavior assertions"
+    ],
+    "followup_tests": {
+      "tests": 17,
+      "failed": 0
+    }
+  },
+  "log_retention": "Raw logs remain in the verification worktree and are excluded from Git. Paths below are relative to that worktree.",
+  "logs": [
+    {
+      "path": ".local/cache/verify/final-verifier.log",
+      "sha256": "35995149994ffae28ec3650d892f075d235cca706b4b67c6c208de233a8683e7"
+    },
+    {
+      "path": ".local/cache/verify/web-test.log",
+      "sha256": "a53c064c5de648790986af20c72ee2109632d3281c01421ea8519b24e30b9d13"
+    },
+    {
+      "path": ".local/cache/verify/web-e2e.log",
+      "sha256": "f141d9c4d648f18d8de5bf0a5811921a373bf225c00a0cebac5fd224f5eb74ba"
+    },
+    {
+      "path": ".local/cache/verify/backend-test-rest.log",
+      "sha256": "9a54e98dae99618e8d96a209c0523917aa27bc05d5d02b1e9a6aa1b9c202ba74"
+    },
+    {
+      "path": ".local/cache/verify/backend-test-app-1.log",
+      "sha256": "29bf11975183ba8852b9d9e1831fdf7edf2c12dc10b28fd340bd155e05ca3f05"
+    },
+    {
+      "path": ".local/cache/verify/backend-test-app-2.log",
+      "sha256": "d814a39287e63a3b1adbc771ffc207883edc0ea17ceb89fb5e97ca4b39f8b3f6"
+    },
+    {
+      "path": ".local/cache/verify/backend-test-app-3.log",
+      "sha256": "757eaf8831ae02fd709812bece2f30293ea9629254dbe9af80ffafc285b151bb"
+    },
+    {
+      "path": ".local/cache/verify/backend-test-app-4.log",
+      "sha256": "5f03dc6ec8640bee15a384e2e352c875b19af336e6f5cc1b4d9a552ce0f0ad9a"
+    }
+  ]
+}
