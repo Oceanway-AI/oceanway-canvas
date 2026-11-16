@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 /**
  * 全量灵感目录的运行时加载。
  *
@@ -28,9 +29,9 @@ export type InspirationCatalog = {
 };
 
 const CATALOG_SOURCES: { key: InspirationSourceId; file: string }[] = [
-    { key: "seedance", file: "/inspirations/seedance.json" },
-    { key: "haohaoxue", file: "/inspirations/haohaoxue.json" },
-    { key: "youmind", file: "/inspirations/youmind.json" },
+    { key: "seedance", file: appURL("/inspirations/seedance.json") },
+    { key: "haohaoxue", file: appURL("/inspirations/haohaoxue.json") },
+    { key: "youmind", file: appURL("/inspirations/youmind.json") },
 ];
 
 let pending: Promise<InspirationCatalog> | null = null;
@@ -46,7 +47,7 @@ function readEntries(payload: unknown, file: string): CreationInspiration[] {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error(`${file} 结构不是目录格式`);
     const entries = (payload as { entries?: unknown }).entries;
     if (!Array.isArray(entries)) throw new Error(`${file} 缺少 entries 列表`);
-    return entries as CreationInspiration[];
+    return (entries as CreationInspiration[]).map((entry) => ({ ...entry, image: appURL(entry.image) }));
 }
 
 /** 后端定时同步的上新条目只来自这两个来源；其他 sourceId 一律忽略。 */
@@ -99,7 +100,7 @@ function mergeFeed(entriesBySource: Map<InspirationSourceId, CreationInspiration
 
 async function buildCatalog(): Promise<InspirationCatalog> {
     const [manifest, feed, ...packs] = await Promise.all([
-        fetchJson<CatalogManifest>("/inspirations/manifest.json").catch(() => ({ sources: {} }) as CatalogManifest),
+        fetchJson<CatalogManifest>(appURL("/inspirations/manifest.json")).catch(() => ({ sources: {} }) as CatalogManifest),
         loadFeed(),
         ...CATALOG_SOURCES.map((source) => fetchJson<unknown>(source.file).then((payload) => readEntries(payload, source.file))),
     ]);
@@ -149,7 +150,7 @@ export function loadInspirationCatalog(): Promise<InspirationCatalog> {
 }
 
 /** 首页画廊的池子：带本地缩略图的精选条目，正文一并带着，点卡片就能直接填词。 */
-const GALLERY_POOL_FILE = "/inspirations/gallery-pool.json";
+const GALLERY_POOL_FILE = appURL("/inspirations/gallery-pool.json");
 
 let galleryPool: Promise<CreationInspiration[]> | null = null;
 

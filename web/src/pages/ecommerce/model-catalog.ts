@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import type { EcommerceDraft } from "@/services/api/ecommerce";
 
 export type CommerceModelProfile = {
@@ -18,7 +19,7 @@ const profile = (id: string, name: string, kind: CommerceModelProfile["kind"], g
     gender,
     age,
     country,
-    image: `/ecommerce-models/${id}.png`,
+    image: appURL(`/ecommerce-models/${id}.png`),
     description,
 });
 

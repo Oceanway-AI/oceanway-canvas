@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import { useMemo, useState } from "react";
 import { ChevronLeft, FolderOpen, ImagePlus, Moon, MousePointer2, Sun } from "lucide-react";
 
@@ -35,7 +36,13 @@ const PRESET_GROUPS = [
 
 const THEME_SEQUENCE: CanvasFolderTheme[] = ["aurora", "pearl", "ember", "obsidian", "aurora", "pearl"];
 
-const SAMPLE_MEDIA = ["/short-drama-styles/fantasy-3d.jpg", "/short-drama-styles/suspense-noir.jpg", "/short-drama-styles/cyberpunk-neon.jpg", "/short-drama-styles/ink-narrative.jpg", "/short-drama-styles/space-opera.jpg"];
+const SAMPLE_MEDIA = [
+    appURL("/short-drama-styles/fantasy-3d.jpg"),
+    appURL("/short-drama-styles/suspense-noir.jpg"),
+    appURL("/short-drama-styles/cyberpunk-neon.jpg"),
+    appURL("/short-drama-styles/ink-narrative.jpg"),
+    appURL("/short-drama-styles/space-opera.jpg"),
+];
 
 function makeMediaNode(id: string, title: string, content: string, index: number): CanvasNodeData {
     return {

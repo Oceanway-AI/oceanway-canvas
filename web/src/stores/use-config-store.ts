@@ -729,7 +729,7 @@ export function buildApiUrl(baseUrl: string, path: string) {
 export function resolveBackendApiUrl(value: string) {
     const url = value.trim();
     if (!url.startsWith("/api/")) return url;
-    const backendBaseUrl = String(import.meta.env.VITE_CANVAS_BACKEND_URL || "/api")
+    const backendBaseUrl = String(import.meta.env.VITE_CANVAS_BACKEND_URL || `${import.meta.env.BASE_URL || "/"}api`)
         .trim()
         .replace(/\/+$/, "");
     return backendBaseUrl === "/api" ? url : `${backendBaseUrl}${url.slice("/api".length)}`;

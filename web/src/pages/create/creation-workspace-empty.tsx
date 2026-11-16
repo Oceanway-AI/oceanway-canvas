@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 // 创作页空态：横幅、推荐提示词与精选作品。
 
 import { useAppearanceStore } from "@/stores/use-appearance-store";
@@ -14,19 +15,19 @@ import { translate } from "@/i18n";
 
 export const creationEmptyBannerFrames = [
     {
-        src: "/short-drama-styles/cyberpunk-neon.jpg",
+        src: appURL("/short-drama-styles/cyberpunk-neon.jpg"),
         get caption() {
             return translate("create.empty.frameNeon");
         },
     },
     {
-        src: "/short-drama-styles/suspense-noir.jpg",
+        src: appURL("/short-drama-styles/suspense-noir.jpg"),
         get caption() {
             return translate("create.empty.frameAlley");
         },
     },
     {
-        src: "/short-drama-styles/retro-hong-kong.jpg",
+        src: appURL("/short-drama-styles/retro-hong-kong.jpg"),
         get caption() {
             return translate("create.empty.frameRooftop");
         },

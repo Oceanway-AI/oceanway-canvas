@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import type { StyleProfileSnapshot } from "@/lib/canvas/style-profile";
 
 export type ProjectStyleWorldId = "xianxia" | "urban" | "historical" | "suspense" | "science-fiction" | "pastoral";
@@ -301,10 +302,13 @@ export function parseCanvasStyleSelection(id?: string): ProjectStyleSelection | 
     const parts = id.slice(3).split("--");
     if (parts.length !== 4) return null;
     const selection = { world: parts[0], tone: parts[1], medium: parts[2], character: parts[3] } as ProjectStyleSelection;
-    if (!projectStyleWorlds.some((item) => item.id === selection.world)
-        || !projectStyleTones.some((item) => item.id === selection.tone)
-        || !projectStyleMedia.some((item) => item.id === selection.medium)
-        || !projectStyleCharacters.some((item) => item.id === selection.character)) return null;
+    if (
+        !projectStyleWorlds.some((item) => item.id === selection.world) ||
+        !projectStyleTones.some((item) => item.id === selection.tone) ||
+        !projectStyleMedia.some((item) => item.id === selection.medium) ||
+        !projectStyleCharacters.some((item) => item.id === selection.character)
+    )
+        return null;
     return selection;
 }
 
@@ -332,17 +336,17 @@ function styleSelectionId(selection: ProjectStyleSelection) {
 
 function stylePreviewImage(selection: ProjectStyleSelection) {
     if (selection.world === "xianxia") {
-        if (selection.medium === "live-action") return "/short-drama-styles/period-live-action.jpg";
-        if (selection.medium === "3d-cartoon") return "/short-drama-styles/three-d-cartoon.jpg";
-        if (selection.medium === "2d-guoman") return "/short-drama-styles/chinese-2d.jpg";
-        if (selection.medium === "ink") return "/short-drama-styles/ink-narrative.jpg";
-        return "/short-drama-styles/fantasy-3d.jpg";
+        if (selection.medium === "live-action") return appURL("/short-drama-styles/period-live-action.jpg");
+        if (selection.medium === "3d-cartoon") return appURL("/short-drama-styles/three-d-cartoon.jpg");
+        if (selection.medium === "2d-guoman") return appURL("/short-drama-styles/chinese-2d.jpg");
+        if (selection.medium === "ink") return appURL("/short-drama-styles/ink-narrative.jpg");
+        return appURL("/short-drama-styles/fantasy-3d.jpg");
     }
-    if (selection.world === "suspense") return "/short-drama-styles/suspense-noir.jpg";
-    if (selection.world === "science-fiction") return "/short-drama-styles/future-tech.jpg";
-    if (selection.world === "pastoral") return "/short-drama-styles/nature-healing.jpg";
-    if (selection.world === "historical") return selection.medium === "2d-guoman" ? "/short-drama-styles/chinese-2d.jpg" : "/short-drama-styles/period-live-action.jpg";
-    return selection.medium === "3d-cartoon" ? "/short-drama-styles/three-d-cartoon.jpg" : "/short-drama-styles/urban-live-action.jpg";
+    if (selection.world === "suspense") return appURL("/short-drama-styles/suspense-noir.jpg");
+    if (selection.world === "science-fiction") return appURL("/short-drama-styles/future-tech.jpg");
+    if (selection.world === "pastoral") return appURL("/short-drama-styles/nature-healing.jpg");
+    if (selection.world === "historical") return selection.medium === "2d-guoman" ? appURL("/short-drama-styles/chinese-2d.jpg") : appURL("/short-drama-styles/period-live-action.jpg");
+    return selection.medium === "3d-cartoon" ? appURL("/short-drama-styles/three-d-cartoon.jpg") : appURL("/short-drama-styles/urban-live-action.jpg");
 }
 
 function requiredOption<T extends string>(options: Array<StyleOption<T>>, id: T) {

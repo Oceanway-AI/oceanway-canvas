@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import { App, Button } from "antd";
 import { Clapperboard, Image as ImageIcon, RotateCcw } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent } from "react";
@@ -1521,7 +1522,7 @@ export function WorkbenchPage({ kind }: { kind: WorkbenchKind }) {
                             ) : (
                                 <div className="wb-inline-error">
                                     <span>暂无可用的{kindLabel}模型</span>
-                                    <a href="/settings?section=models" target="_blank" rel="noreferrer">
+                                    <a href={appURL("/settings?section=models")} target="_blank" rel="noreferrer">
                                         去模型设置
                                     </a>
                                 </div>

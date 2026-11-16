@@ -44,6 +44,23 @@ func TestLoginViaServiceAddressReturnsPublicHTTPSDestination(t *testing.T) {
 	if err != nil || hits != 1 || got != console+"/login?return="+url.QueryEscape(callback) || g.Origin() != local.URL || g.BrowserOrigin() != console {
 		t.Fatalf("unexpected prepared login %q, hits=%d, err=%v", got, hits, err)
 	}
+	env["STUDIO_PUBLIC_BASE_PATH"] = "/studio/"
+	callback = studio + "/studio/platform/login/complete"
+	g, err = NewGatewayFromEnv(get)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err = g.LoginURL(context.Background())
+	if err != nil || got != console+"/login?return="+url.QueryEscape(callback) {
+		t.Fatalf("unexpected prefixed login %q, err=%v", got, err)
+	}
+	for _, bad := range []string{"studio", "//studio", "/studio//", "/studio/../drama", "/studio%2fdrama", "/studio?next=a", "/studio#fragment", "/studio\\drama"} {
+		env["STUDIO_PUBLIC_BASE_PATH"] = bad
+		if _, err := NewGatewayFromEnv(get); err == nil {
+			t.Errorf("accepted invalid base path %q", bad)
+		}
+	}
+	env["STUDIO_PUBLIC_BASE_PATH"] = "/studio"
 	for _, bad := range []string{"http://console.example.test", console + "/path", console + "?next=a", console + "#", "https://trusted@other.test"} {
 		env["STUDIO_PLATFORM_BROWSER_ORIGIN"] = bad
 		if _, err := NewGatewayFromEnv(get); err == nil {

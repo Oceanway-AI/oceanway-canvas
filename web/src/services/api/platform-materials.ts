@@ -2,7 +2,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { translate } from "@/i18n";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { getActiveUserScope, scopedStorageKey } from "@/lib/user-scope";
-import { http, ApiError } from "./request";
+import { http, ApiError, apiBaseURL } from "./request";
 import type { RemoteResource, ResourceUploadMeta } from "./resources";
 
 export type PlatformMaterialAsset = {
@@ -94,7 +94,7 @@ export function deletePlatformMaterial(id: string) {
     return http.delete(`/materials/assets/${encodeURIComponent(id)}`);
 }
 export function platformMaterialFileURL(id: string, version: string, variant: "thumbnail" | "poster" | "preview" | "playback" | "original") {
-    return `/api/materials/assets/${encodeURIComponent(id)}/versions/${encodeURIComponent(version)}/file?variant=${variant}`;
+    return `${apiBaseURL.replace(/\/+$/, "")}/materials/assets/${encodeURIComponent(id)}/versions/${encodeURIComponent(version)}/file?variant=${variant}`;
 }
 export function getPlatformMaterialStorage(signal?: AbortSignal) {
     return http.get<PlatformMaterialStorage>("/materials/storage", { signal });

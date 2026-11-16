@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import { Button, Input, Popconfirm, Popover, Select } from "antd";
 import { ArrowDownToLine, Crop, Images, Languages, Layers3, Maximize2, Paintbrush2, RotateCcw, RotateCw, Scissors, Sparkles, Trash2, Type, X } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
@@ -320,7 +321,7 @@ export function EcommerceResultGallery({
                                 ) : (
                                     <div className="ecommerce-result-placeholder commerce-branded-placeholder" style={{ aspectRatio: commerceCanvasAspect(image.ratio) }} role="status">
                                         <div className="commerce-placeholder-brand">
-                                            <img src="/commerce/agent-mark.svg" alt="" />
+                                            <img src={appURL("/commerce/agent-mark.svg")} alt="" />
                                             <span>电商 Agent</span>
                                         </div>
                                         {working ? <CommerceGeneratingArtwork queued={!image.taskId || task?.status === "queued"} label={`${String(index + 1).padStart(2, "0")} · ${labelOf(imageTypes, image.imageType)}`} /> : <Images size={27} />}
@@ -427,7 +428,7 @@ export function EcommerceResultGallery({
                             ) : null}
                             {displaySrc && working ? (
                                 <div className="ecommerce-result-regenerating" role="status">
-                                    <img src="/commerce/agent-mark.svg" alt="" />
+                                    <img src={appURL("/commerce/agent-mark.svg")} alt="" />
                                     <strong>电商 Agent 正在生成中</strong>
                                     <span>新图片完成后自动更新</span>
                                 </div>

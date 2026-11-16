@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import { useEffect, useRef, useState } from "react";
 import { Alert, App, Button, Form, Input, InputNumber, Radio, Select } from "antd";
 import { ExternalLink, Upload } from "lucide-react";
@@ -33,10 +34,10 @@ export function CanvasAppearanceEditor({ value, onChange, disabled, onUploading 
     const [selectedAvatarState, setSelectedAvatarState] = useState<AgentAvatarState>("idle");
     const url = value.live2dResourceId ? live2DModelURL(value.live2dResourceId, value.live2dEntry, true) : "";
     const bundleID = value.avatarBundleResourceId;
-    const bundleManifestURL = bundleID ? agentAvatarBundleFileURL(bundleID, "avatar.json", true) : "/doll/avatar.json";
+    const bundleManifestURL = bundleID ? agentAvatarBundleFileURL(bundleID, "avatar.json", true) : appURL("/doll/avatar.json");
     const previewClip = bundleManifest ? agentAvatarClipForState(value, selectedAvatarState, bundleManifest) : "";
     const previewFile = bundleManifest?.clips[previewClip] || "";
-    const previewBundleURL = previewFile ? (bundleID ? agentAvatarBundleFileURL(bundleID, previewFile, true) : `/doll/${encodeURIComponent(previewFile)}`) : "";
+    const previewBundleURL = previewFile ? (bundleID ? agentAvatarBundleFileURL(bundleID, previewFile, true) : appURL(`/doll/${encodeURIComponent(previewFile)}`)) : "";
     const change = (patch: Partial<CanvasAppearance>) => onChange({ ...value, ...patch });
     useEffect(() => {
         if (value.avatarType !== "bundle") return;

@@ -267,7 +267,7 @@ export function resourceIdFromStorageKey(storageKey?: string) {
 
 export function isResourceUrl(url?: string) {
     const base = String(apiBaseURL).replace(/\/+$/, "");
-    const path = url?.split(/[?#]/, 1)[0] || "";
+    const path = resolveResourceAccessURL(url || "").split(/[?#]/, 1)[0];
     return path.startsWith(`${base}/resources/`) && path.endsWith("/file");
 }
 
@@ -537,7 +537,8 @@ export async function getResourceInputURL(storageKey?: string) {
  */
 export function resolveResourceAccessURL(url: string) {
     if (!url || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(url)) return url;
-    const base = String(apiBaseURL).trim();
+    const base = String(apiBaseURL).trim().replace(/\/+$/, "");
+    if (url.startsWith("/api/")) return `${base}${url.slice("/api".length)}`;
     if (!/^https?:\/\//i.test(base)) return url;
     return new URL(url, `${base.replace(/\/+$/, "")}/`).toString();
 }

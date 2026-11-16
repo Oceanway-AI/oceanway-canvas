@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import { Button } from "antd";
 import { Check, ChevronDown, X } from "lucide-react";
 import { GlobeIcon } from "@/components/ui/ecommerce-icons";
@@ -8,12 +9,12 @@ import { commerceKnowledgeFor, commercePlatformKnowledge } from "./platform-know
 import "./market-picker.css";
 
 export function PlatformMark({ platform }: { platform: string }) {
-    return <img className="commerce-platform-logo" data-monochrome={["amazon", "tiktok", "douyin", "ozon", "dewu"].includes(platform)} src={`/commerce/platforms/${platform}.svg`} alt="" width={28} height={28} />;
+    return <img className="commerce-platform-logo" data-monochrome={["amazon", "tiktok", "douyin", "ozon", "dewu"].includes(platform)} src={appURL(`/commerce/platforms/${platform}.svg`)} alt="" width={28} height={28} />;
 }
 
 export function LanguageFlag({ language }: { language: string }) {
     const flag = languageVisuals[language]?.flag;
-    return flag ? <img className="commerce-language-flag" src={`/commerce/flags/${flag}.svg`} alt="" width={20} height={15} /> : <GlobeIcon size={16} />;
+    return flag ? <img className="commerce-language-flag" src={appURL(`/commerce/flags/${flag}.svg`)} alt="" width={20} height={15} /> : <GlobeIcon size={16} />;
 }
 
 const groups = [

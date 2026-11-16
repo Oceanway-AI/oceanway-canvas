@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import { App, Button, Input } from "antd";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { Check, ImageOff, Maximize2, PersonStanding, Search, X } from "lucide-react";
@@ -162,7 +163,7 @@ export function CanvasPoseLibraryModal({ open, onClose, onInsert }: { open: bool
                 description={isAdmin ? "在后台「姿势库」导入姿势数据并同步图片后，就能在这里选用。" : "站点管理员添加姿势后即可在这里选用。"}
                 action={
                     isAdmin ? (
-                        <Button type="primary" href="/admin/pose-library" target="_blank" rel="noopener">
+                        <Button type="primary" href={appURL("/admin/pose-library")} target="_blank" rel="noopener">
                             前往后台管理
                         </Button>
                     ) : undefined

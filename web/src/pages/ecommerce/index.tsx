@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import { createClientUUID } from "@/lib/client-id";
 import { App, Button, Input, Select } from "antd";
 import { AlertCircle, ArrowDownToLine, ArrowUp, ChevronDown, Clapperboard, Image as ImageIcon, LoaderCircle, Minus, Plus, RotateCcw, Save, Sparkles } from "lucide-react";
@@ -2402,7 +2403,7 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
                                             示例
                                         </button>
                                         <div className="commerce-example-preview" role="note">
-                                            <img src="/commerce/examples/diffuser-white-v1.png" alt="白底商品图案例" />
+                                            <img src={appURL("/commerce/examples/diffuser-white-v1.png")} alt="白底商品图案例" />
                                             <span>示例商品仅供预览；生成时以你的商品图为准。</span>
                                         </div>
                                     </div>

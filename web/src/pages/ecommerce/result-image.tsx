@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import { useState, type ImgHTMLAttributes } from "react";
 import "./result-image.css";
 
@@ -8,7 +9,7 @@ export function CommerceProgressArtwork({ title, detail }: { title: string; deta
                 <i />
                 <i />
                 <i />
-                <img src="/commerce/agent-mark.svg" alt="" />
+                <img src={appURL("/commerce/agent-mark.svg")} alt="" />
             </span>
             <strong>{title}</strong>
             <small>{detail}</small>

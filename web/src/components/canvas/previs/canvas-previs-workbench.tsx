@@ -1,3 +1,4 @@
+import { appRoute } from "@/lib/app-path";
 import { cameraMoveOptions, poseEditBones, BoneRotationFields, shotSizeOptions, ObjectInspector, LightInspector, ShotInspector } from "./previs-inspectors";
 import { snapPrevisTime, advancePrevisPlayhead, resolvePrevisKeyframeRecord, resolvePrevisObjectTransformEdit, resolvePrevisCameraMoveKeyframes, resolvePrevisCameraAlignment } from "@/lib/canvas/previs/previs-animation-semantics";
 import {
@@ -126,7 +127,7 @@ export function CanvasPrevisWorkbench({
         const explicit = canvasId?.trim();
         if (explicit) return explicit;
         if (typeof window === "undefined") return undefined;
-        const match = window.location.pathname.match(/^\/canvas\/([^/]+)/u);
+        const match = appRoute(window.location.pathname).match(/^\/canvas\/([^/]+)/u);
         return match ? decodeURIComponent(match[1]) : undefined;
     }, [canvasId]);
     const viewportRef = useRef<PrevisViewportHandle>(null);

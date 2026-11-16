@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,13 +17,14 @@ import (
 // Gateway keeps the published SDK and anonymous login-return contract together.
 // Login preparation never carries a product key or browser cookies.
 type Gateway struct {
-	Client        *platformclient.Client
-	origin        string
-	browserOrigin string
-	publicOrigin  string
-	hosts         []string
-	origins       []string
-	http          *http.Client
+	Client         *platformclient.Client
+	origin         string
+	browserOrigin  string
+	publicOrigin   string
+	publicBasePath string
+	hosts          []string
+	origins        []string
+	http           *http.Client
 }
 
 func NewGatewayFromEnv(getenv func(string) string) (*Gateway, error) {
@@ -40,6 +42,10 @@ func NewGatewayFromEnv(getenv func(string) string) (*Gateway, error) {
 	if !contains(hosts, u.Host) || !contains(origins, publicOrigin) {
 		return nil, errors.New("Studio public origin must match its registered session host and origin")
 	}
+	publicBasePath := strings.TrimSuffix(strings.TrimSpace(getenv("STUDIO_PUBLIC_BASE_PATH")), "/")
+	if publicBasePath != "" && !regexp.MustCompile(`^(/[A-Za-z0-9_-]+)+$`).MatchString(publicBasePath) {
+		return nil, errors.New("STUDIO_PUBLIC_BASE_PATH must be an absolute path with plain segments")
+	}
 	origin := strings.TrimSpace(getenv("STUDIO_PLATFORM_ORIGIN"))
 	browserOrigin := strings.TrimSpace(getenv("STUDIO_PLATFORM_BROWSER_ORIGIN"))
 	if browserOrigin == "" {
@@ -50,7 +56,7 @@ func NewGatewayFromEnv(getenv func(string) string) (*Gateway, error) {
 			return nil, errors.New("STUDIO_PLATFORM_BROWSER_ORIGIN must be an exact HTTPS origin")
 		}
 	}
-	return &Gateway{Client: client, origin: origin, browserOrigin: browserOrigin, publicOrigin: publicOrigin,
+	return &Gateway{Client: client, origin: origin, browserOrigin: browserOrigin, publicOrigin: publicOrigin, publicBasePath: publicBasePath,
 		hosts: hosts, origins: origins, http: &http.Client{Timeout: 15 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 
@@ -83,7 +89,7 @@ func contains(values []string, value string) bool {
 // LoginURL uses the fixed callback accepted by the provider. Product navigation
 // stays in the browser; arbitrary next URLs never enter the provider contract.
 func (g *Gateway) LoginURL(ctx context.Context) (string, error) {
-	callback := g.publicOrigin + "/platform/login/complete"
+	callback := g.publicOrigin + g.publicBasePath + "/platform/login/complete"
 	endpoint := g.origin + "/api/platform/v1/auth/login-return?" + url.Values{"return_url": {callback}}.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {

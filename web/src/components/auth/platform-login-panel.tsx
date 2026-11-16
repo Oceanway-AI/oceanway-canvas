@@ -4,6 +4,7 @@ import { AppModal } from "@/components/ui/product/app-modal";
 import { rememberPlatformLoginNext } from "@/lib/platform-login";
 import { getAuthSession, getPlatformLoginURL, invalidateAuthSessionCache } from "@/services/api/auth";
 import { useAuthDialogStore } from "@/stores/use-auth-dialog-store";
+import { appURL } from "@/lib/app-path";
 
 type Props = { next: string; recovery?: boolean; onDismiss: () => void };
 
@@ -44,7 +45,7 @@ export default function PlatformLoginPanel({ next, recovery = false, onDismiss }
                 const localPreview = window.location.protocol === "http:" && window.location.hostname === "127.0.0.1" && target.protocol === "http:" && target.hostname === window.location.hostname;
                 if ((!localPreview && target.protocol !== "https:") || target.username || target.password || target.pathname !== "/login") throw new Error();
                 const callback = target.searchParams.get("return");
-                if (callback !== window.location.origin + "/platform/login/complete" && !(localPreview && callback === null)) throw new Error();
+                if (callback !== window.location.origin + appURL("/platform/login/complete") && !(localPreview && callback === null)) throw new Error();
                 origin = target.origin;
                 if (recovery) target.searchParams.set("auth", "forgot");
                 setStandaloneURL(target.href);
@@ -107,7 +108,7 @@ export default function PlatformLoginPanel({ next, recovery = false, onDismiss }
         <AppModal open centered flush footer={null} width={940} onCancel={onDismiss} title={<span className="sr-only">OceanWay 统一登录</span>} styles={{ header: { margin: 0, padding: 0 } }}>
             <div className="grid md:grid-cols-2">
                 <div className="relative hidden md:block">
-                    <img className="absolute inset-0 size-full object-cover" src="/inspiration-thumbs/haohaoxue/jellyfish-neon-ocean.webp" alt="" />
+                    <img className="absolute inset-0 size-full object-cover" src={appURL("/inspiration-thumbs/haohaoxue/jellyfish-neon-ocean.webp")} alt="" />
                 </div>
                 <div className="relative min-w-0 overflow-hidden bg-background" style={{ height: `min(${height}px, calc(100dvh - 64px))` }}>
                     {frameURL && !failed && (

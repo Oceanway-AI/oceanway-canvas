@@ -1,3 +1,4 @@
+import { appURL } from "@/lib/app-path";
 import { useTranslation } from "react-i18next";
 import { useMemo, useRef, useState } from "react";
 import { App } from "antd";
@@ -16,8 +17,8 @@ import { RelativeTime } from "@/components/ui/product/relative-time";
 
 const RECENT_COUNT = 3;
 const STUDIO_EXAMPLES = [
-    { title: "品牌视觉探索", image: "/oceanway-workspace/brand-visual-board.webp" },
-    { title: "产品概念图", image: "/oceanway-workspace/product-concept-board.webp" },
+    { title: "品牌视觉探索", image: appURL("/oceanway-workspace/brand-visual-board.webp") },
+    { title: "产品概念图", image: appURL("/oceanway-workspace/product-concept-board.webp") },
 ] as const;
 
 export function CreationRecentCanvases({ onRequireLogin }: { onRequireLogin: () => void }) {
