@@ -1,3 +1,5 @@
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 import { createClientUUID } from "@/lib/client-id";
 import { ApiError } from "@/services/api/request";
 import type { CreateTaskInput, GenerationTask } from "@/services/api/task-center";
@@ -97,13 +99,17 @@ function stableIntent(input: CreateTaskInput) {
     );
 }
 
-async function intentDigest(stable: string) {
-    const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(stable));
-    return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
+function commandKey(owner: string, workspace: string, commandId: string) {
+    return JSON.stringify(["studio-media-v1", owner, workspace, commandId]);
+}
+
+export function studioGenerationCommandWasSent(owner: string, commandId: string, workspace = "") {
+    const key = commandKey(owner, workspace, commandId);
+    return sentCommands.has(key) || (typeof window !== "undefined" && window.localStorage.getItem(key) !== null);
 }
 
 async function submitGenerationV1(input: CreateTaskInput, owner: string, commandId: string, deps: SubmissionDependencies, assertScope: () => void) {
-    const key = JSON.stringify(["studio-media-v1", owner, input.platform?.workspaceId || "", commandId]);
+    const key = commandKey(owner, input.platform?.workspaceId || "", commandId);
     const intent = stableIntent({ ...input, commandId });
     const running = activeCommands.get(key);
     if (running) {
@@ -111,7 +117,7 @@ async function submitGenerationV1(input: CreateTaskInput, owner: string, command
         return running.promise;
     }
     const run = async () => {
-        const digest = await intentDigest(intent);
+        const digest = bytesToHex(sha256(new TextEncoder().encode(intent)));
         assertScope();
         const sent = sentCommands.get(key) ?? (typeof window === "undefined" ? null : window.localStorage.getItem(key));
         if (sent && sent !== digest) throw new Error("此任务命令已用于不同的创作意图");

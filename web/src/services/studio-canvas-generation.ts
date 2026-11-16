@@ -1,8 +1,9 @@
+import { studioGenerationOutputs } from "@/services/studio-generation-outputs";
 import type { Dispatch, SetStateAction } from "react";
 import type { CanvasNodeData } from "@/types/canvas";
 import type { GenerationTask } from "@/services/api/task-center";
 import { getActiveUserScope } from "@/lib/user-scope";
-import { projectStudioCanvasOutput, studioCanvasOutputs } from "@/lib/canvas/studio-generation-outputs";
+import { projectStudioCanvasOutput } from "@/lib/canvas/studio-generation-outputs";
 import { persistCanvasGenerationEffect, prepareCanvasMediaNodeAsset } from "@/services/canvas-generation-consumer";
 
 type View = { nodesRef: { current: CanvasNodeData[] }; setNodes: Dispatch<SetStateAction<CanvasNodeData[]>> };
@@ -17,7 +18,7 @@ export function adoptStudioCanvasGeneration(projectId: string, rootId: string, t
     };
     const apply = async () => {
         const failed: unknown[] = [];
-        for (const slot of studioCanvasOutputs(task)) {
+        for (const slot of studioGenerationOutputs(task)) {
             try {
                 check();
                 const before = view.nodesRef.current;

@@ -515,6 +515,7 @@ export type CanvasNodeMetadata = {
     actionBoardColumns?: number;
     taskId?: string;
     taskClientOperationId?: string;
+    studioGenerationCommand?: string;
     retryOf?: string;
     attemptGroupId?: string;
     taskStatus?: "queued" | "running" | "succeeded" | "failed" | "cancelled" | string;

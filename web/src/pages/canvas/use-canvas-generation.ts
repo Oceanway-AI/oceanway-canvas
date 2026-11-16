@@ -9,7 +9,7 @@ import { reconcileImageBatchRoot } from "@/lib/canvas/canvas-image-batch-retry";
 import { canvasTaskBindingStatus, markCanvasTaskRecoveryUnconfirmed } from "@/lib/canvas/canvas-task-state";
 import { applyCanvasGenerationTaskNodeEffect, CanvasGenerationDurableAckError, isCanvasGenerationDurableAckError } from "@/services/canvas-generation-consumer";
 import { consumeGenerationTaskNode, ensureCanvasNodeAsset, isGenerationOutputAssetDeletedError, retryCanvasAssetSyncAfterRateLimit, subscribeCanvasProjectAssetLinkFailures } from "@/services/project-asset-sync";
-import { listGenerationTasks, listTaskLogs, queryGenerationTask, subscribeGenerationTasks, type GenerationTask, type TaskLog } from "@/services/api/task-center";
+import { listGenerationTasks, listTaskLogs, queryGenerationTask, recoverStudioGenerationCommand, subscribeGenerationTasks, type GenerationTask, type TaskLog } from "@/services/api/task-center";
 import { CanvasNodeType, type CanvasNodeData } from "@/types/canvas";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { cinematicStoryboardColumns, storyboardRowsFromTask } from "@/lib/canvas/canvas-project-domain";
@@ -458,7 +458,7 @@ export function useCanvasGeneration({ projectId, domainProjectId, projectLoaded,
                     Boolean(node.metadata?.taskId && node.metadata.status !== NODE_STATUS_SUCCESS)
                 );
             });
-            const needsDiscovery = recoveryNodes.some((node) => !node.metadata?.taskId && !node.metadata?.agentGenerationContinuation?.taskId);
+            const needsDiscovery = recoveryNodes.some((node) => !node.metadata?.studioGenerationCommand && !node.metadata?.taskId && !node.metadata?.agentGenerationContinuation?.taskId);
             let projectTasks: GenerationTask[] = [];
             if (needsDiscovery) {
                 try {
@@ -468,14 +468,23 @@ export function useCanvasGeneration({ projectId, domainProjectId, projectLoaded,
                     // 发现接口失败不影响已有 taskId 的精确恢复，也不是“查无任务”的证据。
                     message.warning({ key: `canvas-task-recovery:${startedProjectId}`, content: translate("canvasPage.taskRecovery.listUnavailable"), duration: 6 });
                 }
-                if (isCurrentProject() && recoveryNodes.some((node) => !node.metadata?.taskId && !node.metadata?.agentGenerationContinuation?.taskId && !projectTasks.some((task) => generationTaskNodeId(task) === node.id))) {
+                if (
+                    isCurrentProject() &&
+                    recoveryNodes.some((node) => !node.metadata?.studioGenerationCommand && !node.metadata?.taskId && !node.metadata?.agentGenerationContinuation?.taskId && !projectTasks.some((task) => generationTaskNodeId(task) === node.id))
+                ) {
                     message.warning({ key: `canvas-task-recovery:${startedProjectId}`, content: translate("canvasPage.taskRecovery.someNotFound"), duration: 6 });
                 }
             }
             if (!isCurrentProject()) return;
             await Promise.all(
                 recoveryNodes.map(async (node) => {
-                    const discoveredTask = projectTasks.find((task) => generationTaskNodeId(task) === node.id);
+                    let discoveredTask = projectTasks.find((task) => generationTaskNodeId(task) === node.id);
+                    const command = node.metadata?.studioGenerationCommand;
+                    if (command && !node.metadata?.taskId) {
+                        const recovered = await recoverStudioGenerationCommand(command, signal).catch(() => undefined);
+                        if (!isCurrentProject() || signal.aborted || nodesRef.current.find((n) => n.id === node.id)?.metadata?.studioGenerationCommand !== command) return;
+                        if (recovered?.projectId === startedProjectId) discoveredTask = recovered;
+                    }
                     const taskId = node.metadata?.taskId || node.metadata?.agentGenerationContinuation?.taskId || discoveredTask?.id;
                     if (!taskId) {
                         if (!isCurrentProject()) return;

@@ -3,7 +3,7 @@ import { defaultConfig } from "@/stores/use-config-store";
 import { systemChannelModelChannels } from "@/lib/user-session";
 import { nativeCreationModeOptions, nativeCreationSettings, nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues } from "@/lib/platform-native-media";
 import { maxModelInputCapacity, modelCompatibilityError, resolveModelGenerationDefaults } from "@/lib/model-selection";
-import { backendProviderConfig, prepareBackendGenerationTask } from "@/services/api/generation-task";
+import { backendProviderConfig, prepareBackendGenerationTask, runBackendGenerationTaskBatch } from "@/services/api/generation-task";
 import { buildNodeConfig } from "@/components/canvas/canvas-node-prompt-config";
 import { buildGenerationConfig } from "@/lib/canvas/canvas-project-generation";
 import { specFromConfig, generationSpecMetadata, synchronizeGenerationSpec } from "@/lib/canvas/generation-contract";
@@ -236,4 +236,35 @@ test("Platform controls discard API-only and stale overrides while retaining exp
     const source = { ...variant, workbench_parameters: ["/seed"], defaults: { "/seed": 3, "/n": 1 } };
     expect(nativeParameterValues(source, '{"/seed":0,"/n":8}')).toEqual({ "/seed": 0 });
     expect(nativeParameterValues({ ...source, workbench_parameters: [] }, '{"/n":8}')).toEqual({});
+});
+
+test("one published v1 image command owns all selected outputs even without native editor details", async () => {
+    const image = {
+        ...model,
+        modelKey: "fixture-image",
+        capability: "image",
+        platform: { model_type: "image", price: { version: "p" }, media_generation_profile: { default_variant: "generate", variants: [{ id: "generate", media_generation_v1: true }, { id: "other" }] } },
+        capabilityConfig: { version: 1, image: { maxOutputs: 3 } },
+    } as unknown as PublicChannelModel;
+    const name = "oceanway-platform::fixture-image";
+    const cfg = { ...defaultConfig, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "Platform", displayName: "Platform", models: [image] }]), model: name, imageModel: name, count: "3" };
+    const calls: Array<Awaited<ReturnType<typeof prepareBackendGenerationTask>>> = [];
+    const result = await runBackendGenerationTaskBatch(
+        { mode: "image", prompt: "fixture", config: cfg, count: 3 },
+        {
+            createTask: async (input) => {
+                calls.push(input);
+                throw new Error("test stops at admission");
+            },
+            waitTask: async () => {
+                throw new Error("unexpected wait");
+            },
+            createId: () => "command",
+        },
+    );
+    expect(result).toHaveLength(1);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.platform).toMatchObject({ mediaGenerationV1: true, variantId: "generate" });
+    expect(calls[0]?.input?.config).toMatchObject({ count: "3" });
+    expect((await prepareBackendGenerationTask({ mode: "image", prompt: "fixture", config: { ...cfg, nativeVariantId: "other" } })).platform?.mediaGenerationV1).toBeUndefined();
 });

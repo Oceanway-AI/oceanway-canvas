@@ -112,3 +112,24 @@ describe("首页创作恢复监听范围", () => {
         expect(pendingCreationTaskIds(stored)).toEqual(["task-pending", "task-sync", "task-legacy"]);
     });
 });
+
+test("create workbench shows already adopted original slots while the same command has another slot saving", () => {
+    const outputs = [
+        { index: 0, kind: "image", materialState: "saved", resourceId: "r0", media: { storageKey: "resource:r0", dataUrl: "/api/resources/r0/file" } },
+        { index: 1, kind: "image", materialState: "saving" },
+        { index: 2, kind: "image", materialState: "saved", resourceId: "r2", media: { storageKey: "resource:r2", dataUrl: "/api/resources/r2/file" } },
+    ];
+    const observed = task({
+        type: "canvas_image",
+        provider: "platform",
+        platformGenerationRequest: "r",
+        platformRevision: 2,
+        resultJson: JSON.stringify({ outputs }),
+        earlyPreviews: [
+            { index: 0, kind: "image" },
+            { index: 1, kind: "image" },
+        ],
+    });
+    const next = reconcileCreationTaskMessages(runtime, conversations(assistant({ mode: "image", status: "pending" })), [observed]);
+    expect(next[0].messages[1]).toMatchObject({ status: "pending", resultStorageKeys: ["resource:r0", "resource:r2"], earlyPreviews: [{ taskId: observed.id, index: 1, kind: "image" }] });
+});

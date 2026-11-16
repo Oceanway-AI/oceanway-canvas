@@ -32,3 +32,14 @@ test("three ordinals adopt independently, preserving edits and tombstones after 
     const rebound = nodes.map((n) => (n.id === "root" ? { ...n, metadata: { ...n.metadata, taskId: "task-B" } } : n));
     expect(projectStudioCanvasOutput(rebound, "root", task, slot(0, "r0")).nodes).toEqual(rebound);
 });
+
+test("one permanently unavailable output stops loading while a recoverable archive remains pending", () => {
+    const task = { id: "task", platformGenerationRequest: "request", platformRevision: 4, platformRetryAfterMs: 2000 } as GenerationTask;
+    const root = { id: "root", title: "Original", type: CanvasNodeType.Image, position: { x: 0, y: 0 }, width: 50, height: 50, metadata: { taskId: task.id } } as CanvasNodeData;
+    const slot = { index: 1, kind: "image" as const, contentState: "failed", previewState: "failed", materialState: "failed", failureCode: "result_capture_failed", recoverable: false };
+    const permanent = projectStudioCanvasOutput([root], "root", task, slot);
+    expect(permanent.target?.metadata?.status).toBe("error");
+    expect(permanent.target?.metadata?.errorDetails).toBeTruthy();
+    const transient = projectStudioCanvasOutput([root], "root", task, { ...slot, recoverable: true });
+    expect(transient.target?.metadata?.status).toBe("loading");
+});

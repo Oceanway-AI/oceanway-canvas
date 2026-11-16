@@ -69,6 +69,8 @@ type studioGenerationSlot struct {
 	ContentState  string         `json:"contentState"`
 	PreviewState  string         `json:"previewState"`
 	MaterialState string         `json:"materialState"`
+	FailureCode   string         `json:"failureCode,omitempty"`
+	Recoverable   bool           `json:"recoverable,omitempty"`
 	PreviewURL    string         `json:"previewUrl,omitempty"`
 	ResourceID    string         `json:"resourceId,omitempty"`
 	Media         map[string]any `json:"media,omitempty"`
@@ -106,6 +108,10 @@ func (s *Service) projectStudioGeneration(ctx context.Context, task *model.Task,
 			return NewAppError(502, "平台输出类型不匹配")
 		}
 		slot := studioGenerationSlot{Index: o.Index, Kind: o.Kind, ContentState: o.ContentState, PreviewState: o.PreviewState, MaterialState: o.MaterialState}
+		if o.Error != nil {
+			slot.FailureCode = o.Error.Code
+			slot.Recoverable = o.Error.Recovery.Action == "query_original" && o.Error.Recovery.Availability == "available"
+		}
 		if settled && o.PreviewState == "available" && o.PreviewPath != "" {
 			slot.PreviewURL = "/api/tasks/" + task.ID + "/previews/" + strconv.Itoa(o.Index)
 		}
@@ -131,8 +137,12 @@ func (s *Service) projectStudioGeneration(ctx context.Context, task *model.Task,
 			slot.Media = item
 			media = append(media, item)
 		case "failed":
-			// A failed archive can recover the same original after an operator retry.
-			unfinished = true
+			// The original status provides the observation window for recovery.
+			if slot.Recoverable && g.RetryAfterMS > 0 {
+				unfinished = true
+			} else {
+				failed++
+			}
 		case "deleted", "delivery_expired", "output_contract_violation":
 			failed++
 		default:
@@ -164,7 +174,9 @@ func (s *Service) projectStudioGeneration(ctx context.Context, task *model.Task,
 	if g.Progress != nil {
 		task.Progress = *g.Progress
 	}
-	if g.ExecutionState == "failed" || g.ExecutionState == "rejected" || g.ExecutionState == "cancelled" {
+	if g.FundsState == "reserved" && g.RetryAfterMS > 0 && (g.ExecutionState == "succeeded" || g.ExecutionState == "failed" || g.ExecutionState == "cancelled" || g.ExecutionState == "rejected") {
+		task.Stage = "正在处理原请求"
+	} else if g.ExecutionState == "failed" || g.ExecutionState == "rejected" || g.ExecutionState == "cancelled" {
 		task.Status = model.TaskStatusFailed
 		task.Stage = "生成失败"
 		task.Error, task.ExecutionDiagnosticJSON = studioMediaFailureDiagnostic(task.ID, g.Error, g.ExecutionState != "rejected")
@@ -196,15 +208,51 @@ func (s *Service) projectStudioGeneration(ctx context.Context, task *model.Task,
 	return s.repo.SaveStudioGenerationProjection(task, raw)
 }
 
+// An acknowledged final receipt contains all original file identities. Recover
+// a lost project binding response against those files, even after a restart.
+func (s *Service) readStudioGenerationReceipt(ctx context.Context, task *model.Task, auth platformclient.MediaGenerationAuth) (platformclient.MediaGeneration, error) {
+	if task.PlatformProjectionPending {
+		ex, err := s.repo.WithContext(ctx).StudioExecution(task.UserID, task.ID)
+		if err != nil {
+			return platformclient.MediaGeneration{}, err
+		}
+		var g platformclient.MediaGeneration
+		if err = s.decryptStudioValue(ex.ResponseEncrypted, &g); err != nil {
+			return g, err
+		}
+		if g.RequestID == task.PlatformGenerationRequest && g.Revision == task.PlatformRevision && g.ExecutionState == "succeeded" && (g.FundsState == "settled" || g.FundsState == "not_applicable") && len(g.Outputs) > 0 {
+			final := true
+			for _, o := range g.Outputs {
+				switch o.MaterialState {
+				case "saved", "deleted", "delivery_expired", "output_contract_violation":
+				default:
+					final = false
+				}
+			}
+			if final {
+				return g, nil
+			}
+		}
+	}
+	return s.studioPlatform.Client.GetMediaGeneration(ctx, auth, task.PlatformGenerationRequest)
+}
+
 func (s *Service) StudioReadGeneration(ctx context.Context, task *model.Task, session platformclient.SessionContext) (*model.Task, *platformclient.Response, error) {
 	response := &platformclient.Response{Header: make(http.Header)}
 	if task.PlatformGenerationRequest == "" || task.Status == model.TaskStatusSucceeded || task.Status == model.TaskStatusFailed {
 		return task, response, nil
 	}
 	auth := platformclient.MediaGenerationAuth{Session: &session, WorkspaceID: task.PlatformWorkspaceID}
-	g, err := s.studioPlatform.Client.GetMediaGeneration(ctx, auth, task.PlatformGenerationRequest)
+	g, err := s.readStudioGenerationReceipt(ctx, task, auth)
 	g.Response.AppendCookies(response.Header)
 	if err != nil {
+		if rejected, e := s.studioGenerationRejection(task, err); rejected {
+			if e != nil {
+				return nil, response, e
+			}
+			final, e := s.Task(task.UserID, task.ID)
+			return final, response, e
+		}
 		if g.Response != nil && (g.Response.StatusCode == 401 || g.Response.StatusCode == 403) {
 			return nil, response, NotFound("任务不存在或不可访问")
 		}
@@ -258,15 +306,22 @@ func (s *Service) sendStudioGeneration(ctx context.Context, task *model.Task, au
 	if e == nil {
 		return s.projectStudioGeneration(ctx, task, auth, g, response)
 	}
-	var failure *platformclient.MediaGenerationError
-	if errors.As(e, &failure) && failure.RejectedBeforeDispatch && failure.Failure != nil {
-		f := *failure.Failure
-		messages := map[string]string{"insufficient_quota": "可用额度不足，请核对余额或已批准的额度。", "active_task_limit": "同时生成的任务已达上限。", "archive_capacity_insufficient": "素材空间容量不足。", "price_changed": "模型价格已更新，请刷新目录后确认。", "capability_changed": "模型能力已更新，请刷新目录后确认。", "invalid_request": "生成参数无效，请核对所选模型和输入。"}
-		if m := messages[f.Code]; m != "" {
-			f.Message = m
-		}
-		message, diagnostic := studioMediaFailureDiagnostic(task.ID, &f, false)
-		return s.repo.RejectStudioGeneration(task, message, diagnostic)
+	if rejected, err := s.studioGenerationRejection(task, e); rejected {
+		return err
 	}
 	return s.repo.MarkStudioGenerationUnknown(task, studioMediaSubmissionDiagnostic(g.Response, false, task.ID))
+}
+
+func (s *Service) studioGenerationRejection(task *model.Task, e error) (bool, error) {
+	var failure *platformclient.MediaGenerationError
+	if !errors.As(e, &failure) || !failure.RejectedBeforeDispatch || failure.Failure == nil {
+		return false, nil
+	}
+	f := *failure.Failure
+	messages := map[string]string{"insufficient_quota": "可用额度不足，请核对余额或已批准的额度。", "active_task_limit": "同时生成的任务已达上限。", "archive_capacity_insufficient": "素材空间容量不足。", "price_changed": "模型价格已更新，请刷新目录后确认。", "capability_changed": "模型能力已更新，请刷新目录后确认。", "invalid_request": "生成参数无效，请核对所选模型和输入。"}
+	if message := messages[f.Code]; message != "" {
+		f.Message = message
+	}
+	message, diagnostic := studioMediaFailureDiagnostic(task.ID, &f, false)
+	return true, s.repo.RejectStudioGeneration(task, message, diagnostic)
 }

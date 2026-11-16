@@ -267,8 +267,12 @@ func (s *Service) waitStudioAgentGeneration(ctx context.Context, user, run, id s
 			return nil, ctx.Err()
 		case <-timer.C:
 		}
-		g, err := s.studioPlatform.Client.GetMediaGeneration(ctx, auth, task.PlatformGenerationRequest)
-		if err == nil {
+		g, err := s.readStudioGenerationReceipt(ctx, task, auth)
+		if err != nil {
+			if _, e := s.studioGenerationRejection(task, err); e != nil {
+				return nil, e
+			}
+		} else {
 			if err = s.projectStudioGeneration(ctx, task, auth, g, &platformclient.Response{Header: make(http.Header)}); err != nil {
 				return nil, err
 			}

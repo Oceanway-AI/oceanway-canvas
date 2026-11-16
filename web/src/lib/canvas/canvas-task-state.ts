@@ -43,6 +43,7 @@ export function resetGenerationTaskMetadata(metadata: CanvasNodeMetadata | undef
     };
     delete next.taskId;
     delete next.taskClientOperationId;
+    delete next.studioGenerationCommand;
     delete next.retryOf;
     delete next.attemptGroupId;
     delete next.taskStatus;

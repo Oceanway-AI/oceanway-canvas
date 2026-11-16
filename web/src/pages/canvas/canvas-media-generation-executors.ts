@@ -1,3 +1,5 @@
+import { createClientUUID } from "@/lib/client-id";
+import { studioMediaGenerationVariant } from "@/lib/platform-native-media";
 import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation";
 import { restoreCanvasBudgetDraft } from "@/lib/canvas/canvas-task-state";
 import { nanoid } from "nanoid";
@@ -45,6 +47,7 @@ export async function executeVideoGeneration({
     const reuseSourceNode = canGenerateMediaInPlace(sourceNode, CanvasNodeType.Video);
     const isExistingVideoNode = sourceNode?.type === CanvasNodeType.Video && Boolean(sourceNode.metadata?.content) && !reuseSourceNode;
     const videoId = reuseSourceNode ? nodeId : nanoid();
+    const command = studioMediaGenerationVariant(generationConfig) ? retryContext?.clientOperationId || createClientUUID() : undefined;
     const versionRootId = isExistingVideoNode && sourceNode ? sourceNode.metadata?.versionOfNodeId || sourceNode.id : undefined;
     const parent = sourceNode?.position || { x: 0, y: 0 };
     const videoGenerationMetadata = buildVideoGenerationMetadata(sourceNode, generationContext, generationConfig);
@@ -60,6 +63,7 @@ export async function executeVideoGeneration({
         metadata: {
             // 就地重生成不能继承旧任务的计时字段；媒体内容与提示词不在清理范围内。
             ...resetGenerationTaskMetadata(reuseSourceNode ? sourceNode?.metadata : undefined, NODE_STATUS_LOADING),
+            studioGenerationCommand: command,
             ...(reuseSourceNode ? mediaVersionFieldsBeforeReplace(sourceNode) : {}),
             taskCreatedAt: new Date().toISOString(),
             ...canvasGenerationPromptMetadata(prompt, effectivePrompt),
@@ -124,6 +128,7 @@ export async function executeVideoGeneration({
                 projectId,
                 nodeId: videoId,
                 ...retryContext,
+                ...(command ? { clientOperationId: command } : {}),
                 mode: "video",
                 prompt: effectivePrompt,
                 config: generationConfig,

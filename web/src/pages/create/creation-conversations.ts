@@ -3,6 +3,7 @@ import { createClientId } from "@/lib/client-id";
 import { generationErrorMessage } from "@/lib/generation-error";
 import type { BackendGenerationResult } from "@/services/api/generation-task";
 import type { GenerationTask } from "@/services/api/task-center";
+import { studioGenerationOutputs } from "@/services/studio-generation-outputs";
 import { taskEarlyPreviews } from "@/services/task-early-previews";
 import { creationAttachmentKind, type CreationAttachment } from "./creation-assets";
 import type { CreationConversation, CreationMessage, CreationShotRailEntry } from "./creation-types";
@@ -118,9 +119,26 @@ function creationMediaMessageAwaitsTask(message: CreationMessage, revive: boolea
 
 const clearedCreationSyncState = { syncInterrupted: undefined, errorKind: undefined, mediaRecoverable: undefined } satisfies Partial<CreationMessage>;
 
+export function studioCreationOutputSnapshot(tasks: GenerationTask[]) {
+    const keys: string[] = [],
+        urls: string[] = [];
+    const earlyPreviews = tasks.flatMap((task) => {
+        const saved = new Set<number>();
+        for (const slot of studioGenerationOutputs(task).sort((a, b) => a.index - b.index)) {
+            if (slot.materialState !== "saved" || !slot.resourceId || slot.media?.storageKey !== `resource:${slot.resourceId}`) continue;
+            saved.add(slot.index);
+            keys.push(slot.media.storageKey);
+            urls.push(slot.media.dataUrl);
+        }
+        return taskEarlyPreviews(task).filter((ref) => !saved.has(ref.index));
+    });
+    return { earlyPreviews, ...(keys.length ? { resultStorageKeys: keys, resultUrls: urls } : {}) };
+}
+
 /** 任务仍在进行：消息回到生成中，并刷新阶段与真实进度；没有变化时返回原对象，避免无谓重渲染与持久化。 */
 function creationMessageWithObservedTask(message: CreationMessage, task: GenerationTask, matches: GenerationTask[]): CreationMessage {
-    const earlyPreviews = matches.flatMap(taskEarlyPreviews);
+    const visible = studioCreationOutputSnapshot(matches);
+    const earlyPreviews = visible.earlyPreviews;
     const taskIds = Array.from(new Set([...(message.taskIds || []), ...matches.map((entry) => entry.id)]));
     const progress = typeof task.progress === "number" && Number.isFinite(task.progress) ? Math.round(task.progress) : undefined;
     const unchanged =
@@ -128,6 +146,7 @@ function creationMessageWithObservedTask(message: CreationMessage, task: Generat
         !message.syncInterrupted &&
         !message.error &&
         !message.errorKind &&
+        (!visible.resultStorageKeys || JSON.stringify(visible.resultStorageKeys) === JSON.stringify(message.resultStorageKeys)) &&
         message.generationStatus === task.status &&
         message.generationStage === task.stage &&
         message.generationMediaStage === task.mediaStage &&
@@ -145,7 +164,7 @@ function creationMessageWithObservedTask(message: CreationMessage, task: Generat
         generationStage: task.stage,
         generationMediaStage: task.mediaStage,
         generationProgress: progress,
-        earlyPreviews,
+        ...visible,
         taskIds,
     };
 }

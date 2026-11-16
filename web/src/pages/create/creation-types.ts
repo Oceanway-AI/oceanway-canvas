@@ -35,6 +35,7 @@ export type CreationMessage = {
     taskIds?: string[];
     earlyPreviews?: TaskEarlyPreview[];
     clientOperationId?: string;
+    studioGenerationCommand?: string;
     retryOf?: string;
     attemptGroupId?: string;
     generationStage?: string;

@@ -157,6 +157,7 @@ export function generationTaskMetadata(task: GenerationTask): CanvasNodeMetadata
     const early = taskEarlyPreviews(task);
     return {
         taskId: task.id,
+        studioGenerationCommand: undefined,
         taskClientOperationId: task.clientOperationId,
         retryOf: task.retryOf,
         attemptGroupId: task.attemptGroupId,

@@ -394,16 +394,18 @@ export function MediaResult({
     const expectedResultCount = resultStorageKeys.length || alignedResultUrls.length;
     const resultResourceIds = platformIdentity ? creationResultResourceIds(resultStorageKeys) : [];
     const selection: CreationCanvasSelection = platformIdentity ? { assetIds: [], resourceIds: resultResourceIds } : { assetIds: resultAssetIds, resourceIds: [] };
-    const canContinueWithResults = item.status === "done" && expectedResultCount > 0 && selection.assetIds.length + selection.resourceIds.length === expectedResultCount;
+    const partial = platformIdentity && item.status === "pending" && resultResourceIds.length > 0;
+    const canContinueWithResults = (item.status === "done" || partial) && expectedResultCount > 0 && selection.assetIds.length + selection.resourceIds.length === expectedResultCount;
     const withEarlyMedia = (children: ReactNode) => (
         <TaskEarlyMedia
+            includeChildren={partial}
             previews={platformIdentity ? (item.earlyPreviews || []).filter((ref) => item.taskIds?.includes(ref.taskId)) : []}
             show={item.status === "pending" || (!displayResultUrls.length && (!platformVideoKey || mediaStates[platformVideoKey] !== "error"))}
         >
             {children}
         </TaskEarlyMedia>
     );
-    if (item.status === "pending") return withEarlyMedia(<CreationMediaPending item={item} refreshing={refreshingResult} onRefresh={onRefreshResult} onRetry={onRetryFailure} />);
+    if (item.status === "pending" && !partial) return withEarlyMedia(<CreationMediaPending item={item} refreshing={refreshingResult} onRefresh={onRefreshResult} onRetry={onRetryFailure} />);
     if ((item.status === "error" || item.status === "cancelled") && !expectedResultCount) return <CreationMediaFailure item={item} refreshing={refreshingResult} onRefresh={onRefreshResult} onRecoverMedia={onRecoverMedia} onRetry={onRetryFailure} />;
     // 远端结果首次解析中不显示空态，避免先闪「没有返回可预览结果」再出现结果。
     if (!expectedResultCount || (!displayResultUrls.length && !resolving))

@@ -94,10 +94,13 @@ func TestStudioMediaGenerationOriginalAdmissionAndRead(t *testing.T) {
 }
 
 func TestStudioMediaGenerationSlotsAndEarlyBrowser(t *testing.T) {
-	studioMediaGenerationSlots(t, false)
+	studioMediaGenerationSlots(t, false, false)
 }
-func TestStudioMediaGenerationSynchronous(t *testing.T) { studioMediaGenerationSlots(t, true) }
-func studioMediaGenerationSlots(t *testing.T, syncReady bool) {
+func TestStudioMediaGenerationSynchronous(t *testing.T) { studioMediaGenerationSlots(t, true, false) }
+func TestStudioMediaGenerationOriginalBindingLostAck(t *testing.T) {
+	studioMediaGenerationSlots(t, true, true)
+}
+func studioMediaGenerationSlots(t *testing.T, syncReady, loseBinding bool) {
 	f := newStudioFixture(t)
 	f.catalog = studioGenerationCatalog
 	var reqID string
@@ -122,6 +125,10 @@ func studioMediaGenerationSlots(t *testing.T, syncReady bool) {
 			asset := parts[len(parts)-2]
 			b := platformclient.Binding{BindingID: "binding_" + asset, AssetID: asset, VersionID: in.VersionID, TargetApp: "studio", TargetType: in.TargetType, TargetID: in.TargetID, Slot: in.Slot, State: "active"}
 			bindings[in.CommandID] = b
+			if loseBinding && asset == "asset_one" {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				return
+			}
 			_ = json.NewEncoder(w).Encode(b)
 		default:
 			t.Errorf("unexpected material request %s %s", r.Method, r.URL.Path)
@@ -148,7 +155,7 @@ func studioMediaGenerationSlots(t *testing.T, syncReady bool) {
 		for i, name := range []string{"zero", "one", "two"} {
 			o := map[string]any{"index": i, "kind": "image", "content_state": "available", "preview_state": "available", "material_state": "saved", "asset_id": "asset_" + name, "version_id": "version_" + name, "file_id": "file_" + name, "sha256": strings.Repeat("b", 64), "bytes": 12, "mime_type": "image/png", "owner": map[string]string{"kind": "account", "id": "101"}, "width": 24, "height": 13}
 			if !syncReady && i == 1 && reads == 0 {
-				o = map[string]any{"index": 1, "kind": "image", "content_state": "available", "preview_state": "available", "material_state": "failed", "error": map[string]string{"code": "storage_unavailable", "category": "platform", "stage": "result_capture"}, "preview_path": "/internal/products/v1/media-generations/" + reqID + "/outputs/1/preview"}
+				o = map[string]any{"index": 1, "kind": "image", "content_state": "available", "preview_state": "available", "material_state": "failed", "error": map[string]any{"code": "material_archive_unavailable", "category": "platform", "stage": "archive", "recovery": map[string]string{"action": "query_original", "availability": "available"}}, "preview_path": "/internal/products/v1/media-generations/" + reqID + "/outputs/1/preview"}
 			}
 			out = append(out, o)
 		}
@@ -165,6 +172,18 @@ func studioMediaGenerationSlots(t *testing.T, syncReady bool) {
 		}
 	}
 	_ = json.Unmarshal([]byte(w.Data.ResultJSON), &projection)
+	if loseBinding {
+		if w.Data.Status != model.TaskStatusRunning || len(bindings) != 3 || projection.Outputs[0].ResourceID == "" || projection.Outputs[1].ResourceID != "" || projection.Outputs[2].ResourceID == "" {
+			t.Fatalf("wrong initial local binding projection %+v", projection)
+		}
+		f.restart()
+		saved := f.request(t, "GET", "/api/tasks/"+w.Data.ID, auth, "", 200)
+		_ = json.Unmarshal(saved.Body.Bytes(), &w)
+		if w.Data.Status != model.TaskStatusSucceeded || reads != 0 || posts != 1 || len(bindings) != 3 {
+			t.Fatalf("local original binding recovery state=%s reads=%d posts=%d bindings=%d", w.Data.Status, reads, posts, len(bindings))
+		}
+		return
+	}
 	if syncReady {
 		if w.Data.Status != model.TaskStatusSucceeded || len(bindings) != 3 || posts != 1 || reads != 0 {
 			t.Fatalf("synchronous state %s, binds=%d, POST=%d GET=%d", w.Data.Status, len(bindings), posts, reads)
@@ -229,5 +248,88 @@ func TestStudioMediaGenerationConfirmsOnlyMatchingRejection(t *testing.T) {
 				t.Fatal("another request rejected the original")
 			}
 		})
+	}
+}
+
+func TestStudioMediaGenerationObservesRemainingFundsAndPermanentOutputs(t *testing.T) {
+	for _, mode := range []string{"failed_reserved", "succeeded_reserved", "permanent_output"} {
+		t.Run(mode, func(t *testing.T) {
+			f := newStudioFixture(t)
+			f.catalog = studioGenerationCatalog
+			var original string
+			posts, reads := 0, 0
+			f.execution = func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == "POST" {
+					posts++
+					var cmd platformclient.MediaCommand
+					_ = json.NewDecoder(r.Body).Decode(&cmd)
+					original = cmd.RequestID
+				} else {
+					reads++
+					if !strings.HasSuffix(r.URL.Path, "/"+original) {
+						t.Error("wrong original")
+					}
+				}
+				g := map[string]any{"request_id": original, "task_id": "original-observed", "revision": reads + 1, "execution_state": "succeeded", "funds_state": "reserved", "retry_after_ms": 1500, "outputs": []any{}}
+				if mode == "failed_reserved" {
+					g["execution_state"] = "failed"
+				}
+				if mode == "permanent_output" || reads > 0 {
+					g["retry_after_ms"] = 0
+					g["funds_state"] = "settled"
+					g["outputs"] = []map[string]any{{"index": 0, "kind": "image", "content_state": "failed", "preview_state": "failed", "material_state": "failed", "error": map[string]string{"code": "result_capture_failed", "stage": "result_capture", "category": "platform"}}}
+				}
+				_ = json.NewEncoder(w).Encode(g)
+			}
+			auth := "platform_session=alice"
+			result := f.request(t, "POST", "/api/tasks", auth, studioGenerationInput, 200)
+			var w struct{ Data model.Task }
+			_ = json.Unmarshal(result.Body.Bytes(), &w)
+			if mode != "permanent_output" {
+				if w.Data.Status != model.TaskStatusRunning || w.Data.PlatformRetryAfterMS != 1500 {
+					t.Fatalf("lost remaining settlement %+v", w.Data.Status)
+				}
+				result = f.request(t, "GET", "/api/tasks/"+w.Data.ID, auth, "", 200)
+				w.Data = model.Task{}
+				_ = json.Unmarshal(result.Body.Bytes(), &w)
+			}
+			if w.Data.Status != model.TaskStatusFailed || w.Data.PlatformRetryAfterMS != 0 {
+				t.Fatalf("permanent output still observes status=%s delay=%d", w.Data.Status, w.Data.PlatformRetryAfterMS)
+			}
+			originalReads := reads
+			f.request(t, "GET", "/api/tasks/"+w.Data.ID, auth, "", 200)
+			if posts != 1 || reads != originalReads || (mode == "permanent_output" && reads != 0) {
+				t.Fatalf("terminal traffic posts=%d reads=%d", posts, reads)
+			}
+		})
+	}
+}
+
+func TestStudioMediaGenerationOriginalReadRecoversConfirmedRejection(t *testing.T) {
+	f := newStudioFixture(t)
+	f.catalog = studioGenerationCatalog
+	var posts, reads int
+	f.execution = func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			posts++
+			w.WriteHeader(502)
+			return
+		}
+		reads++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(409)
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]string{"code": "price_changed", "message": "price changed", "stage": "admission_rejected", "request_id": "original-v1"}})
+	}
+	auth := "platform_session=alice"
+	var task struct{ Data model.Task }
+	first := f.request(t, "POST", "/api/tasks", auth, studioGenerationInput, 200)
+	_ = json.Unmarshal(first.Body.Bytes(), &task)
+	if task.Data.Status != model.TaskStatusRunning {
+		t.Fatal("ambiguous receipt incorrectly rejected")
+	}
+	saved := f.request(t, "GET", "/api/tasks/"+task.Data.ID, auth, "", 200)
+	_ = json.Unmarshal(saved.Body.Bytes(), &task)
+	if task.Data.Status != model.TaskStatusFailed || !strings.Contains(task.Data.Error, "价格") || reads != 1 || posts != 1 {
+		t.Fatalf("original read status=%s reads=%d posts=%d", task.Data.Status, reads, posts)
 	}
 }

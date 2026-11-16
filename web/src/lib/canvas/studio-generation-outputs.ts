@@ -2,22 +2,7 @@ import type { GenerationTask } from "@/services/api/task-center";
 import type { CanvasNodeData, CanvasNodeMetadata } from "@/types/canvas";
 import { resolveResourceUrl } from "@/services/api/resources";
 
-export type StudioGenerationSlot = {
-    index: number;
-    kind: "image" | "video";
-    contentState: string;
-    previewState: string;
-    materialState: string;
-    previewUrl?: string;
-    resourceId?: string;
-    media?: { storageKey: string; dataUrl: string; mimeType?: string; bytes?: number; width?: number; height?: number; durationMs?: number };
-};
-
-export function studioCanvasOutputs(task: GenerationTask): StudioGenerationSlot[] {
-    if (!task.platformGenerationRequest || !task.resultJson) return [];
-    const result = JSON.parse(task.resultJson) as { outputs?: StudioGenerationSlot[] };
-    return Array.isArray(result.outputs) ? result.outputs : [];
-}
+import type { StudioGenerationSlot } from "@/services/studio-generation-outputs";
 
 export function projectStudioCanvasOutput(nodes: CanvasNodeData[], rootId: string, task: GenerationTask, slot: StudioGenerationSlot) {
     const root = nodes.find((n) => n.id === rootId);
@@ -31,7 +16,8 @@ export function projectStudioCanvasOutput(nodes: CanvasNodeData[], rootId: strin
     const fixed = slot.resourceId && slot.media?.storageKey === "resource:" + slot.resourceId ? slot.media : undefined;
     if (!fixed && previous?.metadata?.platformOutputRequest === task.platformGenerationRequest && previous?.metadata?.storageKey) return unchanged;
     const preview = Boolean(slot.previewUrl && slot.previewState === "available");
-    const state = fixed ? "saved" : [slot.materialState, preview ? "playable" : "waiting"].join("-");
+    const permanent = ["deleted", "delivery_expired", "output_contract_violation"].includes(slot.materialState) || (slot.materialState === "failed" && !slot.recoverable);
+    const state = fixed ? "saved" : [slot.materialState, permanent ? "failed" : preview ? "playable" : "waiting"].join("-");
     const effectKey = `studio-output:${task.id}:${id}:${slot.index}:${fixed?.storageKey || state}`;
     if (previous?.metadata?.generationEffectKeys?.includes(effectKey)) return unchanged;
     const node: CanvasNodeData = previous || {
@@ -53,7 +39,9 @@ export function projectStudioCanvasOutput(nodes: CanvasNodeData[], rootId: strin
         platformOutputRevision: task.platformRevision,
         generationEffectKeys: [...(node.metadata?.generationEffectKeys || []), effectKey],
         taskEarlyPreviews: preview ? [{ taskId: task.id, index: slot.index, kind: slot.kind }] : undefined,
-        status: fixed ? "success" : "loading",
+        status: fixed ? "success" : permanent ? "error" : "loading",
+        errorDetails: permanent ? (slot.materialState === "delivery_expired" ? "原输出交付已过期" : slot.materialState === "deleted" ? "原素材已删除" : "此输出未能保存") : undefined,
+        generationErrorCode: permanent ? slot.failureCode : undefined,
     };
     if (fixed)
         Object.assign(metadata, {

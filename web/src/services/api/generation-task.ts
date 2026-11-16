@@ -2,7 +2,7 @@ import type { ThinkingRequest } from "@/lib/text-thinking";
 import { createClientUUID } from "@/lib/client-id";
 import { normalizeAudioFormatForConfig, normalizeAudioVoiceForConfig } from "@/lib/audio-generation";
 import { imageParameterRequest } from "@/lib/image-parameters";
-import { nativeMediaProfile, nativeMediaVariant, nativeParameterValues } from "@/lib/platform-native-media";
+import { nativeMediaProfile, nativeMediaVariant, studioMediaGenerationVariant, nativeParameterValues } from "@/lib/platform-native-media";
 import { assignFrameSlots, publishedFrameRoles } from "@/lib/media-reference-slots";
 import { nativeImageSizeIssue } from "@/lib/platform-native-image-size";
 import { getMediaBlob } from "@/services/file-storage";
@@ -190,7 +190,7 @@ export async function runBackendToolGenerationTask(options: BackendToolGeneratio
 }
 
 export async function runBackendGenerationTaskBatch(options: BackendGenerationTaskOptions & { count: number }, dependencies: GenerationTaskDependencies = defaultDependencies) {
-    const count = Math.max(1, Math.min(15, Math.floor(Number(options.count)) || 1));
+    const count = studioMediaGenerationVariant(options.config) ? 1 : Math.max(1, Math.min(15, Math.floor(Number(options.count)) || 1));
     throwIfAborted(options.signal);
     assertClientPromptLimit(options.mode, options.prompt, options.config, options.metadata);
     if (options.retryContextsByBatchIndex && options.retryContextsByBatchIndex.length !== count) throw new Error("生成重试批次任务数量不匹配");
@@ -300,9 +300,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
     const workflow = resolveGenerationWorkflowExecution(config, mode);
     const logicalModelId = workflow ? "" : logicalModelIDForConfig(config);
     const platform = resolveModelChannel(config, config.model).modelCosts?.find((item) => item.model === modelOptionName(config.model))?.platform;
-    const profile = platform?.media_generation_profile;
-    const variantId = nativeMediaVariant(config)?.id || config.nativeVariantId || profile?.default_variant;
-    const generationV1 = typeof variantId === "string" && Array.isArray(profile?.variants) && profile.variants.some((v: { id?: string; media_generation_v1?: boolean }) => v.id === variantId && v.media_generation_v1 === true);
+    const variantId = studioMediaGenerationVariant(config);
     const frameRoles = !workflow && mode === "video" ? publishedFrameRoles(nativeMediaVariant(config)) : [];
     let images = prepared.referenceImages;
     if (frameRoles.length) {
@@ -321,7 +319,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
         prompt,
         ...(workflow ? { provider: workflow.provider } : {}),
         model: workflow?.taskModel || config.model,
-        ...(platform && (mode === "image" || mode === "video") ? { platform: { expectedPriceVersion: platform.price.version, ...(generationV1 && typeof variantId === "string" ? { mediaGenerationV1: true, variantId } : {}) } } : {}),
+        ...(platform && (mode === "image" || mode === "video") ? { platform: { expectedPriceVersion: platform.price.version, ...(variantId ? { mediaGenerationV1: true, variantId } : {}) } } : {}),
         ...(logicalModelId ? { logicalModelId } : {}),
         input: {
             mode,

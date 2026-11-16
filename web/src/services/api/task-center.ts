@@ -1,12 +1,12 @@
 import { generationErrorMessage } from "@/lib/generation-error";
-import { http, apiBaseURL, type BackendEnvelope } from "@/services/api/request";
+import { http, apiBaseURL, ApiError, type BackendEnvelope } from "@/services/api/request";
 import { consumeTaskTextStream, createTaskTextStreamParser, type TaskTextStreamEvent } from "@/services/api/task-text-stream";
 import { recordDiagnosticEvent } from "@/services/diagnostics/client-diagnostics";
 import { observeGenerationTaskStatus, observeGenerationTaskStatuses } from "@/services/generation-completion-tracker";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { useUserStore } from "@/stores/use-user-store";
 import { createStudioGenerationReads } from "@/services/studio-generation-reads";
-import { submitPlatformTask } from "@/services/platform-task-submission";
+import { submitPlatformTask, studioGenerationCommandWasSent } from "@/services/platform-task-submission";
 
 export type { BackendEnvelope } from "@/services/api/request";
 
@@ -255,6 +255,26 @@ async function collectGenerationTaskPages<T>(readPage: (request: GenerationTaskP
 
 const studioGenerationReads = createStudioGenerationReads(getActiveUserScope, (id, signal) => http.get<GenerationTask>(`/tasks/${encodeURIComponent(id)}`, { signal }));
 
+// When the tab closed before Studio acknowledged the POST, the local scoped
+// command marker is the only durable identity available to this consumer.
+export async function recoverStudioGenerationCommand(commandId: string, signal: AbortSignal) {
+    const owner = getActiveUserScope();
+    if (!owner || !studioGenerationCommandWasSent(owner, commandId)) return undefined;
+    let delayMS = 1000;
+    while (!signal.aborted && owner === getActiveUserScope()) {
+        try {
+            const task = await http.get<GenerationTask>(`/tasks/by-command/${encodeURIComponent(commandId)}`, { params: { expectedUserId: owner }, signal });
+            if (signal.aborted || owner !== getActiveUserScope()) return undefined;
+            studioGenerationReads.remember(task);
+            return task;
+        } catch (error) {
+            if (signal.aborted) return undefined;
+            if (error instanceof ApiError && error.status && error.status < 500 && error.status !== 404 && error.status !== 429) throw error;
+            await delay(delayMS, signal);
+            delayMS = Math.min(5000, delayMS * 2);
+        }
+    }
+}
 export function queryGenerationTask(id: string, options?: { signal?: AbortSignal }) {
     return studioGenerationReads.read(id, options?.signal).then(observedTask);
 }

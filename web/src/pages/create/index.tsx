@@ -12,7 +12,7 @@ import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation"
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
-import { nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits } from "@/lib/platform-native-media";
+import { nativeCreationSettings, nativeMediaProfile, studioMediaGenerationVariant, nativeMediaReferenceLimits } from "@/lib/platform-native-media";
 import { assignFrameSlots, publishedFrameRoles, type FrameRole } from "@/lib/media-reference-slots";
 import { creationResultAssetIds, creationResultResourceIds, type CreationCanvasSelection } from "@/lib/canvas/canvas-asset-handoff";
 import { loadCanvasResourceHandoffPayloads } from "@/services/canvas-resource-handoff";
@@ -34,6 +34,8 @@ import { useAssetStore, type Asset } from "@/stores/use-asset-store";
 import { loadAssetsForUse, saveRemoteUserDataNow } from "@/services/user-data-sync";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { cn } from "@/lib/utils";
+import { createClientUUID } from "@/lib/client-id";
+import { studioGenerationCommandWasSent } from "@/services/platform-task-submission";
 import { useUserStore } from "@/stores/use-user-store";
 import type { PromptOptimizerProvider } from "@/lib/plugins/plugin-types";
 import { promptOptimizerPlugin, PROMPT_OPTIMIZER_PLUGIN_ID } from "@/lib/plugins/builtin/prompt-optimizer";
@@ -67,7 +69,7 @@ import {
 } from "./creation-assets";
 import { creationLibraryDisabledReason, creationLibrarySelectionToAttachments } from "./creation-library";
 import { defaultCreationMode, modeLabels, type CreationConversation, type CreationMessage, type CreationMode, type CreationRetryContext, type CreationSettings, type CreationShotRailEntry, type CreationStatus } from "./creation-types";
-import { taskEarlyPreviews } from "@/services/task-early-previews";
+import { studioCreationOutputSnapshot } from "./creation-conversations";
 import {
     attachCreationTaskContexts,
     completedCreationGenerationTask,
@@ -208,6 +210,7 @@ export default function CreatePage() {
     const followLatestMessageRef = useRef(true);
     const taskSyncWarningRef = useRef(false);
     const activeGenerationTaskIdsRef = useRef(new Set<string>());
+    const submittingCommands = useRef(new Set<string>());
     const retryPreparingRef = useRef(new Set<string>());
     const submitGateRef = useRef(createCreationSubmitGate());
     const pendingRetryRef = useRef<{ context: CreationRetryContext; lockKey: string } | null>(null);
@@ -598,6 +601,26 @@ export default function CreatePage() {
             unsubscribe();
         };
     }, [applyCreationTaskSnapshots, hydrated, recoveryTaskKey, toast]);
+
+    const unboundCommandKey = JSON.stringify(conversations.flatMap((c) => c.messages.flatMap((m) => (m.studioGenerationCommand && !m.taskIds?.length && m.status === "pending" ? [[c.id, m.id, m.studioGenerationCommand]] : []))));
+    useEffect(() => {
+        if (!hydrated) return;
+        const controller = new AbortController();
+        const commands = JSON.parse(unboundCommandKey) as [string, string, string][];
+        for (const [conversationId, messageId, command] of commands) {
+            if (submittingCommands.current.has(command)) continue;
+            void loadCreationRuntime()
+                .then((runtime) => runtime.recoverStudioGenerationCommand(command, controller.signal))
+                .then((task) => {
+                    if (!task || controller.signal.aborted) return;
+                    updateConversationMessage(conversationId, messageId, (item) =>
+                        item.studioGenerationCommand === command ? { ...item, studioGenerationCommand: undefined, taskIds: [task.id], clientOperationId: command, status: "pending", generationStatus: task.status } : item,
+                    );
+                })
+                .catch(() => {});
+        }
+        return () => controller.abort();
+    }, [hydrated, unboundCommandKey, updateConversationMessage, recoveryEpoch, activeConversationScope]);
 
     const beginResultRefresh = (messageId: string) => {
         if (resultRefreshIdsRef.current.has(messageId)) return null;
@@ -993,7 +1016,16 @@ export default function CreatePage() {
         const referenceMetadata = skillExecution.metadata;
         followLatestMessageRef.current = true;
         const userMessage = newMessage("user", text, { mode, model: selectedModel, attachments, references, settings });
-        const assistantMessage = newMessage("assistant", "", { mode, model: selectedModel, status: mode === "text" && textStreaming ? "streaming" : "pending", settings, ...retryContext });
+        const command = (mode === "image" || mode === "video") && studioMediaGenerationVariant(generationConfig, selectedModel) ? retryContext?.clientOperationId || createClientUUID() : undefined;
+        if (command) submittingCommands.current.add(command);
+        const assistantMessage = newMessage("assistant", "", {
+            mode,
+            model: selectedModel,
+            status: mode === "text" && textStreaming ? "streaming" : "pending",
+            settings,
+            ...retryContext,
+            ...(command ? { studioGenerationCommand: command, clientOperationId: command } : {}),
+        });
         const originConversationId = activeConversation.id;
         const updateOriginAssistant = (updater: (item: CreationMessage) => CreationMessage) => updateConversationMessage(originConversationId, assistantMessage.id, updater);
         const boundTaskIds = new Set<string>();
@@ -1015,7 +1047,7 @@ export default function CreatePage() {
             updateOriginAssistant((item) => ({
                 ...item,
                 generationStage: task.stage,
-                earlyPreviews: Array.from(boundTasks.values()).flatMap(taskEarlyPreviews),
+                ...studioCreationOutputSnapshot(Array.from(boundTasks.values())),
                 generationStatus: task.status,
                 generationMediaStage: task.mediaStage,
                 generationProgress: typeof task.progress === "number" && Number.isFinite(task.progress) ? Math.round(task.progress) : undefined,
@@ -1023,7 +1055,8 @@ export default function CreatePage() {
                 generationOperation: task.operation,
                 generationErrorCode: task.errorCode,
                 taskIds: Array.from(new Set([...(item.taskIds || []), task.id])),
-                clientOperationId: task.clientOperationId,
+                clientOperationId: task.clientOperationId || item.clientOperationId,
+                studioGenerationCommand: undefined,
                 retryOf: task.retryOf,
                 attemptGroupId: task.attemptGroupId,
             }));
@@ -1086,18 +1119,20 @@ export default function CreatePage() {
                 if (!result.text?.trim()) throw new Error(t("create.page.noTextResult"));
                 updateOriginAssistant((item) => ({ ...item, content: result.text || "", reasoning: result.reasoning }));
             } else if (mode === "image" && imageProfile) {
-                const taskCount = nativeProfile ? 1 : Math.max(1, Math.min(imageProfile.maxOutputs, Math.floor(Number(count) || 1)));
+                const v1Image = studioMediaGenerationVariant(requestConfig);
+                const taskCount = nativeProfile || v1Image ? 1 : Math.max(1, Math.min(imageProfile.maxOutputs, Math.floor(Number(count) || 1)));
                 const settled = await runtime.runGenerationOperationOnce(retryContext?.clientOperationId, () =>
                     runtime.runBackendGenerationTaskBatch({
                         mode: "image",
                         prompt: expandedPrompt,
-                        config: { ...requestConfig, count: "1" },
+                        config: v1Image ? requestConfig : { ...requestConfig, count: "1" },
                         referenceImages,
                         signal: requestLifecycle.signal,
                         metadata: { source: "create-page", conversationId: activeConversation.id, messageId: assistantMessage.id, ...referenceMetadata },
                         onTaskUpdate: bindTask,
                         count: taskCount,
                         ...retryContext,
+                        ...(command ? { clientOperationId: command } : {}),
                     }),
                 );
                 if (requestLifecycle.signal.aborted) throw new DOMException("Aborted", "AbortError");
@@ -1172,6 +1207,7 @@ export default function CreatePage() {
                         referenceAudios,
                         signal: requestLifecycle.signal,
                         metadata: { source: "create-page", conversationId: activeConversation.id, messageId: assistantMessage.id, videoEditOperation: videoOperation, ...referenceMetadata },
+                        ...(command ? { clientOperationId: command } : {}),
                         onTaskUpdate: bindTask,
                         ...retryContext,
                     }),
@@ -1214,7 +1250,7 @@ export default function CreatePage() {
                 updateOriginAssistant((item) => ({ ...item, status: "cancelled", content: t("create.status.stopped") }));
                 return;
             }
-            if (boundTaskIds.size && !runtime.isGenerationTaskTerminalError(error)) {
+            if ((boundTaskIds.size || (command && studioGenerationCommandWasSent(activeConversationScope, command))) && !runtime.isGenerationTaskTerminalError(error)) {
                 // 任务已在后端建立，只是页面没等到终态或没读到结果（轮询中断、网络抖动、结果下载失败）：
                 // 这不是生成失败。交给恢复监听继续跟进原任务；默认引导重新生成会让用户再付一次费。
                 handedOverToRecovery = true;
@@ -1237,6 +1273,7 @@ export default function CreatePage() {
                 content: t("create.status.failed"),
             }));
         } finally {
+            if (command) submittingCommands.current.delete(command);
             for (const taskId of boundTaskIds) activeGenerationTaskIdsRef.current.delete(taskId);
             if (handedOverToRecovery) setRecoveryEpoch((value) => value + 1);
             requestLifecycle.release();

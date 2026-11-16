@@ -4,7 +4,21 @@ import { earlyPreviewURL, type TaskEarlyPreview } from "@/services/task-early-pr
 import { waitForResourcePreview } from "@/services/api/resources";
 
 /** A playing video keeps its source until pause/end, even when archival finishes. */
-export function TaskEarlyMedia({ previews, show, playbackKey, preload = "metadata", children }: { previews: TaskEarlyPreview[]; show: boolean; playbackKey?: string; preload?: "metadata" | "none"; children?: ReactNode }) {
+export function TaskEarlyMedia({
+    previews,
+    show,
+    includeChildren,
+    playbackKey,
+    preload = "metadata",
+    children,
+}: {
+    previews: TaskEarlyPreview[];
+    show: boolean;
+    includeChildren?: boolean;
+    playbackKey?: string;
+    preload?: "metadata" | "none";
+    children?: ReactNode;
+}) {
     const { t } = useTranslation();
     const [playing, setPlaying] = useState<TaskEarlyPreview>();
     const [failed, setFailed] = useState<Record<string, boolean>>({});
@@ -23,6 +37,7 @@ export function TaskEarlyMedia({ previews, show, playbackKey, preload = "metadat
     if (!visible.length) return children;
     return (
         <div className="flex size-full flex-wrap items-center justify-center gap-2" onPointerDown={(event) => event.stopPropagation()}>
+            {includeChildren && children}
             {visible.map((ref) => {
                 const src = earlyPreviewURL(ref);
                 if (!src) return null;
