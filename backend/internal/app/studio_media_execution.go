@@ -79,7 +79,11 @@ func (s *Service) studioSelectTaskModel(ctx context.Context, session platformcli
 	var scope studioCatalogScope
 	if len(scopes) == 1 {
 		scope = scopes[0]
-		if m, ok := s.studioMediaCatalog.lookup(scope, name); ok {
+		// An exact variant and price identify the schema shown on this signed-in
+		// page. Platform still checks publication, current price, entitlement
+		// and any capability/connection constraints when it accepts the command.
+		pinned := req.Platform != nil && studioSHA256.MatchString(variant) && studioSHA256.MatchString(req.Platform.ExpectedPriceVersion)
+		if m, ok := s.studioMediaCatalog.lookup(scope, name, pinned); ok {
 			selected, err := selectModel(m)
 			if err == nil && selected.GenerationV1 && (req.Platform == nil || req.Platform.ExpectedPriceVersion == "" || req.Platform.ExpectedPriceVersion == selected.Price.Version) {
 				return selected, nil

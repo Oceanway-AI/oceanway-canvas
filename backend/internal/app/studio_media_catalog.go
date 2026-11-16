@@ -82,11 +82,11 @@ func (c *studioMediaCatalogCache) remember(scope studioCatalogScope, items []pla
 	c.snapshots[slot] = studioMediaCatalogSnapshot{scope, time.Now().Add(time.Minute), models}
 }
 
-func (c *studioMediaCatalogCache) lookup(scope studioCatalogScope, name string) (platformclient.Model, bool) {
+func (c *studioMediaCatalogCache) lookup(scope studioCatalogScope, name string, explicitlyVersioned bool) (platformclient.Model, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for _, snapshot := range c.snapshots {
-		if snapshot.scope == scope && time.Now().Before(snapshot.expires) {
+		if snapshot.scope == scope && (explicitlyVersioned || time.Now().Before(snapshot.expires)) {
 			m, ok := snapshot.models[name]
 			return m, ok
 		}
