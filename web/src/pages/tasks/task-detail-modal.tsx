@@ -369,7 +369,7 @@ export function TaskResultPreview({ item, variant, alt, controls = false, classN
         const controller = new AbortController();
         void taskResultMediaAccess({ key, resourceId, url, kind }, variant, (storageKey, _purpose, requestedVariant) => waitForResourcePreview(storageKey, requestedVariant, controller.signal))
             .then((value) => {
-                if (!controller.signal.aborted && scope === getActiveUserScope()) setResolved({ identity, url: !resourceId && value.startsWith("/api/tasks/") ? value : resolveResourceAccessURL(value) });
+                if (!controller.signal.aborted && scope === getActiveUserScope()) setResolved({ identity, url: resolveResourceAccessURL(value) });
             })
             .catch(() => {
                 if (!controller.signal.aborted && scope === getActiveUserScope()) setResolved({ identity, url: "", failed: true });

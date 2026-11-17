@@ -35,6 +35,7 @@ import { TaskEarlyMedia } from "@/components/task-early-media";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { creationResultEntries } from "./creation-result-urls";
 import { nativeParameterObject, nativeParameterSummary } from "@/lib/platform-native-media";
+import { resolveBrowserMediaDownloadHref, startBrowserDownload } from "@/services/browser-download";
 
 export function CreationMessageView({
     item,
@@ -390,6 +391,14 @@ export function MediaResult({
     const { entries: resultEntries, resolving } = creationResultEntries({ storageKeys: resultStorageKeys, storedUrls: storedResultUrls, resolvedByKey, failedByKey, isVideo, isRemoteKey: (storageKey) => Boolean(resourceIdFromStorageKey(storageKey)) });
     const alignedResultUrls = resultStorageKeys.length ? resultStorageKeys.map((storageKey) => resultEntries.find((entry) => entry.key === storageKey)?.url || "") : resultEntries.map((entry) => entry.url);
     const displayResultUrls = resultEntries.map((entry) => entry.url);
+    const downloadResult = async (storageKey: string, url: string) => {
+        try {
+            const href = await resolveBrowserMediaDownloadHref({ storageKey, url, fileName: "" });
+            if (scope === getActiveUserScope()) startBrowserDownload(href, "");
+        } catch (error) {
+            if (scope === getActiveUserScope()) message.error(error instanceof Error ? error.message : "下载失败");
+        }
+    };
     const resultAssetIds = alignedResultUrls.length || resultStorageKeys.length ? creationResultAssetIds(assets, { messageId: item.id, taskIds: item.taskIds || [], resultUrls: alignedResultUrls, resultStorageKeys }) : [];
     const expectedResultCount = resultStorageKeys.length || alignedResultUrls.length;
     const resultResourceIds = platformIdentity ? creationResultResourceIds(resultStorageKeys) : [];
@@ -520,8 +529,8 @@ export function MediaResult({
                         加入创作素材
                     </Button>
                 )}
-                {displayResultUrls.map((url, index) => (
-                    <a key={`download-${index}`} href={url} download>
+                {resultEntries.map(({ key, url }, index) => (
+                    <Button key={`download-${key}`} type="link" size="small" onClick={() => void downloadResult(key, url)}>
                         {displayResultUrls.length > 1 ? (
                             `下载 ${index + 1}`
                         ) : (
@@ -530,7 +539,7 @@ export function MediaResult({
                                 下载
                             </>
                         )}
-                    </a>
+                    </Button>
                 ))}
             </div>
             <CreationMediaPreviewModal url={previewUrl} type={previewType} onClose={() => setPreviewUrl("")} />
