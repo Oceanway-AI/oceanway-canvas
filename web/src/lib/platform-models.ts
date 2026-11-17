@@ -142,6 +142,12 @@ export function platformModelPriceLabel(model: PlatformModel) {
     return platformPriceLabel(model.price);
 }
 
+export function platformModelCompactPriceLabel(model: PlatformModel) {
+    if (model.model_type !== "text" || model.price.status === "unavailable") return platformModelPriceLabel(model);
+    const cached = model.presentation?.price_summary.filter((range) => ["cached", "cache_read"].includes(range.dimension)) || [];
+    return platformPriceRangesLabel(cached) || "缓存输入价未提供";
+}
+
 export function platformPriceConditions(ranges: PlatformPriceRange[]) {
     return ranges
         .flatMap((range) =>

@@ -6,7 +6,7 @@ import { nativeMediaVariant, nativeParameterValues } from "@/lib/platform-native
 import { ModelPickerPanel } from "@oceanway/model-picker";
 import { usePopoverAnchorAlign } from "@/hooks/use-popover-anchor-align";
 
-import { spokenPlatformPrice, platformModelPriceLabel, platformPriceRangesLabel, platformPriceConditions, platformFeatureSummaries, platformHealthLabel, platformHealthTone, type PlatformModelHealth } from "@/lib/platform-models";
+import { spokenPlatformPrice, platformModelPriceLabel, platformModelCompactPriceLabel, platformPriceRangesLabel, platformPriceConditions, platformFeatureSummaries, platformHealthLabel, platformHealthTone, type PlatformModelHealth } from "@/lib/platform-models";
 import { canvasThemes, type CanvasTheme } from "@/lib/canvas-theme";
 import { modelCapabilityConfigFor, videoDurationOptions } from "@/lib/model-capabilities";
 import { compatibleModelInGroup, configuredModelDisplayName, modelCompatibilityError, resolveCompatibleModel, type DisplayModelGroup, type ModelRequirements } from "@/lib/model-selection";
@@ -455,10 +455,9 @@ export function ModelLabel({
     const logicalCost = channel.modelDetails?.find((item) => item.model === modelOptionName(model));
     const platform = logicalCost?.platform;
     const presentation = platform?.presentation;
-    const isPlatformMedia = platform?.model_type === "image" || platform?.model_type === "video";
-    const platformStatus = platform && <PlatformHealthIndicator health={presentation?.health} available={Boolean(logicalCost?.available) && presentation?.availability.state !== "unavailable"} compact={isPlatformMedia} />;
-    if (isPlatformMedia) {
-        const title = modelChannelLabel(config, model);
+    const platformStatus = platform && <PlatformHealthIndicator health={presentation?.health} available={Boolean(logicalCost?.available) && presentation?.availability.state !== "unavailable"} compact />;
+    if (platform) {
+        const title = platform.content?.display_name?.trim() || modelChannelLabel(config, model);
         const tags = presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
         const prices = presentation?.price_summary ?? [];
         let parameters = {};
@@ -475,9 +474,10 @@ export function ModelLabel({
         const referenceSeconds = durations?.length === videoCount && durations.every((ms) => Number.isFinite(ms) && ms > 0) ? durations.reduce((sum, ms) => sum + ms, 0) / 1000 : undefined;
         const settings = videoPriceSettings(parameters, videoCount > 0, referenceSeconds);
         const estimate = seedanceDisplayPrice(platform, settings);
-        const price = estimate ? (estimate.state === "estimated" ? `≈ ✦ ${estimate.perSecond}/s` : "暂时无法预估费用") : platformModelPriceLabel(platform);
+        const price = estimate ? (estimate.state === "estimated" ? `≈ ✦ ${estimate.perSecond}/s` : "暂时无法预估费用") : platformModelCompactPriceLabel(platform);
         const details = [
             estimate?.state === "estimated" ? `${estimate.ratio} · ${estimate.width} × ${estimate.height} × 24 × (${estimate.referenceSeconds} + ${estimate.seconds}) / 1024 ≈ ${estimate.tokens} Token · ✦ ${estimate.rate}/百万 Token` : "",
+            platformModelPriceLabel(platform),
             platformPriceConditions(prices),
         ]
             .filter(Boolean)
@@ -653,7 +653,10 @@ type ModelMenuPrice = { label: string; title: string };
 function modelMenuPrice(config: AiConfig, model: string): ModelMenuPrice | undefined {
     const published = resolveModelChannel(config, model).modelDetails?.find((item) => item.model === modelOptionName(model))?.platform;
     if (!published) return undefined;
-    return { label: platformModelPriceLabel(published), title: platformPriceConditions(published.presentation?.price_summary || []) || "按实际规格取得 Platform 报价" };
+    return {
+        label: platformModelCompactPriceLabel(published),
+        title: [platformModelPriceLabel(published), platformPriceConditions(published.presentation?.price_summary || [])].filter(Boolean).join("\n"),
+    };
 }
 
 function pickerModelDisplayName(config: AiConfig, model: string, showConfiguredModelName: boolean) {
@@ -714,13 +717,13 @@ function GroupModelSummary({ config, group }: { config: AiConfig; group: ModelPi
                 {groupAvailability(config, group) && <ModelRecentHealthTrack availability={groupAvailability(config, group)} />}
             </>
         );
-    const price = platformPriceRangesLabel(group.platform?.price_summary || []);
+    const price = group.series?.modelType === "text" ? "" : platformPriceRangesLabel(group.platform?.price_summary || []);
     return (
         <span className="platform-group-summary">
             <span>
                 {group.platform ? `${group.platform.available_count} 个可用型号` : `${group.models.length} 个型号`} · {group.scope}
             </span>
-            <PlatformHealthTrack health={group.platform?.health} />
+            {group.platform?.health?.state === "ready" && group.platform.health.sample_count > 0 && group.platform.health.success_rate != null && <PlatformHealthTrack health={group.platform.health} />}
             {price && (
                 <span className="truncate" title={platformPriceConditions(group.platform?.price_summary || [])}>
                     <span aria-hidden="true">{price}</span>
@@ -754,12 +757,12 @@ function healthBucketLabel(bucket: NonNullable<PlatformModelHealth["buckets"]>[n
 
 function PlatformHealthIndicator({ health, available, compact = false }: { health?: PlatformModelHealth; available: boolean; compact?: boolean }) {
     const current = available ? "可调用" : "不可调用";
-    const statusTag = compact && (
+    const statusTag = (
         <span className="model-tag canvas-model-picker-variant-status" data-color={available ? "green" : undefined} data-callable={available}>
             {current}
         </span>
     );
-    if (compact && (health?.state !== "ready" || health.sample_count <= 0 || health.success_rate == null)) return statusTag;
+    if (health?.state !== "ready" || health.sample_count <= 0 || health.success_rate == null) return statusTag;
     const label = platformHealthLabel(health);
     const title = `${current}；近 24 小时生成成功率：${label}`;
     const content = (
@@ -795,7 +798,6 @@ function PlatformHealthIndicator({ health, available, compact = false }: { healt
                 title={title}
                 onClick={compact ? undefined : (event) => event.stopPropagation()}
             >
-                {statusTag || <span>{current}</span>}
                 {compact ? <PlatformHealthTrack health={health} /> : <span>{label}</span>}
             </span>
         </Popover>

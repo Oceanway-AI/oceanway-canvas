@@ -126,6 +126,8 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
         if (summary.model_type !== capability) return "模型与创作类型不匹配";
         if (!input || !summary.variants_complete) return "";
         const candidates = summary.variants || [];
+        // Text summaries publish no media variants. Plain text needs no reference slot.
+        if (capability === "text" && candidates.length === 0 && visualInputCount === 0 && input.videoCount === 0 && input.audioCount === 0) return "";
         const fits = candidates.some((variant) => {
             if (!variant.references_complete) return true;
             return [
