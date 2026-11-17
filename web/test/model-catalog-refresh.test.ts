@@ -99,7 +99,8 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
                 data = await loadCatalog(config.params?.cursor);
             } else if (config.url === "/model-catalog/detail") {
                 data = await loadDetail(config.params?.model_name);
-            } else if (config.url === "/user-data/snapshot") data = { assets: [], projects: [] };
+            } else if (config.url === "/auth/workspace-context") data = { userId: useUserStore.getState().user?.id, workspaceId: "personal-" + useUserStore.getState().user?.id, workspaceKind: "personal", membershipGeneration: 0, supported: true };
+            else if (config.url === "/user-data/snapshot") data = { assets: [], projects: [] };
             else throw new Error(`Unexpected fixture request ${config.url}`);
             return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data } };
         };

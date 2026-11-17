@@ -1,4 +1,5 @@
 import { apiBaseURL, http } from "./request";
+import { useUserStore } from "@/stores/use-user-store";
 
 export type StudioAccountSummary = {
     userId: string;
@@ -14,7 +15,9 @@ export type StudioAccountSummary = {
 };
 
 export function getStudioAccountSummary(signal: AbortSignal) {
-    return http.get<StudioAccountSummary>("/auth/account-summary", { signal });
+    const { user, workspaceContext } = useUserStore.getState();
+    if (!workspaceContext || workspaceContext.userId !== user?.id) return Promise.reject(new Error("当前空间尚未确认"));
+    return http.get<StudioAccountSummary>("/auth/account-summary", { signal, params: { workspace_id: workspaceContext.workspaceId, membership_generation: workspaceContext.membershipGeneration } });
 }
 
 // The browser opens a fresh BFF request so account changes and page ownership

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"yingce/backend/internal/model"
 )
 
 type StudioAccountSummary struct {
@@ -22,12 +23,24 @@ type StudioAccountSummary struct {
 	UsageURL      string                              `json:"usageUrl,omitempty"`
 }
 
-// The creation surface issues personal execution grants. Use that same payer for
-// its account bar until Studio supports team-bound projects and execution.
-func (s *Service) StudioAccountSummary(ctx context.Context, session platformclient.SessionContext) (*StudioAccountSummary, *platformclient.Response, error) {
-	summary, response, err := s.studioPersonalAccount(ctx, session)
+func (s *Service) StudioAccountSummary(ctx context.Context, session platformclient.SessionContext, user *model.User, workspaceID, canvasID string, generation *int64) (*StudioAccountSummary, *platformclient.Response, error) {
+	if s.studioPlatform == nil {
+		return nil, nil, NewAppError(503, "Platform 尚未配置")
+	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	entry, response, err := s.StudioWorkspaceContext(ctx, session, user, workspaceID, canvasID, generation)
 	if err != nil {
 		return nil, response, err
+	}
+	result, err := s.studioPlatform.Client.AccountSummaryForWorkspace(ctx, session, entry.workspace)
+	result.Response.AppendCookies(response.Header)
+	if err != nil {
+		return nil, response, platformIdentityError(err)
+	}
+	summary := result.Data
+	if summary.User.Status != 1 {
+		return nil, response, NewAppError(503, "暂时无法确认当前空间")
 	}
 	name := summary.User.DisplayName
 	if name == "" {

@@ -56,6 +56,10 @@ Agent 新轮次冻结摘要和所选文本能力，`model_list` 默认12项、�
 | `POST /api/auth/session` | 浏览器工作区初始化：同上，并以真实 Origin 签发仅限素材的委托授权，按当前 SID 加密保存在服务端；返回 `provider: platform`，不返回授权正文 |
 | `POST /api/auth/logout` | SDK 退出，逐项透传清理 Cookie；必须带实际允许的 Origin |
 | `GET /api/auth/profile` | 平台身份只读视图：`provider=platform`、`consoleURL`，无本地密码/验证码管理能力 |
+| `GET /api/auth/workspace-context` | 工作区缓存恢复前读取。可传 `workspace_id`、`membership_generation`、`canvas_id`；原画布服务端归属优先，其次显式空间，最后为 Platform 已确认默认空间。重复、数组别名或畸形参数拒绝。响应为宿主 `userId/workspaceId/workspaceKind/workspaceName/membershipGeneration/supported`；空间失效、旧成员代次或提供方失败不回退个人。 |
+| `GET /api/auth/account-summary` | 使用与上行相同的空间参数，核验真实账号／空间／成员代次后，调用正式 SDK `AccountSummaryForWorkspace`；返回原账户摘要展示投影，保留积分字符串精度及所有 Cookie 轮换。当前页面请求固定已核验空间，不因 Console 默认值改变而切换付款主体。 |
+
+WP-STUDIO-018 的 ST1 本地候选已加入上述上下文门禁；当前画布持久化仍仅支持个人，团队返回 `supported=false`，前端显示未开放提示并允许重试，不恢复个人缓存。该门禁不是 ST2 团队画布、生成或协作已实现的声明。登录回跳在读取缓存之前带回原画布 ID；现有对象仍由服务端查归属。阶段证据见 `docs/verification/unified-context-gate-20261117/`；部署另行记录。
 
 所有阶段 API 校验实际 Host 和允许 Origin；写请求缺少 Origin 时拒绝。忽略 forwarded headers 对身份的声明。会话响应不缓存，Cookie 不写入 JSON；平台产品密钥只留在后端。
 

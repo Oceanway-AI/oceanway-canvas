@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Fragment, useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
+import { Button } from "antd";
 
 import { getAuthSession, invalidateAuthSessionCache, type AuthSessionPayload } from "@/services/api/auth";
 import { ApiError } from "@/services/api/request";
@@ -13,6 +14,10 @@ import { recordDiagnosticEvent } from "@/services/diagnostics/client-diagnostics
 
 export function AuthSessionHydrator({ children }: { children: ReactNode }) {
     const hydrated = useUserStore((state) => state.hydrated);
+    const workspaceError = useUserStore((state) => state.workspaceError);
+    const [attempt, setAttempt] = useState(0);
+    const [sessionError, setSessionError] = useState(false);
+    const [startupReady, setStartupReady] = useState(false);
 
     const userId = useUserStore((state) => state.user?.id);
     const platformIdentity = useUserStore((state) => state.platformIdentity);
@@ -69,6 +74,8 @@ export function AuthSessionHydrator({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         let cancelled = false;
+        setSessionError(false);
+        setStartupReady(false);
         const startedAt = performance.now();
         recordDiagnosticEvent({ category: "navigation", level: "info", code: "startup.auth_session_started", message: "开始恢复认证会话" });
         getAuthSession()
@@ -83,6 +90,7 @@ export function AuthSessionHydrator({ children }: { children: ReactNode }) {
                 });
                 if (!payload.user) {
                     await applyAnonymousSession(payload);
+                    if (!cancelled) setStartupReady(true);
                     recordDiagnosticEvent({
                         category: "navigation",
                         level: "info",
@@ -96,6 +104,7 @@ export function AuthSessionHydrator({ children }: { children: ReactNode }) {
                 const { applyUserSession } = await import("@/lib/user-session");
                 if (cancelled) return;
                 await applyUserSession(payload);
+                if (!cancelled) setStartupReady(true);
                 recordDiagnosticEvent({
                     category: "navigation",
                     level: "info",
@@ -105,14 +114,22 @@ export function AuthSessionHydrator({ children }: { children: ReactNode }) {
                 });
                 preloadWorkspaceRoute(appRoute(window.location.pathname));
             })
-            .catch(async () => {
+            .catch(async (error) => {
                 if (!cancelled) {
-                    await applyAnonymousSession({ user: null });
+                    // Failed workspace verification is not an anonymous session
+                    // and must not open children with guest or personal state.
+                    if (useUserStore.getState().workspaceError) return;
+                    if (error instanceof ApiError && error.status === 401) {
+                        await applyAnonymousSession({ user: null });
+                        if (!cancelled) setStartupReady(true);
+                        return;
+                    }
+                    setSessionError(true);
                     recordDiagnosticEvent({
                         category: "navigation",
                         level: "warning",
                         code: "startup.auth_session_failed",
-                        message: "认证会话恢复失败，已降级为匿名页面",
+                        message: "认证会话恢复失败，工作区保持关闭",
                         durationMs: performance.now() - startedAt,
                     });
                 }
@@ -120,9 +137,30 @@ export function AuthSessionHydrator({ children }: { children: ReactNode }) {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [attempt]);
 
-    return hydrated ? <Fragment key={userId ?? "guest"}>{children}</Fragment> : <FullScreenLoader />;
+    if (workspaceError || sessionError) {
+        return (
+            <main className="flex min-h-dvh items-center justify-center bg-background p-6">
+                <div className="max-w-sm space-y-4 text-center">
+                    <p role="alert" className="text-sm text-muted-foreground">
+                        {workspaceError || "暂时无法确认登录状态，请重试。"}
+                    </p>
+                    <Button
+                        onClick={() => {
+                            invalidateAuthSessionCache();
+                            useUserStore.setState({ workspaceError: null, hydrated: false });
+                            setAttempt((value) => value + 1);
+                        }}
+                    >
+                        重试
+                    </Button>
+                </div>
+            </main>
+        );
+    }
+
+    return startupReady && hydrated ? <Fragment key={userId ?? "guest"}>{children}</Fragment> : <FullScreenLoader />;
 }
 
 async function applyAnonymousSession(payload: AuthSessionPayload) {
