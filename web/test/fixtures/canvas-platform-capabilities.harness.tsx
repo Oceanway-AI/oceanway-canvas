@@ -55,10 +55,14 @@ for (const workspaceMode of ["simple", "professional"] as const) {
         const detail = new Promise((resolve) => {
             resolveDetail = resolve;
         });
+        let resolveSummary!: (value: unknown) => void;
+        const summary = new Promise((resolve) => {
+            resolveSummary = resolve;
+        });
         let reads = 0;
         apiClient.defaults.adapter = async (config) => {
             let data: unknown;
-            if (config.url === "/model-catalog/summaries") data = { source: "platform", catalogRevision: "r1", channels: [{ id: "oceanway-platform", name: "平台", models: [model] }] };
+            if (config.url === "/model-catalog/summaries") data = await summary;
             else if (config.url === "/model-catalog/detail") {
                 reads++;
                 data = await detail;
@@ -72,7 +76,7 @@ for (const workspaceMode of ["simple", "professional"] as const) {
             hydrated: true,
             features: { ...useUserStore.getState().features, creditsEnabled: false },
         });
-        await refreshSystemChannels();
+        const catalogLoading = refreshSystemChannels();
         const node = { id: "saved-node", title: "镜头", type: CanvasNodeType.Video, position: { x: 0, y: 0 }, width: 320, height: 180, metadata: { model: `oceanway-platform::${modelName}`, prompt: "Keep this prompt" } };
         const host = document.createElement("div");
         document.body.append(host);
@@ -90,6 +94,13 @@ for (const workspaceMode of ["simple", "professional"] as const) {
                     </QueryClientProvider>,
                 ),
             );
+            expect(reads).toBe(0);
+            expect(host.textContent).not.toContain("当前模式暂无可用模型");
+            expect(host.querySelector<HTMLButtonElement>(".canvas-node-composer-submit")!.disabled).toBe(true);
+            await act(async () => {
+                resolveSummary({ source: "platform", catalogRevision: "r1", channels: [{ id: "oceanway-platform", name: "平台", models: [model] }] });
+                await catalogLoading;
+            });
             expect(reads).toBe(1);
             expect(host.textContent).toContain("正在加载模型参数");
             expect(host.textContent).not.toContain("当前模式暂无可用模型");

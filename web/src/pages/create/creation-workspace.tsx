@@ -5,6 +5,7 @@ import { MediaParameterControls } from "@/components/media-parameter-controls";
 import { FrameReferenceSlots, ReferenceSlot, ReferenceStack } from "@/components/reference-slot";
 import type { FrameRole } from "@/lib/media-reference-slots";
 import { nativeMediaProfile, nativeMediaSummary, platformModelDetailPending } from "@/lib/platform-native-media";
+import { useModelCatalogStore } from "@/stores/use-model-catalog-store";
 import { imageResolutionUsesQuality, imageSizePresets } from "@/lib/image-size-presets";
 import { createPortal } from "react-dom";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from "react";
@@ -231,6 +232,7 @@ export function CreationComposer(props: ComposerProps) {
     const [trackState, setTrackState] = useState({ canScrollLeft: false, canScrollRight: false, isExpanded: false, isDragging: false });
     const interactionBusy = props.busy || props.referenceReplacementBusy;
     const modelDetailPending = platformModelDetailPending(props.config, props.model);
+    const catalogLoading = useModelCatalogStore((state) => state.status === "loading");
     const modelAvailable = !modelDetailPending && Boolean(props.model && (props.mode === "image" ? props.imageProfile : props.mode === "video" ? props.videoProfile : true));
     const canSubmit = modelAvailable && Boolean(props.prompt.trim()) && !props.missingReferenceImages && !interactionBusy;
     const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
@@ -587,7 +589,7 @@ export function CreationComposer(props: ComposerProps) {
                                 showOptionPrices
                                 variant="creation"
                             />
-                            {!modelAvailable && !modelDetailPending ? <span role="status">当前模式暂无可用模型，请选择其他模式或稍后重试</span> : null}
+                            {!modelAvailable && !modelDetailPending ? <span role="status">{catalogLoading ? "正在获取模型目录…" : "当前模式暂无可用模型，请选择其他模式或稍后重试"}</span> : null}
                         </>
                     )}
                     {nativeMediaProfile(props.config, props.model) || (props.mode === "video" && props.videoProfile) || (props.mode === "image" && imageSettingsSupported) ? <GenerationSettingsMenu {...props} /> : null}
@@ -629,7 +631,9 @@ export function CreationComposer(props: ComposerProps) {
                         modelDetailPending
                             ? "正在加载模型参数，请稍候"
                             : !modelAvailable
-                              ? "请先选择当前模式的可用模型"
+                              ? catalogLoading
+                                  ? "正在获取模型目录，请稍候"
+                                  : "请先选择当前模式的可用模型"
                               : props.missingReferenceImages
                                 ? "请添加当前协议要求的参考图"
                                 : !canSubmit && !interactionBusy

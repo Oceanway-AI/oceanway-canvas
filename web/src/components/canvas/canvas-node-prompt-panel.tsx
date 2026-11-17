@@ -25,6 +25,7 @@ import { referenceImageSizeSelection, type ImageDimensions } from "@/lib/canvas/
 import { navigateToSettings } from "@/lib/settings-navigation";
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
 import { useUserStore } from "@/stores/use-user-store";
+import { useModelCatalogStore } from "@/stores/use-model-catalog-store";
 import { CanvasCameraControlPopover } from "./canvas-camera-control-popover";
 import { CanvasImageSettingsPopover } from "./canvas-image-settings-popover";
 import { CanvasAudioSettingsPopover } from "./canvas-audio-settings-popover";
@@ -231,6 +232,7 @@ export function CanvasNodePromptPanel({
     };
     const profile = modelCapabilityConfigFor(config, config.model);
     const modelDetailPending = platformModelDetailPending(config);
+    const catalogLoading = useModelCatalogStore((state) => state.status === "loading");
     const modelAvailable = !modelDetailPending && selectableModelsByCapability(config, mode).includes(config.model) && (mode === "image" ? Boolean(profile.image) : mode === "video" ? Boolean(profile.video) : true);
     const resolvedRequirements: ModelRequirements = {
         ...requirements,
@@ -541,7 +543,7 @@ export function CanvasNodePromptPanel({
     };
 
     const renderComposerControls = (expanded: boolean) =>
-        simpleMode && !native && !modelDetailPending ? (
+        simpleMode && !native && !modelDetailPending && !catalogLoading ? (
             <div className="canvas-node-composer-footer">
                 <span className="min-w-0 truncate px-2 text-[var(--fs-tiny)]" style={{ color: theme.node.muted }}>
                     {!modelAvailable ? "当前模式暂无可用模型" : activeReferenceCount ? `已连接 ${activeReferenceCount} 个素材` : "将使用默认模型与参数"}
@@ -568,7 +570,7 @@ export function CanvasNodePromptPanel({
                     />
                     {!modelAvailable && !modelDetailPending ? (
                         <span role="status" className="text-[var(--fs-tiny)]" style={{ color: theme.node.muted }}>
-                            当前模式暂无可用模型
+                            {catalogLoading ? "正在获取模型目录…" : "当前模式暂无可用模型"}
                         </span>
                     ) : null}
                 </div>
