@@ -1,6 +1,16 @@
 # Agent 请求恢复与 OAC 接续验证
 
-2026-11-17，Asia/Shanghai。本批完成 Studio、Platform 和 platformclient 的源码修复与免费夹具验证。代码保存在两个独立工作区，交付状态为未提交、未推送。SDK 发行及应用部署待接续，当前 Studio `go.mod` 仍固定 `v1.0.0-rc.2`，本批编译通过临时 `go.work` 使用本批 SDK 源码。
+2026-11-17，Asia/Shanghai。Studio 修复已通过 PR #6 合入 main `577e3e6e90ecced43a3318b8baa7aa6e16a52712`，Platform 通过 PR #55 合入 main `86d4c90a070d176b43f758fae6fa753647fa385b`。SDK `platformclient/v1.0.0-rc.3` 已发行并完成空缓存下载，Studio 已固定该正式版本并以 `GOWORK=off` 验证。实际发布与原请求关闭回执见 `release.json`。
+
+## 测试环境发布与原请求关闭
+
+北京时间 15:15:30，ow-test 的 Platform API、素材 worker、Studio backend/web/Agent 五个服务完成切换。Studio 镜像源码为 `c200645`，与 main 的差异仅为一处测试夹具补表。Platform 镜像源码为 `53b41b1606c8`，源码树与合并后的 main 相同。五个服务运行正常，配置了健康检查的四个服务均 healthy，Studio schema 97 就绪，28 个其他运行容器的 ID、镜像和启动时间核对一致。Agent 并发上限设置为 8。
+
+子步骤 `ag20305637a9766795b24ff88f5f78309a` 于 15:15:45 通过原请求恢复进入 failed，轮询次数停止在 5617。根轮次 `ag9225123585abceecd3e334cf035abd90` 为 cancelled，cleanup_pending 为 false，活动任务引用清空，根及两个子步骤执行授权均已释放。浏览器刷新后显示运行中 0，并展示原 Platform 请求号。原失败请求费用为 0，第一条成功文本请求的结算记录保持一致。本次关闭由部署后的正常恢复流程完成，直接数据库更新为 0，新模型提交为 0。
+
+Studio 推送前完整验证为 11 项、失败 0，提供独立 PG 与 Redis，前端 3403 项通过。独立 Agent 静态检查及三个正式 Dockerfile 的 linux/amd64 构建通过。CI `44037362259` 通过 workflow_dispatch 检查本次固定 head，九项全部通过，覆盖五片后端、依赖用例检查、Agent 静态检查、支付插件 amd64 和前端检查。Platform CI `44033683672` 三项全部通过，前端 439 文件、5056 测试通过，原有一项手动 live PG 审计保持跳过，正式 HTTP/SDK/PG 专项 12 项通过。正式 SDK 独立 race 为 76 顶层、56 子例，Studio 正式 SDK 专项 race 为 104 顶层、74 子例，均无测试用例跳过。
+
+发布验证包含原请求恢复、健康检查、HTTPS 页面与任务中心回读。本轮真实供应商两轮 Responses、新图片输入及长会话压缩仍待付费验收。下文保留发布前的源码与免费夹具验证记录，旧发行状态由本节和 `release.json` 更新。
 
 ## 版本与原故障
 

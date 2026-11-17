@@ -1,0 +1,258 @@
+{
+  "date": "2026-11-17",
+  "timezone": "Asia/Shanghai",
+  "platform": {
+    "main_commit": "86d4c90a070d176b43f758fae6fa753647fa385b",
+    "pr": 55,
+    "ci_run": 44033683672,
+    "ci_conclusion": "success",
+    "ci_jobs_passed": 3,
+    "ci_web_files": 439,
+    "ci_web_tests": 5056,
+    "ci_postgres_manual_audit_skips": 1,
+    "ci_formal_http_sdk_postgres_tests": 12,
+    "main_tree_equals_built_tree": true
+  },
+  "studio": {
+    "main_commit": "577e3e6e90ecced43a3318b8baa7aa6e16a52712",
+    "pr": 6,
+    "ci_run": 44037362259,
+    "ci_conclusion": "success",
+    "ci_jobs_passed": 9,
+    "ci_trigger": "workflow_dispatch",
+    "verify_before_push": {
+      "checks": 11,
+      "failed": 0,
+      "web_tests": 3403,
+      "web_files": 502,
+      "postgres_and_redis_available": true
+    },
+    "built_commit": "c200645480ee97490401749481864f593e3f71d9",
+    "main_diff_from_built_commit": [
+      "backend/internal/app/project_workbench_read_test.go"
+    ],
+    "production_code_matches_main": true
+  },
+  "sdk": {
+    "version": "platformclient/v1.0.0-rc.3",
+    "target_commit": "53b41b1606c8fd14bea81e2af54524f9c40b51a7",
+    "empty_cache_download": "passed",
+    "sum": "h1:Tcy51MUZ0ladGJz0+RF7w+GhWQhyUodXslhUny+/Sp8=",
+    "go_mod_sum": "h1:bNGb+1LnSL/X/hNdSFqXzKE5olaJAhYrJxsEwBSXZZQ=",
+    "studio_gowork": "off"
+  },
+  "checks": {
+    "platform-pg.jsonl": {
+      "sha256": "5996cbd2b854f3f97c41923222fe2124eb73cd37899549401649f97ef5c4f9f9",
+      "top_level_passed": 11,
+      "subtests_passed": 20,
+      "failed": 0,
+      "test_cases_skipped": 0
+    },
+    "sdk.jsonl": {
+      "sha256": "2d5ad6fb67a69a7ed27092ce36c0215a7df8be633d4b6bd6f1775e371c67a08d",
+      "top_level_passed": 76,
+      "subtests_passed": 56,
+      "failed": 0,
+      "test_cases_skipped": 0
+    },
+    "studio-sdk-race.jsonl": {
+      "sha256": "153cbf7071d33b1338997f89a7eb084eed38bdd35f9ebccec6e578421f1dab98",
+      "top_level_passed": 104,
+      "subtests_passed": 74,
+      "failed": 0,
+      "test_cases_skipped": 0
+    },
+    "studio-verify.log": {
+      "sha256": "130d37edc7b149ca32f802c41e90165b1c4f4e79cd1b0ac6a3d57416161f0acc"
+    },
+    "studio-agent-lint.log": {
+      "sha256": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47"
+    }
+  },
+  "runtime": {
+    "verified_at": "2026-11-17T07:22:51.589421+00:00",
+    "baseline_captured_at": "2026-11-17T07:12:56.172785+00:00",
+    "deployed_at": "2026-11-17T07:15:30.286988+00:00",
+    "services": {
+      "oceanway-w7-test-platform-1": {
+        "image": "oceanway-test/new-api:53b41b1606c8",
+        "image_id": "sha256:d0883915d6ca4f9da9cc53c37bf2ba96704bf8a9f35ddf248c49099ae8a7bc15",
+        "base_image_id": "sha256:dc1a940590dcca21197831f421194a4d5da9673aac7baa53b50b93dd9698f8ab",
+        "revision": "53b41b1606c8fd14bea81e2af54524f9c40b51a7",
+        "tree": "d3817c23e676e99e4e009d564f58208f69188f0e",
+        "binary_sha256": "a15daadb63c92724ea7d1400e5561e45025f98de3f637854f74eefe3b88696be",
+        "health": "healthy",
+        "restart_count": 0,
+        "running_binary_sha256": "a15daadb63c92724ea7d1400e5561e45025f98de3f637854f74eefe3b88696be"
+      },
+      "oceanway-w7-test-material-worker-1": {
+        "image": "oceanway-test/material-worker:53b41b1606c8",
+        "image_id": "sha256:f4e335f8fa5c11d1563b5f9fcdc1bb58bc23339f5620ad93cfd894c241395e30",
+        "base_image_id": "sha256:c6b9e68bfe7b140a6d6ac3bc47ca124353fb38948b3905f5ec4c794ce22b4d9e",
+        "revision": "53b41b1606c8fd14bea81e2af54524f9c40b51a7",
+        "tree": "d3817c23e676e99e4e009d564f58208f69188f0e",
+        "binary_sha256": "63270ceae4ed40e9786bc982e49d60a75fcf8ee1be0789dd9be3e9ae0de502bb",
+        "health": null,
+        "restart_count": 0,
+        "running_binary_sha256": "63270ceae4ed40e9786bc982e49d60a75fcf8ee1be0789dd9be3e9ae0de502bb"
+      },
+      "oceanway-studio-preview-backend-1": {
+        "image": "oceanway-studio-agent-backend:c200645",
+        "image_id": "sha256:fee778c8077b731ea1f93c625b912aee009b67f8e0bf5786363111035ad61a34",
+        "revision": "c200645480ee97490401749481864f593e3f71d9",
+        "tree": "d91195be7e826c2aae3f0d55ba339828855e8ee2",
+        "health": "healthy",
+        "restart_count": 0
+      },
+      "oceanway-studio-preview-web-1": {
+        "image": "oceanway-studio-agent-web:c200645",
+        "image_id": "sha256:db474c67341c043f9736eb9fc8e07e8657c9478c2b55d4d87ce5e64f709c9351",
+        "revision": "c200645480ee97490401749481864f593e3f71d9",
+        "tree": "d91195be7e826c2aae3f0d55ba339828855e8ee2",
+        "health": "healthy",
+        "restart_count": 0
+      },
+      "oceanway-studio-preview-yingce-agent-1": {
+        "image": "oceanway-studio-agent-runtime:c200645",
+        "image_id": "sha256:167b899608a18e070ae4fcc63ee7eb84ed5f17bd2f8d0f1d0890c4b10d1dd910",
+        "revision": "c200645480ee97490401749481864f593e3f71d9",
+        "tree": "d91195be7e826c2aae3f0d55ba339828855e8ee2",
+        "health": "healthy",
+        "restart_count": 0
+      }
+    },
+    "agent_concurrency": 8,
+    "other_running_containers_unchanged": 28,
+    "http": [
+      {
+        "path": "/console",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "bytes": 1320
+      },
+      {
+        "path": "/studio/tasks",
+        "status": 200,
+        "content_type": "text/html",
+        "bytes": 5147
+      },
+      {
+        "path": "/drama",
+        "status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "bytes": 869
+      },
+      {
+        "path": "/api/status",
+        "status": 200,
+        "content_type": "application/json; charset=utf-8",
+        "bytes": 2970
+      },
+      {
+        "path": "/studio/api/health",
+        "status": 200,
+        "content_type": "application/json; charset=utf-8",
+        "bytes": 342,
+        "health": {
+          "status": "ok",
+          "ready": true,
+          "started": true,
+          "draining": false,
+          "activeWorkerTasks": 0,
+          "build": {
+            "version": "agent-recovery-20261117",
+            "commit": "c200645",
+            "buildTime": "2026-11-17T07:00:00Z",
+            "goVersion": "go1.25.14"
+          },
+          "schema": {
+            "current": 97,
+            "expected": 97,
+            "ready": true
+          },
+          "checks": {
+            "database": true,
+            "runtime": true,
+            "schema": true
+          }
+        }
+      }
+    ],
+    "closed_task": {
+      "id": "ag20305637a9766795b24ff88f5f78309a",
+      "agent_run_id": "ag9225123585abceecd3e334cf035abd90",
+      "status": "failed",
+      "stage": "模型请求失败",
+      "attempts": 5617,
+      "execution_diagnostic_json": "{\"code\":\"invalid_request_error\",\"phase\":\"submission\",\"taskSubmitted\":false,\"submissionOutcome\":\"unknown\",\"retryClass\":\"review_request\",\"safeMessage\":\"模型请求参数无效，请检查输入。\",\"diagnosticId\":\"ag20305637a9766795b24ff88f5f78309a\"}",
+      "updated_at": "2026-11-17T07:15:45.036275+00:00"
+    },
+    "agent_run": {
+      "id": "ag9225123585abceecd3e334cf035abd90",
+      "status": "cancelled",
+      "active_task_id": "",
+      "cleanup_pending": false,
+      "updated_at": "2026-11-17T07:15:47.942244+00:00"
+    },
+    "studio_executions": [
+      {
+        "task_id": "ag2e9743f6c25a9d31072286e2519f541a",
+        "state": "completed",
+        "released": true
+      },
+      {
+        "task_id": "ag20305637a9766795b24ff88f5f78309a",
+        "state": "completed",
+        "released": true
+      },
+      {
+        "task_id": "ag9225123585abceecd3e334cf035abd90",
+        "state": "completed",
+        "released": true
+      }
+    ],
+    "platform_operations": [
+      {
+        "id": "op_1d99137a16a13c39faad5e388e30b410ca9aaf9f83a95f0f",
+        "request_id": "202611162152595072177948268d9d6kEtFyXi6",
+        "execution_state": "succeeded",
+        "funds_state": "settled",
+        "result_state": "pending",
+        "settled_quota": 15501,
+        "charged_quota": 15501,
+        "updated_at": 1794865983
+      },
+      {
+        "id": "op_8eef5ce0a7e25003b29b2727a505f92a74bf11225352c93b",
+        "request_id": "202611162153041120088208268d9d6GY06ThoQ",
+        "execution_state": "failed",
+        "funds_state": "released",
+        "result_state": "pending",
+        "settled_quota": 0,
+        "charged_quota": 0,
+        "updated_at": 1794865984
+      }
+    ],
+    "platform_operations_unchanged": true,
+    "platform_task_counts_unchanged": true,
+    "manual_database_updates": 0,
+    "new_model_submissions": 0,
+    "private_database_backups_created": [
+      "studio_preview.dump",
+      "w7_candidate.dump"
+    ]
+  },
+  "browser": {
+    "task_list_running_count": 0,
+    "child_status": "failed",
+    "root_status": "cancelled",
+    "original_platform_request_id_visible": true,
+    "task_page_reload": "passed"
+  },
+  "limitations": [
+    "No new paid provider generation was submitted in this release verification.",
+    "Live provider two-turn Responses, live image input, and long-session compaction remain unverified after deployment.",
+    "The existing manual live PostgreSQL audit remained skipped in Platform CI."
+  ]
+}
