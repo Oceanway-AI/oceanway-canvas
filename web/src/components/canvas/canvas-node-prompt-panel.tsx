@@ -9,7 +9,7 @@ import { FrameReferenceSlots, ReferenceSlot } from "@/components/reference-slot"
 import { PlatformMaterialPicker } from "@/components/assets/platform-material-picker";
 import type { InsertAssetPayload } from "./asset-picker-modal";
 import { assignFrameSlots, publishedFrameRoles, type FrameRole } from "@/lib/media-reference-slots";
-import { nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
+import { nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, platformModelDetailPending } from "@/lib/platform-native-media";
 import { modelOptionName, resolveModelChannel, selectableModelsByCapability, useEffectiveConfig } from "@/stores/use-config-store";
 import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
 import { canonicalGenerationMetadata, nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
@@ -230,7 +230,8 @@ export function CanvasNodePromptPanel({
         return activeReferences.filter((r) => r.kind === kind || (kind === "image" && r.kind === "character")).length >= max;
     };
     const profile = modelCapabilityConfigFor(config, config.model);
-    const modelAvailable = selectableModelsByCapability(config, mode).includes(config.model) && (mode === "image" ? Boolean(profile.image) : mode === "video" ? Boolean(profile.video) : true);
+    const modelDetailPending = platformModelDetailPending(config);
+    const modelAvailable = !modelDetailPending && selectableModelsByCapability(config, mode).includes(config.model) && (mode === "image" ? Boolean(profile.image) : mode === "video" ? Boolean(profile.video) : true);
     const resolvedRequirements: ModelRequirements = {
         ...requirements,
         options: modelRequestOptions(config, mode),
@@ -540,7 +541,7 @@ export function CanvasNodePromptPanel({
     };
 
     const renderComposerControls = (expanded: boolean) =>
-        simpleMode && !native ? (
+        simpleMode && !native && !modelDetailPending ? (
             <div className="canvas-node-composer-footer">
                 <span className="min-w-0 truncate px-2 text-[var(--fs-tiny)]" style={{ color: theme.node.muted }}>
                     {!modelAvailable ? "当前模式暂无可用模型" : activeReferenceCount ? `已连接 ${activeReferenceCount} 个素材` : "将使用默认模型与参数"}
@@ -555,7 +556,7 @@ export function CanvasNodePromptPanel({
                         className="canvas-node-composer-model-trigger !h-8 !w-full !min-w-0 !text-[var(--fs-tiny)] !font-normal [&_img]:!size-3 [&_.lucide]:!size-3"
                         fullWidth
                         config={config}
-                        value={modelAvailable ? config.model : ""}
+                        value={config.model}
                         onChange={changeModel}
                         capability={mode}
                         requirements={resolvedRequirements}
@@ -565,7 +566,7 @@ export function CanvasNodePromptPanel({
                         variant="creation"
                         showConfiguredModelName
                     />
-                    {!modelAvailable ? (
+                    {!modelAvailable && !modelDetailPending ? (
                         <span role="status" className="text-[var(--fs-tiny)]" style={{ color: theme.node.muted }}>
                             当前模式暂无可用模型
                         </span>

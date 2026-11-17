@@ -31,10 +31,84 @@ const { useUserStore } = await import("@/stores/use-user-store");
 const { defaultModelCapabilityConfig } = await import("@/lib/model-capabilities");
 const { CanvasNodeType } = await import("@/types/canvas");
 const { apiClient } = await import("@/services/api/request");
+const { refreshSystemChannels } = await import("@/lib/user-session");
 apiClient.defaults.adapter = async (config) => {
     throw new Error(`Unexpected request: ${config.method} ${config.url}`);
 };
 afterAll(() => dom.happyDOM.abort());
+
+for (const workspaceMode of ["simple", "professional"] as const) {
+    test(`恢复 ${workspaceMode} 画布的摘要模型后自动加载详情`, async () => {
+        const modelName = "saved-video";
+        const model = {
+            id: modelName,
+            modelKey: modelName,
+            displayName: "Saved video",
+            capability: "video",
+            available: true,
+            priceTiers: [],
+            pricingMode: "platform",
+            priceLabel: "",
+            platform: { model_name: modelName, model_type: "video", state: "summary", price: { status: "available", version: "p1" }, price_version: "p1", capability_revision: "c1", connection_revision: 1 },
+        };
+        let resolveDetail!: (value: unknown) => void;
+        const detail = new Promise((resolve) => {
+            resolveDetail = resolve;
+        });
+        let reads = 0;
+        apiClient.defaults.adapter = async (config) => {
+            let data: unknown;
+            if (config.url === "/model-catalog/summaries") data = { source: "platform", catalogRevision: "r1", channels: [{ id: "oceanway-platform", name: "平台", models: [model] }] };
+            else if (config.url === "/model-catalog/detail") {
+                reads++;
+                data = await detail;
+            } else throw new Error(`Unexpected request: ${config.method} ${config.url}`);
+            return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data } };
+        };
+        useConfigStore.setState({ config: { ...defaultConfig, channels: [], videoModel: `oceanway-platform::${modelName}` }, pendingModelSelections: {} });
+        useUserStore.setState({
+            user: { id: `lazy-${workspaceMode}`, username: "fixture", displayName: "fixture", role: "user", status: "active", createdAt: "", updatedAt: "" },
+            platformIdentity: true,
+            hydrated: true,
+            features: { ...useUserStore.getState().features, creditsEnabled: false },
+        });
+        await refreshSystemChannels();
+        const node = { id: "saved-node", title: "镜头", type: CanvasNodeType.Video, position: { x: 0, y: 0 }, width: 320, height: 180, metadata: { model: `oceanway-platform::${modelName}`, prompt: "Keep this prompt" } };
+        const host = document.createElement("div");
+        document.body.append(host);
+        const root = createRoot(host);
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+        try {
+            await act(async () =>
+                root.render(
+                    <QueryClientProvider client={client}>
+                        <App>
+                            <MemoryRouter>
+                                <CanvasNodePromptPanel projectId="existing-canvas" node={node} workspaceMode={workspaceMode} isRunning={false} onPromptChange={() => {}} onConfigChange={() => {}} onGenerate={() => {}} />
+                            </MemoryRouter>
+                        </App>
+                    </QueryClientProvider>,
+                ),
+            );
+            expect(reads).toBe(1);
+            expect(host.textContent).toContain("正在加载模型参数");
+            expect(host.textContent).not.toContain("当前模式暂无可用模型");
+            expect(host.querySelector<HTMLButtonElement>(".canvas-node-composer-submit")!.disabled).toBe(true);
+            await act(async () => {
+                resolveDetail({ model: { ...model, platform: { ...model.platform, state: "detail" }, capabilityConfig: { version: 1, video: defaultModelCapabilityConfig().video } } });
+                await detail;
+            });
+            expect(reads).toBe(1);
+            expect(host.textContent).not.toContain("正在加载模型参数");
+            expect(host.textContent).not.toContain("当前模式暂无可用模型");
+            expect(host.querySelector<HTMLButtonElement>(".canvas-node-composer-submit")!.disabled).toBe(false);
+        } finally {
+            await act(async () => root.unmount());
+            host.remove();
+            client.clear();
+        }
+    });
+}
 
 for (const mode of ["image", "video"] as const) {
     for (const available of [true, false]) {

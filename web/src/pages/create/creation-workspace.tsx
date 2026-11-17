@@ -4,7 +4,7 @@ import { PlatformNativeMediaSettings, type NativeMediaSettingKey } from "@/compo
 import { MediaParameterControls } from "@/components/media-parameter-controls";
 import { FrameReferenceSlots, ReferenceSlot, ReferenceStack } from "@/components/reference-slot";
 import type { FrameRole } from "@/lib/media-reference-slots";
-import { nativeMediaProfile, nativeMediaSummary } from "@/lib/platform-native-media";
+import { nativeMediaProfile, nativeMediaSummary, platformModelDetailPending } from "@/lib/platform-native-media";
 import { imageResolutionUsesQuality, imageSizePresets } from "@/lib/image-size-presets";
 import { createPortal } from "react-dom";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from "react";
@@ -230,7 +230,8 @@ export function CreationComposer(props: ComposerProps) {
     const suppressAttachmentClickRef = useRef(false);
     const [trackState, setTrackState] = useState({ canScrollLeft: false, canScrollRight: false, isExpanded: false, isDragging: false });
     const interactionBusy = props.busy || props.referenceReplacementBusy;
-    const modelAvailable = Boolean(props.model && (props.mode === "image" ? props.imageProfile : props.mode === "video" ? props.videoProfile : true));
+    const modelDetailPending = platformModelDetailPending(props.config, props.model);
+    const modelAvailable = !modelDetailPending && Boolean(props.model && (props.mode === "image" ? props.imageProfile : props.mode === "video" ? props.videoProfile : true));
     const canSubmit = modelAvailable && Boolean(props.prompt.trim()) && !props.missingReferenceImages && !interactionBusy;
     const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
     const priceChannel = resolveModelChannel(props.config, props.model);
@@ -586,7 +587,7 @@ export function CreationComposer(props: ComposerProps) {
                                 showOptionPrices
                                 variant="creation"
                             />
-                            {!modelAvailable ? <span role="status">当前模式暂无可用模型，请选择其他模式或稍后重试</span> : null}
+                            {!modelAvailable && !modelDetailPending ? <span role="status">当前模式暂无可用模型，请选择其他模式或稍后重试</span> : null}
                         </>
                     )}
                     {nativeMediaProfile(props.config, props.model) || (props.mode === "video" && props.videoProfile) || (props.mode === "image" && imageSettingsSupported) ? <GenerationSettingsMenu {...props} /> : null}
@@ -624,7 +625,17 @@ export function CreationComposer(props: ComposerProps) {
                     }
                     onClick={interactionBusy ? undefined : props.onSubmit}
                     aria-label={actionLabel}
-                    title={!modelAvailable ? "请先选择当前模式的可用模型" : props.missingReferenceImages ? "请添加当前协议要求的参考图" : !canSubmit && !interactionBusy ? "输入创作想法后即可生成" : actionLabel}
+                    title={
+                        modelDetailPending
+                            ? "正在加载模型参数，请稍候"
+                            : !modelAvailable
+                              ? "请先选择当前模式的可用模型"
+                              : props.missingReferenceImages
+                                ? "请添加当前协议要求的参考图"
+                                : !canSubmit && !interactionBusy
+                                  ? "输入创作想法后即可生成"
+                                  : actionLabel
+                    }
                 >
                     {showWorkingGlow ? <WorkingGlow active color="var(--creation-text)" radius="var(--button-radius)" /> : null}
                     {showCost ? (
