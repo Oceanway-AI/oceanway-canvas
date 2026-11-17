@@ -60,6 +60,8 @@ func NewGatewayFromEnv(getenv func(string) string) (*Gateway, error) {
 		hosts: hosts, origins: origins, http: &http.Client{Timeout: 15 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 
+func (g *Gateway) PublicBasePath() string { return g.publicBasePath }
+
 func (g *Gateway) Origin() string        { return g.origin }
 func (g *Gateway) BrowserOrigin() string { return g.browserOrigin }
 

@@ -38,6 +38,7 @@ type studioFixture struct {
 	catalogCalls int
 	avatar       string
 	account      http.HandlerFunc
+	navigation   http.HandlerFunc
 	materials    http.HandlerFunc
 	delivery     http.HandlerFunc
 	execution    http.HandlerFunc
@@ -45,6 +46,11 @@ type studioFixture struct {
 }
 
 func newStudioFixture(t *testing.T) *studioFixture {
+	t.Helper()
+	return newStudioFixtureWithBase(t, "")
+}
+
+func newStudioFixtureWithBase(t *testing.T, base string) *studioFixture {
 	t.Helper()
 	t.Setenv("REDIS_URL", "")
 	gin.SetMode(gin.TestMode)
@@ -55,6 +61,10 @@ func newStudioFixture(t *testing.T) *studioFixture {
 		f.mu.Unlock()
 		if f.delivery != nil && strings.HasPrefix(r.URL.Path, "/api/platform/v1/media-previews/") {
 			f.delivery(w, r)
+			return
+		}
+		if r.URL.Path == "/api/platform/v1/account/console-navigation" && f.navigation != nil {
+			f.navigation(w, r)
 			return
 		}
 		if r.URL.Path == "/api/platform/v1/account/summary" && f.account != nil {
@@ -143,6 +153,10 @@ func newStudioFixture(t *testing.T) *studioFixture {
 	}))
 	t.Cleanup(platform.Close)
 	env := map[string]string{"STUDIO_PLATFORM_ORIGIN": platform.URL, "STUDIO_PLATFORM_PRODUCT_KEY": "fixture.secret", "STUDIO_PUBLIC_ORIGIN": "https://studio.example.test", "STUDIO_PLATFORM_SESSION_HOSTS": "studio.example.test", "STUDIO_PLATFORM_ALLOWED_ORIGINS": "https://studio.example.test"}
+	env["STUDIO_PUBLIC_BASE_PATH"] = base
+	if base != "" {
+		env["STUDIO_PLATFORM_BROWSER_ORIGIN"] = "https://console.example.test"
+	}
 	gateway, err := platformintegration.NewGatewayFromEnv(func(k string) string { return env[k] })
 	if err != nil {
 		t.Fatal(err)

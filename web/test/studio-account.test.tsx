@@ -15,3 +15,12 @@ test("Console filters the original grant's task reference and preserves product 
     expect(agent.searchParams.get("business_task_id")).toBe("original run");
     expect(studioTaskUsageURL(undefined, { id: "wrong" })).toBeUndefined();
 });
+
+test("Studio homepage links retain the deployed application root", () => {
+    const result = Bun.spawnSync([process.execPath, "--define", 'import.meta.env.BASE_URL="/studio/"', "test", "./test/fixtures/studio-account.harness.tsx"], {
+        cwd: resolve(import.meta.dir, ".."),
+        timeout: 30000,
+        env: { ...process.env, STUDIO_NAVIGATION_TEST_PATH: "/" },
+    });
+    expect(result.exitCode, new TextDecoder().decode(result.stderr)).toBe(0);
+}, 35000);

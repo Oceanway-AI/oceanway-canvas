@@ -1,4 +1,4 @@
-import { http } from "./request";
+import { apiBaseURL, http } from "./request";
 
 export type StudioAccountSummary = {
     userId: string;
@@ -15,6 +15,14 @@ export type StudioAccountSummary = {
 
 export function getStudioAccountSummary(signal: AbortSignal) {
     return http.get<StudioAccountSummary>("/auth/account-summary", { signal });
+}
+
+// The browser opens a fresh BFF request so account changes and page ownership
+// are checked before the provider prepares the Console return context.
+export function studioConsoleNavigationURL(account: StudioAccountSummary | undefined, destination: "account" | "wallet" | "usage", returnPath: string) {
+    if (!account) return undefined;
+    const query = new URLSearchParams({ destination, return_path: returnPath, user_id: account.userId, workspace_id: account.workspaceId });
+    return `${apiBaseURL.replace(/\/$/, "")}/auth/console-navigation?${query}`;
 }
 
 // Media tasks use the Studio task UUID as the grant reference, or the original

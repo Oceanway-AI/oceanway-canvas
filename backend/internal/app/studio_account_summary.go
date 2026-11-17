@@ -25,18 +25,9 @@ type StudioAccountSummary struct {
 // The creation surface issues personal execution grants. Use that same payer for
 // its account bar until Studio supports team-bound projects and execution.
 func (s *Service) StudioAccountSummary(ctx context.Context, session platformclient.SessionContext) (*StudioAccountSummary, *platformclient.Response, error) {
-	if s.studioPlatform == nil {
-		return nil, nil, NewAppError(503, "Platform 尚未配置")
-	}
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-	result, err := s.studioPlatform.Client.AccountSummary(ctx, session, "")
+	summary, response, err := s.studioPersonalAccount(ctx, session)
 	if err != nil {
-		return nil, result.Response, platformIdentityError(err)
-	}
-	summary := result.Data
-	if summary.User.ID <= 0 || summary.User.Status != 1 || summary.Workspace.Kind != "personal" || summary.Workspace.ID == "" || summary.Workspace.ActorUserID != summary.User.ID {
-		return nil, result.Response, NewAppError(503, "暂时无法确认当前个人空间")
+		return nil, response, err
 	}
 	name := summary.User.DisplayName
 	if name == "" {
@@ -61,7 +52,7 @@ func (s *Service) StudioAccountSummary(ctx context.Context, session platformclie
 		WorkspaceID: summary.Workspace.ID, WorkspaceName: summary.Workspace.Name, Balance: summary.Balance,
 		Applications: applications, AccountURL: s.studioConsoleLink(summary.AccountPath),
 		WalletURL: s.studioConsoleLink(summary.WalletPath), UsageURL: s.studioConsoleLink(summary.UsagePath),
-	}, result.Response, nil
+	}, response, nil
 }
 
 func (s *Service) studioConsoleLink(path string) string {
@@ -75,4 +66,21 @@ func (s *Service) studioConsoleLink(path string) string {
 		return s.StudioConsoleURL() + u.RequestURI()
 	}
 	return ""
+}
+
+func (s *Service) studioPersonalAccount(ctx context.Context, session platformclient.SessionContext) (platformclient.AccountSummary, *platformclient.Response, error) {
+	if s.studioPlatform == nil {
+		return platformclient.AccountSummary{}, nil, NewAppError(503, "Platform 尚未配置")
+	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	result, err := s.studioPlatform.Client.AccountSummary(ctx, session, "")
+	if err != nil {
+		return platformclient.AccountSummary{}, result.Response, platformIdentityError(err)
+	}
+	summary := result.Data
+	if summary.User.ID <= 0 || summary.User.Status != 1 || summary.Workspace.Kind != "personal" || summary.Workspace.ID == "" || summary.Workspace.ActorUserID != summary.User.ID || summary.Workspace.MembershipGeneration != 0 {
+		return platformclient.AccountSummary{}, result.Response, NewAppError(503, "暂时无法确认当前个人空间")
+	}
+	return summary, result.Response, nil
 }
