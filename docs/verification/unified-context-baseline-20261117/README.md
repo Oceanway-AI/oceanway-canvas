@@ -39,6 +39,7 @@ Platform P1–P4. The source manifest now matches the actual dependency. Its
 On the above actual mainline with published rc.5:
 
 ```sh
+cd backend
 GOWORK=off go test ./internal/canvas ./internal/handler \
   -run 'Test(CanvasSaveRevisionContract|ApplyCanvasOperations|CanvasEditLease|CanvasRealtimePresenceAndScopeIsolation|StudioAccountSummaryUsesCurrentPlatformPayer|StudioRoleRevocationAndRealtimeRevalidation)' \
   -count=1 -json
@@ -57,7 +58,7 @@ multi-process behavior or two real team accounts editing one canvas.
 `red-host-cases.patch` and `red-host-cases.json` preserve an executable failing
 baseline on `3e2ba309bc6ec3b8d438fc7f0eea378847050295`. Apply with
 `git apply --unidiff-zero` in an isolated checkout and run the recorded Go
-command. Four leaf cases fail as
+command from its `backend/` directory. Four leaf cases fail as
 expected (three entry cases and one shared-canvas case); no skips or fake green
 assertions were added to the ordinary regression suite:
 

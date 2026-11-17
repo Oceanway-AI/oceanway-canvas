@@ -1,6 +1,7 @@
 {
   "source_head": "3e2ba309bc6ec3b8d438fc7f0eea378847050295",
   "sdk": "platformclient/v1.0.0-rc.5",
+  "working_directory": "backend",
   "command": "GOWORK=off go test ./internal/handler -run 'TestStudio(WorkspaceEntry|TeamCanvas)AcceptanceProbe' -count=1 -json",
   "expected_result": "RED before ST1/ST2 implementation",
   "fixture": "real Studio routes and published SDK; local HTTP provider and SQLite; no remote data",
