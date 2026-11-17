@@ -138,6 +138,31 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         };
     };
 
+    const textCatalog = (name: string, state: "summary" | "detail" = "summary") => {
+        const response = catalog(name);
+        return {
+            ...response,
+            channels: [
+                {
+                    ...response.channels[0],
+                    models: [
+                        {
+                            ...response.channels[0].models[0],
+                            platform: {
+                                model_name: name,
+                                model_type: "text",
+                                state,
+                                price: { status: "available", version: "p1", rates: {} },
+                                price_version: "p1",
+                                ...(state === "detail" ? { capability_revision: "", connection_revision: 0 } : {}),
+                            },
+                        },
+                    ],
+                },
+            ],
+        };
+    };
+
     test("creation preferences finish synchronous initial hydration", () => {
         expect(useCreationPreferencesStore.persist.hasHydrated()).toBe(true);
         expect(useCreationPreferencesStore.getState().hydrated).toBe(true);
@@ -174,13 +199,15 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         expect(scopedLocalStorage.getItem(CONFIG_STORE_KEY)).not.toContain("exact-detail");
     });
 
-    test("the mounted picker loads its saved selection and clears the loading state", async () => {
+    test.each(["text", "video"] as const)("the mounted %s picker loads its saved selection after each refresh", async (capability) => {
         const { act, createElement } = await import("react");
         const { createRoot } = await import("react-dom/client");
         const { ModelPicker } = await import("@/components/model-picker");
-        loadCatalog = async () => mediaCatalog("video-model");
+        const fixture = capability === "text" ? textCatalog : mediaCatalog;
+        const name = `${capability}-model`;
+        loadCatalog = async () => fixture(name);
         await refreshSystemChannels();
-        const response = deferred<unknown>();
+        let response = deferred<unknown>();
         let reads = 0;
         loadDetail = () => {
             reads++;
@@ -188,27 +215,52 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         };
         function Picker() {
             const config = useConfigStore((state) => state.config);
-            return createElement(ModelPicker, { config, value: "platform::video-model", capability: "video", onChange: () => {} });
+            return createElement(ModelPicker, { config, value: `platform::${name}`, capability, onChange: () => {} });
         }
         const host = document.createElement("div");
         document.body.append(host);
         const root = createRoot(host);
         try {
-            await act(async () => root.render(createElement(Picker)));
-            expect(host.textContent).toContain("正在加载模型参数");
-            expect(reads).toBe(1);
-            await act(async () => {
-                response.resolve({ model: mediaCatalog("video-model", "detail").channels[0].models[0] });
-                await response.promise;
-            });
-            expect(host.textContent).not.toContain("正在加载模型参数");
-            expect(host.querySelector('[role="alert"]')).toBeNull();
-            await act(async () => root.render(createElement(Picker)));
-            expect(reads).toBe(1);
+            for (let round = 1; round <= 2; round++) {
+                if (round === 2) {
+                    response = deferred<unknown>();
+                    await act(async () => refreshSystemChannels());
+                }
+                await act(async () => root.render(createElement(Picker)));
+                expect(host.textContent).toContain("正在加载模型参数");
+                expect(reads).toBe(round);
+                await act(async () => {
+                    response.resolve({ model: fixture(name, "detail").channels[0].models[0] });
+                    await response.promise;
+                });
+                expect(host.textContent).not.toContain("正在加载模型参数");
+                expect(host.querySelector('[role="alert"]')?.textContent).toBeUndefined();
+                expect(useConfigStore.getState().config.channels[0].modelCosts?.[0].platform?.state).toBe("detail");
+                await act(async () => root.render(createElement(Picker)));
+                expect(reads).toBe(round);
+            }
         } finally {
             await act(async () => root.unmount());
             host.remove();
         }
+    });
+
+    test.each([
+        ["text", { price_version: "p2", price: { status: "available", version: "p2", rates: {} } }],
+        ["text", { model_type: "video" }],
+        ["video", { model_name: "other-model" }],
+        ["video", { price_version: "p2", price: { status: "available", version: "p2", rates: {} } }],
+        ["video", { capability_revision: "c2" }],
+        ["video", { connection_revision: 2 }],
+    ] as const)("%s detail rejects a changed identity or version %j", async (capability, change) => {
+        const fixture = capability === "text" ? textCatalog : mediaCatalog;
+        const name = `${capability}-model`;
+        loadCatalog = async () => fixture(name);
+        await refreshSystemChannels();
+        const model = fixture(name, "detail").channels[0].models[0];
+        loadDetail = async () => ({ model: { ...model, platform: { ...model.platform, ...change } } });
+        await expect(ensurePlatformModelDetail(`platform::${name}`)).rejects.toThrow("模型详情版本不一致");
+        expect(useConfigStore.getState().config.channels[0].modelCosts?.[0].platform?.state).toBe("summary");
     });
 
     test("the picker rechecks availability after detail arrives before changing selection", async () => {

@@ -41,7 +41,9 @@ export type PlatformModelVariantSummary = {
 };
 
 export function platformModelVersion(model: PlatformModel) {
-    return JSON.stringify([model.model_name, model.price_version || model.price.version, model.capability_revision, model.connection_revision]);
+    const identity = [model.model_name, model.model_type, model.price_version || model.price.version];
+    // Text detail reads only bind the price version; media also binds its profile and connection.
+    return JSON.stringify(model.model_type === "text" ? identity : [...identity, model.capability_revision, model.connection_revision]);
 }
 
 export type PlatformSeriesInfo = { name: string; icon?: string; description?: string; display_order?: number };
