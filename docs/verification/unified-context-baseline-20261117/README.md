@@ -51,7 +51,16 @@ deleted-object protection, lease ownership and existing session revalidation.
 They use the repository's local fixtures; they do not prove PostgreSQL
 multi-process behavior or two real team accounts editing one canvas.
 
-## Cases still required before ST0/ST1/ST2 closure
+## Runtime metadata and remaining ST0/ST1/ST2 cases
+
+The user confirmed `https://test.oceanway.tech/studio`. Its anonymous health
+endpoint reports Studio `7ec8a07191be8934dbfd9f712690414041192388`, built at
+`2026-11-17T10:48:49Z`. That local Git revision pins SDK rc.5; the five account,
+entry/cache and canvas-read boundary files listed in `runtime-health.json`
+are unchanged against main `77b1edb3`. This is reported build metadata, not an
+independent container/image attestation. Platform's public status responds but
+its version is empty, so the actual running provider revision remains
+unverified. No SSH access or runtime writes were needed for these reads.
 
 ### Executed host acceptance probes
 
@@ -89,8 +98,8 @@ reopen harness is not counted again). The temporary harness was removed after
 recording the patch. This identifies the context gate required before cache
 hydration; it does not establish a new auth/session response contract.
 
-- Record actual running Studio/Platform versions separately from this source
-  baseline. Shared-test versions in historical notes are not current evidence.
+- Complete provider revision and image verification separately from the
+  observed Studio build metadata; historical notes are not current evidence.
 - Continue failing host cases for old member generation and late selection
   responses, plus the full cache isolation matrix before implementing them.
 - Pin a deep-linked object's true workspace; an unrelated Console preference
