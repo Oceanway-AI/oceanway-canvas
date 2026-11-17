@@ -52,7 +52,8 @@ test("account menu reads platform data and drops another user's response and fai
         usageUrl: "https://console.example/console/records",
     };
     const user = { id: "alice", username: "alice", displayName: "alice", status: "active", role: "user" } as const;
-    useUserStore.setState({ platformIdentity: true, user });
+    const context = { userId: user.id, workspaceId: "w1", workspaceKind: "personal" as const, workspaceName: "Personal space", membershipGeneration: 0, supported: true };
+    useUserStore.setState({ platformIdentity: true, user, workspaceContext: context });
     // The session read below the account mismatch uses the genuine session handler in production.
     apiClient.defaults.adapter = async (config) => ({
         config,
@@ -89,12 +90,13 @@ test("account menu reads platform data and drops another user's response and fai
         const usage = [...document.querySelectorAll("a")].find((a) => a.textContent === "使用记录")!;
         expect(new URL(usage.href).searchParams.get("destination")).toBe("usage");
         expect(new URL(usage.href).searchParams.get("return_path")).toBe(expectedReturnPath);
-        await act(async () => useUserStore.setState({ user: { ...user, id: "bob", displayName: "Bob" } }));
+        await act(async () => useUserStore.setState({ user: { ...user, id: "bob", displayName: "Bob" }, workspaceContext: { ...context, userId: "bob", workspaceId: "w2" } }));
         await flush();
         expect(host.innerHTML).not.toContain("0.123456789012345");
         expect(host.innerHTML).not.toContain(account.avatarUrl!);
         expect(wallet()).toBeNull();
         account.userId = "bob";
+        account.workspaceId = "w2";
         account.balance = { kind: "unavailable" };
         await act(async () => {
             await client.invalidateQueries({ queryKey: ["studio-account-summary", "bob"] });
