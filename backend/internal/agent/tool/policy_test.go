@@ -41,8 +41,9 @@ func TestRegistryMatchesLegacyClassification(t *testing.T) {
 		{"write", legacyWrite, Policy.Write},
 		{"cacheable", legacyCacheable, func(p Policy) bool { return p.Cacheable }},
 		{"readOnly", legacyReadOnly, Policy.ReadOnly},
-		{"canvasRevision", legacyCanvasRev, func(p Policy) bool { return p.CacheScope == CacheCanvasRevision }},
-		{"offsetDefaults", legacyOffsetNorm, func(p Policy) bool { return len(p.OffsetDefaults) > 0 }},
+		// Model discovery now depends on canvas references and uses paginated offsets.
+		{"canvasRevision", append(legacyCanvasRev, ModelList), func(p Policy) bool { return p.CacheScope == CacheCanvasRevision }},
+		{"offsetDefaults", append(legacyOffsetNorm, ModelList), func(p Policy) bool { return len(p.OffsetDefaults) > 0 }},
 		{"media", legacyMedia, Policy.Media},
 	}
 	for _, tc := range cases {
