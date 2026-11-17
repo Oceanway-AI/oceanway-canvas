@@ -43,9 +43,11 @@ let refreshOverride: (() => Promise<CloudAgentConversation[]>) | undefined;
 const subscriptions: Array<{ id: string; after: number; event: (event: AgentEvent) => void; connection: (status: string) => void; closed: boolean }> = [];
 const sent: string[] = [];
 const sendInputs: Array<Record<string, any>> = [];
+const createInputs: Array<Record<string, any>> = [];
 let sendFailure: Error | undefined;
 let capabilitiesOverride: (() => Promise<unknown>) | undefined;
 let sendOverride: (() => Promise<{ run: AgentRun }>) | undefined;
+let createOverride: (() => Promise<{ run: AgentRun }>) | undefined;
 const refreshRequests: Array<{ observedConversationIds?: string[]; canvasId?: string }> = [];
 let generated = 0;
 let composer: Record<string, any>;
@@ -90,8 +92,10 @@ mock.module("@/services/api/agent", () => ({
         if (sendOverride) return sendOverride();
         return { run: { ...makeRun("submitted-child"), parentId: id, userPrompt: input.prompt, idempotencyKey: input.idempotencyKey } };
     },
-    createAgentRun: async () => {
+    createAgentRun: async (input: any) => {
         generated++;
+        createInputs.push(input);
+        if (createOverride) return createOverride();
         throw new Error("不应新建独立轮次");
     },
     decideAgentApproval: async () => {
@@ -145,6 +149,7 @@ mock.module("@/components/canvas/canvas-cloud-agent-chat-ui", () => ({
         composer = props;
         return (
             <>
+                {props.tray}
                 {props.left}
                 <textarea aria-label="草稿" value={props.prompt} readOnly />
             </>
@@ -234,9 +239,11 @@ async function mount(initial: CloudAgentConversation, cloud: CloudAgentConversat
     refreshOverride = undefined;
     sent.length = 0;
     sendInputs.length = 0;
+    createInputs.length = 0;
     sendFailure = undefined;
     capabilitiesOverride = undefined;
     sendOverride = undefined;
+    createOverride = undefined;
     generated = 0;
     subscriptions.length = 0;
     refreshRequests.length = 0;
@@ -357,6 +364,133 @@ test("失败后续发立即显示正在发送，迟到的上一轮错误留在�
         expect(subscriptions.at(-1)?.id).toBe("second");
         expect(sent).toEqual(["first"]);
     } finally {
+        await mounted.close();
+    }
+});
+
+test.each(["首轮", "续轮"])("%s正常等待确认时显示正在发送，收到响应后进入运行状态", async (entry) => {
+    const parent = entry === "续轮" ? makeRun("first") : null;
+    const initial = chat("original", parent);
+    const mounted = await mount(initial, [initial]);
+    const result = { run: { ...makeRun("accepted", "running"), parentId: parent?.id } };
+    let accept: ((value: { run: AgentRun }) => void) | undefined;
+    try {
+        sendOverride = createOverride = () => new Promise((resolve) => (accept = resolve));
+        await act(async () => composer.onPromptChange("整理画布"));
+        await act(async () => {
+            composer.onSubmit();
+            await settle();
+        });
+        expect(generated + sent.length).toBe(1);
+        expect(pending?.request?.prompt).toBe("整理画布");
+        expect(composer.prompt).toBe("");
+        expect(header.statusLabel).toBe("正在发送");
+        expect(mounted.host.querySelector(".agent-outbox-row.is-failed") === null).toBe(true);
+        expect(conversationUI.messages.some((message: any) => message.role === "error")).toBe(false);
+        await act(async () => {
+            accept!(result);
+            await settle();
+        });
+        expect(header.statusLabel).toBe("运行中");
+        expect(pending).toBeNull();
+        expect(mounted.host.querySelector(".agent-outbox-row.is-failed") === null).toBe(true);
+        expect(subscriptions.at(-1)?.id).toBe("accepted");
+        expect(generated + sent.length).toBe(1);
+    } finally {
+        await act(async () => {
+            accept?.(result);
+            await settle();
+        });
+        await mounted.close();
+    }
+});
+
+test("网络失败后显示待确认操作，点击重试沿用原请求并收起失败条", async () => {
+    const initial = chat("original", makeRun("first"));
+    const mounted = await mount(initial, [initial]);
+    const result = { run: { ...makeRun("accepted", "running"), parentId: "first" } };
+    let accept: ((value: { run: AgentRun }) => void) | undefined;
+    try {
+        sendFailure = new Error("网络连接中断");
+        await act(async () => composer.onPromptChange("原请求内容"));
+        await act(async () => {
+            composer.onSubmit();
+            await settle();
+        });
+        const original = pending;
+        expect(original?.request).toEqual(sendInputs[0]);
+        expect(composer.prompt).toBe("原请求内容");
+        expect(conversationUI.messages.some((message: any) => message.role === "error")).toBe(true);
+        await act(async () => composer.onPromptChange("下一条草稿"));
+        const retry = mounted.host.querySelector<HTMLButtonElement>(".agent-outbox-row.is-failed button");
+        expect(retry).not.toBeNull();
+        expect(retry!.disabled).toBe(false);
+        sendFailure = undefined;
+        sendOverride = () => new Promise((resolve) => (accept = resolve));
+        await act(async () => {
+            retry!.click();
+            await settle();
+        });
+        expect(header.statusLabel).toBe("正在发送");
+        expect(mounted.host.querySelector(".agent-outbox-row.is-failed") === null).toBe(true);
+        expect(sent).toEqual(["first", "first"]);
+        expect(sendInputs[1]).toEqual(original?.request);
+        expect(composer.prompt).toBe("下一条草稿");
+        await act(async () => {
+            accept!(result);
+            await settle();
+        });
+        expect(pending).toBeNull();
+        expect(header.statusLabel).toBe("运行中");
+        expect(composer.prompt).toBe("下一条草稿");
+        expect(generated).toBe(0);
+    } finally {
+        await act(async () => {
+            accept?.(result);
+            await settle();
+        });
+        await mounted.close();
+    }
+});
+
+test("刷新恢复的待确认首轮仍可重试，发送期间收起失败条并保留原幂等键", async () => {
+    const original: CloudAgentPendingSubmission = {
+        key: "restored-original-key",
+        fingerprint: "frozen-body",
+        request: { canvasId: "shared-canvas", prompt: "恢复原请求", idempotencyKey: "restored-original-key" },
+    };
+    const initial = chat("original", null);
+    const mounted = await mount(initial, [initial], original);
+    const result = { run: makeRun("restored", "running") };
+    let accept: ((value: { run: AgentRun }) => void) | undefined;
+    try {
+        expect(composer.prompt).toBe("恢复原请求");
+        expect(generated).toBe(0);
+        await act(async () => composer.onPromptChange("下一条草稿"));
+        const retry = mounted.host.querySelector<HTMLButtonElement>(".agent-outbox-row.is-failed button");
+        expect(retry).not.toBeNull();
+        createOverride = () => new Promise((resolve) => (accept = resolve));
+        await act(async () => {
+            retry!.click();
+            await settle();
+        });
+        expect(header.statusLabel).toBe("正在发送");
+        expect(mounted.host.querySelector(".agent-outbox-row.is-failed") === null).toBe(true);
+        expect(createInputs).toEqual([original.request]);
+        expect(pending).toEqual(original);
+        await act(async () => {
+            accept!(result);
+            await settle();
+        });
+        expect(pending).toBeNull();
+        expect(header.statusLabel).toBe("运行中");
+        expect(composer.prompt).toBe("下一条草稿");
+        expect(generated).toBe(1);
+    } finally {
+        await act(async () => {
+            accept?.(result);
+            await settle();
+        });
         await mounted.close();
     }
 });

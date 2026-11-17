@@ -2389,7 +2389,8 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         return parts.join(" · ");
     };
 
-    const showPendingRetry = Boolean(pendingRetryText) && !retryingPending;
+    // 恢复记录在发送前就会保存，等待响应期间仍属于正常提交。
+    const showPendingRetry = Boolean(pendingRetryText) && !busy && !retryingPending;
     const outboxTray =
         outbox.items.length || showPendingRetry ? (
             <AgentOutboxTray
