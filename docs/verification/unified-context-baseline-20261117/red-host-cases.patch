@@ -1,0 +1,105 @@
+diff --git a/backend/internal/handler/studio_api_test.go b/backend/internal/handler/studio_api_test.go
+index c2f51355..9e600bea 100644
+--- a/backend/internal/handler/studio_api_test.go
++++ b/backend/internal/handler/studio_api_test.go
+@@ -40,0 +41 @@ type studioFixture struct {
++	workspace    http.HandlerFunc
+@@ -55,0 +57,4 @@ func newStudioFixture(t *testing.T) *studioFixture {
++		if f.workspace != nil && (strings.HasPrefix(r.URL.Path, "/api/platform/v1/me/workspace") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/workspaces/")) {
++			f.workspace(w, r)
++			return
++		}
+diff --git a/backend/internal/handler/studio_workspace_entry_probe_test.go b/backend/internal/handler/studio_workspace_entry_probe_test.go
+new file mode 100644
+index 00000000..b373045e
+--- /dev/null
++++ b/backend/internal/handler/studio_workspace_entry_probe_test.go
+@@ -0,0 +1,88 @@
++package handler
++
++import (
++	"encoding/json"
++	"net/http"
++	"net/http/httptest"
++	"strings"
++	"testing"
++
++	"github.com/gin-gonic/gin"
++)
++
++// These host acceptance probes intentionally fail on the ST0 baseline. They
++// are retained as a patch in verification evidence until ST1/ST2 implement the
++// boundary, rather than skipped or weakened in the ordinary regression suite.
++func TestStudioWorkspaceEntryAcceptanceProbe(t *testing.T) {
++	for _, scenario := range []string{"explicit-team", "team-default", "unavailable-default"} {
++		t.Run(scenario, func(t *testing.T) {
++			f := newStudioFixture(t)
++			selectionReads, personalReads := 0, 0
++			team := gin.H{"id": "team_alpha", "kind": "team", "name": "Alpha", "status": "active", "actor_user_id": 101, "membership_generation": 2, "actions": []string{"workspace:read"}}
++			f.workspace = func(w http.ResponseWriter, r *http.Request) {
++				w.Header().Set("Content-Type", "application/json")
++				if r.URL.Path == "/api/platform/v1/me/workspace-selection" {
++					selectionReads++
++					value := gin.H{"actor_user_id": 101, "revision": 3, "state": "available", "workspace_id": "team_alpha", "membership_generation": 2, "workspace": team}
++					if scenario == "unavailable-default" {
++						value["state"] = "unavailable"
++						delete(value, "workspace")
++					}
++					_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": value})
++					return
++				}
++				_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": team})
++			}
++			f.account = func(w http.ResponseWriter, r *http.Request) {
++				workspace := team
++				if r.URL.Query().Get("workspace_id") != "team_alpha" {
++					personalReads++
++					workspace = gin.H{"id": "personal-101", "kind": "personal", "name": "Personal", "actor_user_id": 101}
++				}
++				_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": gin.H{
++					"version": "oceanway.account-summary.v1", "product": "studio",
++					"user": gin.H{"id": 101, "status": 1}, "workspace": workspace,
++					"balance": gin.H{"state": "ready", "kind": workspace["kind"], "available_points": "12.5"},
++				}})
++			}
++			path := "/api/auth/account-summary"
++			if scenario == "explicit-team" {
++				path += "?workspace_id=team_alpha"
++			}
++			req := httptest.NewRequest(http.MethodGet, "https://studio.example.test"+path, nil)
++			req.Header.Set("Cookie", "platform_session=alice")
++			response := httptest.NewRecorder()
++			f.router.ServeHTTP(response, req)
++			if personalReads != 0 {
++				t.Errorf("team entry read implicit personal funds %d time(s)", personalReads)
++			}
++			if scenario != "explicit-team" && selectionReads == 0 {
++				t.Error("new entry never read the confirmed session workspace")
++			}
++			if scenario == "unavailable-default" {
++				if response.Code >= 200 && response.Code < 300 {
++					t.Error("unavailable team default returned a successful personal summary")
++				}
++			} else if response.Code < 200 || response.Code >= 300 || !strings.Contains(response.Body.String(), `"workspaceId":"team_alpha"`) {
++				t.Errorf("team entry did not retain its team summary: status=%d", response.Code)
++			}
++		})
++	}
++}
++
++func TestStudioTeamCanvasAcceptanceProbe(t *testing.T) {
++	f := newStudioFixture(t)
++	f.workspace = func(w http.ResponseWriter, r *http.Request) {
++		actor := 101
++		if cookie, _ := r.Cookie("platform_session"); cookie != nil && cookie.Value == "bob" {
++			actor = 202
++		}
++		_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": gin.H{"id": "team_alpha", "kind": "team", "name": "Alpha", "status": "active", "actor_user_id": actor, "membership_generation": 2, "actions": []string{"workspace:read"}}})
++	}
++	body := `{"mutationId":"create-team-probe","operations":[{"type":"create_canvas","id":"team-probe","patch":{"title":"Team canvas"}}]}`
++	f.request(t, "PATCH", "/api/canvas-projects/team-probe/operations?workspace_id=team_alpha", "platform_session=alice", body, 200)
++	f.request(t, "GET", "/api/canvas-projects/team-probe?workspace_id=team_alpha", "platform_session=alice", "", 200)
++	// The second effective member must edit the same object, not another actor's
++	// personal object or a copy with a different ID.
++	f.request(t, "GET", "/api/canvas-projects/team-probe?workspace_id=team_alpha", "platform_session=bob", "", 200)
++}

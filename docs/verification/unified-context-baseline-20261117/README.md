@@ -52,11 +52,33 @@ multi-process behavior or two real team accounts editing one canvas.
 
 ## Cases still required before ST0/ST1/ST2 closure
 
+### Executed host acceptance probes
+
+`red-host-cases.patch` and `red-host-cases.json` preserve an executable failing
+baseline on `3e2ba309bc6ec3b8d438fc7f0eea378847050295`. Apply with
+`git apply --unidiff-zero` in an isolated checkout and run the recorded Go
+command. Four leaf cases fail as
+expected (three entry cases and one shared-canvas case); no skips or fake green
+assertions were added to the ordinary regression suite:
+
+- An explicit `workspace_id=team_alpha` account request reads personal funds.
+- A new entry does not read the confirmed team default and returns personal funds.
+- An unavailable default also returns a successful personal summary.
+- The original canvas operations route accepts a team intent but persists a
+  creator-only object; the other effective member gets 404 for that same ID.
+
+These are candidate host acceptance cases for ST1/ST2. The query intent is not
+an authority credential. Actual team context and generation still require the
+published SDK and provider checks. Fixtures use two synthetic sessions, the
+real Studio route/service/repository stack, the published SDK, a local HTTP
+provider and SQLite. They are not a real shared-test team or PostgreSQL proof.
+The temporary test changes were removed after preserving the exact patch and
+results; application code and historical ownership remain unchanged.
+
 - Record actual running Studio/Platform versions separately from this source
   baseline. Shared-test versions in historical notes are not current evidence.
-- Add and record failing host cases for explicit team navigation, unavailable
-  defaults, two actors opening one team object, old member generation, late
-  selection responses and personal-cache isolation before implementing them.
+- Continue failing host cases for old member generation, late selection
+  responses and personal-cache isolation before implementing those seams.
 - Pin a deep-linked object's true workspace; an unrelated Console preference
   must only affect new entries. A team default that Studio cannot serve must
   not display a personal canvas or use personal funds.
