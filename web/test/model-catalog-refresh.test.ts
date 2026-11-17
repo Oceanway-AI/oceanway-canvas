@@ -47,6 +47,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
     const { useConfigStore, createModelChannel, normalizeConfigSnapshot, CONFIG_STORE_KEY } = await import("@/stores/use-config-store");
     const { useUserStore } = await import("@/stores/use-user-store");
     const { useModelCatalogStore } = await import("@/stores/use-model-catalog-store");
+    const { useCreationPreferencesStore } = await import("@/stores/use-creation-preferences-store");
     const { setActiveUserScope, scopedLocalStorage, scopedStorageKey } = await import("@/lib/user-scope");
     const { resetRemoteUserDataSync } = await import("@/services/user-data-sync");
     const { appQueryClient } = await import("@/lib/query-client");
@@ -136,6 +137,11 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
             ],
         };
     };
+
+    test("creation preferences finish synchronous initial hydration", () => {
+        expect(useCreationPreferencesStore.persist.hasHydrated()).toBe(true);
+        expect(useCreationPreferencesStore.getState().hydrated).toBe(true);
+    });
 
     test("summary pages appear progressively and retain a later selected model", async () => {
         loadCatalog = async () => multipleModels("first-model", "chosen-model");

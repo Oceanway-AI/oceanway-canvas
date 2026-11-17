@@ -35,6 +35,7 @@ export type CreationComposerPreferences = {
 
 type CreationPreferencesStore = {
     hydrated: boolean;
+    setHydrated: () => void;
     preferences: CreationComposerPreferences;
     rememberMode: (mode: CreationModePreference) => void;
     rememberImageSettings: (settings: CreationImagePreferences) => void;
@@ -95,6 +96,7 @@ export const useCreationPreferencesStore = create<CreationPreferencesStore>()(
     persist(
         (set) => ({
             hydrated: false,
+            setHydrated: () => set({ hydrated: true }),
             preferences: {},
             rememberMode: (mode) => set((state) => ({ preferences: { ...state.preferences, mode } })),
             rememberImageSettings: (settings) => set((state) => ({ preferences: { ...state.preferences, image: { ...state.preferences.image, ...settings } } })),
@@ -108,9 +110,7 @@ export const useCreationPreferencesStore = create<CreationPreferencesStore>()(
                 const stored = (persisted || {}) as Partial<CreationPreferencesStore>;
                 return { ...current, preferences: normalizeCreationComposerPreferences(stored.preferences) };
             },
-            onRehydrateStorage: () => () => {
-                useCreationPreferencesStore.setState({ hydrated: true });
-            },
+            onRehydrateStorage: () => (state) => state?.setHydrated(),
         },
     ),
 );

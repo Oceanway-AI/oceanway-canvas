@@ -38,6 +38,7 @@ const { default: CreatePage } = await import("@/pages/create");
 const { defaultConfig, useConfigStore } = await import("@/stores/use-config-store");
 const { useUserStore } = await import("@/stores/use-user-store");
 const { useCreationPreferencesStore } = await import("@/stores/use-creation-preferences-store");
+const { useModelCatalogStore } = await import("@/stores/use-model-catalog-store");
 const { defaultModelCapabilityConfig, modelCapabilityConfigFor } = await import("@/lib/model-capabilities");
 const { modelGroupReferenceLimits } = await import("@/lib/model-selection");
 const { writeCreationConversationSnapshot } = await import("@/services/creation-conversation-snapshot");
@@ -92,6 +93,7 @@ for (const mode of ["text", "image", "video"] as const) {
                 videoModels: available && mode === "video" ? ["platform::published"] : [],
             };
             useConfigStore.setState({ config });
+            useModelCatalogStore.setState({ status: "loading", error: null });
             useUserStore.setState({ platformIdentity: true, hydrated: true, user: { id: "catalog-user", username: "fixture", displayName: "Fixture", role: "user", status: "active" } });
             writeCreationConversationSnapshot(getActiveUserScope(), [{ id: "existing", title: "Existing", messages: [], updatedAt: "2026-11-08T00:00:00Z" }]);
             useCreationPreferencesStore.setState({ preferences: { mode }, hydrated: true });
@@ -112,6 +114,8 @@ for (const mode of ["text", "image", "video"] as const) {
                     ),
                 );
                 expect(host.querySelector(".creation-home")).not.toBeNull();
+                expect(host.textContent).not.toContain("当前模式暂无可用模型");
+                await act(async () => useModelCatalogStore.setState({ status: "ready", error: null }));
                 await act(async () => {
                     const editor = host.querySelector<HTMLTextAreaElement>("textarea.creation-chat-mention-editor")!;
                     Object.getOwnPropertyDescriptor(dom.HTMLTextAreaElement.prototype, "value")!.set!.call(editor, "A quiet ocean");

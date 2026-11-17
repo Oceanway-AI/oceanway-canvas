@@ -1,16 +1,18 @@
 import { useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { OceanAccountBar } from "@/vendor/oceanway-account-v1/account";
 import { useStudioAccount } from "@/hooks/use-studio-account";
 import { useWorkspaceLogout } from "@/hooks/use-workspace-logout";
 import { subscribeGenerationTaskSuccess } from "@/services/generation-completion-tracker";
 import { useUserStore } from "@/stores/use-user-store";
 import { getAuthSession, invalidateAuthSessionCache } from "@/services/api/auth";
+import { appBasePath, appURL } from "@/lib/app-path";
 import { ApiError } from "@/services/api/request";
 
 export function StudioAccountBar({ compact = false }: { compact?: boolean }) {
     const userId = useUserStore((state) => state.user?.id);
-    const { account, query } = useStudioAccount();
+    const { pathname } = useLocation();
+    const { account, query, navigation } = useStudioAccount(pathname === "/" ? appBasePath || "/" : appURL(pathname));
     const { handleLogout, loggingOut } = useWorkspaceLogout();
     const { refetch, data, error } = query;
     useEffect(() => subscribeGenerationTaskSuccess(() => void refetch()), [refetch]);
@@ -51,15 +53,15 @@ export function StudioAccountBar({ compact = false }: { compact?: boolean }) {
             avatarUrl={account?.avatarUrl}
             balance={ready ? { state: "ready", amount } : { state: query.isPending ? "loading" : error instanceof ApiError && error.status === 403 ? "restricted" : "unavailable" }}
             balanceLabel="OceanWay 通用余额"
-            accountHref={account?.accountUrl}
-            walletHref={account?.walletUrl}
+            accountHref={navigation?.account}
+            walletHref={navigation?.wallet}
             linkTarget="_blank"
             onRetry={() => void refetch()}
             compact={compact}
             accountDetails={
                 <>
-                    {account?.usageUrl && (
-                        <a href={account.usageUrl} target="_blank" rel="noopener noreferrer">
+                    {navigation?.usage && (
+                        <a href={navigation.usage} target="_blank" rel="noopener noreferrer">
                             使用记录
                         </a>
                     )}

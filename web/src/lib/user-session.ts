@@ -206,6 +206,13 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
             useModelCatalogStore.setState({ status: "ready", error: null });
         } catch (error) {
             if (!isCurrentSession(generation, userId)) return;
+            recordDiagnosticEvent({
+                category: "runtime",
+                level: "error",
+                code: "model_catalog.refresh_failed",
+                message: error instanceof Error ? error.message : "模型目录读取失败",
+                stack: error instanceof Error ? error.stack : undefined,
+            });
             catalogSnapshot = null;
             catalogEpoch++;
             catalogDetails.clear();

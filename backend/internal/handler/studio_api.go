@@ -50,6 +50,7 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 		}
 		ok(c, summary)
 	})
+	registerStudioConsoleNavigation(api, svc)
 	api.GET("/auth/profile", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

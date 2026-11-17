@@ -27,6 +27,9 @@ const { MemoryRouter } = await import("react-router");
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query");
 const { StudioAccountBar } = await import("@/components/layout/studio-account-bar");
 const { useUserStore } = await import("@/stores/use-user-store");
+const { appBasePath } = await import("@/lib/app-path");
+const navigationPath = process.env.STUDIO_NAVIGATION_TEST_PATH || "/canvas/original-canvas";
+const expectedReturnPath = navigationPath === "/" ? appBasePath || "/" : `${appBasePath}${navigationPath}`;
 const { apiClient } = await import("@/services/api/request");
 import type { StudioAccountSummary } from "@/services/api/studio-account";
 afterAll(() => dom.happyDOM.abort());
@@ -67,7 +70,7 @@ test("account menu reads platform data and drops another user's response and fai
         await act(async () =>
             root.render(
                 <QueryClientProvider client={client}>
-                    <MemoryRouter>
+                    <MemoryRouter initialEntries={[navigationPath]}>
                         <StudioAccountBar />
                     </MemoryRouter>
                 </QueryClientProvider>,
@@ -75,12 +78,17 @@ test("account menu reads platform data and drops another user's response and fai
         );
         await flush();
         const wallet = () => host.querySelector('a[title="OceanWay 通用余额"]');
-        expect(wallet()?.getAttribute("href")).toBe(account.walletUrl!);
+        const walletTarget = new URL(wallet()!.getAttribute("href")!, window.location.origin);
+        expect(walletTarget.pathname).toBe(`${appBasePath}/api/auth/console-navigation`);
+        expect(Object.fromEntries(walletTarget.searchParams)).toEqual({ destination: "wallet", return_path: expectedReturnPath, user_id: "alice", workspace_id: "w1" });
+        expect(wallet()?.getAttribute("target")).toBe("_blank");
         expect(wallet()?.textContent).toContain("✦ 0.123456789012345");
         expect(host.textContent).toContain("个人空间");
         expect(host.querySelector("img")?.getAttribute("src")).toBe(account.avatarUrl!);
         await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="账户中心 · 平台昵称"]')!.click());
-        expect([...document.querySelectorAll("a")].some((a) => a.href === account.usageUrl)).toBe(true);
+        const usage = [...document.querySelectorAll("a")].find((a) => a.textContent === "使用记录")!;
+        expect(new URL(usage.href).searchParams.get("destination")).toBe("usage");
+        expect(new URL(usage.href).searchParams.get("return_path")).toBe(expectedReturnPath);
         await act(async () => useUserStore.setState({ user: { ...user, id: "bob", displayName: "Bob" } }));
         await flush();
         expect(host.innerHTML).not.toContain("0.123456789012345");

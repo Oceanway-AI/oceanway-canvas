@@ -2966,6 +2966,34 @@ paths:
           $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
+  /auth/console-navigation:
+    get:
+      tags: [auth]
+      summary: 以当前个人空间打开 Console 并保留 Studio 返回页面
+      description: |
+        当前会话重新核验 user_id 与 workspace_id。画布返回页按当前用户核验归属，技能编辑页复用技能可见权限。
+        return_path 为带部署前缀的规范路径，允许应用根、已开放静态页面、具体画布或技能编辑页。
+        参数必须各出现一次，拒绝额外参数、查询串、片段和编码路径。Provider SDK 核验导航响应后，
+        将 ConsolePath 解析到配置的 Console 浏览器源。响应均为 private, no-store，透传会话 Cookie。
+      parameters:
+        - {in: query, name: user_id, required: true, schema: {type: string}}
+        - {in: query, name: workspace_id, required: true, schema: {type: string}}
+        - {in: query, name: destination, required: true, schema: {type: string, enum: [account, wallet, usage]}}
+        - {in: query, name: return_path, required: true, schema: {type: string}}
+      responses:
+        "302":
+          description: 跳转至经 Provider 核验的 Console 页面
+          headers:
+            Location: {schema: {type: string, format: uri}}
+            Cache-Control: {schema: {type: string, enum: ["private, no-store"]}}
+            Referrer-Policy: {schema: {type: string, enum: [no-referrer]}}
+        "400": {$ref: "#/components/responses/Error"}
+        "401": {$ref: "#/components/responses/Error"}
+        "403": {$ref: "#/components/responses/Error"}
+        "404": {$ref: "#/components/responses/Error"}
+        "409": {$ref: "#/components/responses/Error"}
+        "429": {$ref: "#/components/responses/Error"}
+        "503": {$ref: "#/components/responses/Error"}
   /auth/profile:
     get:
       tags: [auth]
