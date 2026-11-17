@@ -19,7 +19,7 @@ var studioConsoleCanvasPath = regexp.MustCompile(`^/canvas/[A-Za-z0-9_-]{1,80}$`
 // Studio currently owns personal canvases. The visible account and payer must
 // still match at click time, before preparing any Console return context.
 func (s *Service) StudioConsoleNavigation(ctx context.Context, session platformclient.SessionContext, userID, workspaceID, destination, returnPath string) (string, *platformclient.Response, error) {
-	if destination != "account" && destination != "wallet" && destination != "usage" || userID == "" || workspaceID == "" {
+	if !validStudioConsoleDestination(destination) || userID == "" || workspaceID == "" {
 		return "", nil, BadAuthRequest("账户导航参数无效")
 	}
 	if s.studioPlatform == nil {
@@ -66,4 +66,12 @@ func (s *Service) StudioConsoleNavigation(ctx context.Context, session platformc
 		return "", response, platformIdentityError(err)
 	}
 	return s.StudioConsoleURL() + result.Data.ConsolePath, response, nil
+}
+
+func validStudioConsoleDestination(destination string) bool {
+	switch destination {
+	case "account", "wallet", "usage", "subscriptions", "plans", "orders", "recharge":
+		return true
+	}
+	return false
 }

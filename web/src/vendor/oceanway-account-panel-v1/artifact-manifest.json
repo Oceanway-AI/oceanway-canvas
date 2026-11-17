@@ -1,0 +1,16 @@
+{
+  "name": "oceanway-account-panel",
+  "version": "1.1.0",
+  "repository": "Oceanway-AI/Oceanway-design",
+  "source_commit": "ea3f23f6709efc3ac85ad06dc22e757ef25c3c66",
+  "source_path": "design-system/packages/ui/src/components/ocean/account-panel",
+  "runtime_dependencies": {
+    "react": "19.2.8",
+    "radix-ui": "1.6.7"
+  },
+  "digest": "c153feebe74ee5764183285e21f51dee2c330af131cbf4fb7a48dc4e6b2b9e1d",
+  "files": {
+    "account-panel.tsx": "0ff18a6b554d2481a952f5434ec368d6b424c18801418cc68373582fd3a11437",
+    "account-panel.css": "2d6f47dd5ef1969f8151aaef63cd246dc0c178c375b48b67df3ed4ac12fdb95c"
+  }
+}

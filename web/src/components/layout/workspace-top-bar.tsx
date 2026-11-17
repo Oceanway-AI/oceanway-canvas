@@ -5,7 +5,6 @@ import { currentLocale } from "@/i18n";
 
 import { TopbarFeedbackButton } from "@/components/feedback/topbar-feedback-button";
 import { SystemAnnouncementCenter } from "@/components/layout/system-announcement-center";
-import { StudioAccountBar } from "./studio-account-bar";
 import { WorkspaceAccountMenu } from "@/components/layout/workspace-account-menu";
 import { WorkspaceCreditGiftMark } from "@/components/layout/workspace-credit-gift-mark";
 import { WorkspaceTopBarExtensionSlot } from "@/components/layout/workspace-top-bar-extension";
@@ -61,7 +60,7 @@ export function WorkspaceTopBar({ sidebarOpen, onToggleSidebar }: { sidebarOpen:
                 ) : null}
                 {user ? <SystemAnnouncementCenter userId={user.id} className="app-workspace-topbar-icon-button" autoOpen /> : null}
                 <AnimatedThemeToggler className="app-workspace-topbar-icon-button" theme={theme} onThemeChange={setTheme} aria-label={t("shell.toggleTheme")} />
-                {platformIdentity && user ? <StudioAccountBar /> : <WorkspaceAccountMenu />}
+                {!platformIdentity && <WorkspaceAccountMenu />}
             </div>
         </header>
     );

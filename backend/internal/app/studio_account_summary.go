@@ -11,16 +11,22 @@ import (
 )
 
 type StudioAccountSummary struct {
-	UserID        string                              `json:"userId"`
-	DisplayName   string                              `json:"displayName"`
-	AvatarURL     string                              `json:"avatarUrl,omitempty"`
-	WorkspaceID   string                              `json:"workspaceId"`
-	WorkspaceName string                              `json:"workspaceName"`
-	Balance       platformclient.AccountBalance       `json:"balance"`
-	Applications  []platformclient.AccountApplication `json:"applications"`
-	AccountURL    string                              `json:"accountUrl,omitempty"`
-	WalletURL     string                              `json:"walletUrl,omitempty"`
-	UsageURL      string                              `json:"usageUrl,omitempty"`
+	UserID               string                              `json:"userId"`
+	DisplayName          string                              `json:"displayName"`
+	AvatarURL            string                              `json:"avatarUrl,omitempty"`
+	WorkspaceID          string                              `json:"workspaceId"`
+	WorkspaceName        string                              `json:"workspaceName"`
+	WorkspaceKind        string                              `json:"workspaceKind"`
+	MembershipGeneration int64                               `json:"membershipGeneration"`
+	Membership           platformclient.AccountMembership    `json:"membership"`
+	Benefits             platformclient.AccountBenefits      `json:"benefits"`
+	Spending             platformclient.AccountSpending      `json:"spending"`
+	Capabilities         platformclient.AccountCapabilities  `json:"capabilities"`
+	Balance              platformclient.AccountBalance       `json:"balance"`
+	Applications         []platformclient.AccountApplication `json:"applications"`
+	AccountURL           string                              `json:"accountUrl,omitempty"`
+	WalletURL            string                              `json:"walletUrl,omitempty"`
+	UsageURL             string                              `json:"usageUrl,omitempty"`
 }
 
 func (s *Service) StudioAccountSummary(ctx context.Context, session platformclient.SessionContext, user *model.User, workspaceID, canvasID string, generation *int64) (*StudioAccountSummary, *platformclient.Response, error) {
@@ -54,7 +60,7 @@ func (s *Service) StudioAccountSummary(ctx context.Context, session platformclie
 			application.URL = s.StudioConsoleURL() + "/console"
 		} else {
 			target, parseErr := url.Parse(application.URL)
-			if parseErr != nil || target.Scheme != "https" || target.Hostname() == "" || target.User != nil {
+			if parseErr != nil || target.Scheme != "https" || target.Hostname() == "" || target.User != nil || target.RawQuery != "" || target.Fragment != "" || target.RawPath != "" {
 				continue
 			}
 		}
@@ -63,6 +69,8 @@ func (s *Service) StudioAccountSummary(ctx context.Context, session platformclie
 	return &StudioAccountSummary{
 		UserID: s.studioUserID(summary.User.ID), DisplayName: name, AvatarURL: summary.User.AvatarURL,
 		WorkspaceID: summary.Workspace.ID, WorkspaceName: summary.Workspace.Name, Balance: summary.Balance,
+		WorkspaceKind: summary.Workspace.Kind, MembershipGeneration: summary.Workspace.MembershipGeneration,
+		Membership: summary.Membership, Benefits: summary.Benefits, Spending: summary.Spending, Capabilities: summary.Capabilities,
 		Applications: applications, AccountURL: s.studioConsoleLink(summary.AccountPath),
 		WalletURL: s.studioConsoleLink(summary.WalletPath), UsageURL: s.studioConsoleLink(summary.UsagePath),
 	}, response, nil

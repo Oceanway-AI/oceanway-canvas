@@ -137,7 +137,7 @@ test("unavailable context stays closed, late previous actor cannot restore a cac
             } else data = { ...personal, userId: bob.id, workspaceId: "personal-202" };
         } else if (config.url === "/auth/account-summary") {
             expect(config.params).toEqual({ workspace_id: "personal-202", membership_generation: 0 });
-            data = {};
+            data = { userId: bob.id, workspaceId: "personal-202", workspaceKind: "personal", membershipGeneration: 0 };
         } else if (config.url === "/model-catalog/summaries") data = { source: "platform", catalogRevision: "catalog-v1", channels: [], hasMore: false };
         else throw new Error("Unexpected request");
         return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data } };

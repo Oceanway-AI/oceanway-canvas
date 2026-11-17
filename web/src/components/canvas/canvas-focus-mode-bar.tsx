@@ -1,4 +1,5 @@
 import { StudioAccountBar } from "@/components/layout/studio-account-bar";
+import { StudioProductSwitcher } from "@/components/layout/studio-product-switcher";
 import { useUserStore } from "@/stores/use-user-store";
 import { Tooltip } from "@/components/ui/base/tooltip";
 import type { ReactNode } from "react";
@@ -43,7 +44,12 @@ export function CanvasFocusModeBar({ syncIcon, dockRevealed, zoomPercent, onTogg
                     </button>
                 </Tooltip>
                 {syncIcon}
-                {platformIdentity && <StudioAccountBar compact />}
+                {platformIdentity && (
+                    <>
+                        <StudioProductSwitcher compact />
+                        <StudioAccountBar compact />
+                    </>
+                )}
                 <span className="mx-0.5 h-4 w-px" style={{ background: theme.toolbar.border }} />
                 <Tooltip title={dockRevealed ? t("canvasA.focusBar.hideTools") : t("canvasA.focusBar.tools")}>
                     <button

@@ -89,10 +89,12 @@ export function useCanvasKeyboard({
         if (!enabled) return;
         const handleKeyDown = (event: KeyboardEvent) => {
             const target = event.target instanceof Element ? event.target : null;
-            if (target?.closest(".canvas-node-toolbar, .canvas-node-toolbar-menu, .ow-account-panel")) return;
+            if (target?.closest(".canvas-node-toolbar, .canvas-node-toolbar-menu, .ow-account-panel, .ow-shared-account-popover, .ow-context-panel")) return;
+            if (event.key !== "Escape" && target?.closest(".ow-shared-account-trigger, .ow-context-switcher")) return;
+            if (document.querySelector(".ow-shared-account-popover, .ow-context-panel")) return;
             // Canvas listens on window capture; the account menu dismisses on
             // document capture and must receive Escape before focus mode changes.
-            if (event.key === "Escape" && document.querySelector(".ow-account-panel")) return;
+            if (event.key === "Escape" && document.querySelector(".ow-account-panel, .ow-shared-account-popover, .ow-context-panel")) return;
             const key = event.key.toLowerCase();
             const isModifierShortcut = event.metaKey || event.ctrlKey;
             const isTextEditingTarget = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || Boolean(target?.closest("[contenteditable='true']"));
@@ -210,6 +212,7 @@ export function useCanvasKeyboard({
 
         const handlePaste = (event: ClipboardEvent) => {
             const target = event.target instanceof Element ? event.target : null;
+            if (document.querySelector(".ow-shared-account-popover, .ow-context-panel") || target?.closest(".ow-shared-account-trigger, .ow-context-switcher")) return;
             if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || target?.closest("[contenteditable='true']")) return;
             // 节点标记写入失败或仍在写入时避开旧系统图片，其余情况保持系统内容优先。
             event.preventDefault();

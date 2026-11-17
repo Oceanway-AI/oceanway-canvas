@@ -1,0 +1,34 @@
+/* The approved artifacts keep their geometry. Studio supplies its own palette. */
+:root {
+    --account-surface: var(--popover);
+    --account-text: var(--foreground);
+    --account-secondary: var(--muted-foreground);
+    --account-edge: var(--border);
+    --account-card: var(--muted);
+    --account-accent: var(--primary);
+    --account-on-accent: var(--primary-foreground);
+}
+.ow-studio-product-switcher {
+    min-width: 0;
+    width: 100%;
+}
+.ow-studio-account-trigger[data-compact] {
+    width: auto;
+    justify-content: center;
+    padding-inline: 4px;
+}
+.ow-studio-account-trigger[data-compact] .ow-shared-account-trigger-copy,
+.ow-studio-account-trigger[data-compact] .ow-shared-account-trigger-chevron {
+    display: none;
+}
+.ow-studio-team-avatar {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+    background: var(--account-accent);
+    color: var(--account-on-accent);
+    font-size: 0.65em;
+    font-weight: 600;
+}
