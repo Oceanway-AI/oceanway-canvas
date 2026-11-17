@@ -1,0 +1,90 @@
+diff --git a/web/test/fixtures/studio-team-entry-probe.harness.tsx b/web/test/fixtures/studio-team-entry-probe.harness.tsx
+new file mode 100644
+index 00000000..ff71f5d6
+--- /dev/null
++++ b/web/test/fixtures/studio-team-entry-probe.harness.tsx
+@@ -0,0 +1,84 @@
++import { afterAll, expect, test } from "bun:test";
++import { Window } from "happy-dom";
++
++const dom = new Window({ url: "https://studio.example.test/?workspace_id=team_alpha" });
++for (const [key, value] of Object.entries({
++    window: dom,
++    document: dom.document,
++    navigator: dom.navigator,
++    HTMLElement: dom.HTMLElement,
++    HTMLAnchorElement: dom.HTMLAnchorElement,
++    Element: dom.Element,
++    Node: dom.Node,
++    getComputedStyle: dom.getComputedStyle.bind(dom),
++    IS_REACT_ACT_ENVIRONMENT: true,
++})) {
++    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
++}
++const { default: localforage } = await import("localforage");
++const reads: string[] = [];
++localforage.getItem = async <T,>(key: string): Promise<T | null> => {
++    reads.push(key);
++    return null;
++};
++localforage.setItem = async <T,>(_key: string, value: T) => value;
++localforage.removeItem = async () => {};
++const { act } = await import("react");
++const { createRoot } = await import("react-dom/client");
++const { AuthSessionHydrator } = await import("@/components/auth/auth-session-hydrator");
++const { apiClient } = await import("@/services/api/request");
++const { useUserStore } = await import("@/stores/use-user-store");
++const { CREATION_PREFERENCES_STORE_KEY, useCreationPreferencesStore } = await import("@/stores/use-creation-preferences-store");
++const { setActiveUserScope, scopedLocalStorage } = await import("@/lib/user-scope");
++const { resetRemoteUserDataSync } = await import("@/services/user-data-sync");
++const { appQueryClient } = await import("@/lib/query-client");
++await import("@/lib/user-session");
++afterAll(() => {
++    resetRemoteUserDataSync();
++    appQueryClient.clear();
++    return dom.happyDOM.abort();
++});
++
++test("explicit team entry cannot hydrate or paint personal state before workspace authorization", async () => {
++    const user = { id: "fixture-alice", username: "alice", displayName: "Alice", role: "user", status: "active" };
++    setActiveUserScope(user.id);
++    scopedLocalStorage.setItem(CREATION_PREFERENCES_STORE_KEY, JSON.stringify({ state: { preferences: { mode: "video" } }, version: 0 }));
++    useUserStore.setState({ user: null, hydrated: false });
++    reads.length = 0;
++    const requests: string[] = [];
++    apiClient.defaults.adapter = async (config) => {
++        requests.push(`${config.method} ${config.url}`);
++        if (config.url === "/auth/session") return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { provider: "platform", user } } };
++        if (config.url === "/model-catalog/summaries") return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { source: "platform", catalogRevision: "catalog-v1", channels: [], hasMore: false } } };
++        throw new Error("Workspace authorization has not succeeded in this fixture");
++    };
++    const host = document.createElement("div");
++    document.body.append(host);
++    const root = createRoot(host);
++    try {
++        await act(async () =>
++            root.render(
++                <AuthSessionHydrator>
++                    <span data-private-workspace>private personal workspace</span>
++                </AuthSessionHydrator>,
++            ),
++        );
++        await act(async () => {
++            await new Promise((resolve) => setTimeout(resolve, 100));
++        });
++        console.info(
++            JSON.stringify({
++                requests,
++                privateWorkspaceVisible: Boolean(host.querySelector("[data-private-workspace]")),
++                personalPreferencesRestored: useCreationPreferencesStore.getState().preferences.mode === "video",
++                personalStorageReads: reads.filter((key) => key.includes(user.id)).length,
++            }),
++        );
++        expect(host.querySelector("[data-private-workspace]")).toBeNull();
++        expect(useCreationPreferencesStore.getState().preferences.mode).not.toBe("video");
++        expect(reads.filter((key) => key.includes(user.id))).toHaveLength(0);
++    } finally {
++        await act(async () => root.unmount());
++        host.remove();
++    }
++});

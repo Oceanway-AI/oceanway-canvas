@@ -76,10 +76,23 @@ provider and SQLite. They are not a real shared-test team or PostgreSQL proof.
 The temporary test changes were removed after preserving the exact patch and
 results; application code and historical ownership remain unchanged.
 
+`red-browser-entry.patch/json` records another RED on `1d6dd4f8`: opening the
+real AuthSessionHydrator with `?workspace_id=team_alpha` performs only the
+personal session/catalog reads, hydrates 13 personal storage keys, restores the
+personal creation preference and opens its child workspace before team
+authorization. This uses happy-dom, an axios adapter and in-memory localforage,
+not a live browser or provider. Apply the patch from the repository root and
+run its recorded command from `web/` after a frozen-lockfile install. The
+first missing-dependency attempt is excluded. Existing session-cache,
+session-reopen and realtime-client tests pass (9 outer tests; the nested
+reopen harness is not counted again). The temporary harness was removed after
+recording the patch. This identifies the context gate required before cache
+hydration; it does not establish a new auth/session response contract.
+
 - Record actual running Studio/Platform versions separately from this source
   baseline. Shared-test versions in historical notes are not current evidence.
-- Continue failing host cases for old member generation, late selection
-  responses and personal-cache isolation before implementing those seams.
+- Continue failing host cases for old member generation and late selection
+  responses, plus the full cache isolation matrix before implementing them.
 - Pin a deep-linked object's true workspace; an unrelated Console preference
   must only affect new entries. A team default that Studio cannot serve must
   not display a personal canvas or use personal funds.

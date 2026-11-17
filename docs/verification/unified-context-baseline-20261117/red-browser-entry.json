@@ -1,0 +1,29 @@
+{
+  "source_head": "1d6dd4f859c2bf3c91721a6d7b22202246064725",
+  "working_directory": "web",
+  "command": "bun test ./test/fixtures/studio-team-entry-probe.harness.tsx",
+  "runtime": "Bun 1.4.0, frozen-lockfile installation",
+  "fixture": "real AuthSessionHydrator, user-session, stores and cache namespace; happy-dom, axios adapter and in-memory localforage; not browser or live provider acceptance",
+  "expected_result": "RED until explicit team entry is authorized before hydration",
+  "observed": {
+    "requests": [
+      "post /auth/session",
+      "get /model-catalog/summaries"
+    ],
+    "privateWorkspaceVisible": true,
+    "personalPreferencesRestored": true,
+    "personalStorageReads": 13
+  },
+  "tests": {
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0
+  },
+  "unrelated_setup_failure": "Initial attempt could not import zustand before dependencies were installed; this is not product RED evidence.",
+  "regression_baseline": {
+    "command": "bun test test/platform-session-cache.test.ts test/platform-session-reopen.test.ts test/canvas-realtime-client.test.ts",
+    "passed": 9,
+    "failed": 0,
+    "note": "platform-session-reopen wraps an isolated three-case harness; nested cases are not added again."
+  }
+}
