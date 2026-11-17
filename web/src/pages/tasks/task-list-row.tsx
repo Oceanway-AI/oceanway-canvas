@@ -9,6 +9,7 @@ import { MediaPreview } from "@/components/media-preview";
 import { generationErrorMessage } from "@/lib/generation-error";
 import { formatTaskKind, generationTaskShowsProgress, generationTaskStageLabel } from "@/lib/generation-task-display";
 import type { GenerationTask } from "@/services/api/task-center";
+import { resolveResourceAccessURL } from "@/services/api/resources";
 import type { AiConfig } from "@/stores/use-config-store";
 import { formatModelName, getTaskCanvasContext, isTaskActive, isTaskFailed, isTaskRetryBlocked, taskAttentionReason, TaskBilling, TaskDate, taskKindIcon, TaskStatusPill, taskTone } from "./task-shared";
 import { TaskVideoThumbnail } from "./task-video-thumbnail";
@@ -115,10 +116,10 @@ export function TaskListRow({
 function TaskPreviewThumbnail({ task, onOpen }: { task: GenerationTask; onOpen: () => void }) {
     const { t } = useTranslation();
     const early = taskEarlyPreviews(task)[0];
-    const url = task.previewUrl || (early && earlyPreviewURL(early));
+    const url = resolveResourceAccessURL(task.previewUrl || (early && earlyPreviewURL(early)) || "");
     const isVideo = (task.previewKind || early?.kind) === "video";
     const [unavailableUrl, setUnavailableUrl] = useState("");
-    const thumbnailUrl = isVideo ? task.previewPosterUrl : url;
+    const thumbnailUrl = isVideo ? resolveResourceAccessURL(task.previewPosterUrl || "") : url;
     const previewUnavailable = Boolean(thumbnailUrl && unavailableUrl === thumbnailUrl && !(isVideo && task.provider === "platform"));
     if (!url) {
         const Icon = taskKindIcon(task);

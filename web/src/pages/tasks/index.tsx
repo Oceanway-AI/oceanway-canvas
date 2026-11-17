@@ -38,6 +38,7 @@ import { listProjects, type ProjectSummary } from "@/services/api/projects";
 import { TaskDetailModal, TaskResultPreview } from "./task-detail-modal";
 import { taskPlaybackPreview, type TaskResultMedia } from "./task-result-media";
 import { earlyPreviewURL, taskEarlyPreviews } from "@/services/task-early-previews";
+import { resolveResourceAccessURL } from "@/services/api/resources";
 import { TaskGridCard } from "./task-grid-card";
 import { TaskGroupHeader, type TaskGroup } from "./task-group-header";
 import { TaskListRow } from "./task-list-row";
@@ -204,7 +205,7 @@ export default function TasksPage() {
             onRetry={() => void runAction(task.id)}
             onPreview={() => {
                 const early = taskEarlyPreviews(task)[0];
-                const url = task.previewUrl || (early && earlyPreviewURL(early));
+                const url = resolveResourceAccessURL(task.previewUrl || (early && earlyPreviewURL(early)) || "");
                 if (url) setMediaPreview({ url, kind: task.previewKind || early?.kind || "image", title: task.prompt || formatTaskKind(task), item: taskPlaybackPreview(task) });
             }}
         />

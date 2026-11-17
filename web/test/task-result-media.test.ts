@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { taskPlaybackPreview, taskResultMedia, taskResultMediaAccess } from "../src/pages/tasks/task-result-media";
 import type { GenerationTask } from "../src/services/api/task-center";
 import type { ResourceAccess } from "../src/services/api/resources";
+import { apiBaseURL } from "../src/services/api/request";
 
 const task = (result: unknown, extra: Partial<GenerationTask> = {}): GenerationTask => ({
     id: "task-1",
@@ -28,7 +29,7 @@ describe("task detail media uses adopted Platform resources", () => {
                 { index: -1, kind: "video" },
             ],
         });
-        expect(taskResultMedia(early).map((item) => item.url)).toEqual(["/api/tasks/task-1/previews/0"]);
+        expect(taskResultMedia(early).map((item) => item.url)).toEqual([`${apiBaseURL}/tasks/task-1/previews/0`]);
         expect(taskResultMedia({ ...early, id: "../other" })).toEqual([]);
         expect(taskResultMedia({ ...early, status: "failed" })).toEqual([]);
         expect(taskResultMedia({ ...early, status: "succeeded", resultJson: JSON.stringify({ video: { storageKey: "resource:archived" } }) })).toEqual([{ key: "archived", resourceId: "archived", kind: "video" }]);

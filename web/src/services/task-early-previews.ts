@@ -1,10 +1,11 @@
 import type { GenerationTask } from "./api/task-center";
+import { resolveResourceAccessURL } from "./api/resources";
 
 export type TaskEarlyPreview = { taskId: string; index: number; kind: "image" | "video" };
 
 export function earlyPreviewURL(ref: TaskEarlyPreview) {
     if (typeof ref.taskId !== "string" || !/^[a-zA-Z0-9_-]+$/.test(ref.taskId) || !Number.isSafeInteger(ref.index) || ref.index < 0 || (ref.kind !== "image" && ref.kind !== "video")) return "";
-    return `/api/tasks/${ref.taskId}/previews/${ref.index}`;
+    return resolveResourceAccessURL(`/api/tasks/${ref.taskId}/previews/${ref.index}`);
 }
 
 export function taskEarlyPreviews(task: GenerationTask): TaskEarlyPreview[] {
