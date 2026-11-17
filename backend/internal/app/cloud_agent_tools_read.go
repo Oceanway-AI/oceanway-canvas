@@ -125,9 +125,10 @@ func cloudAgentReadToolCached(repo *repository.Repository, userID string, state 
 			if cached.Error != "" {
 				// Only deterministic argument errors are persisted. Transient and
 				// business errors never enter this branch.
-				cachedErr := errors.New(cached.Error)
 				if cached.ArgumentError {
-					return nil, &cloudAgentArgumentError{cachedErr}
+					// Restore the safe error category as well as the text. Feedback
+					// still passes through cloudAgentSafeToolError on every replay.
+					return nil, &cloudAgentArgumentError{BadAuthRequest(cached.Error)}
 				}
 				delete(state.ToolReadResults, key)
 			} else {

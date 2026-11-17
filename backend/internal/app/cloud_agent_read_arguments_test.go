@@ -28,6 +28,7 @@ func TestCloudAgentReadArgumentsRejectBeforeReadingCanvas(t *testing.T) {
 		{"negative offset", `{"offset":-1}`, "非负整数"},
 		{"negative storyboard offset", `{"storyboardOffset":-1}`, "非负整数"},
 		{"too many nodes", `{"nodeIds":["1","2","3","4","5","6","7","8","9"]}`, "最多包含8个"},
+		{"depth without focus", `{"depth":1,"focusNodeIds":[]}`, "depth 只能与 focusNodeIds 一起使用"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			call := cloudAgentCall{ID: "read-1"}
@@ -107,7 +108,8 @@ func TestCloudAgentCanvasReadArgumentRepairContinuesRun(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for i, args := range []string{`{"limit":40}`, `{}`, `{"nodeIds":["note"]}`} {
+	invalidArguments := `{"connectionOffset":0,"depth":1,"focusNodeIds":[],"includeRelated":false,"nodeIds":[],"offset":0,"storyboardOffset":0}`
+	for i, args := range []string{invalidArguments, invalidArguments, `{}`, `{"nodeIds":["note"]}`} {
 		_, state := load()
 		if state.ActiveTaskID == "" {
 			t.Fatal("model continuation task missing")
@@ -134,9 +136,15 @@ func TestCloudAgentCanvasReadArgumentRepairContinuesRun(t *testing.T) {
 		if err := json.Unmarshal([]byte(last["content"].(string)), &result); err != nil {
 			t.Fatal(err)
 		}
-		if i == 0 {
+		if i < 2 {
 			if result["reason"] != "invalid_tool_arguments" || result["exampleArguments"] == nil {
 				t.Fatalf("missing repair context: %#v", result)
+			}
+			if result["error"] != "画布读取参数无效：depth 只能与 focusNodeIds 一起使用" {
+				t.Fatalf("argument error lost on step %d: %#v", i, result)
+			}
+			if state.ReadToolCalls != 1 {
+				t.Fatalf("cached argument error consumed read budget: %d", state.ReadToolCalls)
 			}
 			schema, ok := result["parameters"].(map[string]any)
 			if !ok || schema["additionalProperties"] != false {
@@ -174,6 +182,24 @@ func TestCloudAgentCanvasReadArgumentRepairContinuesRun(t *testing.T) {
 		var argumentErr *cloudAgentArgumentError
 		if errors.As(err, &argumentErr) {
 			t.Fatal("ownership failure was misclassified as a repairable argument error")
+		}
+	}
+}
+
+func TestCloudAgentCachedArgumentErrorFiltersUnsafeMessages(t *testing.T) {
+	call := cloudAgentCall{ID: "cached-error"}
+	call.Function.Name, call.Function.Arguments = "canvas_get_state", `{"depth":1}`
+	for _, message := range []string{
+		"https://private.example/path?api_key=fixture",
+		"Authorization: Bearer fixture", "内部错误\nstack trace", "/var/private/file",
+	} {
+		state := &cloudAgentRuntime{ToolReadResults: map[string]cloudAgentCachedToolResult{
+			cloudAgentReadCacheKey(call): {Error: message, ArgumentError: true},
+		}}
+		_, err := cloudAgentReadToolCached(nil, "user", state, call)
+		var argumentErr *cloudAgentArgumentError
+		if !errors.As(err, &argumentErr) || cloudAgentSafeToolError(err) != "工具执行失败，请检查输入或稍后重试" {
+			t.Fatalf("cached argument error bypassed safety filtering: %v", err)
 		}
 	}
 }

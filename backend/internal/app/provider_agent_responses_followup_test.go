@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"yingce/backend/internal/model"
@@ -20,11 +21,29 @@ func TestAgentResponsesToolFollowupAfterRestore(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				var body struct {
 					Input []map[string]any `json:"input"`
+					Tools []map[string]any `json:"tools"`
 				}
 				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 					t.Error(err)
 					w.WriteHeader(http.StatusBadRequest)
 					return
+				}
+				foundCanvasRead := false
+				for _, tool := range body.Tools {
+					if tool["strict"] != false {
+						t.Errorf("request %d tool %v must preserve optional arguments: strict=%v", requests, tool["name"], tool["strict"])
+					}
+					if tool["name"] == "canvas_get_state" {
+						foundCanvasRead = true
+						parameters := tool["parameters"].(map[string]any)
+						required, ok := parameters["required"].([]any)
+						if !ok || len(required) != 0 || parameters["additionalProperties"] != false {
+							t.Errorf("canvas read schema changed: %#v", parameters)
+						}
+					}
+				}
+				if !foundCanvasRead {
+					t.Error("canvas_get_state tool missing")
 				}
 				if requests == 1 {
 					_, _ = w.Write([]byte(`{"output":[{"type":"function_call","id":"fc_fixture","call_id":"call_fixture","name":"canvas_get_state","arguments":"{}","status":"completed"}]}`))
@@ -57,7 +76,7 @@ func TestAgentResponsesToolFollowupAfterRestore(t *testing.T) {
 			}))
 			defer server.Close()
 			config := providerConfig{BaseURL: server.URL, APIKey: "fixture", Model: "fixture", InterfaceType: string(model.ChannelInterfaceOpenAIResponse)}
-			request := canonicalAgentRequest{Messages: []map[string]any{{"role": "user", "content": "read canvas"}}, ToolChoice: "auto"}
+			request := canonicalAgentRequest{Messages: []map[string]any{{"role": "user", "content": "read canvas"}}, Tools: cloudAgentTools(agentTestRequest()), ToolChoice: "auto"}
 			first, err := runAgentToolTask(context.Background(), canvasGenerationInput{Config: config, AgentRequests: &agentToolRequests{Canonical: &request}})
 			if err != nil {
 				t.Fatal(err)
@@ -83,5 +102,34 @@ func TestAgentResponsesToolFollowupAfterRestore(t *testing.T) {
 				t.Fatalf("result = %#v, requests = %d", result, requests)
 			}
 		})
+	}
+}
+
+func TestAgentResponsesPreservesExplicitToolStrictness(t *testing.T) {
+	for _, strict := range []bool{false, true} {
+		function := map[string]any{
+			"name": "fixture", "strict": strict,
+			"parameters": map[string]any{
+				"type": "object", "properties": map[string]any{},
+				"required": []any{}, "additionalProperties": false,
+			},
+		}
+		request := canonicalAgentRequest{Tools: []map[string]any{{"type": "function", "function": function}}}
+		before, err := json.Marshal(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, err := canonicalAgentResponsesBody(&request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tool := body["tools"].([]any)[0].(map[string]any)
+		if tool["strict"] != strict || !reflect.DeepEqual(tool["parameters"], function["parameters"]) {
+			t.Fatalf("explicit tool contract changed: %#v", tool)
+		}
+		after, err := json.Marshal(request)
+		if err != nil || string(before) != string(after) {
+			t.Fatalf("Responses conversion mutated canonical request: %s, %v", after, err)
+		}
 	}
 }

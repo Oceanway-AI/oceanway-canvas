@@ -251,6 +251,11 @@ func canonicalAgentResponsesBody(source *canonicalAgentRequest) (map[string]inte
 		function, _ := tool["function"].(map[string]interface{})
 		converted := cloneStringAnyMap(function)
 		converted["type"] = "function"
+		// Responses can normalize an omitted strict flag into an all-required
+		// schema. Preserve the canonical tools' optional argument semantics.
+		if _, specified := converted["strict"]; !specified {
+			converted["strict"] = false
+		}
 		tools = append(tools, converted)
 	}
 	body := map[string]interface{}{"input": messages, "tools": tools, "tool_choice": source.ToolChoice, "parallel_tool_calls": false}
