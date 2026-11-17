@@ -11,8 +11,15 @@ import {
     generationTaskStageLabel,
     generationTaskStatusLabel,
     mediaDeliverySummary,
+    formatTaskKind,
 } from "@/lib/generation-task-display";
 import { resetGenerationTaskMetadata } from "@/lib/canvas/canvas-task-state";
+import type { GenerationTask } from "@/services/api/task-center";
+
+test("Agent 轮次和模型步骤保留不同名称", () => {
+    expect(formatTaskKind({ type: "canvas_text", operation: "cloud_agent" } as GenerationTask)).toBe("Agent 轮次");
+    expect(formatTaskKind({ type: "canvas_text", operation: "cloud_agent_step", agentRunId: "root" } as GenerationTask)).toBe("Agent 模型步骤");
+});
 
 describe("作品保存阶段", () => {
     test("Platform 保存失败保持原任务并显示归属，不显示生成进度", () => {

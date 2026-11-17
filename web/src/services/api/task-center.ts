@@ -33,6 +33,8 @@ export type GenerationTask = {
     retryAfterMs?: number;
     id: string;
     agentRunId?: string;
+    agentStatus?: "queued" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
+    agentCleanupPending?: boolean;
     clientOperationId?: string;
     retryOf?: string;
     attemptGroupId?: string;

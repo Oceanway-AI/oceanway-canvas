@@ -13,6 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/Oceanway-AI/oceanway-platform/platformclient"
 	"gorm.io/gorm"
 	"yingce/backend/internal/kernel"
 	"yingce/backend/internal/model"
@@ -25,15 +26,17 @@ const cloudAgentOperation = "cloud_agent"
 // turns reference the previous run, not a mutable in-memory conversation. This
 // reuses transactional billing, worker leases, cancellation and text replay.
 type CloudAgentRequest struct {
-	ReasoningMode   string `json:"reasoningMode,omitempty"`
-	ProfileRevision string `json:"profileRevision,omitempty"`
-	CanvasID        string `json:"canvasId"`
-	Prompt          string `json:"prompt"`
-	Model           string `json:"model,omitempty"`
-	LogicalModelID  string `json:"logicalModelId,omitempty"`
-	ChannelID       string `json:"channelId,omitempty"`
-	ChannelModelKey string `json:"channelModelKey,omitempty"`
-	PermissionMode  string `json:"permissionMode"`
+	// Server replaces this declaration at Studio admission before persisting it.
+	PlatformTextCapability *platformclient.TextCapability `json:"platformTextCapability,omitempty"`
+	ReasoningMode          string                         `json:"reasoningMode,omitempty"`
+	ProfileRevision        string                         `json:"profileRevision,omitempty"`
+	CanvasID               string                         `json:"canvasId"`
+	Prompt                 string                         `json:"prompt"`
+	Model                  string                         `json:"model,omitempty"`
+	LogicalModelID         string                         `json:"logicalModelId,omitempty"`
+	ChannelID              string                         `json:"channelId,omitempty"`
+	ChannelModelKey        string                         `json:"channelModelKey,omitempty"`
+	PermissionMode         string                         `json:"permissionMode"`
 	// PinnedSkillIDs 是用户为对话固定或在本条消息里点名的技能；其他已安装技能由 Agent 按目录自动发现。
 	PinnedSkillIDs        []string `json:"pinnedSkillIds,omitempty"`
 	ContextScope          []string `json:"contextScope"`
@@ -270,6 +273,7 @@ func cloudAgentID(userID, key string) string {
 }
 
 func cloudAgentFingerprint(req CloudAgentRequest, parent string) string {
+	req.PlatformTextCapability = nil
 	data, _ := json.Marshal(struct {
 		Request CloudAgentRequest
 		Parent  string

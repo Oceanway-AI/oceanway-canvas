@@ -609,9 +609,17 @@ operations 的结构化配额在提交事务内实时统计账号的素材/画�
 
 ## 云端 Agent
 
+Studio 的任务列表和详情返回 `agentRunId`、`agentStatus`、`agentCleanupPending`。根任务按 Agent 轮次控制状态显示排队、运行、等待审批、完成、失败或取消，模型子步骤通过 `agentRunId` 关联同一轮次。文本步骤的 `providerRequestId` 保存 Platform 原始 relay 请求号，任务详情可用于跨端查询。取消后尚有已提交步骤时显示收尾状态，worker 继续查询原请求，确认终态后清除活动步骤并释放执行授权。
+
+Platform 文本恢复回执的 `failure` 提供安全错误码、原始 HTTP 状态、`no_execution` 和 `retry_allowed`。明确参数拒绝结束当前步骤，只有同时确认未执行和允许重试时才可创建下一次尝试。请求身份、协议和正文摘要须与冻结记录一致。超时结果未知时保留原请求并降低轮询频率，已保存的历史 HTTP 400 参数拒绝可结合匹配的旧版回执结束步骤。
+
+Platform 模型的 `content.text_capability` 声明上下文窗口、输出上限、图片数和单图字节数。Studio 在创建轮次时从目录冻结能力，客户端提交的能力值会被服务端覆盖。图片通过当前账号固定 Resource、素材版本和 binding 获取原件，校验后以内联字节进入加密的执行正文。普通文本与 Agent 使用同一转换入口。
+
+Pi 1.5.2 接收原响应持久化的 input、output、cacheRead、cacheWrite 用量。OpenAI 输入中的缓存读取只计一次，Anthropic 独立缓存维度按原语义保留。缺少用量时保留未知读数。Pi 负责会话压缩，已确认的上下文超限错误可触发压缩恢复，Go 模型桥使用 Pi 的压缩历史。
+
 所有 `/agent` 路径都需要登录 Cookie。`GET /agent/capabilities` 返回当前版本（2）、权限模式、上下文范围、技能和工具清单；跨轮历史仍按可恢复事实和发送预算整理，不把某个固定字节数当作模型窗口。Agent 运行由服务端任务 Worker 驱动，浏览器断开不会停止运行。
 
-文本模型能力合同包含 `contextWindowTokens`（输入加输出的总上下文窗口）和 `maxOutputTokens`（输出/推理上限）。Agent 每轮根据实际执行的渠道模型计算输入预算，并预留工具 schema、协议包装和恢复空间；逻辑模型按候选文本线路取安全交集，旧配置或能力解析失败回退 128K / 16K。1M 模型可通过后台能力配置使用更大输入预算。前后端的 Token 估算用于提前压缩和拒绝病态请求，最终仍以上游 tokenizer 和响应为准。运行 checkpoint 的 512KB 持久化上限只约束恢复状态，不限制模型上下文窗口。
+文本模型能力合同包含 `contextWindowTokens`（输入加输出的总上下文窗口）和 `maxOutputTokens`（输出/推理上限）。Agent 每轮根据实际执行的渠道模型计算输入预算，并预留工具 schema、协议包装和恢复空间。逻辑模型按候选文本线路取安全交集，旧配置或能力解析失败回退 128K / 16K。1M 模型可通过后台能力配置使用更大输入预算。前后端的 Token 估算用于输入预算提示和请求预检，Pi 根据运行历史、真实用量及上下文超限回执执行压缩，最终以上游 tokenizer 和响应为准。运行 checkpoint 的 512KB 持久化上限约束恢复状态的大小。
 
 - `POST /agent/runs` 创建一轮；`POST /agent/runs/:id/messages` 以上一轮为父节点创建新的不可变轮次，两者返回 `{ run }`，追加后必须使用新的 `run.id` 订阅。
 - `GET /agent/conversations?canvasId=&limit=100&before=` 只读查询当前用户在该画布中参与过的对话，返回 `{ items, nextCursor? }`。每项包含 `id`（现有 `conversationId`）、`canvasId`、`title`、`latestRunId`、`status`、`revision`、`cleanupPending` 和时间；按最新轮 `createdAt`、`id` 倒序。对话换绑画布后，目录摘要仍取整个对话的最新轮次，不能使用旧画布内的最后一轮。画布必须属于当前用户。

@@ -269,6 +269,8 @@ export const taskTypeLabel: Record<string, string> = {
 };
 
 export function formatTaskKind(task: GenerationTask) {
+    if (task.operation === "cloud_agent") return "Agent 轮次";
+    if (task.agentRunId && task.type === "canvas_text") return "Agent 模型步骤";
     const typeLabel = taskTypeLabel[task.type];
     const operationLabel = task.operation ? operationLabelByValue.get(task.operation) : "";
 

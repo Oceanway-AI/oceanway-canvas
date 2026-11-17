@@ -57,13 +57,14 @@ type MediaProfile struct {
 
 type ModelSelection struct {
 	NativeEndpoint
-	Name         string
-	Kind         string
-	Price        PublishedPrice
-	TextProtocol platformclient.TextProtocol
-	MediaRoute   platformclient.MediaRoute
-	PreferAsync  bool
-	GenerationV1 bool
+	Name           string
+	Kind           string
+	Price          PublishedPrice
+	TextProtocol   platformclient.TextProtocol
+	TextCapability *platformclient.TextCapability
+	MediaRoute     platformclient.MediaRoute
+	PreferAsync    bool
+	GenerationV1   bool
 }
 
 // SelectModel is shared by display and admission. Alternatives are never
@@ -74,6 +75,7 @@ func SelectModel(m platformclient.Model, variant string) (ModelSelection, error)
 		return selected, errors.New("模型价格暂不可用")
 	}
 	if m.ModelType == "text" {
+		selected.TextCapability = m.TextCapability()
 		if m.InvocationStatus != "published_text" {
 			return selected, errors.New("文本模型暂不可用")
 		}

@@ -15,6 +15,10 @@ import (
 // Only recognized machine codes may cross from relay errors into user-visible tasks.
 // Messages and unknown codes can contain provider URLs, prompts or credentials.
 var studioTextRejectionMessages = map[string]string{
+	"context_length_exceeded":    "会话超出模型上下文窗口，需要压缩后继续。",
+	"context_window_exceeded":    "会话超出模型上下文窗口，需要压缩后继续。",
+	"prompt_too_long":            "会话超出模型上下文窗口，需要压缩后继续。",
+	"input_too_long":             "会话超出模型上下文窗口，需要压缩后继续。",
 	"PLATFORM_MODEL_UNAVAILABLE": "所选模型当前不可用，请稍后再试或切换模型。",
 	"model_not_found":            "当前渠道没有可用的所选模型，请检查模型选择。",
 	"system_cpu_overloaded":      "平台当前繁忙，请稍后再试。",
@@ -49,9 +53,39 @@ func (s *Service) deferStudioTextRejection(task *model.Task, response *platformc
 			}
 		}
 	}
-	raw, _ := json.Marshal(model.TaskExecutionDiagnostic{Code: code, Phase: "submission", SubmissionOutcome: "unknown", SubmissionHTTPStatus: response.StatusCode, RetryClass: "recover_original", DiagnosticID: task.ID})
+	raw, _ := json.Marshal(model.TaskExecutionDiagnostic{Code: code, Phase: "submission", SubmissionOutcome: "unknown", SubmissionHTTPStatus: response.StatusCode, RetryClass: "recover_original", SafeMessage: studioTextRejectionMessages[code], DiagnosticID: task.ID})
 	return s.repo.Transaction(func(repo *repository.Repository) error {
 		if err := repo.DeferRunningTaskForProviderPoll(task.ID, task.LeaseOwner, "正在查询平台原请求，请勿重复生成", 5*time.Second); err != nil {
+			return err
+		}
+		return repo.UpdateTaskExecutionDiagnostic(task.UserID, task.ID, string(raw))
+	})
+}
+
+// Historical Platform failures lack their original error code. The stored
+// submission response still proves this parameter rejection after the worker
+// has matched the original receipt's identity and fingerprint. It grants no retry.
+func studioTextRecordedParameterRejection(task *model.Task, receipt platformclient.TextRecovery) bool {
+	diagnostic := taskExecutionDiagnostic(task)
+	return receipt.Status == "pending" && receipt.Failure != nil && receipt.Failure.Code == "text_request_failed" && receipt.Failure.HTTPStatus == 0 && diagnostic != nil && diagnostic.DiagnosticID == task.ID && diagnostic.Phase == "submission" && diagnostic.SubmissionHTTPStatus == 400 && (diagnostic.Code == "invalid_request_error" || diagnostic.Code == "invalid_request")
+}
+
+func (s *Service) deferStudioTextRecovery(task *model.Task, receipt platformclient.TextRecovery) error {
+	if !receipt.ResponseTimedOut {
+		return s.deferStudioTask(task)
+	}
+	const message = "模型响应超时，正在查询原请求结果。"
+	diagnostic := taskExecutionDiagnostic(task)
+	if diagnostic == nil {
+		diagnostic = &model.TaskExecutionDiagnostic{Code: "text_response_timeout", Phase: "recovery", SubmissionOutcome: "unknown", RetryClass: "recover_original", DiagnosticID: task.ID}
+	}
+	diagnostic.SafeMessage = message
+	raw, err := json.Marshal(diagnostic)
+	if err != nil {
+		return err
+	}
+	return s.repo.Transaction(func(repo *repository.Repository) error {
+		if err := repo.DeferRunningTaskForProviderPoll(task.ID, task.LeaseOwner, message, 30*time.Second); err != nil {
 			return err
 		}
 		return repo.UpdateTaskExecutionDiagnostic(task.UserID, task.ID, string(raw))
@@ -84,10 +118,25 @@ func studioTextTemporaryRejection(code string, status int) bool {
 func (s *Service) handleStudioTextFailure(task *model.Task, execution *model.StudioExecution, envelope studioExecutionEnvelope, receipt platformclient.TextRecovery) error {
 	code := "text_request_failed"
 	noExecution := receipt.Version == "oceanway.text-request.v1" && receipt.Status == "failed" && !receipt.Ready
+	retryAllowed := noExecution
+	status := 0
+	if receipt.Failure != nil {
+		noExecution = noExecution && receipt.Failure.NoExecution
+		retryAllowed = noExecution && receipt.Failure.RetryAllowed
+		status = receipt.Failure.HTTPStatus
+		if _, known := studioTextRejectionMessages[receipt.Failure.Code]; known {
+			code = receipt.Failure.Code
+		}
+	}
 	if submitted := taskExecutionDiagnostic(task); submitted != nil && submitted.Phase == "submission" && submitted.SubmissionOutcome == "unknown" && submitted.DiagnosticID == task.ID {
-		code = submitted.Code
+		if code == "text_request_failed" {
+			code = submitted.Code
+		}
+		if status == 0 {
+			status = submitted.SubmissionHTTPStatus
+		}
 		agentStep := envelope.AgentRunID != "" && envelope.AgentRunID == task.AgentRunID && (task.Operation == cloudAgentStepOperation || task.Operation == cloudAgentContextCompactionOperation)
-		if agentStep && noExecution && envelope.TextRetries >= 0 && envelope.TextRetries < cloudAgentModelStepRetries && studioTextTemporaryRejection(code, submitted.SubmissionHTTPStatus) {
+		if agentStep && retryAllowed && envelope.TextRetries >= 0 && envelope.TextRetries < cloudAgentModelStepRetries && studioTextTemporaryRejection(code, status) {
 			envelope.TextRetries++
 			envelope.RequestID = fmt.Sprintf("studio-%s-retry-%d", task.ID, envelope.TextRetries)
 			next, err := s.encryptStudioValue(envelope)

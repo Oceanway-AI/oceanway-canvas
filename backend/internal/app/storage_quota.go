@@ -2,13 +2,20 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"yingce/backend/internal/kernel"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 )
+
+func agentStorageCapacityError(err error) bool {
+	var appErr *kernel.AppError
+	return errors.As(err, &appErr) && appErr.Reason == kernel.ReasonStorageCapacityExceeded
+}
 
 func structuredBytes(usage repository.UserStorageUsage) int64 {
 	return usage.AssetBytes + usage.CanvasBytes

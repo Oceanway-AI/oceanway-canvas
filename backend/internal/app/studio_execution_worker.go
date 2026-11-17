@@ -107,6 +107,13 @@ func (s *Service) processStudioTask(ctx context.Context, task *model.Task) error
 		}
 		if first {
 			response, err := s.studioPlatform.Client.SubmitText(ctx, exec, envelope.Selection.TextProtocol, envelope.RequestID, envelope.Body)
+			if response != nil {
+				if requestID := response.Header.Get("X-Oneapi-Request-Id"); studioMaterialID.MatchString(requestID) {
+					if saveErr := s.repo.SaveStudioTextRequestID(task, requestID); saveErr != nil {
+						return saveErr
+					}
+				}
+			}
 			if err != nil && response != nil {
 				return s.deferStudioTextRejection(task, response)
 			}
@@ -123,16 +130,24 @@ func (s *Service) processStudioTask(ctx context.Context, task *model.Task) error
 			if receipt.RequestID != envelope.RequestID || (receipt.Version != "" && receipt.Version != "oceanway.text-request.v1") {
 				return s.deferStudioTask(task)
 			}
-			if envelope.AgentRunID != "" && (receipt.Version != "oceanway.text-request.v1" || receipt.TaskID == "" || (receipt.Status != "failed" && receipt.Status != "ready") || receipt.Ready != (receipt.Status == "ready")) {
-				return s.deferStudioTask(task)
-			}
-			failed := receipt.Status == "FAILURE" || receipt.Status == "failed"
-			if !receipt.Ready && !failed {
+			if envelope.AgentRunID != "" && (receipt.Version != "oceanway.text-request.v1" || receipt.TaskID == "" || (receipt.Status != "failed" && receipt.Status != "ready" && receipt.Status != "pending") || receipt.Ready != (receipt.Status == "ready")) {
 				return s.deferStudioTask(task)
 			}
 			fingerprint := fmt.Sprintf("%x", sha256.Sum256(append([]byte(envelope.Selection.Protocol+"\x00"), envelope.Body...)))
 			if receipt.Protocol != envelope.Selection.Protocol || receipt.Fingerprint != fingerprint {
 				return s.deferStudioTask(task)
+			}
+			if studioMaterialID.MatchString(receipt.PlatformRequestID) && receipt.PlatformRequestID != task.ProviderRequestID {
+				if err := s.repo.SaveStudioTextRequestID(task, receipt.PlatformRequestID); err != nil {
+					return err
+				}
+			}
+			failed := receipt.Status == "FAILURE" || receipt.Status == "failed"
+			if failed && receipt.Failure != nil && !receipt.Failure.NoExecution {
+				return s.deferStudioTextRecovery(task, receipt)
+			}
+			if !receipt.Ready && !failed && !studioTextRecordedParameterRejection(task, receipt) {
+				return s.deferStudioTextRecovery(task, receipt)
 			}
 			if !receipt.Ready {
 				return s.handleStudioTextFailure(task, execution, envelope, receipt)
@@ -156,6 +171,9 @@ func (s *Service) processStudioTask(ctx context.Context, task *model.Task) error
 		return s.failStudioTextResult(task, "平台原响应没有可用内容，已保留原任务，请核对结果")
 	}
 	task.ExecutionDiagnosticJSON = ""
+	if usage := studioTextUsage(raw, envelope.Selection.TextProtocol); usage != nil {
+		result["usage"] = usage
+	}
 	return s.completeStudioTask(ctx, task, result)
 }
 
