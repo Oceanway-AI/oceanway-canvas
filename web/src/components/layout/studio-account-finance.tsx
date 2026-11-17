@@ -37,12 +37,11 @@ export function StudioAccountFinance({ account, loading, retry, returnPath }: { 
             />
             <OceanCreditsCard label={balance?.kind === "member" ? "本人可用积分" : "当前空间积分"} amount={ready ? `✦ ${balance.available_points}` : "—"} details={link("wallet", "查看积分 ›", "ow-shared-account-inline")}>
                 {!ready && <span role="status">{loading ? "正在读取积分" : balance?.state === "restricted" ? "暂无查看权限" : "暂时无法读取积分"}</span>}
-                {ready && decimal(balance.frozen_points) && (
-                    <div className="ow-shared-account-metric">
-                        <span>待结算</span>
-                        <span>✦ {balance.frozen_points}</span>
-                    </div>
-                )}
+                <div className="ow-shared-account-metric items-center">
+                    <span>可用权益</span>
+                    {link("subscriptions", "查看 ›", "ow-shared-account-inline")}
+                </div>
+                {account?.benefits?.state === "unavailable" && <span role="status">暂时无法读取可用权益</span>}
                 {account?.spending?.state === "ready" && decimal(account.spending.used_points) && (
                     <div className="ow-shared-account-metric">
                         <span>本人本期已用</span>
@@ -52,19 +51,6 @@ export function StudioAccountFinance({ account, loading, retry, returnPath }: { 
                 {account?.spending?.state === "unavailable" && <span role="status">暂时无法读取本人用量</span>}
                 {canPurchase && link("recharge", "充值 ›", "ow-shared-account-inline")}
             </OceanCreditsCard>
-            {account?.benefits?.state === "unavailable" && <span role="status">暂时无法读取可用权益</span>}
-            {account?.benefits?.state === "ready" && (
-                <details className="ow-shared-account-benefits">
-                    <summary>可用权益</summary>
-                    {!account.benefits.items?.length && <span>暂无可用权益</span>}
-                    {(account.benefits.items ?? []).map((item) => (
-                        <div key={item.id} className="ow-shared-account-metric">
-                            <span>{item.title}</span>
-                            <span>{item.unlimited ? "不限量" : decimal(item.remaining_count) ? `${item.remaining_count} 次` : decimal(item.remaining_points) ? `✦ ${item.remaining_points}` : "查看详情"}</span>
-                        </div>
-                    ))}
-                </details>
-            )}
             {(!account || !ready || partialFailure) && (
                 <button type="button" className="ow-shared-account-inline" disabled={loading} onClick={retry}>
                     重新读取
