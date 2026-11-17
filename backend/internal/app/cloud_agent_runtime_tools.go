@@ -17,6 +17,7 @@ import (
 )
 
 func cloudAgentToolResult(runID string, state *cloudAgentRuntime, call cloudAgentCall, result any, err error) bool {
+	result, err = cloudAgentBoundReadResult(call, result, err)
 	payload := map[string]any{"toolName": call.Function.Name, "callId": call.ID, "arguments": call.Function.Arguments}
 	if call.Function.Name == agenttool.SkillReadFile {
 		var args struct {

@@ -1426,6 +1426,71 @@ paths:
                                     default: ""
         "401":
           $ref: "#/components/responses/Error"
+  /model-catalog/summaries:
+    get:
+      tags: [models]
+      summary: 分页读取当前账号的平台模型摘要
+      description: 返回 source=platform、channels、catalogRevision、nextCursor、hasMore。摘要的 platform.state=summary，包含展示、价格版本与变体参考摘要，完整参数通过详情读取。分页必须保持同一 catalogRevision。响应使用 private, no-store。
+      parameters:
+        - { in: query, name: workspace_id, schema: { type: string } }
+        - { in: query, name: model_type, schema: { type: string, enum: [text, image, video, audio] } }
+        - { in: query, name: query, schema: { type: string } }
+        - { in: query, name: cursor, schema: { type: string } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        "200":
+          description: 当前页摘要，channels.models.platform 保留提供方扩展字段
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: integer, enum: [0] }
+                  data:
+                    type: object
+                    required: [source, channels, catalogRevision]
+                    properties:
+                      source: { type: string, enum: [platform] }
+                      catalogRevision: { type: string }
+                      nextCursor: { type: string }
+                      hasMore: { type: boolean }
+                      channels: { type: array, items: { type: object } }
+        "401":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /model-catalog/detail:
+    get:
+      tags: [models]
+      summary: 按三版本读取单型号详情
+      description: 文本需要价格版本。媒体需要价格、能力与连接版本。省略 variant_id 返回该型号全部变体，指定则返回精确变体。响应 data.model 为 PublicChannelModel，platform.state=detail。版本变化返回 catalog_revision_conflict，需重新选择和预估。
+      parameters:
+        - { in: query, name: workspace_id, schema: { type: string } }
+        - { in: query, name: model_name, required: true, schema: { type: string } }
+        - { in: query, name: variant_id, schema: { type: string } }
+        - { in: query, name: expected_price_version, required: true, schema: { type: string } }
+        - { in: query, name: expected_capability_revision, schema: { type: string } }
+        - { in: query, name: expected_connection_revision, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: 所选型号的完整执行参数与展示字段
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: integer, enum: [0] }
+                  data:
+                    type: object
+                    required: [model]
+                    properties:
+                      model: { type: object }
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
   /model-catalog/quote:
     post:
       tags: [models]

@@ -246,7 +246,7 @@ type ConfigStore = {
     updateConfig: <K extends keyof AiConfig>(key: K, value: AiConfig[K]) => void;
     replaceConfig: (config: AiConfig) => void;
     invalidateSystemChannels: () => void;
-    mergeSystemChannels: (channels: ModelChannel[]) => void;
+    mergeSystemChannels: (channels: ModelChannel[], partial?: boolean) => void;
     isAiConfigReady: (config: AiConfig, model: string) => boolean;
 };
 
@@ -402,7 +402,7 @@ export const useConfigStore = create<ConfigStore>()(
                     pendingModelSelections: { ...state.pendingModelSelections, ...systemModelSelections(state.config) },
                     config: configWithoutSystemChannels(state.config),
                 })),
-            mergeSystemChannels: (channels) =>
+            mergeSystemChannels: (channels, partial = false) =>
                 set((state) => {
                     const systemChannels = channels.map((channel, index) =>
                         createModelChannel({
@@ -416,7 +416,7 @@ export const useConfigStore = create<ConfigStore>()(
                     const userChannels = state.config.channels.filter((channel) => channel.scope !== "system");
                     return {
                         ...normalizeConfigSnapshot({ config: { ...state.config, ...state.pendingModelSelections, channels: [...systemChannels, ...userChannels] } }),
-                        pendingModelSelections: {},
+                        pendingModelSelections: partial ? state.pendingModelSelections : {},
                     };
                 }),
             isAiConfigReady: (config, model) => isAiConfigReady(config, model),

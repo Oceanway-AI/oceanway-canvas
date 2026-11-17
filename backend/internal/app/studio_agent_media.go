@@ -41,6 +41,21 @@ func (s *Service) studioAgentMediaSelection(userID, runID, name string, variant 
 	if err := s.decryptStudioValue(root.EnvelopeEncrypted, &frozen); err != nil {
 		return platformintegration.ModelSelection{}, err
 	}
+	if frozen.CatalogVersion != "" {
+		id := ""
+		if len(variant) > 0 {
+			id = variant[0]
+		}
+		detail, err := s.studioAgentCatalogDetail(userID, runID, name, id)
+		if err != nil {
+			return platformintegration.ModelSelection{}, err
+		}
+		selected, err := platformintegration.SelectModel(detail.Model, id)
+		if err != nil {
+			return selected, BadAuthRequest(err.Error())
+		}
+		return selected, nil
+	}
 	for _, item := range frozen.Catalog {
 		if item.ModelName == name {
 			id := ""
@@ -77,6 +92,10 @@ func (s *Service) resolveStudioAgentMediaOptions(userID string, a *cloudAgentMed
 		if a.NativeParameters != "" && (json.Unmarshal([]byte(a.NativeParameters), &parameters) != nil || parameters == nil) {
 			return BadAuthRequest("原生参数格式无效")
 		}
+		parameters, err = studioAgentNativeParameters(*a, selected, parameters)
+		if err != nil {
+			return err
+		}
 		input := canvasGenerationInput{Config: providerConfig{NativeParameters: parameters, NativeVariantID: a.NativeVariantID}}
 		values, err := studioNativeSpecifications(input, selected)
 		if err != nil {
@@ -89,7 +108,11 @@ func (s *Service) resolveStudioAgentMediaOptions(userID string, a *cloudAgentMed
 		// keeps the original /duration value and Platform owns all billing.
 		if a.Mode == "video" {
 			a.Duration = 0
-			if value, ok := values["/duration"]; ok {
+			value, ok := values["/duration"]
+			if !ok {
+				value, ok = values["/seconds"]
+			}
+			if ok {
 				duration, err := strconv.Atoi(fmt.Sprint(value))
 				if err != nil {
 					return BadAuthRequest("视频 duration 无法用于本轮时长预算")
@@ -169,6 +192,69 @@ func (s *Service) resolveStudioAgentMediaOptions(userID string, a *cloudAgentMed
 	return nil
 }
 
+func studioAgentNativeParameters(args cloudAgentMediaArgs, selected platformintegration.ModelSelection, supplied map[string]any) (map[string]any, error) {
+	if supplied == nil {
+		supplied = map[string]any{}
+	}
+	// Some native fields use a union type. Read only the simple type of each
+	// public alias instead of rejecting unrelated structured native parameters.
+	var raw struct {
+		Properties map[string]json.RawMessage `json:"properties"`
+	}
+	if json.Unmarshal(selected.Schema, &raw) != nil {
+		return nil, BadAuthRequest("模型参数合同无效")
+	}
+	qualityKeys := []string{"/quality"}
+	if args.Mode == "video" {
+		qualityKeys = []string{"/resolution"}
+	}
+	type parameterAlias struct {
+		keys    []string
+		value   any
+		present bool
+	}
+	aliases := []parameterAlias{
+		{[]string{"/duration", "/seconds"}, args.Duration, args.Duration != 0},
+		{[]string{"/aspect_ratio", "/ratio", "/size"}, args.Size, args.Size != ""},
+		{qualityKeys, args.Quality, args.Quality != ""},
+		{[]string{"/resolution", "/image_size", "/generationConfig/imageConfig/imageSize"}, args.ImageResolution, args.ImageResolution != ""},
+	}
+	if args.VideoGenerateAudio != nil {
+		aliases = append(aliases, parameterAlias{[]string{"/generate_audio", "/audio"}, *args.VideoGenerateAudio, true})
+	}
+	if args.VideoWatermark != nil {
+		aliases = append(aliases, parameterAlias{[]string{"/watermark"}, *args.VideoWatermark, true})
+	}
+	for _, alias := range aliases {
+		if !alias.present {
+			continue
+		}
+		key := ""
+		for _, candidate := range alias.keys {
+			if _, ok := raw.Properties[candidate]; ok {
+				key = candidate
+				break
+			}
+		}
+		if key == "" {
+			return nil, BadAuthRequest("所选模型未发布该参数，请按模型详情填写 nativeParameters")
+		}
+		value := alias.value
+		var field struct {
+			Type string `json:"type"`
+		}
+		_ = json.Unmarshal(raw.Properties[key], &field)
+		if field.Type == "string" {
+			value = fmt.Sprint(value)
+		}
+		if existing, ok := supplied[key]; ok && fmt.Sprint(existing) != fmt.Sprint(value) {
+			return nil, BadAuthRequest("原生参数与同名生成参数冲突，请统一后重新确认")
+		}
+		supplied[key] = value
+	}
+	return supplied, nil
+}
+
 func (s *Service) requestStudioAgentMediaApproval(run *model.CloudAgentExecution, state *cloudAgentRuntime, call cloudAgentCall) error {
 	req, plan, err := s.prepareCloudAgentMedia(run, state, cloudAgentMediaCall(call))
 	if err != nil {
@@ -239,6 +325,20 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 	req, plan, err := s.prepareCloudAgentMedia(run, &state, state.Approval.Call)
 	if err != nil {
 		return nil, response, err
+	}
+	root, err := s.repo.StudioExecution(userID, runID)
+	if err != nil {
+		return nil, response, err
+	}
+	var frozen studioExecutionEnvelope
+	if err := s.decryptStudioValue(root.EnvelopeEncrypted, &frozen); err != nil {
+		return nil, response, err
+	}
+	for _, summary := range frozen.CatalogSummaries {
+		if summary.ModelName == req.Model {
+			req.Platform = &StudioTaskOptions{VariantID: plan.Args.NativeVariantID, ExpectedPriceVersion: summary.PriceVersion, ExpectedCapabilityRevision: summary.CapabilityRevision, ExpectedConnectionRevision: summary.ConnectionRevision}
+			break
+		}
 	}
 	selected, err := s.studioSelectTaskModel(ctx, session, req, response)
 	if err != nil {

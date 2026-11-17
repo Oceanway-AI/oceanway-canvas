@@ -182,7 +182,7 @@ func policies() []Policy {
 		{Name: CanvasInspectImage, Kind: KindPrepare, Vision: true, RequiresCanvas: true},
 		{Name: MemoryUpdate, Kind: KindControl, RequiresWriteMode: true, RequiresMemory: true, OutsideTransaction: true},
 		{Name: ImageLayerSplit, Kind: KindMedia, RequiresCanvas: true},
-		{Name: ModelList, Kind: KindRead, Cacheable: true, RequiresCanvas: true, RequiresWriteMode: true, OutsideTransaction: true},
+		{Name: ModelList, Kind: KindRead, Cacheable: true, CacheScope: CacheCanvasRevision, OffsetDefaults: []string{"offset"}, RequiresCanvas: true, RequiresWriteMode: true, OutsideTransaction: true},
 		{Name: CanvasCreateStoryboard, Kind: KindWrite, RequiresCanvas: true},
 		{Name: CanvasEditStoryboard, Kind: KindWrite, RequiresCanvas: true},
 		{Name: CanvasCreateCharacter, Kind: KindWrite, RequiresCanvas: true},

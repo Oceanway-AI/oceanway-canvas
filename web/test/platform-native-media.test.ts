@@ -97,6 +97,21 @@ const selected = "oceanway-platform::" + model.modelKey;
 const config = { ...defaultConfig, channels, model: selected, videoModel: selected };
 const explicit = { "/duration": 4, "/resolution": "720p", "/seed": 0, "/generate_audio": false, "/metadata": null, "/extensions": ["TEXT", "IMAGE"] };
 
+test("summary models remain discoverable but cannot submit without complete detail", async () => {
+    const summary = { ...model, platform: { ...model.platform!, state: "summary" as const, model_name: model.modelKey, media_generation_profile: undefined, variants_complete: false, variants: [] } };
+    const active = { ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OceanWay", displayName: "OceanWay", models: [summary] }]) };
+    expect(modelCompatibilityError(active, selected, { capability: "video" })).toBe("");
+    expect(resolveModelGenerationDefaults(active, selected, "video", { nativeParameters: '{"/duration":8}', nativeVariantId: "saved" })).toEqual({ nativeParameters: '{"/duration":8}', nativeVariantId: "saved" });
+    await expect(prepareBackendGenerationTask({ mode: "video", config: active, prompt: "A scene" })).rejects.toThrow("模型参数尚未加载");
+});
+
+test("loaded detail pins capability and connection versions in task admission", async () => {
+    const loaded = { ...model, platform: { ...model.platform!, state: "detail" as const, capability_revision: "capability-v2", connection_revision: 7 } };
+    const active = { ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OceanWay", displayName: "OceanWay", models: [loaded] }]) };
+    const request = await prepareBackendGenerationTask({ mode: "video", config: active, prompt: "A scene" });
+    expect(request.platform).toMatchObject({ expectedPriceVersion: "fixture", expectedCapabilityRevision: "capability-v2", expectedConnectionRevision: 7 });
+});
+
 test("task inputs preserve an explicitly picked tail frame, canvas frame bindings and ordered legacy attachments", async () => {
     const frame = (id: string) => ({ id, name: id, type: "image/png", dataUrl: "", storageKey: "resource:" + id });
     const first = frame("first");

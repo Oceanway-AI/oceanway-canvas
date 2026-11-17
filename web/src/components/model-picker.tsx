@@ -18,7 +18,7 @@ import { modelDisplayName, modelIcon, modelOptionName, resolveModelChannel, sele
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { useModelCatalogStore } from "@/stores/use-model-catalog-store";
-import { refreshSystemChannels } from "@/lib/user-session";
+import { ensurePlatformModelDetail, refreshSystemChannels } from "@/lib/user-session";
 import { ModelLogo } from "@/components/model-logo";
 import { ModelTags } from "@/components/model-tags";
 import { referenceCapabilityTag, type ModelTag } from "@/lib/model-tags";
@@ -71,6 +71,12 @@ export function ModelPicker({
     const rawTheme = useActiveTheme();
     const theme = (canvasThemes[rawTheme as keyof typeof canvasThemes] ?? canvasThemes.dark) as CanvasTheme;
     const [open, setOpen] = useState(false);
+    const [selectionLoading, setSelectionLoading] = useState(false);
+    const [currentDetailLoading, setCurrentDetailLoading] = useState(false);
+    const detailLoading = selectionLoading || currentDetailLoading;
+    const [detailError, setDetailError] = useState("");
+    const [readySelection, setReadySelection] = useState<{ model: string; userId: string } | null>(null);
+    const detailRequest = useRef(0);
     const popoverRef = usePopoverAnchorAlign(open);
     const [availableHeight, setAvailableHeight] = useState(0);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -85,10 +91,60 @@ export function ModelPicker({
     const optionGroups = useMemo(() => modelPickerSeries(logicalGroups), [logicalGroups]);
     const storedCurrent = value?.trim() || "";
     // 参数档位会在选中模型后由调用方归一到其能力配置，不能因为旧模型留下的参数而禁止切换。
-    const selectionRequirements = requirements ? { ...requirements, videoSeconds: undefined, imageSize: undefined, options: undefined } : undefined;
+    const selectionRequirements = useMemo(() => (requirements ? { ...requirements, videoSeconds: undefined, imageSize: undefined, options: undefined } : undefined), [requirements]);
     const resolvedCurrent = isDirectSystemModel(config, storedCurrent) ? storedCurrent : resolveCompatibleModel(config, storedCurrent, selectionRequirements) || storedCurrent;
     // 旧画布可能保存过已下架或前端历史内置模型；它们不能重新进入当前可选目录。
     const current = options.includes(resolvedCurrent) ? resolvedCurrent : "";
+    const currentPlatformState = current ? resolveModelChannel(config, current).modelCosts?.find((item) => item.model === modelOptionName(current))?.platform?.state : undefined;
+    useEffect(() => {
+        if (!current || currentPlatformState !== "summary") {
+            setCurrentDetailLoading(false);
+            return;
+        }
+        let active = true;
+        setCurrentDetailLoading(true);
+        setDetailError("");
+        ensurePlatformModelDetail(current)
+            .catch((error) => {
+                if (active) setDetailError(error instanceof Error ? error.message : "模型参数加载失败，请重试");
+            })
+            .finally(() => {
+                if (active) setCurrentDetailLoading(false);
+            });
+        return () => {
+            active = false;
+        };
+    }, [current, currentPlatformState]);
+    useEffect(() => {
+        if (!readySelection) return;
+        if (readySelection.userId !== (useUserStore.getState().user?.id || "") || !options.includes(readySelection.model)) {
+            setReadySelection(null);
+            return;
+        }
+        const selected = resolveModelChannel(config, readySelection.model).modelCosts?.find((item) => item.model === modelOptionName(readySelection.model));
+        if (selected?.platform?.state === "summary") return;
+        setReadySelection(null);
+        const reason = modelDisabledReason?.(readySelection.model) || modelCompatibilityError(config, readySelection.model, selectionRequirements);
+        if (reason) {
+            setDetailError(reason);
+            return;
+        }
+        onChange(readySelection.model);
+    }, [config, modelDisabledReason, onChange, options, readySelection, selectionRequirements]);
+    const selectModel = async (model: string) => {
+        const request = ++detailRequest.current;
+        const userId = useUserStore.getState().user?.id || "";
+        setDetailError("");
+        setSelectionLoading(true);
+        try {
+            await ensurePlatformModelDetail(model);
+            if (request === detailRequest.current) setReadySelection({ model, userId });
+        } catch (error) {
+            if (request === detailRequest.current) setDetailError(error instanceof Error ? error.message : "模型参数加载失败，请重试");
+        } finally {
+            if (request === detailRequest.current) setSelectionLoading(false);
+        }
+    };
     const mediaHierarchy = optionGroups.some((group) => group.series?.modelType === "image" || group.series?.modelType === "video") && (capability === "image" || capability === "video" || !capability);
     const pickerSeries = useMemo(
         () =>
@@ -211,7 +267,7 @@ export function ModelPicker({
                 style={{ background: selected ? theme.toolbar.activeBg : "transparent", color: theme.node.text }}
                 onClick={() => {
                     if (!model) return;
-                    onChange(model);
+                    void selectModel(model);
                 }}
             >
                 <ModelLabel
@@ -275,6 +331,16 @@ export function ModelPicker({
                     }}
                     notice={
                         <>
+                            {detailError && (
+                                <div role="alert" className="canvas-model-picker-catalog-error">
+                                    {detailError}
+                                </div>
+                            )}
+                            {detailLoading && (
+                                <div role="status" className="canvas-model-picker-empty">
+                                    正在加载模型参数…
+                                </div>
+                            )}
                             {platformIdentity && catalogStatus === "error" && (
                                 <div className="canvas-model-picker-catalog-error" role="alert">
                                     <span>{catalogError || "模型目录加载失败"}</span>
@@ -344,6 +410,16 @@ export function ModelPicker({
                     <ChevronDown className={cn("canvas-model-picker-chevron", open && "is-open")} aria-hidden="true" />
                 </button>
             </Popover>
+            {!open && detailLoading && (
+                <span role="status" className="text-xs text-muted-foreground">
+                    正在加载模型参数…
+                </span>
+            )}
+            {!open && detailError && (
+                <span role="alert" className="text-xs text-red-500">
+                    {detailError}
+                </span>
+            )}
         </div>
     );
 }

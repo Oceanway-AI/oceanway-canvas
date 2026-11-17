@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"yingce/backend/internal/catalogtest"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platformintegration"
 )
@@ -53,8 +54,8 @@ func TestStudioAgentTextRetryOnlyAfterOriginalNoExecution(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				switch {
-				case strings.HasSuffix(r.URL.Path, "/models"):
-					io.WriteString(w, `{"success":true,"data":{"items":[{"model_name":"m","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"},"content":{"text_capability":{"context_window_tokens":32000,"max_output_tokens":4096,"max_images":1,"max_image_bytes":1048576}}}]}}`)
+				case catalogtest.Route(r.URL.Path):
+					catalogtest.Write(t, w, r, []byte(`{"success":true,"data":{"items":[{"model_name":"m","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"},"content":{"text_capability":{"context_window_tokens":32000,"max_output_tokens":4096,"max_images":1,"max_image_bytes":1048576}}}]}}`))
 				case r.URL.Path == "/api/platform/v1/execution-authorizations":
 					grants++
 					var in map[string]string

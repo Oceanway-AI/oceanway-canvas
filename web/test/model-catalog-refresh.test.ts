@@ -18,6 +18,20 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
     Object.defineProperty(globalThis, "window", { configurable: true, value: dom });
     Object.defineProperty(globalThis, "document", { configurable: true, value: dom.document });
     Object.defineProperty(globalThis, "navigator", { configurable: true, value: dom.navigator });
+    for (const [key, value] of Object.entries({
+        HTMLElement: dom.HTMLElement,
+        SVGElement: dom.SVGElement,
+        Element: dom.Element,
+        Node: dom.Node,
+        Event: dom.Event,
+        CustomEvent: dom.CustomEvent,
+        ShadowRoot: dom.ShadowRoot,
+        MutationObserver: dom.MutationObserver,
+        ResizeObserver: dom.ResizeObserver,
+        getComputedStyle: dom.getComputedStyle.bind(dom),
+        IS_REACT_ACT_ENVIRONMENT: true,
+    }))
+        Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
     const { default: localforage } = await import("localforage");
     const storage = new Map<string, unknown>();
     localforage.getItem = async <T>(key: string) => (storage.get(key) as T) ?? null;
@@ -29,7 +43,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         storage.delete(key);
     };
     const { apiClient } = await import("@/services/api/request");
-    const { refreshSystemChannels, applyUserSession } = await import("@/lib/user-session");
+    const { refreshSystemChannels, applyUserSession, ensurePlatformModelDetail } = await import("@/lib/user-session");
     const { useConfigStore, createModelChannel, normalizeConfigSnapshot, CONFIG_STORE_KEY } = await import("@/stores/use-config-store");
     const { useUserStore } = await import("@/stores/use-user-store");
     const { useModelCatalogStore } = await import("@/stores/use-model-catalog-store");
@@ -42,6 +56,8 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
     const modelNames = () => useConfigStore.getState().config.channels.flatMap((channel) => channel.models);
     const catalog = (name: string) => ({
         source: "platform",
+        catalogRevision: "catalog-v1",
+        hasMore: false,
         channels: [{ id: "platform", name: "Platform", displayName: "Platform", models: [{ id: name, modelKey: name, displayName: name, capability: "text", available: true, priceTiers: [], pricingMode: "platform", priceLabel: "", icon: "" }] }],
     });
     const multipleModels = (...names: string[]) => ({ ...catalog(names[0]), channels: [{ ...catalog(names[0]).channels[0], models: names.map((name) => catalog(name).channels[0].models[0]) }] });
@@ -58,24 +74,30 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         });
         return { promise, resolve, reject };
     }
-    let loadCatalog: () => Promise<unknown>;
+    let loadCatalog: (cursor?: string) => Promise<unknown>;
+    let loadDetail: (name: string) => Promise<unknown>;
     let requests = 0;
     beforeEach(() => {
         resetRemoteUserDataSync();
         storage.clear();
         dom.localStorage.clear();
         setActiveUserScope("account-a");
-        useUserStore.setState({ user: user("account-a"), hydrated: true });
+        useUserStore.setState({ user: user("account-a"), hydrated: true, platformIdentity: true });
         useModelCatalogStore.setState({ status: "idle", error: null });
         useConfigStore.setState({ pendingModelSelections: {} });
         useConfigStore.getState().replaceConfig(normalizeConfigSnapshot({ config: { channels: [stale, custom] } }).config);
         requests = 0;
         loadCatalog = async () => catalog("fresh-model");
+        loadDetail = async () => {
+            throw new Error("Unexpected detail request");
+        };
         apiClient.defaults.adapter = async (config) => {
             let data: unknown;
-            if (config.url === "/model-catalog") {
+            if (config.url === "/model-catalog/summaries") {
                 requests++;
-                data = await loadCatalog();
+                data = await loadCatalog(config.params?.cursor);
+            } else if (config.url === "/model-catalog/detail") {
+                data = await loadDetail(config.params?.model_name);
             } else if (config.url === "/user-data/snapshot") data = { assets: [], projects: [] };
             else throw new Error(`Unexpected fixture request ${config.url}`);
             return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data } };
@@ -86,6 +108,167 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         appQueryClient.clear();
     });
     afterAll(() => dom.happyDOM.abort());
+
+    const mediaCatalog = (name: string, state: "summary" | "detail" = "summary") => {
+        const response = catalog(name);
+        return {
+            ...response,
+            channels: [
+                {
+                    ...response.channels[0],
+                    models: [
+                        {
+                            ...response.channels[0].models[0],
+                            capability: "video",
+                            platform: {
+                                model_name: name,
+                                model_type: "video",
+                                state,
+                                price: { status: "available", version: "p1", rates: {} },
+                                price_version: "p1",
+                                capability_revision: "c1",
+                                connection_revision: 1,
+                                ...(state === "detail" ? { media_generation_profile: { variants: [], marker: "exact-detail" } } : {}),
+                            },
+                        },
+                    ],
+                },
+            ],
+        };
+    };
+
+    test("summary pages appear progressively and retain a later selected model", async () => {
+        loadCatalog = async () => multipleModels("first-model", "chosen-model");
+        await refreshSystemChannels();
+        chooseModel("platform::chosen-model");
+        const second = deferred<unknown>();
+        loadCatalog = async (cursor) => (cursor ? second.promise : { ...catalog("first-model"), hasMore: true, nextCursor: "page-2" });
+        const pending = refreshSystemChannels();
+        await Bun.sleep(10);
+        expect(modelNames()).toContain("first-model");
+        expect(useConfigStore.getState().pendingModelSelections.textModel).toBe("platform::chosen-model");
+        second.resolve(catalog("chosen-model"));
+        await pending;
+        expect(useConfigStore.getState().config.textModel).toBe("platform::chosen-model");
+        expect(requests).toBe(3);
+    });
+
+    test("model detail requests coalesce and stay out of browser persistence", async () => {
+        loadCatalog = async () => mediaCatalog("video-model");
+        await refreshSystemChannels();
+        let details = 0;
+        loadDetail = async (name) => {
+            details++;
+            return { model: mediaCatalog(name, "detail").channels[0].models[0] };
+        };
+        await Promise.all([ensurePlatformModelDetail("platform::video-model"), ensurePlatformModelDetail("platform::video-model")]);
+        await ensurePlatformModelDetail("platform::video-model");
+        expect(details).toBe(1);
+        expect(useConfigStore.getState().config.channels[0].modelCosts?.[0].platform?.state).toBe("detail");
+        expect(scopedLocalStorage.getItem(CONFIG_STORE_KEY)).not.toContain("exact-detail");
+    });
+
+    test("the mounted picker loads its saved selection and clears the loading state", async () => {
+        const { act, createElement } = await import("react");
+        const { createRoot } = await import("react-dom/client");
+        const { ModelPicker } = await import("@/components/model-picker");
+        loadCatalog = async () => mediaCatalog("video-model");
+        await refreshSystemChannels();
+        const response = deferred<unknown>();
+        let reads = 0;
+        loadDetail = () => {
+            reads++;
+            return response.promise;
+        };
+        function Picker() {
+            const config = useConfigStore((state) => state.config);
+            return createElement(ModelPicker, { config, value: "platform::video-model", capability: "video", onChange: () => {} });
+        }
+        const host = document.createElement("div");
+        document.body.append(host);
+        const root = createRoot(host);
+        try {
+            await act(async () => root.render(createElement(Picker)));
+            expect(host.textContent).toContain("正在加载模型参数");
+            expect(reads).toBe(1);
+            await act(async () => {
+                response.resolve({ model: mediaCatalog("video-model", "detail").channels[0].models[0] });
+                await response.promise;
+            });
+            expect(host.textContent).not.toContain("正在加载模型参数");
+            expect(host.querySelector('[role="alert"]')).toBeNull();
+            await act(async () => root.render(createElement(Picker)));
+            expect(reads).toBe(1);
+        } finally {
+            await act(async () => root.unmount());
+            host.remove();
+        }
+    });
+
+    test("the picker rechecks availability after detail arrives before changing selection", async () => {
+        const { act, createElement } = await import("react");
+        const { createRoot } = await import("react-dom/client");
+        const { ModelPicker } = await import("@/components/model-picker");
+        loadCatalog = async () => mediaCatalog("video-model");
+        await refreshSystemChannels();
+        const response = deferred<unknown>();
+        loadDetail = () => response.promise;
+        const selected: string[] = [];
+        function Picker() {
+            const config = useConfigStore((state) => state.config);
+            const loaded = config.channels[0]?.modelCosts?.[0].platform?.state === "detail";
+            return createElement(ModelPicker, {
+                config,
+                capability: "video",
+                onChange: (model: string) => selected.push(model),
+                modelDisabledReason: () => (loaded ? "完整参数不支持当前输入" : ""),
+            });
+        }
+        const host = document.createElement("div");
+        document.body.append(host);
+        const root = createRoot(host);
+        try {
+            await act(async () => root.render(createElement(Picker)));
+            await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
+            const option = document.querySelector<HTMLButtonElement>("[data-model-picker-item]");
+            expect(option).not.toBeNull();
+            await act(async () => option!.click());
+            expect(selected).toEqual([]);
+            await act(async () => {
+                response.resolve({ model: mediaCatalog("video-model", "detail").channels[0].models[0] });
+                await response.promise;
+            });
+            expect(selected).toEqual([]);
+            expect(document.querySelector('[role="alert"]')?.textContent).toContain("完整参数不支持当前输入");
+        } finally {
+            await act(async () => root.unmount());
+            host.remove();
+        }
+    });
+
+    test("late detail cannot restore a failed or refreshed catalog", async () => {
+        loadCatalog = async () => mediaCatalog("video-model");
+        await refreshSystemChannels();
+        const detail = deferred<unknown>();
+        loadDetail = () => detail.promise;
+        const pending = ensurePlatformModelDetail("platform::video-model");
+        loadCatalog = async () => {
+            throw new Error("unavailable");
+        };
+        await expect(refreshSystemChannels()).rejects.toThrow();
+        detail.resolve({ model: mediaCatalog("video-model", "detail").channels[0].models[0] });
+        await expect(pending).rejects.toThrow();
+        expect(modelNames()).not.toContain("video-model");
+    });
+
+    test("mixed revisions and repeated cursors reject partial permissions", async () => {
+        loadCatalog = async (cursor) => (cursor ? { ...catalog("second"), catalogRevision: "changed" } : { ...catalog("first"), hasMore: true, nextCursor: "page-2" });
+        await expect(refreshSystemChannels()).rejects.toThrow("模型目录已更新");
+        expect(modelNames()).toEqual(["custom-text"]);
+        loadCatalog = async (cursor) => ({ ...catalog(cursor ? "second" : "first"), hasMore: true, nextCursor: "same" });
+        await expect(refreshSystemChannels()).rejects.toThrow("模型目录分页响应无效");
+        expect(modelNames()).toEqual(["custom-text"]);
+    });
 
     test("a catalog larger than the browser quota remains in memory and never fills localStorage", async () => {
         const largeProfile = { pattern: "x".repeat(3 * 1024 * 1024) };

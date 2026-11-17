@@ -143,39 +143,59 @@ func studioMergeNativeObjects(base, override map[string]any) map[string]any {
 	return out
 }
 
-func (s *Service) studioNativeMediaReferences(ctx context.Context, userID string, v *platformintegration.NativeRequestVariant, input canvasGenerationInput, body map[string]any) error {
+type studioNativeReferenceResource struct {
+	Role     string
+	Resource *model.Resource
+	URI      string
+}
+
+func (s *Service) studioNativeReferenceResources(ctx context.Context, userID string, input canvasGenerationInput) ([]studioNativeReferenceResource, error) {
 	refs := append(append(append([]providerMedia{}, input.ReferenceImages...), input.ReferenceVideos...), input.ReferenceAudios...)
 	if input.Mask != nil {
 		mask := *input.Mask
 		mask.Role = "mask"
 		refs = append(refs, mask)
 	}
-	counts, totals := map[string]int64{}, map[string]int64{}
-	resources := map[string][]*model.Resource{}
+	resolved := make([]studioNativeReferenceResource, 0, len(refs))
 	for _, ref := range refs {
 		if !strings.HasPrefix(ref.StorageKey, "resource:") || ref.DataURL != "" {
-			return BadAuthRequest("参考素材必须先保存到平台素材库")
+			return nil, BadAuthRequest("参考素材必须先保存到平台素材库")
 		}
 		id := strings.TrimPrefix(ref.StorageKey, "resource:")
 		resource, err := s.StudioResource(ctx, userID, id)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		pin, err := s.repo.StudioMaterialReference(userID, id)
 		if err != nil {
-			return NotFound("素材引用不存在或不可访问")
+			return nil, NotFound("素材引用不存在或不可访问")
 		}
 		role := ref.Role
 		if role == "" || role == "reference" {
 			role = "reference_" + resource.Kind
 		}
 		if role != "reference_"+resource.Kind && !(resource.Kind == "image" && slices.Contains([]string{"mask", "first_frame", "last_frame"}, role)) {
-			return BadAuthRequest("素材角色与文件类型不一致")
+			return nil, BadAuthRequest("素材角色与文件类型不一致")
 		}
+		uris, err := platformclient.MediaReferenceURIs([]platformclient.MediaReference{{AssetID: pin.AssetID, VersionID: pin.VersionID}})
+		if err != nil {
+			return nil, BadAuthRequest("参考素材版本无效")
+		}
+		resolved = append(resolved, studioNativeReferenceResource{Role: role, Resource: resource, URI: uris[0]})
+	}
+	return resolved, nil
+}
+
+// Catalog filtering and request construction enforce the same published limits.
+func studioValidateNativeReferences(slots []platformintegration.NativeReferenceSlot, refs []studioNativeReferenceResource) error {
+	counts, totals := map[string]int64{}, map[string]int64{}
+	resources := map[string][]*model.Resource{}
+	for _, ref := range refs {
+		resource := ref.Resource
 		var slot *platformintegration.NativeReferenceSlot
-		for i := range v.References {
-			candidate := &v.References[i]
-			if candidate.Role != role {
+		for i := range slots {
+			candidate := &slots[i]
+			if candidate.Role != ref.Role {
 				continue
 			}
 			if slot != nil {
@@ -192,16 +212,8 @@ func (s *Service) studioNativeMediaReferences(ctx context.Context, userID string
 			return BadAuthRequest("参考素材超出所选模型的文件限制")
 		}
 		resources[slot.Pointer] = append(resources[slot.Pointer], resource)
-		uris, err := platformclient.MediaReferenceURIs([]platformclient.MediaReference{{AssetID: pin.AssetID, VersionID: pin.VersionID}})
-		if err != nil {
-			return BadAuthRequest("参考素材版本无效")
-		}
-		uri := uris[0]
-		if err := studioAppendNativeReference(body, v, *slot, uri, resource.MimeType); err != nil {
-			return err
-		}
 	}
-	for _, slot := range v.References {
+	for _, slot := range slots {
 		if slot.MinItems != nil && counts[slot.ID] < *slot.MinItems {
 			return BadAuthRequest("缺少所选模型要求的参考素材")
 		}
@@ -215,6 +227,26 @@ func (s *Service) studioNativeMediaReferences(ctx context.Context, userID string
 					if resource.Width <= 0 || resource.Height <= 0 || resource.Width != target.Width || resource.Height != target.Height {
 						return BadAuthRequest("参考素材尺寸不一致或未完成尺寸校验")
 					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (s *Service) studioNativeMediaReferences(ctx context.Context, userID string, v *platformintegration.NativeRequestVariant, input canvasGenerationInput, body map[string]any) error {
+	refs, err := s.studioNativeReferenceResources(ctx, userID, input)
+	if err != nil {
+		return err
+	}
+	if err := studioValidateNativeReferences(v.References, refs); err != nil {
+		return err
+	}
+	for _, ref := range refs {
+		for _, slot := range v.References {
+			if slot.Role == ref.Role {
+				if err := studioAppendNativeReference(body, v, slot, ref.URI, ref.Resource.MimeType); err != nil {
+					return err
 				}
 			}
 		}

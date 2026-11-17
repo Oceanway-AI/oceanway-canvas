@@ -247,11 +247,28 @@ export type ModelCatalogResponse = {
     source: ModelCatalogSource;
     models?: PublicLogicalModel[];
     channels?: PublicChannelCatalog[];
+    catalogRevision?: string;
+    nextCursor?: string;
+    hasMore?: boolean;
 };
 
 // 创作目录直接读取系统渠道模型，不使用逻辑模型及其功能开关。
 export function getModelCatalog() {
     return http.get<ModelCatalogResponse>("/model-catalog");
+}
+
+export function getModelCatalogPage(cursor = "") {
+    return http.get<ModelCatalogResponse>("/model-catalog/summaries", { params: { limit: 50, ...(cursor ? { cursor } : {}) } });
+}
+
+export function getModelCatalogDetail(model: import("@/lib/platform-models").PlatformModel) {
+    return http.get<{ model: PublicChannelModel }>("/model-catalog/detail", {
+        params: {
+            model_name: model.model_name,
+            expected_price_version: model.price_version || model.price.version,
+            ...(model.model_type === "text" ? {} : { expected_capability_revision: model.capability_revision, expected_connection_revision: model.connection_revision }),
+        },
+    });
 }
 
 export function quoteLogicalModel(id: string, intent: ModelRequestIntent, signal?: AbortSignal) {

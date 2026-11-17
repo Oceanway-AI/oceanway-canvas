@@ -182,7 +182,7 @@ export function CanvasNodeLayerDecompositionDialog({
                             placeholder="选择图层拆分模型"
                             modelFilter={(model) => supportsLayerDecomposition(config, model) || supportsExperimentalLayerExtraction(config, model)}
                             onMissingConfig={() => navigateToSettings({ continueCreation: true })}
-                            onChange={(model) => setGenerationConfig((current) => ({ ...current, model, imageModel: model, ...defaultImageParamsForModel(current, model) }))}
+                            onChange={(model) => setGenerationConfig((current) => ({ ...current, model, imageModel: model, ...defaultImageParamsForModel({ ...current, channels: config.channels }, model) }))}
                         />
                         {!supported ? (
                             <p role="alert" className="text-xs text-red-500">

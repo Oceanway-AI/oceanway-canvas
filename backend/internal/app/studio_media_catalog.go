@@ -10,7 +10,7 @@ import (
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
 )
 
-type studioCatalogScope struct{ user, session, host string }
+type studioCatalogScope struct{ user, session, host, workspace string }
 
 func studioCatalogScopeFor(user string, session platformclient.SessionContext, verifiedSessionID ...string) studioCatalogScope {
 	if user == "" || session.Host == "" || session.Cookie == "" || len(verifiedSessionID) != 1 || verifiedSessionID[0] == "" {
@@ -18,11 +18,12 @@ func studioCatalogScopeFor(user string, session platformclient.SessionContext, v
 	}
 	// Platform's live Identity has already authenticated this SID. Other
 	// browser cookies and a rotated cookie for the same SID are immaterial.
-	return studioCatalogScope{user, fmt.Sprintf("%x", sha256.Sum256([]byte(verifiedSessionID[0]))), session.Host}
+	return studioCatalogScope{user: user, session: fmt.Sprintf("%x", sha256.Sum256([]byte(verifiedSessionID[0]))), host: session.Host}
 }
 
 type studioMediaCatalogSnapshot struct {
 	scope       studioCatalogScope
+	modelName   string
 	expires     time.Time
 	models      map[string]platformclient.Model
 	previewOnly map[string]string
@@ -36,6 +37,14 @@ type studioMediaCatalogCache struct {
 }
 
 func (c *studioMediaCatalogCache) remember(scope studioCatalogScope, items []platformclient.Model) {
+	c.rememberModels(scope, items, "")
+}
+
+func (c *studioMediaCatalogCache) rememberDetail(scope studioCatalogScope, item platformclient.Model) {
+	c.rememberModels(scope, []platformclient.Model{item}, item.ModelName)
+}
+
+func (c *studioMediaCatalogCache) rememberModels(scope studioCatalogScope, items []platformclient.Model, modelName string) {
 	if scope.user == "" {
 		return
 	}
@@ -82,7 +91,7 @@ func (c *studioMediaCatalogCache) remember(scope studioCatalogScope, items []pla
 	defer c.mu.Unlock()
 	slot := 0
 	for i, snapshot := range c.snapshots {
-		if snapshot.scope == scope {
+		if snapshot.scope == scope && snapshot.modelName == modelName {
 			slot = i
 			break
 		}
@@ -90,22 +99,39 @@ func (c *studioMediaCatalogCache) remember(scope studioCatalogScope, items []pla
 			slot = i
 		}
 	}
-	c.snapshots[slot] = studioMediaCatalogSnapshot{scope: scope, expires: time.Now().Add(time.Minute), models: models, previewOnly: previewOnly}
+	c.snapshots[slot] = studioMediaCatalogSnapshot{scope: scope, modelName: modelName, expires: time.Now().Add(time.Minute), models: models, previewOnly: previewOnly}
 }
 
 func (c *studioMediaCatalogCache) requiresPreview(scope studioCatalogScope, req CreateTaskRequest) bool {
 	if req.Platform == nil || req.Platform.ExpectedPriceVersion == "" || req.Platform.VariantID != "" || (req.Type != "canvas_image" && req.Type != "canvas_video") {
 		return false
 	}
+	scope.workspace = req.Platform.WorkspaceID
 	config, _ := req.Input["config"].(map[string]any)
 	if stringValue(config["nativeVariantId"]) != "" {
 		return false
 	}
 	name := firstNonEmpty(stringValue(config["model"]), req.Model)
-	return c.snapshot(scope, false).previewOnly[name] == req.Platform.ExpectedPriceVersion
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, snapshot := range c.snapshots {
+		if snapshot.scope == scope && (snapshot.modelName == "" || snapshot.modelName == name) && time.Now().Before(snapshot.expires) && snapshot.previewOnly[name] == req.Platform.ExpectedPriceVersion {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *studioMediaCatalogCache) lookup(scope studioCatalogScope, name string, explicitlyVersioned bool) (platformclient.Model, bool) {
+	c.mu.Lock()
+	for _, snapshot := range c.snapshots {
+		if snapshot.scope == scope && snapshot.modelName == name && (explicitlyVersioned || time.Now().Before(snapshot.expires)) {
+			m, ok := snapshot.models[name]
+			c.mu.Unlock()
+			return m, ok
+		}
+	}
+	c.mu.Unlock()
 	m, ok := c.snapshot(scope, explicitlyVersioned).models[name]
 	return m, ok
 }
@@ -114,7 +140,7 @@ func (c *studioMediaCatalogCache) snapshot(scope studioCatalogScope, explicitlyV
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for _, snapshot := range c.snapshots {
-		if snapshot.scope == scope && (explicitlyVersioned || time.Now().Before(snapshot.expires)) {
+		if snapshot.scope == scope && snapshot.modelName == "" && (explicitlyVersioned || time.Now().Before(snapshot.expires)) {
 			return snapshot
 		}
 	}

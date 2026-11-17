@@ -72,7 +72,7 @@ for (const knownInMemory of [false, true]) {
                 await sessionResponse;
                 return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { provider: "platform", user } } };
             }
-            if (config.url === "/model-catalog") return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { source: "platform", channels: [] } } };
+            if (config.url === "/model-catalog/summaries") return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { source: "platform", catalogRevision: "catalog-v1", channels: [], hasMore: false } } };
             throw new Error(`Unexpected request: ${config.method} ${config.url}`);
         };
         const host = document.createElement("div");
@@ -102,7 +102,7 @@ for (const knownInMemory of [false, true]) {
             expect(useUserStore.getState().platformIdentity).toBe(true);
             expect(getActiveUserScope()).toBe(user.id);
             expect(useCreationPreferencesStore.getState().preferences.mode).toBe("video");
-            expect(requests).toEqual(["post /auth/session", "get /model-catalog"]);
+            expect(requests).toEqual(["post /auth/session", "get /model-catalog/summaries"]);
         } finally {
             unsubscribe();
             await act(async () => root.unmount());

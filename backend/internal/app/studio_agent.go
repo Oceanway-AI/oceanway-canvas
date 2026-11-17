@@ -26,26 +26,52 @@ func (s *Service) CreateStudioCloudAgentRun(ctx context.Context, userID string, 
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	req.PlatformTextCapability = nil
-	catalog, err := s.studioPlatform.Client.Models(ctx, session)
-	if catalog.Response != nil {
-		catalog.Response.AppendCookies(response.Header)
+	// Admission retries recover the original encrypted authority even when the
+	// current catalog is unavailable or has changed since the first request.
+	existing, lookupErr := s.repo.StudioExecution(userID, cloudAgentID(userID, req.IdempotencyKey))
+	if lookupErr == nil {
+		var frozen studioExecutionEnvelope
+		if err := s.decryptStudioValue(existing.EnvelopeEncrypted, &frozen); err != nil {
+			return nil, response, err
+		}
+		req.PlatformTextCapability = frozen.Selection.TextCapability
+		view, err := s.createCloudAgentRun(userID, req, parentID, func(user string, root CreateTaskRequest) (*model.Task, error) {
+			return s.studioCreateAgentRoot(ctx, user, session, root, response, platformclient.Catalog{}, nil, "")
+		})
+		return view, response, err
 	}
+	if !errors.Is(lookupErr, gorm.ErrRecordNotFound) {
+		return nil, response, lookupErr
+	}
+	summaries, revision, err := s.studioAgentCatalogSnapshot(ctx, session, response)
 	if err != nil {
-		return nil, response, platformIdentityError(err)
+		return nil, response, studioCatalogError(err)
 	}
-	for _, m := range catalog.Data.Items {
+	var catalog platformclient.Catalog
+	for _, m := range summaries {
 		if m.ModelName == req.ChannelModelKey {
-			req.PlatformTextCapability = m.TextCapability()
+			detail, err := s.studioPlatform.Client.ModelDetail(ctx, session, platformclient.ModelDetailQuery{ModelName: m.ModelName, ExpectedPriceVersion: m.PriceVersion})
+			if detail.Response != nil {
+				detail.Response.AppendCookies(response.Header)
+			}
+			if err != nil {
+				return nil, response, studioCatalogError(err)
+			}
+			if err := studioValidateCatalogDetail(detail.Data, platformclient.ModelDetailQuery{ModelName: m.ModelName, ExpectedPriceVersion: m.PriceVersion}); err != nil {
+				return nil, response, err
+			}
+			catalog.Items = []platformclient.Model{detail.Data.Model}
+			req.PlatformTextCapability = detail.Data.Model.TextCapability()
 			break
 		}
 	}
 	view, err := s.createCloudAgentRun(userID, req, parentID, func(user string, root CreateTaskRequest) (*model.Task, error) {
-		return s.studioCreateAgentRoot(ctx, user, session, root, response, catalog.Data)
+		return s.studioCreateAgentRoot(ctx, user, session, root, response, catalog, summaries, revision)
 	})
 	return view, response, err
 }
 
-func (s *Service) studioCreateAgentRoot(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response, catalog platformclient.Catalog) (*model.Task, error) {
+func (s *Service) studioCreateAgentRoot(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response, catalog platformclient.Catalog, summaries []platformclient.ModelSummary, revision string) (*model.Task, error) {
 	if s.IsDraining() {
 		return nil, NewAppError(503, "服务正在维护，请稍后查询原轮次")
 	}
@@ -87,7 +113,7 @@ func (s *Service) studioCreateAgentRoot(ctx context.Context, userID string, sess
 			return nil, e
 		}
 		task := model.Task{ID: id, UserID: userID, ProjectID: req.ProjectID, Type: req.Type, Operation: cloudAgentOperation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: string(raw), Status: model.TaskStatusTextReplay, Stage: "Agent 控制面载体"}
-		envelope, e := s.encryptStudioValue(studioExecutionEnvelope{Task: task, Selection: selected, AgentRunID: id, Catalog: catalog.Items})
+		envelope, e := s.encryptStudioValue(studioExecutionEnvelope{Task: task, Selection: selected, AgentRunID: id, CatalogVersion: platformclient.ModelCatalogVersion, CatalogRevision: revision, CatalogSummaries: summaries})
 		if e != nil {
 			return nil, e
 		}
@@ -187,36 +213,4 @@ func (s *Service) enqueueStudioAgentTask(run *model.CloudAgentExecution, state *
 		}
 		return cloudAgentSave(current, state)
 	})
-}
-
-func (s *Service) studioAgentModelList(userID string, state *cloudAgentRuntime, call cloudAgentCall) (any, error) {
-	var args struct {
-		Mode             string   `json:"mode"`
-		ReferenceNodeIDs []string `json:"referenceNodeIds"`
-	}
-	if err := decodeCloudAgentJSONObject(call.Function.Arguments, &args); err != nil {
-		return nil, cloudAgentJSONArgumentError(err)
-	}
-	root, err := s.repo.StudioExecution(userID, state.RuntimeRunID)
-	if err != nil {
-		return nil, err
-	}
-	var envelope studioExecutionEnvelope
-	if err := s.decryptStudioValue(root.EnvelopeEncrypted, &envelope); err != nil {
-		return nil, err
-	}
-	items := []map[string]any{}
-	for _, item := range envelope.Catalog {
-		selected, err := platformintegration.SelectModel(item, "")
-		if err != nil || selected.Kind == "text" || args.Mode != "" && args.Mode != selected.Kind {
-			continue
-		}
-		arguments := map[string]any{"mode": selected.Kind, "channelId": StudioPlatformChannelID, "channelModelKey": selected.Name}
-		if selected.NativeRequest != nil {
-			defaults, _ := json.Marshal(selected.Defaults)
-			arguments["nativeVariantId"], arguments["nativeParameters"] = selected.ID, string(defaults)
-		}
-		items = append(items, map[string]any{"name": selected.Name, "capability": selected.Kind, "selection": map[string]any{"channelId": StudioPlatformChannelID, "channelModelKey": selected.Name}, "generationArguments": arguments, "options": studioCapabilityProjection(selected), "defaults": selected.Defaults, "specificationsSchema": json.RawMessage(selected.Schema), "nativeProfile": json.RawMessage(item.MediaGenerationProfile), "priceLabel": "审批时读取平台精确报价"})
-	}
-	return map[string]any{"source": "platform", "models": items, "generationGuidance": "此目录在本轮开始时固定；复制 generationArguments，补 prompt 与 referenceNodeIds。生成前由用户会话重新校验平台目录与报价。未列出的能力暂不可用。"}, nil
 }

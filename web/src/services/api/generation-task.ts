@@ -299,6 +299,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
     const workflow = resolveGenerationWorkflowExecution(config, mode);
     const logicalModelId = workflow ? "" : logicalModelIDForConfig(config);
     const platform = resolveModelChannel(config, config.model).modelCosts?.find((item) => item.model === modelOptionName(config.model))?.platform;
+    if (platform?.state === "summary" && (mode === "image" || mode === "video")) throw new Error("模型参数尚未加载，请在模型选择器中加载后生成");
     const variantId = studioMediaGenerationVariant(config);
     const frameRoles = !workflow && mode === "video" ? publishedFrameRoles(nativeMediaVariant(config)) : [];
     let images = prepared.referenceImages;
@@ -318,7 +319,15 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
         prompt,
         ...(workflow ? { provider: workflow.provider } : {}),
         model: workflow?.taskModel || config.model,
-        ...(platform && (mode === "image" || mode === "video") ? { platform: { expectedPriceVersion: platform.price.version, ...(variantId ? { mediaGenerationV1: true, variantId } : {}) } } : {}),
+        ...(platform && (mode === "image" || mode === "video")
+            ? {
+                  platform: {
+                      expectedPriceVersion: platform.price.version,
+                      ...(platform.capability_revision ? { expectedCapabilityRevision: platform.capability_revision, expectedConnectionRevision: platform.connection_revision } : {}),
+                      ...(variantId ? { mediaGenerationV1: true, variantId } : {}),
+                  },
+              }
+            : {}),
         ...(logicalModelId ? { logicalModelId } : {}),
         input: {
             mode,

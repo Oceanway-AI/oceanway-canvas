@@ -148,6 +148,7 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 		ok(c, catalog)
 	})
 	RegisterStudioMaterialRoutes(api, svc)
+	registerStudioCatalogRoutes(api, svc)
 	RegisterAssetLibraryRoutes(api, svc)
 	RegisterStudioTaskRoutes(api, svc)
 	RegisterAgentRoutes(api, svc)

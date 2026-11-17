@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input, Modal } from "antd";
 import { X, PenLine } from "lucide-react";
 import { ModelPicker } from "@/components/model-picker";
@@ -23,12 +23,15 @@ export function CanvasNodeImageEditDialog({
     preset?: "remove-background" | null;
 }) {
     const [prompt, setPrompt] = useState(preset === "remove-background" ? "移除图片背景，保留主体完整轮廓、细节和边缘，输出透明背景。" : "");
-    const [generationConfig, setGenerationConfig] = useState<AiConfig>(config);
+    const [draftConfig, setGenerationConfig] = useState<AiConfig>(config);
+    const generationConfig = useMemo(() => ({ ...draftConfig, channels: config.channels }), [draftConfig, config.channels]);
+    const configRef = useRef(config);
+    configRef.current = config;
 
     useEffect(() => {
         if (open) setPrompt(preset === "remove-background" ? "移除图片背景，保留主体完整轮廓、细节和边缘，输出透明背景。" : "");
-        if (open) setGenerationConfig(config);
-    }, [config, open, dataUrl]);
+        if (open) setGenerationConfig(configRef.current);
+    }, [open, dataUrl, preset]);
 
     return (
         <Modal open={open && Boolean(dataUrl)} onCancel={onClose} footer={null} centered destroyOnHidden width={860} title={preset === "remove-background" ? "去除背景" : "图片编辑"}>
@@ -41,13 +44,7 @@ export function CanvasNodeImageEditDialog({
                         <h3 className="text-lg font-semibold">{preset === "remove-background" ? "去除背景" : "描述你要修改的内容"}</h3>
                         <p className="mt-1 text-sm opacity-60">保留主体和构图，只修改你描述的部分。</p>
                     </div>
-                    <Input.TextArea
-                        autoFocus
-                        rows={7}
-                        value={prompt}
-                        placeholder="例如：把背景换成黄昏海边，保持人物姿势和服装不变"
-                        onChange={(event) => setPrompt(event.target.value)}
-                    />
+                    <Input.TextArea autoFocus rows={7} value={prompt} placeholder="例如：把背景换成黄昏海边，保持人物姿势和服装不变" onChange={(event) => setPrompt(event.target.value)} />
                     <div className="space-y-2">
                         <div className="text-sm font-medium opacity-75">编辑模型</div>
                         <ModelPicker
@@ -56,12 +53,30 @@ export function CanvasNodeImageEditDialog({
                             capability="image"
                             fullWidth
                             showSelectedPrice={false}
-                            onChange={(model) => setGenerationConfig((current) => ({ ...current, model, imageModel: model, ...defaultImageParamsForModel(current, model) }))}
+                            onChange={(model) => setGenerationConfig((current) => ({ ...current, model, imageModel: model, ...defaultImageParamsForModel({ ...current, channels: config.channels }, model) }))}
                         />
                     </div>
                     <div className="mt-auto flex justify-end gap-2">
-                        <Button icon={<X className="size-4" />} onClick={onClose}>取消</Button>
-                        <Button type="primary" icon={<PenLine className="size-4" />} disabled={!prompt.trim()} onClick={() => onConfirm({ prompt: prompt.trim(), generationConfig: { model: generationConfig.model, imageModel: generationConfig.imageModel, size: generationConfig.size, quality: generationConfig.quality, ...(preset === "remove-background" ? { transparentBackground: "true" } : {}) } })}>
+                        <Button icon={<X className="size-4" />} onClick={onClose}>
+                            取消
+                        </Button>
+                        <Button
+                            type="primary"
+                            icon={<PenLine className="size-4" />}
+                            disabled={!prompt.trim()}
+                            onClick={() =>
+                                onConfirm({
+                                    prompt: prompt.trim(),
+                                    generationConfig: {
+                                        model: generationConfig.model,
+                                        imageModel: generationConfig.imageModel,
+                                        size: generationConfig.size,
+                                        quality: generationConfig.quality,
+                                        ...(preset === "remove-background" ? { transparentBackground: "true" } : {}),
+                                    },
+                                })
+                            }
+                        >
                             开始编辑
                         </Button>
                     </div>

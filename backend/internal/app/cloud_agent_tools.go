@@ -31,7 +31,7 @@ func cloudAgentCanonicalFor(system string, history []providerTextMessage, prompt
 
 const (
 	cloudAgentPromptCacheSchemaVersion = "cloud-agent-prompt-cache/v2"
-	cloudAgentToolSchemaVersion        = "cloud-agent-tools/v9"
+	cloudAgentToolSchemaVersion        = "cloud-agent-tools/v10"
 	cloudAgentMediaSizeDescription     = "默认省略；用户指定时填目录值；imageSize/image.size.parameter 是上游映射；仅 allowCustom=true 可自定"
 )
 
@@ -92,8 +92,35 @@ func compileCloudAgentTools(req CloudAgentRequest, includeProfileTool bool) []ma
 		if err := json.Unmarshal(definition.Parameters, &parameters); err != nil {
 			panic(err)
 		}
+		description := definition.Description
+		if req.ChannelID == StudioPlatformChannelID {
+			properties, _ := parameters["properties"].(map[string]any)
+			if definition.Name == agenttool.ModelList || definition.Name == agenttool.GenerateMedia || definition.Name == "canvas_preflight" {
+				properties["mode"] = map[string]any{"type": "string", "enum": []string{"image", "video"}}
+			}
+			if definition.Name == agenttool.ModelList {
+				description = "分页查询平台图片/视频模型摘要，按真实参考及首尾帧角色筛选。用 query 搜索型号；按 hasMore/nextOffset 续页。传 channelModelKey 和 nativeVariantId 读取一个变体的精确参数与默认值。同条件复用结果。"
+				for name, help := range map[string]string{
+					"query": "型号关键词", "channelModelKey": "精确型号名称", "nativeVariantId": "所选型号的变体ID，需同时传 channelModelKey",
+					"videoStartFrameNodeId": "视频首帧ID，须在 referenceNodeIds 中", "videoEndFrameNodeId": "视频尾帧ID，须在 referenceNodeIds 中",
+				} {
+					properties[name] = map[string]any{"type": "string", "description": help}
+				}
+				properties["offset"] = map[string]any{"type": "integer", "minimum": 0, "description": "续页使用上次 nextOffset"}
+				properties["limit"] = map[string]any{"type": "integer", "minimum": 1, "maximum": 24, "description": "默认12，实际按字节预算返回"}
+			}
+			if definition.Name == agenttool.GenerateMedia {
+				change := properties["configurationChange"].(map[string]any)["properties"].(map[string]any)
+				change["fields"] = map[string]any{"type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": map[string]any{"type": "string", "enum": []string{"model", "size", "quality", "imageResolution", "durationSeconds", "videoGenerateAudio", "nativeParameters", "nativeVariantId"}}}
+			}
+			if definition.Name == "canvas_preflight" {
+				description = "只读检查画布节点、提示词、参考素材和所选平台变体的原生参数。支持图片和视频，不创建任务。返回任务数和时长预算检查；精确费用在 generate_media 的审批卡中预估并确认。"
+				properties["nativeVariantId"] = map[string]any{"type": "string", "description": "平台变体ID"}
+				properties["nativeParameters"] = map[string]any{"type": "string", "description": "所选变体的原生参数JSON对象字符串"}
+			}
+		}
 		tools = append(tools, map[string]any{"type": "function", "function": map[string]any{
-			"name": definition.Name, "description": definition.Description, "parameters": parameters,
+			"name": definition.Name, "description": description, "parameters": parameters,
 		}})
 	}
 	return tools

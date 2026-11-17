@@ -30,6 +30,10 @@ type studioExecutionEnvelope struct {
 	ActualUsageBilling bool                                        `json:"actualUsageBilling,omitempty"`
 	AgentRunID         string                                      `json:"agentRunId,omitempty"`
 	Catalog            []platformclient.Model                      `json:"catalog,omitempty"`
+	CatalogVersion     string                                      `json:"catalogVersion,omitempty"`
+	CatalogRevision    string                                      `json:"catalogRevision,omitempty"`
+	CatalogSummaries   []platformclient.ModelSummary               `json:"catalogSummaries,omitempty"`
+	CatalogDetails     []platformclient.ModelDetail                `json:"catalogDetails,omitempty"`
 }
 
 func studioTaskID(userID, commandID string) string {
