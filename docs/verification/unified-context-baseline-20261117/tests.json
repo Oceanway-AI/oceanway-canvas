@@ -1,0 +1,290 @@
+{
+  "source_commit": "dcfaf93bf96e84ba0212c5edc70f9f58e685ec0d",
+  "sdk": "platformclient/v1.0.0-rc.5",
+  "environment": "local repository fixtures; not shared-test or production",
+  "top_level_counts": {
+    "pass": 28
+  },
+  "results": [
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestCanvasSaveRevisionContract",
+      "Action": "pass",
+      "Elapsed": 0.02
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestCanvasEditLeaseOwnershipAndExpiry",
+      "Action": "pass",
+      "Elapsed": 0.03
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestCanvasEditLeaseGuardsTextButAllowsResultsAndReceiptReplay",
+      "Action": "pass",
+      "Elapsed": 0.04
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsReplaysSameMutationAndRejectsDifferentPayload",
+      "Action": "pass",
+      "Elapsed": 0.05
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsCreatesOnlyExplicitCanvas",
+      "Action": "pass",
+      "Elapsed": 0.05
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsDoesNotRecreateDeletedNode",
+      "Action": "pass",
+      "Elapsed": 0.08
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsRejectsConnectionWithMissingEndpoint",
+      "Action": "pass",
+      "Elapsed": 0.05
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsRejectsStaleFieldAndAllowsDisjointField",
+      "Action": "pass",
+      "Elapsed": 0.05
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsIgnoresNodeUpdatedAtBase",
+      "Action": "pass",
+      "Elapsed": 0.03
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsMergesSameTaskTimestampMonotonically/stale_observer_cannot_roll_back_newer_task_time",
+      "Action": "pass",
+      "Elapsed": 0.03
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsMergesSameTaskTimestampMonotonically/newer_observer_advances_task_time",
+      "Action": "pass",
+      "Elapsed": 0.04
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsMergesSameTaskTimestampMonotonically",
+      "Action": "pass",
+      "Elapsed": 0.07
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsTaskTimestampFenceDoesNotRelaxOtherConflicts/rebound_task_rejected",
+      "Action": "pass",
+      "Elapsed": 0.03
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsTaskTimestampFenceDoesNotRelaxOtherConflicts/other_stale_field_still_rejected_atomically",
+      "Action": "pass",
+      "Elapsed": 0.05
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsTaskTimestampFenceDoesNotRelaxOtherConflicts",
+      "Action": "pass",
+      "Elapsed": 0.07
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsTaskTimestampFenceRequiresMergeablePatch/same-task_null_deletion_uses_strict_CAS",
+      "Action": "pass",
+      "Elapsed": 0.04
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsTaskTimestampFenceRequiresMergeablePatch/task_rebind_and_whole_metadata_patch_stay_strict/rebind",
+      "Action": "pass",
+      "Elapsed": 0
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsTaskTimestampFenceRequiresMergeablePatch/task_rebind_and_whole_metadata_patch_stay_strict/whole_metadata",
+      "Action": "pass",
+      "Elapsed": 0
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsTaskTimestampFenceRequiresMergeablePatch/task_rebind_and_whole_metadata_patch_stay_strict",
+      "Action": "pass",
+      "Elapsed": 0.03
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsTaskTimestampFenceRequiresMergeablePatch",
+      "Action": "pass",
+      "Elapsed": 0.08
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsConvergesSameTaskAlreadyAppliedFields/different_content",
+      "Action": "pass",
+      "Elapsed": 0
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsConvergesSameTaskAlreadyAppliedFields/different_prompt",
+      "Action": "pass",
+      "Elapsed": 0
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsConvergesSameTaskAlreadyAppliedFields",
+      "Action": "pass",
+      "Elapsed": 0.04
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsDoesNotRelaxTaskIdentityOrLegacyNoFence",
+      "Action": "pass",
+      "Elapsed": 0.03
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsRejectsStaleCanvasField",
+      "Action": "pass",
+      "Elapsed": 0.04
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsChecksFieldBaseAgainstProjection",
+      "Action": "pass",
+      "Elapsed": 0.04
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsAcceptsLegacyOmittedOptionalFieldValues",
+      "Action": "pass",
+      "Elapsed": 0.04
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsRejectsDuplicateCreateWithStructuredConflict",
+      "Action": "pass",
+      "Elapsed": 0.05
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsDoesNotRecreateDeletedCanvas",
+      "Action": "pass",
+      "Elapsed": 0.03
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsRequiresObjectPreconditions",
+      "Action": "pass",
+      "Elapsed": 0.02
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsConvergesAlreadyAppliedTargets/different_field_target",
+      "Action": "pass",
+      "Elapsed": 0
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsConvergesAlreadyAppliedTargets/edited_node_removal",
+      "Action": "pass",
+      "Elapsed": 0
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsConvergesAlreadyAppliedTargets/different_patch_target",
+      "Action": "pass",
+      "Elapsed": 0
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsConvergesAlreadyAppliedTargets/before-only_assertion",
+      "Action": "pass",
+      "Elapsed": 0
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsConvergesAlreadyAppliedTargets/different_node_create",
+      "Action": "pass",
+      "Elapsed": 0
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsConvergesAlreadyAppliedTargets",
+      "Action": "pass",
+      "Elapsed": 0.03
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsRepairsPurgedMediaAndKeepsNodeContent",
+      "Action": "pass",
+      "Elapsed": 0.03
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsRejectsNewMissingAndForeignResources/new_missing_resource",
+      "Action": "pass",
+      "Elapsed": 0.03
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsRejectsNewMissingAndForeignResources/foreign_resource",
+      "Action": "pass",
+      "Elapsed": 0.03
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsRejectsNewMissingAndForeignResources",
+      "Action": "pass",
+      "Elapsed": 0.06
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsAllowsRemovingNodeWithPurgedMedia",
+      "Action": "pass",
+      "Elapsed": 0.05
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestApplyCanvasOperationsRebindsDeletedAssetWhenResourceIsShared",
+      "Action": "pass",
+      "Elapsed": 0.06
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Test": "TestCanvasRealtimePresenceAndScopeIsolation",
+      "Action": "pass",
+      "Elapsed": 0
+    },
+    {
+      "Package": "yingce/backend/internal/canvas",
+      "Action": "pass",
+      "Elapsed": 2.527
+    },
+    {
+      "Package": "yingce/backend/internal/handler",
+      "Test": "TestStudioAccountSummaryUsesCurrentPlatformPayer",
+      "Action": "pass",
+      "Elapsed": 1.83
+    },
+    {
+      "Package": "yingce/backend/internal/handler",
+      "Test": "TestStudioRoleRevocationAndRealtimeRevalidation",
+      "Action": "pass",
+      "Elapsed": 1.54
+    },
+    {
+      "Package": "yingce/backend/internal/handler",
+      "Action": "pass",
+      "Elapsed": 4.76
+    }
+  ]
+}
