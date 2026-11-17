@@ -1,0 +1,2281 @@
+{
+  "date": "2026-11-17",
+  "timezone": "Asia/Shanghai",
+  "environment": "ow-test, linux/amd64, isolated fixture databases and HTTP endpoints",
+  "studio_unique_race_counts": {
+    "top_level": 107,
+    "subtest": 74
+  },
+  "groups": {
+    "studio-runtime-race": {
+      "status": "passed",
+      "log_sha256": "23fbf1eaaeeb40bdf3b44f71b2a30666d51f452bb47e4e280151c40a940f047e",
+      "first_event_utc": "2026-11-16T23:50:46.779752746Z",
+      "last_event_utc": "2026-11-16T23:55:10.906955555Z",
+      "counts": {
+        "subtest_pass": 71,
+        "top_level_pass": 103
+      },
+      "packages": {
+        "yingce/backend/internal/agent/runtime": "pass",
+        "yingce/backend/internal/agent/yingceagent": "pass",
+        "yingce/backend/internal/repository": "pass",
+        "yingce/backend/internal/app": "pass"
+      },
+      "tests": [
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestProcessDeploymentCapBoundsConfiguredConcurrency",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestProcessQueueIsBoundedAndCancellationReleasesWaiter",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunDoesNotLeakBackendEnvironment",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunDrainsStdoutBeforeWait",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunParentRemovesDirectoryAfterExitCancellationAndKill",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunParentRemovesDirectoryAfterExitCancellationAndKill/cancel",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunParentRemovesDirectoryAfterExitCancellationAndKill/kill",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunParentRemovesDirectoryAfterExitCancellationAndKill/normal",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunReportsRuntimeErrorAfterDrainingOutput",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestAdminAgentStatusExplainsDeploymentHardCap",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestAgentResponsesToolFollowupAfterRestore",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestAgentResponsesToolFollowupAfterRestore/assistant_tool_calls",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestAgentResponsesToolFollowupAfterRestore/function_call",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestChannelModelDirectoryDefaultsAndCustomNames",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentConversationDirectoryKeysetAndValidation",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiCanonicalRepairsCallSkippedByApprovalPause",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiCanonicalRepairsServerHistoryWhenItIsAuthoritative",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiCanonicalRestoresCommittedReceiptBeforeResume",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiCanonicalRestoresCommittedReceiptBeforeResume/{\"error\":\"时长不支持\",\"field\":\"durationSeconds\",\"taskSubmitted\":false}",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiCanonicalRestoresCommittedReceiptBeforeResume/{\"taskSubmitted\":true,\"taskId\":\"paid-task\",\"nodeId\":\"video-node\"}",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiCanonicalSurvivesConflictingCallID",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiCarrierCheckpointKeepsTaskHistoryAnchor",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiCompactedProjectionPreservesSummaryAndRecentToolResult",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiCompactionSummarySkipsOrdinaryTranscriptValidation",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiCompactionSummaryUsesStandardStepWithoutAssistantEvent",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiContextPressureForwardsPiUsage",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiInterjectionDroppedWhenStepBudgetExhausted",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiInterjectionMarkerSurvivesRuntimeProjection",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiInterjectionQueuedDuringApprovalDeliversOnResume",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiInterjectionReachesModelRequest",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiInterjectionRedeliveryIsIdempotent",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiInterjectionResumePromptRecognisedForSeveralInterjections",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiInterjectionResumesAfterFinalAnswer",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiInterjectionsDroppedOnTerminalPaths",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiInterjectionsDroppedOnTerminalPaths/cancelled",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiInterjectionsDroppedOnTerminalPaths/failed",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiInterjectionsDroppedOnTerminalPaths/rejected",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiMixedBatchFlushesImages",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiMixedBatchFlushesImages/failed_final_tool",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiMixedBatchFlushesImages/success",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiModelAttachesFrozenMemorySnapshot",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiModelRetriesTruncatedToolArguments",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiModelStepRefusedWhileAwaitingApproval",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiPlanNudgeResumesAfterFinalAnswer",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiReadLoopGuardOnlyFiltersNextConversationRequest",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiRuntimeContractUsesGovernedStepBridge",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiSessionModelApprovalPause",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiSessionModelApprovalPause/approval_wait_is_a_pause",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiSessionModelApprovalPause/unrelated_model_error_remains_a_failure",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiSessionYieldsApprovedCallToApprovalFollowUp",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiSteeredContinuationCompletesAtFinalAnswer",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiStepImageReferencesSatisfyPlaceholderPreflight",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiThinkingEnabled",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiThinkingEnabled/enabled",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiThinkingEnabled/off",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiThinkingEnabled/omitted",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiToolBridgeFlushesMixedBatch",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiToolReplaysSavedReceiptForInvalidArguments",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPiTurnSettled",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageReferenceReachesApproval",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageReferenceReachesApproval/canonical_draft",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageReferenceReachesApproval/explicit_1.5k",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageReferenceReachesApproval/explicit_1k",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageReferenceReachesApproval/explicit_2k",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageReferenceReachesApproval/flat_draft",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageReferenceReachesApproval/inherit_ratio_within_1.5k",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageReferenceReachesApproval/multiple_references",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageReferenceReachesApproval/omitted",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageRejectsUndeclaredSize",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageRejectsUndeclaredSize/1424x801",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageRejectsUndeclaredSize/17:9",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageRejectsUndeclaredSize/2848x1600",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=false/4k_pixels",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=false/4k_ratio_inheritance",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=false/default_tier",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=false/explicit_4k",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=false/saved_4k",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=false/user_changes_tier",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=true/4k_pixels",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=true/4k_ratio_inheritance",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=true/default_tier",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=true/explicit_4k",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=true/saved_4k",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentPixelImageUsesEffectiveResolution/logical=true/user_changes_tier",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestCloudAgentSkillEmptyDirectoryAndRepeatedRead",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestDeleteLocalResourceObjectRemovesOnlyResourceDirectoryFile",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestPiOutputLimitCorrection",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestPiOutputLimitCorrection/bounded-failure",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestPiOutputLimitCorrection/eight",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestPiOutputLimitCorrection/nine-then-eight",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestPiOutputLimitCorrection/oversized-text",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestPiOutputLimitCorrection/thirty-one-then-one",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestProcessTaskRejectsUnknownType",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestProcessTaskRejectsVideoTaskWithoutProviderConfig",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestProcessTaskValidatesInterfaceBeforeHydratingMedia",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunAgentToolTaskFallsBackToolChoiceForImplicitThinking",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunAgentToolTaskOmitsExplicitAutomaticToolChoice",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunAgentToolTaskOmitsToolChoiceBeforeThinkingRequest",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunAgentToolTaskOmitsToolChoiceBeforeThinkingRequest/auto",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunAgentToolTaskOmitsToolChoiceBeforeThinkingRequest/map[function:map[name:canvas_get_state]_type:function]",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunAgentToolTaskOmitsToolChoiceBeforeThinkingRequest/required",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunClaudeTextTaskUsesMessagesAndAPIKeyHeader",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunDeclarativeAgentTaskOmitsToolChoiceBeforeThinkingRequest",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunGeminiImageTaskRejectsInvalidReferenceBeforeRequest",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunGeminiImageTaskUsesInlineDataAndImageConfig",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunGeminiVeoVideoTaskUsesLongRunningOperation",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunGrokImageTaskUsesJSONEditContract",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunGrokImageTaskUsesJSONEditContract/b64_json",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunGrokImageTaskUsesJSONEditContract/explicit_url",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunGrokImageTaskUsesJSONEditContract/url",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunImageTaskOmitsAutomaticQualityAndSize",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunMiniMaxVideoTaskCreatesPollsAndDownloads",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunMiniMaxVideoTaskReturnsFailureReason",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunMiniMaxVideoTaskSendsOfficial2KResolution",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunMiniMaxVideoTaskUsesExplicitReferenceRoles",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunNewAPIChannel1VideoTaskDownloadsSucceededObject",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunNewAPIChannel2VideoTaskDownloadsTemporaryResult",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunNewAPIChannel2VideoTaskResumesOriginalProviderTaskWithoutAnotherPost",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunNewAPIChannel2VideoTaskReturnsTypedDeadlineWhenPollingWindowEnds",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunNovitaVideoTaskDownloadsSucceededVideo",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunNovitaVideoTaskReturnsFailureReason",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunOpenAIImageTaskUsesMultipartEditContract",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskDownloadsAuthenticatedDeclarativeResult",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskRequiresOfficialPluginWhenRegistryEmpty",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskRetriesDownloadWithoutRepolling",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskRetriesTransientPollFailureWithoutRecreating",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskSendsOnlyDeclaredResolutionName",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskSendsOnlyDeclaredResolutionName/auto_never_invents_720p",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskSendsOnlyDeclaredResolutionName/catalog_omits_resolution_capability",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskSendsOnlyDeclaredResolutionName/declared_HD_resolution",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskSendsOnlyDeclaredResolutionName/legacy_auto_never_invents_720p",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskSendsOnlyDeclaredResolutionName/missing_profile_explicit_720_never_invents_resolution",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskUsesDeclarativeAgnesJSONProtocol",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskUsesJSONForGrokVideo",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskUsesNestedURLBeforeResultURL",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskUsesNewAPIForAnyVideoModel",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskUsesXAIVideoGenerationEndpoint",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskXAIVideoNestedVideoURL",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunVideoTaskXAIVideoRejectsUnreachableResultURL",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRunningHubVideoPollRecoversFromTransientGatewayFailure",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRuntimeConcurrencyCacheCachesAuthoritativePolicy",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRuntimeConcurrencySettingPersistsAndChannelOverrideWins",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRuntimeConcurrencyUsesEnvironmentFallback",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRuntimePolicyBackfillsAgentStepLimitsForLegacyJSON",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRuntimePolicyBackfillsRecycleBinRetentionForLegacyJSON",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRuntimePolicyDefaultsAndSelfUseModeValidate",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRuntimePolicyRejectsOutOfRangeAgentStepLimits",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRuntimePolicyRejectsSingleFileAboveAccountCapacity",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRuntimePolicySaveAndResetTakeEffectImmediately",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestRuntimeToolCallsDecodeArguments",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentDeclaredOutputLimit",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentPolicyUsesPlatformBudgetAuthority",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTaskProjectionAndCleanup",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/cancel_before_proof",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/cancel_during_backoff",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/explicit_context_overflow",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/explicit_parameter_rejection",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/explicit_rate_limit",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/four_rejections_stop",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/historical_parameter_rejection",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/permanent_forbidden",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/permanent_model_even_on_503",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/rate_limit",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/retry_denied",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/three_rejections_then_lost_success",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentTextRetryOnlyAfterOriginalNoExecution/unknown_only_queries_original",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentVisionVerifiedPixels",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioTextUsageNativeBuckets",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/repository",
+          "name": "TestCloudAgentPiSessionSnapshotRevision",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/repository",
+          "name": "TestStudioExecutionFencesDispatchAndStop",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/repository",
+          "name": "TestStudioExecutionFencesDispatchAndStop/recover-after-send",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/repository",
+          "name": "TestStudioExecutionFencesDispatchAndStop/stop-before-send",
+          "kind": "subtest",
+          "status": "pass"
+        }
+      ],
+      "command": "docker run --rm -v $VALIDATION_ROOT:/work -v $GO_MODULE_CACHE:/go -v $GO_OBJECT_CACHE:/root/.cache/go-build -w /work/studio/backend -e GOWORK=/work/go.work -e GOPATH=/go ow-agent-recovery-toolchain:20261117 go test -json -race -p 2 ./internal/agent/runtime ./internal/agent/yingceagent ./internal/repository ./internal/app -run '^(TestStudioAgent.*|TestStudioTextUsage.*|TestAgentResponsesToolFollowupAfterRestore|TestAdminAgentStatusExplainsDeploymentHardCap|TestStudioExecution.*|TestCloudAgentPi.*|TestPiOutputLimitCorrection|TestRun.*|Test.*Director.*|TestProcess.*|TestBridge.*)$' -count=1 -timeout=10m"
+    },
+    "runtime-full-race": {
+      "status": "passed",
+      "log_sha256": "074ca2aca6f1e9b0bad37376d347068e828450fab6605fcaf2c59f10ab2daa98",
+      "first_event_utc": "2026-11-16T23:55:41.031421035Z",
+      "last_event_utc": "2026-11-16T23:55:43.697658014Z",
+      "counts": {
+        "subtest_pass": 3,
+        "top_level_pass": 9
+      },
+      "packages": {
+        "yingce/backend/internal/agent/yingceagent": "pass",
+        "yingce/backend/internal/agent/runtime": "pass"
+      },
+      "tests": [
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestOrphanCleanupPreservesActiveOwnersAndSymlinks",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestProcessDeploymentCapBoundsConfiguredConcurrency",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestProcessQueueIsBoundedAndCancellationReleasesWaiter",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunDoesNotLeakBackendEnvironment",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunDrainsStdoutBeforeWait",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunParentRemovesDirectoryAfterExitCancellationAndKill",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunParentRemovesDirectoryAfterExitCancellationAndKill/cancel",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunParentRemovesDirectoryAfterExitCancellationAndKill/kill",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunParentRemovesDirectoryAfterExitCancellationAndKill/normal",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestRunReportsRuntimeErrorAfterDrainingOutput",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/runtime",
+          "name": "TestSetProcessLimitDoesNotStopActiveWork",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/agent/yingceagent",
+          "name": "TestRemoteRunCallsBridgeAndRejectsBadToken",
+          "kind": "top_level",
+          "status": "pass"
+        }
+      ],
+      "command": "docker run --rm -v $VALIDATION_ROOT:/work -v $GO_MODULE_CACHE:/go -v $GO_OBJECT_CACHE:/root/.cache/go-build -w /work/studio/backend -e GOWORK=/work/go.work -e GOPATH=/go ow-agent-recovery-toolchain:20261117 go test -json -race ./internal/agent/runtime ./internal/agent/yingceagent -count=1 -timeout=3m"
+    },
+    "studio-correction-race": {
+      "status": "passed",
+      "log_sha256": "cec98b9a1c422afcd6205f424182a6611f5ec62bf22651bea5f9a367d6fecc8d",
+      "first_event_utc": "2026-11-17T00:07:12.911825067Z",
+      "last_event_utc": "2026-11-17T00:07:20.992079466Z",
+      "counts": {
+        "subtest_pass": 3,
+        "top_level_pass": 1
+      },
+      "packages": {
+        "yingce/backend/internal/app": "pass"
+      },
+      "tests": [
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentSuccessfulOutputCorrection",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentSuccessfulOutputCorrection/invalid_arguments",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentSuccessfulOutputCorrection/tool_limit_bounded",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "yingce/backend/internal/app",
+          "name": "TestStudioAgentSuccessfulOutputCorrection/tool_limit_corrected",
+          "kind": "subtest",
+          "status": "pass"
+        }
+      ],
+      "command": "docker run --rm -v $VALIDATION_ROOT:/work -v $GO_MODULE_CACHE:/go -v $GO_OBJECT_CACHE:/root/.cache/go-build -w /work/studio/backend -e GOWORK=/work/go.work -e GOPATH=/go ow-agent-recovery-toolchain:20261117 go test -json -race ./internal/app -run '^TestStudioAgentSuccessfulOutputCorrection$' -count=1 -timeout=2m"
+    },
+    "platform-race": {
+      "status": "passed",
+      "log_sha256": "3823a6c597b1330fd78864bd2823da4074caa2c907bb338bd7edadcbe706f255",
+      "first_event_utc": "2026-11-16T23:54:36.595276628Z",
+      "last_event_utc": "2026-11-16T23:56:07.478355059Z",
+      "counts": {
+        "top_level_pass": 11,
+        "subtest_pass": 20
+      },
+      "packages": {
+        "github.com/QuantumNous/new-api/service": "pass",
+        "github.com/QuantumNous/new-api/controller": "pass"
+      },
+      "tests": [
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresConcurrentFirstCall",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresDefiniteRejection",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresLostCallerAndSettlementRecovery",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresNativeProtocols",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresNativeProtocols/anthropic-messages",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresNativeProtocols/openai-chat",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresNativeProtocols/openai-responses",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresTimeoutPreservesOriginal",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresTransientResultSaveFailure",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresValidationAndScope",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresValidationAndScope/cookie",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresValidationAndScope/duplicate-id-header",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresValidationAndScope/empty-id",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresValidationAndScope/invalid-id",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresValidationAndScope/long-id",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresValidationAndScope/origin",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresValidationAndScope/query",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresValidationAndScope/streaming",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/controller",
+          "name": "TestPlatformExecutionTextPostgresValidationAndScope/user-key",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestExecutionTextFailureKeepsDispatchCertainty",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestExecutionTextFailureKeepsDispatchCertainty/lost_response_before_later_rejection",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestExecutionTextFailureKeepsDispatchCertainty/media_type_rejection",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestExecutionTextFailureKeepsDispatchCertainty/method_rejection",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestExecutionTextFailureKeepsDispatchCertainty/payment_rejection",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestExecutionTextFailureKeepsDispatchCertainty/rate_limit",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestExecutionTextFailureKeepsDispatchCertainty/rejected_parameter",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestExecutionTextFailureKeepsDispatchCertainty/unstarted_server_failure",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestExecutionTextFailureKeepsDispatchCertainty/upstream_server_failure",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestExecutionTextFailureRedactsProviderContentAndSupportsHistoricalRows",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestPlatformCatalogContentPostgresPublicationCASAndSafeProjection",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/QuantumNous/new-api/service",
+          "name": "TestPlatformTextCapabilityPublication",
+          "kind": "top_level",
+          "status": "pass"
+        }
+      ],
+      "command": "docker run --rm --network container:ow-agent-recovery-pg-20261117 -v $VALIDATION_ROOT:/work -v $GO_MODULE_CACHE:/go -v $GO_OBJECT_CACHE:/root/.cache/go-build -w /work/platform -e GOWORK=off -e GOPATH=/go -e GIN_MODE=release -e OCEANWAY_NATIVE_RESPONSES_AUDIT_DSN=postgres://ow_native_responses_agent@127.0.0.1:5432/oceanway_native_responses_agent?sslmode=disable -e OCEANWAY_ACCOUNTING_AUDIT_DSN=postgres://ow_native_responses_agent@127.0.0.1:5432/oceanway_native_responses_agent?sslmode=disable ow-agent-recovery-toolchain:20261117 go test -json -race -p 1 ./service ./controller -run '^(TestExecutionTextFailure.*|TestPlatformExecutionTextPostgres.*|TestPlatformTextCapability.*|TestPlatformCatalogContentPostgresPublicationCASAndSafeProjection)$' -count=1 -timeout=10m"
+    },
+    "sdk-final": {
+      "status": "passed",
+      "log_sha256": "397029fa9a20342ce0463e62a824dd768fbedde217ef0c5c2958d919b97087a9",
+      "first_event_utc": "2026-11-16T23:50:46.800619674Z",
+      "last_event_utc": "2026-11-16T23:50:51.187908898Z",
+      "counts": {
+        "top_level_pass": 75,
+        "subtest_pass": 56
+      },
+      "packages": {
+        "github.com/Oceanway-AI/oceanway-platform/platformclient/examples/support": "skip",
+        "github.com/Oceanway-AI/oceanway-platform/platformclient/examples/support/fixture": "skip",
+        "github.com/Oceanway-AI/oceanway-platform/platformclient/contracts": "pass",
+        "github.com/Oceanway-AI/oceanway-platform/platformclient": "pass"
+      },
+      "tests": [
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestAccountSummaryUsesScopedSessionAndPreservesExactPoints",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestAdditionalNativeAndMaterialReads",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBoundedPrivateErrors",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBoundedPrivateErrors/Conflict{\"e",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBoundedPrivateErrors/OKppp",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBoundedPrivateErrors/OK{\"s",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBoundedPrivateErrors/Unauthorized",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBufferedBodyContextErrorsRemainSafe",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBufferedBodyContextErrorsRemainSafe/native/cancel",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBufferedBodyContextErrorsRemainSafe/native/deadline",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBufferedBodyContextErrorsRemainSafe/recovery/cancel",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBufferedBodyContextErrorsRemainSafe/recovery/deadline",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBufferedBodyContextErrorsRemainSafe/stream-json/cancel",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBufferedBodyContextErrorsRemainSafe/stream-json/deadline",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestBufferedBodyErrorsStripPrivateWrappedCauses",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestCatalogPresentationHTTPDecodeAndRemarshal",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestCatalogPresentationNumbersPreserveOriginalPrecision",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestCatalogPresentationOptionalRawFieldsStayOmitted",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestCatalogPreviewPreservesExtensionsAndRejectsTeam",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestCatalogUsesSelectedPayerAndPreservesAuthority",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestCredentialDomains",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestDoubaoConsumptionNativeRequest",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestDoubaoNativeFrozenRequestAndOriginalRecovery",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestEstimateMediaPriceRejectsInconsistentEstimate",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestEstimateMediaPriceRejectsInconsistentEstimate/different_connection",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestEstimateMediaPriceRejectsInconsistentEstimate/different_variant",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestEstimateMediaPriceRejectsInconsistentEstimate/invalid_amount",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestEstimateMediaPriceRejectsInconsistentEstimate/missing_amount",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestEstimateMediaPriceRejectsInconsistentEstimate/unknown_with_zero",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestEstimateMediaPriceRejectsInvalidInputAndRetainsConflict",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestEstimateMediaPriceUsesOnlySelectedVariantAndProductSession",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/#00",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/_image",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/_image#01",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image#fragment",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image%2falias",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image+v1",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image/model",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image:alias",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image?key=x",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image\\alias",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image\\x00secret",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image_",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image_secret",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image_secret#01",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/image_v1",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestGeminiModelAliasesPreserveSingleSegment/中文模型",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestImageOutputSizeRequiresEveryScalar",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestImageSizeGeminiKeepsNativeValuesWithoutPixelInference",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestImageSizeValidationRequiresCompleteDeclarationAndExactNativeSize",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialDomainsCommandsAndSnapshots",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialFileOriginalMeasurements",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2AccessPartialResultsAndPurpose",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2BindingLostResponseUsesCommandLookup",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2CookiesForwardedWithoutSharedSessionState",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2CrossHostRedirectNeverReceivesCredentials",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2ExplicitUnstarredQuery",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2LegacyMethodsRemoved",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2OptionalStarredFilters",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2OptionalStarredFilters/all",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2OptionalStarredFilters/starred",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2OptionalStarredFilters/unstarred",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2OriginalBareEnvelope",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2OriginalCanonicalKeysMatchProvider",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2OriginalRejectsWrongTaskOrOutput",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2OriginalRejectsWrongTaskOrOutput/unequal_indices",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2OriginalRejectsWrongTaskOrOutput/wrong_output",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2OriginalRejectsWrongTaskOrOutput/wrong_task",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2PatchEmptyAndSnapshotDecimal",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2PersonalAndTwoTeamHandlesConcurrent",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2RefusesLegacyOriginal",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2RejectsMisboundAccessResponse",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2RejectsNestedLegacyOriginal",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2RetiredScopeQueryRemoved",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2TaskOutputStatesRemainSeparate",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2TaskOutputsRejectsWrongOriginalOperation",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2TeamGrantAndWorkerAuthority",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2UploadLostCompleteResponseRecoversOriginal",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2UploadStatusUsesOriginalUploadID",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMaterialsV2VersionAndLosslessScalars",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaCapabilityVersionsRoundTrip",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaConsumptionConstraintsPreserveFrozenNativeBytes",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaConsumptionConstraintsRequireVersionAndPreserveExplicitCeilings",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaFailureAndOriginalArchiveRecovery",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationCapabilityAndPinnedReferences",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationLargeImageTransfersOnlyOnExplicitRead",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationOneRequestPerAction",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationPreviewExchangesOneTicketAndNeverDownloadsMedia",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationRejectsInvalidIdentityAndBoundsReceipts",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationRequiresExplicitOutputIndex",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationRequiresOriginalAdmissionRejection",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationRequiresOriginalAdmissionRejection/first_refusal",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationRequiresOriginalAdmissionRejection/missing_identity",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationRequiresOriginalAdmissionRejection/other_command",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationRequiresOriginalAdmissionRejection/plain_missing",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationRequiresOriginalAdmissionRejection/replayed_rejection",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationRequiresOriginalAdmissionRejection/server_error",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationRequiresOriginalAdmissionRejection/unconfirmed_stage",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaGenerationSynchronousOutputAndLostReceipt",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestMediaPreviewKeepsEstimateSeparateFromExplicitWalletCeiling",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestNativeMediaPreviewSubmitParity",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestNativeMediaPreviewSubmitParity/gemini.chat.image",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestNativeMediaPreviewSubmitParity/gemini.image",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestNativeMediaPreviewSubmitParity/modelark.video",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestNativeMediaPreviewSubmitParity/newapi.video",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestNativeMediaPreviewSubmitParity/openai.image.generate",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestNativeMediaPreviewSubmitParity/sora.video",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestNativeTextProtocolsAndStableReceipt",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestPrepareImageSizeUsesPublishedValues",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestPreparedImageSizePreviewSubmissionUsesSameBody",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestPublishedTextCapability",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestRawBytesNoRetryAndCancellation",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestRedirectAndJarAreDisabledEvenWithInjectedClient",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestSSOCookieForwarding",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestSessionAllowlistBeforeNetwork",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestSessionTransportUsesProviderVirtualHost",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestSessionTransportUsesProviderVirtualHost/execution_authorization",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestSessionTransportUsesProviderVirtualHost/identity",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestSessionTransportUsesProviderVirtualHost/models",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestSessionTransportUsesProviderVirtualHost/wallet_session_transport",
+          "kind": "subtest",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestStreamingJSONRejectionUsesBoundedError",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestStreamingPreservesBytesAndNativeCancellation",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestStudioMediaConsumptionCanOmitWalletCeiling",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestTaskOriginalBinaryAndLegacy",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestTeamExecutionAndPreviewFreezeWorkspace",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestTextRecoveryFailureAndDeadline",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient",
+          "name": "TestWorkspaceReadsPreserveActorGenerationAndCookies",
+          "kind": "top_level",
+          "status": "pass"
+        },
+        {
+          "package": "github.com/Oceanway-AI/oceanway-platform/platformclient/contracts",
+          "name": "TestPinnedReferenceClosure",
+          "kind": "top_level",
+          "status": "pass"
+        }
+      ],
+      "command": "docker run --rm -v $VALIDATION_ROOT:/work -v $GO_MODULE_CACHE:/go -v $GO_OBJECT_CACHE:/root/.cache/go-build -w /work/platform/platformclient -e GOWORK=off -e GOPATH=/go ow-agent-recovery-toolchain:20261117 sh -c 'go test -json -race ./... && go vet ./...'"
+    },
+    "studio-web": {
+      "status": "passed",
+      "log_sha256": "1d6f2bcfbcf3215ecbf503d8b4e5ad1b7987ac970e3b16afc5511e04260e6014",
+      "tests_passed": 44,
+      "assertions": 186,
+      "scope": "typecheck, changed-file eslint, four Bun test files",
+      "command": "docker run --rm -v $VALIDATION_ROOT/studio:/work -w /work/web oven/bun:1.3.9 sh -c 'bun run typecheck && bunx eslint src/lib/generation-task-display.ts src/pages/tasks/task-detail-modal.tsx src/services/api/task-center.ts test/generation-task-display.test.ts && bun test test/generation-task-display.test.ts test/cloud-agent-history.test.ts test/agent-context-usage.test.ts test/agent-error-message.test.tsx'"
+    },
+    "platform-web-node": {
+      "status": "passed",
+      "log_sha256": "82db3541282c31344f0fb4980a43fff8a67fb1e70fa1904120e5e5a715f0885d",
+      "tests_passed": 77,
+      "scope": "three Vitest suites under Node 24.22.1",
+      "command": "docker run --rm -v $VALIDATION_ROOT/platform:/work -w /work/web ow-agent-recovery-toolchain:20261117 node node_modules/vitest/vitest.mjs run src/features/platform/__tests__/catalog-validation.test.ts src/features/platform/__tests__/admin-catalog.test.tsx src/features/platform/__tests__/admin-model-workflow.test.tsx"
+    },
+    "platform-web-format": {
+      "status": "passed",
+      "log_sha256": "24f1f3fb9f2997a9e6b1536f35e02ea912ad5d28b879c81350b3771103390ef9",
+      "scope": "oxlint and oxfmt, five changed TypeScript files",
+      "command": "docker run --rm -v $VALIDATION_ROOT/platform:/work -w /work/web ow-agent-recovery-toolchain:20261117 sh -c 'node_modules/.bin/oxlint -c .oxlintrc.json src/features/platform/admin-catalog-editor.tsx src/features/platform/catalog-validation.ts src/features/platform/public-api.ts src/features/platform/__tests__/catalog-validation.test.ts src/features/platform/__tests__/admin-catalog.test.tsx && node_modules/.bin/oxfmt --check src/features/platform/admin-catalog-editor.tsx src/features/platform/catalog-validation.ts src/features/platform/public-api.ts src/features/platform/__tests__/catalog-validation.test.ts src/features/platform/__tests__/admin-catalog.test.tsx'"
+    },
+    "pi-runtime": {
+      "status": "passed",
+      "log_sha256": "a488b840a483191be5f078266bfb883f7ed1a8240bc38f9c8f4762c46725c8b8",
+      "tests_passed": 18,
+      "tests_skipped": 0,
+      "scope": "approval, compaction and lifecycle Node tests"
+    },
+    "pi-image-build": {
+      "status": "passed",
+      "log_sha256": "cc5532e9bf2d82bed6e72e38232f61fea1972f3b5366b4ff478fc4407e7ebc9a",
+      "scope": "official yingce-agent Dockerfile, linux/amd64"
+    },
+    "pi-image-smoke": {
+      "status": "passed",
+      "log_sha256": "b24951ee355f58a7b1ab249971a5fa57d7979cdb3b876abf6e216035e9e4ffd9",
+      "scope": "Node v22.19.0 uid 100, one model callback, settled event, exit cleanup"
+    },
+    "backend-build": {
+      "status": "passed",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "Studio and Platform backend build, affected packages vet",
+      "command": "docker run --rm -v $VALIDATION_ROOT:/work -v $GO_MODULE_CACHE:/go -v $GO_OBJECT_CACHE:/root/.cache/go-build -w /work/studio/backend -e GOWORK=/work/go.work -e GOPATH=/go ow-agent-recovery-toolchain:20261117 sh -c 'go build -p 2 -o /work/studio-server ./cmd/server && go vet -p 2 ./internal/agent/... ./internal/platformintegration ./internal/repository ./internal/app && cd /work/platform && GOWORK=off go build -p 2 -o /work/platform-server . && GOWORK=off go vet -p 2 ./service ./controller'"
+    },
+    "frontend-build": {
+      "status": "passed",
+      "log_sha256": "dcb2454aa79223ca3de62b62bf034d4d69337785f7198f5875efb470ab07780e",
+      "scope": "Studio Vite and Platform Rsbuild production builds",
+      "command": "docker run --rm -v $VALIDATION_ROOT:/work -w /work/studio/web oven/bun:1.3.9 sh -c 'bun run build && cd /work/platform/web && bun run build'"
+    },
+    "platform-typecheck": {
+      "status": "passed",
+      "log_sha256": "e7473515d1cf867322cc89bde2cb7d7c468ec3cef9418745252e6913559092e6",
+      "note": "tsgo and oxlint passed before the Bun Vitest import failure. The tests passed in platform-web-node."
+    },
+    "sdk-contract-closure": {
+      "status": "passed",
+      "files": 22,
+      "command": "python3 platformclient/contracts/sync.py --source docs/openapi --check"
+    }
+  },
+  "limitations": [
+    "Studio builds use a temporary go.work with this Platform SDK source. Normal go.mod remains v1.0.0-rc.2.",
+    "Two SDK support packages have no test files. No executed test case skipped.",
+    "No paid model, real supplier, browser, production funds, actual CDN or full-repository CI acceptance."
+  ],
+  "corrected_validation_findings": [
+    "Initial timeout balance 1000 came from zero reservation caused by fixture pricing only in the legacy cache. Persisted ModelPrice restores reservation 10 and balance 990, retained during unknown recovery.",
+    "Bun Vitest import of Zod failed before tests. Identical locked dependencies passed 77 tests under Node.",
+    "Correction fixture was aligned to the product-scoped catalog route, initialized worker cancellation map, and actual runtime tool argument object."
+  ]
+}

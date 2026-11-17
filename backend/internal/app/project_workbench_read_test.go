@@ -23,7 +23,7 @@ func newProjectWorkbenchReadTestService(t *testing.T) (*Service, *gorm.DB) {
 		&model.Asset{}, &model.AssetVersion{}, &model.AssetRepresentation{}, &model.ProjectAssetLink{}, &model.ProjectAssetCandidate{},
 		&model.CharacterVoiceBinding{}, &model.VoiceProfile{},
 		&model.Shot{}, &model.ShotRevision{}, &model.ShotArtifact{}, &model.ShotAssetReference{},
-		&model.WorkflowInstance{}, &model.WorkflowStepInstance{}, &model.Task{},
+		&model.WorkflowInstance{}, &model.WorkflowStepInstance{}, &model.Task{}, &model.CloudAgentExecution{},
 	); err != nil {
 		t.Fatal(err)
 	}

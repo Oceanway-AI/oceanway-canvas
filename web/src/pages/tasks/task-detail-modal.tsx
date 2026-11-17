@@ -116,6 +116,9 @@ function TaskDetailContent({
         ...(task.mediaStage ? [{ label: t("library.tasks.detail.delivery"), value: mediaDeliverySummary(task.status, task.mediaStage) }] : []),
         { label: t("library.tasks.detail.canvas"), value: canvasName },
         { label: t("library.tasks.detail.kind"), value: formatTaskKind(task) },
+        ...(task.agentRunId ? [{ label: "Agent 轮次", value: task.agentRunId }] : []),
+        ...(task.provider === "platform" && task.type === "canvas_text" && task.providerRequestId ? [{ label: "Platform 请求", value: task.providerRequestId }] : []),
+        ...(task.agentCleanupPending ? [{ label: "收尾状态", value: "正在核对已提交步骤" }] : []),
         { label: t("library.tasks.detail.model"), value: modelName },
         {
             label: t(platformMedia ? "library.tasks.detail.processingCount" : "library.tasks.detail.attempts"),

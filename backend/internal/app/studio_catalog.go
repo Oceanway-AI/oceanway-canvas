@@ -165,6 +165,9 @@ func studioPublishedDefault(s platformintegration.ModelSelection, key string, fi
 // existing controls. It grants no submission authority or schema validation.
 func studioCapabilityProjection(s platformintegration.ModelSelection) map[string]any {
 	if s.Kind == "text" {
+		if capability := s.TextCapability; capability != nil {
+			return map[string]any{"version": 1, "text": map[string]any{"streaming": false, "contextWindowTokens": capability.ContextWindowTokens, "maxOutputTokens": capability.MaxOutputTokens, "references": map[string]any{"promptMaxChars": 0, "maxImages": capability.MaxImages, "maxImageBytes": capability.MaxImageBytes, "maxVideos": 0, "maxVideoBytes": 0}}}
+		}
 		return map[string]any{"version": 1, "text": map[string]any{"streaming": false, "contextWindowTokens": 0, "maxOutputTokens": 0, "references": map[string]any{"promptMaxChars": 0, "maxImages": 0, "maxImageBytes": 0, "maxVideos": 0, "maxVideoBytes": 0}}}
 	}
 	var schema struct {

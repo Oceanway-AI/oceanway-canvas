@@ -20,6 +20,10 @@ type TaskSummary struct {
 	PlatformRetryAfterMS      int64                          `json:"retryAfterMs,omitempty"`
 	Diagnostic                *model.TaskExecutionDiagnostic `json:"diagnostic,omitempty"`
 	ID                        string                         `json:"id"`
+	AgentRunID                string                         `json:"agentRunId,omitempty"`
+	AgentStatus               string                         `json:"agentStatus,omitempty"`
+	AgentCleanupPending       bool                           `json:"agentCleanupPending,omitempty"`
+	Error                     string                         `json:"error,omitempty"`
 	ProjectID                 string                         `json:"projectId,omitempty"`
 	Type                      string                         `json:"type"`
 	Status                    model.TaskStatus               `json:"status"`
@@ -126,6 +130,10 @@ func taskBillingTaskIDs(tasks []model.Task) []string {
 
 func taskSummaryForOutput(task model.Task) TaskSummary {
 	errorCode := ""
+	errorMessage := ""
+	if strings.TrimSpace(task.Error) != "" {
+		errorMessage = userFacingTaskError(task.Error)
+	}
 	if isContentModerationFailure(task.Error) {
 		errorCode = contentModerationErrorCode
 	}
@@ -133,6 +141,10 @@ func taskSummaryForOutput(task model.Task) TaskSummary {
 	return TaskSummary{EarlyPreviews: studioGenerationPreviewSlots(task), PlatformGenerationRequest: task.PlatformGenerationRequest, PlatformRevision: task.PlatformRevision, PlatformRetryAfterMS: task.PlatformRetryAfterMS,
 		Diagnostic:                taskExecutionDiagnostic(&task),
 		ID:                        task.ID,
+		AgentRunID:                task.AgentRunID,
+		AgentStatus:               task.AgentStatus,
+		AgentCleanupPending:       task.AgentCleanupPending,
+		Error:                     errorMessage,
 		ProjectID:                 task.ProjectID,
 		Type:                      task.Type,
 		Status:                    task.Status,

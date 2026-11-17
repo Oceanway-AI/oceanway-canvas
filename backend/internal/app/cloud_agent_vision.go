@@ -98,6 +98,13 @@ func (s *Service) cloudAgentVisionEnabled(req CloudAgentRequest) bool {
 }
 
 func (s *Service) cloudAgentVisionReferences(req CloudAgentRequest) (TextReferenceConfig, error) {
+	if req.ChannelID == StudioPlatformChannelID {
+		capability := s.cloudAgentChannelTextCapability(req)
+		if capability == nil || capability.References.MaxImages <= 0 || capability.References.MaxImageBytes <= 0 {
+			return TextReferenceConfig{}, BadAuthRequest("当前平台模型未声明图片输入能力")
+		}
+		return capability.References, nil
+	}
 	if s == nil || s.repo == nil || req.ChannelID == "" || req.ChannelModelKey == "" {
 		return TextReferenceConfig{}, BadAuthRequest("看图需要指定支持图片输入的渠道模型")
 	}

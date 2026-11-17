@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-17",
+  "platform": "linux/amd64",
+  "agent_image": {
+    "id": "sha256:eb5e8d3bf7578de0f912c9730e9b96ce816e0baa8eb5f5d43fed78cdd5272694",
+    "dockerfile": "yingce-agent/Dockerfile",
+    "node_version": "v22.19.0",
+    "user": "app",
+    "smoke_uid": 100,
+    "smoke_result": "passed"
+  },
+  "test_database": {
+    "name": "ow-agent-recovery-pg-20261117",
+    "image": "postgres:16-alpine",
+    "public_port_bindings": false,
+    "cleanup": "removed with docker rm -f -v and absence verified"
+  },
+  "validation_containers": "all --rm containers completed; none remained for the dedicated toolchain image",
+  "source_logs": "retained in the isolated validation directory and local ignored cache",
+  "application_deployment": "not performed",
+  "sdk_release": "not performed"
+}

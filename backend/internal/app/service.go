@@ -289,6 +289,9 @@ func (s *Service) TasksWithOptions(userID string, options TaskListOptions) ([]Ta
 		return nil, err
 	}
 	if s.UsesPlatformIdentity() {
+		if err := s.projectStudioAgentTasks(userID, tasks); err != nil {
+			return nil, err
+		}
 		if err := s.projectStudioMediaFailures(userID, tasks); err != nil {
 			return nil, err
 		}
@@ -330,6 +333,9 @@ func (s *Service) Task(userID string, id string) (*model.Task, error) {
 	}
 	if s.UsesPlatformIdentity() {
 		items := []model.Task{*task}
+		if err := s.projectStudioAgentTasks(userID, items); err != nil {
+			return nil, err
+		}
 		if err := s.projectStudioMediaFailures(userID, items); err != nil {
 			return nil, err
 		}

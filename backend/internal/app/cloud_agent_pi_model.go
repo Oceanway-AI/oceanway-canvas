@@ -284,10 +284,7 @@ func (s *Service) runCloudAgentModelStep(ctx context.Context, userID, runID stri
 		}
 		if !compactionSummary {
 			cloudAgentAttachRunContext(&canonical, &state)
-			budget := s.cloudAgentContextBudgetForRequest(state.Request)
-			if err := fitCloudAgentModelContext(&canonical, budget.InputBudgetTokens); err != nil {
-				return nil, false, err
-			}
+			// Pi owns the durable transcript and its compaction.
 		}
 		// 看图后的历史里有 resource: 图片占位，必须随请求带上获准图片清单，
 		// 否则预检以「模型协议引用了未获准的图片」拒绝（见 cloud_agent_pi_image_references.go）。
@@ -354,6 +351,12 @@ func (s *Service) runCloudAgentModelStep(ctx context.Context, userID, runID stri
 	taskID := state.ActiveTaskID
 	task, err := s.waitCloudAgentTask(ctx, taskID)
 	if err != nil {
+		if ctx.Err() == nil && s.cloudAgentPiTaskContextOverflow(taskID) {
+			if releaseErr := s.finishCloudAgentPiModelStep(userID, runID, taskID, "", cloudAgentStepReasoning{}); releaseErr != nil {
+				return nil, false, releaseErr
+			}
+			return nil, false, errors.New("Agent request exceeds the context window; compact the conversation before retrying")
+		}
 		truncated := false
 		if failed, lookupErr := s.repo.Task(taskID); lookupErr == nil && failed != nil && failed.Status != model.TaskStatusSucceeded {
 			truncated = cloudAgentTruncatedToolArguments(failed)
@@ -387,7 +390,7 @@ func (s *Service) runCloudAgentModelStep(ctx context.Context, userID, runID stri
 			if err := s.finishCloudAgentPiModelStep(userID, runID, task.ID, "", cloudAgentStepReasoning{}); err != nil {
 				return nil, false, err
 			}
-			return nil, !s.UsesPlatformIdentity(), &cloudAgentPiOutputLimitError{Detail: violation}
+			return nil, true, &cloudAgentPiOutputLimitError{Detail: violation}
 		}
 	}
 	finishText := result.Text
@@ -420,6 +423,14 @@ func (s *Service) runCloudAgentModelStep(ctx context.Context, userID, runID stri
 		return nil, false, err
 	}
 	delivered := map[string]any{"text": result.Text, "reasoning": result.Reasoning, "toolCalls": runtimeToolCalls(result.ToolCalls)}
+	if s.UsesPlatformIdentity() {
+		var stored struct {
+			Usage map[string]int64 `json:"usage"`
+		}
+		if json.Unmarshal([]byte(task.ResultJSON), &stored) == nil && stored.Usage != nil {
+			delivered["usage"] = stored.Usage
+		}
+	}
 	// 思考回传内容交给 Pi 存进 thinking 块的签名字段，下一步还原，见 canonicalFromRuntimeMessages。
 	if passback := cloudAgentPiReasoningPassback(finishReasoning, len(result.ToolCalls)); passback != "" {
 		delivered["reasoningPassback"] = passback
@@ -466,6 +477,14 @@ func cloudAgentPiCanonicalForModelRequest(messages []map[string]any, existing ca
 	// 工具调用与结果的配对问题在这里修平（见 cloud_agent_pi_unanswered_calls.go）。
 	// 运行时历史仍不可用时退回服务端历史，不能让整轮失败：失败的会话会被下一轮继承。
 	messages = repairRuntimeUnansweredCalls(messages, existing.Messages)
+	runtimeMessageCount := len(messages)
+	conversation := make([]map[string]any, 0, len(messages))
+	for _, message := range messages {
+		if stringField(message, "role") != "system" {
+			conversation = append(conversation, message)
+		}
+	}
+	messages = conversation
 	canonical, runtimeErr := canonicalFromRuntimeMessages(messages, existing.Tools, existing.SystemPrompt)
 	if runtimeErr == nil {
 		runtimeErr = validateRuntimeMessagesForModel(messages)
@@ -480,7 +499,7 @@ func cloudAgentPiCanonicalForModelRequest(messages []map[string]any, existing ca
 	}
 	// A projected Pi transcript containing a compaction summary is authoritative,
 	// even though it is shorter than the server's pre-compaction canonical history.
-	if !cloudAgentPiHasCompactionSummary(messages) && len(existing.Messages) > len(messages) {
+	if !cloudAgentPiHasCompactionSummary(messages) && len(existing.Messages) > min(runtimeMessageCount, len(canonical.Messages)) {
 		existing.Messages = repairCanonicalUnansweredCalls(existing.Messages)
 		return existing, nil
 	}
@@ -747,12 +766,23 @@ func (s *Service) finishCloudAgentPiModelStepWithInvalidCalls(userID, runID, tas
 func (s *Service) waitCloudAgentTask(ctx context.Context, taskID string) (*model.Task, error) {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
+	repo := s.repo.WithContext(ctx)
 	for {
-		task, err := s.repo.Task(taskID)
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		status, err := repo.TaskStatus(taskID)
 		if err != nil {
 			return nil, err
 		}
-		if cloudAgentTaskTerminal(task.Status) {
+		if cloudAgentTaskTerminal(status) {
+			task, err := repo.Task(taskID)
+			if err != nil {
+				return nil, err
+			}
+			if !cloudAgentTaskTerminal(task.Status) {
+				continue
+			}
 			if task.Status != model.TaskStatusSucceeded {
 				// 与画布节点同一套失败分类（网络/审核/存储/HTTP 状态/供应商原因），
 				// 原始错误保留在任务中心诊断里，不直接抛给用户。

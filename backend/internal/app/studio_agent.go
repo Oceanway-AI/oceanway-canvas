@@ -25,13 +25,27 @@ func (s *Service) CreateStudioCloudAgentRun(ctx context.Context, userID string, 
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
+	req.PlatformTextCapability = nil
+	catalog, err := s.studioPlatform.Client.Models(ctx, session)
+	if catalog.Response != nil {
+		catalog.Response.AppendCookies(response.Header)
+	}
+	if err != nil {
+		return nil, response, platformIdentityError(err)
+	}
+	for _, m := range catalog.Data.Items {
+		if m.ModelName == req.ChannelModelKey {
+			req.PlatformTextCapability = m.TextCapability()
+			break
+		}
+	}
 	view, err := s.createCloudAgentRun(userID, req, parentID, func(user string, root CreateTaskRequest) (*model.Task, error) {
-		return s.studioCreateAgentRoot(ctx, user, session, root, response)
+		return s.studioCreateAgentRoot(ctx, user, session, root, response, catalog.Data)
 	})
 	return view, response, err
 }
 
-func (s *Service) studioCreateAgentRoot(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response) (*model.Task, error) {
+func (s *Service) studioCreateAgentRoot(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response, catalog platformclient.Catalog) (*model.Task, error) {
 	if s.IsDraining() {
 		return nil, NewAppError(503, "服务正在维护，请稍后查询原轮次")
 	}
@@ -50,13 +64,9 @@ func (s *Service) studioCreateAgentRoot(ctx context.Context, userID string, sess
 			return s.repo.TaskForUser(userID, id)
 		}
 	} else {
-		catalog, e := s.studioPlatform.Client.Models(ctx, session)
-		catalog.Response.AppendCookies(response.Header)
-		if e != nil {
-			return nil, platformIdentityError(e)
-		}
+		var e error
 		var selected platformintegration.ModelSelection
-		for _, m := range catalog.Data.Items {
+		for _, m := range catalog.Items {
 			if m.ModelName == initial.Request.ChannelModelKey {
 				selected, e = platformintegration.SelectModel(m, "")
 				if e != nil {
@@ -77,7 +87,7 @@ func (s *Service) studioCreateAgentRoot(ctx context.Context, userID string, sess
 			return nil, e
 		}
 		task := model.Task{ID: id, UserID: userID, ProjectID: req.ProjectID, Type: req.Type, Operation: cloudAgentOperation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: string(raw), Status: model.TaskStatusTextReplay, Stage: "Agent 控制面载体"}
-		envelope, e := s.encryptStudioValue(studioExecutionEnvelope{Task: task, Selection: selected, AgentRunID: id, Catalog: catalog.Data.Items})
+		envelope, e := s.encryptStudioValue(studioExecutionEnvelope{Task: task, Selection: selected, AgentRunID: id, Catalog: catalog.Items})
 		if e != nil {
 			return nil, e
 		}
@@ -133,7 +143,12 @@ func (s *Service) enqueueStudioAgentTask(run *model.CloudAgentExecution, state *
 	if err := s.decryptStudioValue(root.EnvelopeEncrypted, &authority); err != nil {
 		return err
 	}
-	body, err := studioTextBody(req, authority.Selection)
+	authorization, err := s.decryptSettingSecret(root.AuthorizationEncrypted)
+	if err != nil {
+		return err
+	}
+	materials := s.studioPlatform.Client.WorkerMaterials(platformclient.MaterialContext{ExecutionAuthorization: authorization})
+	body, err := s.studioTextBodyWithMaterials(context.Background(), run.UserID, materials, req, authority.Selection)
 	if err != nil {
 		return err
 	}

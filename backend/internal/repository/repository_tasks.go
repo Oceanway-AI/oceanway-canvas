@@ -383,18 +383,25 @@ func (r *Repository) Tasks(userID string, limit int, projectID string, activeOnl
 	return r.TasksWithWorkbenchKind(userID, limit, projectID, activeOnly, "")
 }
 
+func (r *Repository) TaskStatus(id string) (model.TaskStatus, error) {
+	var task model.Task
+	err := r.db.Select("status").First(&task, "id = ?", id).Error
+	return task.Status, err
+}
+
 func (r *Repository) TasksWithWorkbenchKind(userID string, limit int, projectID string, activeOnly bool, workbenchKind string) ([]model.Task, error) {
 	var tasks []model.Task
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
-	query := r.db.Select("id", "project_id", "type", "workbench_kind", "status", "stage", "media_stage", "media_recovery_json", "progress", "prompt", "operation", "provider", "model", "input_json", "result_json", "billing_order_id", "provider_request_id", "provider_cancel_status", "provider_cancel_error", "provider_cancel_attempts", "provider_cancel_requested_at", "provider_cancelled_at", "provider_cancel_next_check_at", "attempts", "started_at", "completed_at", "created_at", "updated_at", "agent_run_id", "generation_id", "approval_id", "authorized_charge_microcredits", "execution_diagnostic_json", "cancellation_source", "cancellation_actor_id", "cancellation_requested_at").
+	query := r.db.Select("id", "project_id", "type", "workbench_kind", "status", "stage", "error", "media_stage", "media_recovery_json", "progress", "prompt", "operation", "provider", "model", "input_json", "result_json", "billing_order_id", "provider_request_id", "provider_cancel_status", "provider_cancel_error", "provider_cancel_attempts", "provider_cancel_requested_at", "provider_cancelled_at", "provider_cancel_next_check_at", "attempts", "started_at", "completed_at", "created_at", "updated_at", "agent_run_id", "generation_id", "approval_id", "authorized_charge_microcredits", "execution_diagnostic_json", "cancellation_source", "cancellation_actor_id", "cancellation_requested_at").
 		Where("user_id = ?", userID)
 	if strings.TrimSpace(projectID) != "" {
 		query = query.Where("project_id = ?", strings.TrimSpace(projectID))
 	}
 	if activeOnly {
-		query = query.Where("status IN ?", []model.TaskStatus{model.TaskStatusQueued, model.TaskStatusRunning})
+		activeRuns := r.db.Model(&model.CloudAgentExecution{}).Select("id").Where("user_id = ? AND status IN ?", userID, []string{"queued", "running", "waiting_approval"})
+		query = query.Where("status IN ? OR (status = ? AND operation = ? AND id IN (?))", []model.TaskStatus{model.TaskStatusQueued, model.TaskStatusRunning}, model.TaskStatusTextReplay, "cloud_agent", activeRuns)
 	}
 	if workbenchKind != "" {
 		taskType := "canvas_" + workbenchKind

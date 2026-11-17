@@ -141,6 +141,18 @@ func (r *Repository) PrepareStudioAgentTextRetry(task *model.Task, previous, nex
 	})
 }
 
+func (r *Repository) SaveStudioTextRequestID(task *model.Task, requestID string) error {
+	write := taskLeaseWriter(r.db.Model(&model.Task{}), task.LeaseOwner).Where("id = ? AND user_id = ? AND status = ?", task.ID, task.UserID, model.TaskStatusRunning).Update("provider_request_id", requestID)
+	if write.Error != nil {
+		return write.Error
+	}
+	if write.RowsAffected != 1 {
+		return ErrTaskStateConflict
+	}
+	task.ProviderRequestID = requestID
+	return nil
+}
+
 func (r *Repository) SaveStudioExecutionResponse(task *model.Task, encrypted string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		lock := taskLeaseWriter(tx.Model(&model.Task{}), task.LeaseOwner).Where("id = ? AND status = ?", task.ID, model.TaskStatusRunning).Update("updated_at", time.Now())

@@ -23,15 +23,21 @@ func TestStudioAgentTextRetryOnlyAfterOriginalNoExecution(t *testing.T) {
 		http, succeeds int
 		wantPosts      int
 		cancelAt       int
+		failure        *platformclient.TextFailure
 	}{
-		{"three_rejections_then_lost_success", "system_memory_overloaded", 503, 4, 4, 0},
-		{"four_rejections_stop", "", 503, 0, 4, 0},
-		{"unknown_only_queries_original", "", 504, 1, 1, 0},
-		{"rate_limit", "rate_limit_error", 429, 2, 2, 0},
-		{"permanent_forbidden", "PLATFORM_MODEL_UNAVAILABLE", 403, 0, 1, 0},
-		{"permanent_model_even_on_503", "model_not_found", 503, 0, 1, 0},
-		{"cancel_before_proof", "", 503, 0, 1, 1},
-		{"cancel_during_backoff", "", 503, 0, 1, 2},
+		{"three_rejections_then_lost_success", "system_memory_overloaded", 503, 4, 4, 0, nil},
+		{"four_rejections_stop", "", 503, 0, 4, 0, nil},
+		{"unknown_only_queries_original", "", 504, 1, 1, 0, nil},
+		{"rate_limit", "rate_limit_error", 429, 2, 2, 0, nil},
+		{"permanent_forbidden", "PLATFORM_MODEL_UNAVAILABLE", 403, 0, 1, 0, nil},
+		{"permanent_model_even_on_503", "model_not_found", 503, 0, 1, 0, nil},
+		{"cancel_before_proof", "", 503, 0, 1, 1, nil},
+		{"cancel_during_backoff", "", 503, 0, 1, 2, nil},
+		{"explicit_parameter_rejection", "invalid_request_error", 400, 0, 1, 0, &platformclient.TextFailure{Code: "invalid_request_error", HTTPStatus: 400, NoExecution: true}},
+		{"explicit_context_overflow", "context_length_exceeded", 400, 0, 1, 0, &platformclient.TextFailure{Code: "context_length_exceeded", HTTPStatus: 400, NoExecution: true}},
+		{"explicit_rate_limit", "rate_limit_error", 429, 2, 2, 0, &platformclient.TextFailure{Code: "rate_limit_error", HTTPStatus: 429, NoExecution: true, RetryAllowed: true}},
+		{"retry_denied", "server_error", 503, 0, 1, 0, &platformclient.TextFailure{Code: "server_error", HTTPStatus: 503, NoExecution: true}},
+		{"historical_parameter_rejection", "invalid_request_error", 400, 0, 1, 1, &platformclient.TextFailure{Code: "text_request_failed"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s, db, _, _ := creationTestService(t)
@@ -48,7 +54,7 @@ func TestStudioAgentTextRetryOnlyAfterOriginalNoExecution(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				switch {
 				case strings.HasSuffix(r.URL.Path, "/models"):
-					io.WriteString(w, `{"success":true,"data":{"items":[{"model_name":"m","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}}]}}`)
+					io.WriteString(w, `{"success":true,"data":{"items":[{"model_name":"m","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"},"content":{"text_capability":{"context_window_tokens":32000,"max_output_tokens":4096,"max_images":1,"max_image_bytes":1048576}}}]}}`)
 				case r.URL.Path == "/api/platform/v1/execution-authorizations":
 					grants++
 					var in map[string]string
@@ -57,6 +63,7 @@ func TestStudioAgentTextRetryOnlyAfterOriginalNoExecution(t *testing.T) {
 				case strings.HasSuffix(r.URL.Path, "/release"):
 					w.WriteHeader(204)
 				case r.URL.Path == "/internal/relay/chat/completions" && r.Method == "POST":
+					w.Header().Set("X-Oneapi-Request-Id", "platform-original-relay")
 					id := r.Header.Get("X-Platform-Text-Request-Id")
 					body, _ := io.ReadAll(r.Body)
 					fingerprint := fmt.Sprintf("%x", sha256.Sum256(append([]byte("openai-chat\x00"), body...)))
@@ -83,12 +90,17 @@ func TestStudioAgentTextRetryOnlyAfterOriginalNoExecution(t *testing.T) {
 					}
 					polls[id]++
 					reply := platformclient.TextRecovery{Version: "oceanway.text-request.v1", RequestID: id, TaskID: "text_" + id, Protocol: "openai-chat", Fingerprint: fp, Status: "failed"}
+					reply.Failure = tc.failure
+					if tc.name == "historical_parameter_rejection" {
+						reply.Status = "pending"
+					}
 					if len(ids) == tc.succeeds {
 						switch polls[id] {
 						case 1:
 							reply.Fingerprint = "foreign-body"
 						case 2:
 							reply.Status = "pending"
+							reply.ResponseTimedOut = true
 						case 3:
 							reply.Status = "not_found"
 						case 4:
@@ -114,6 +126,7 @@ func TestStudioAgentTextRetryOnlyAfterOriginalNoExecution(t *testing.T) {
 			}
 			s.studioPlatform = gateway
 			req := CloudAgentRequest{Prompt: "hello", Model: "m", ChannelID: StudioPlatformChannelID, ChannelModelKey: "m", IdempotencyKey: "retry-test", PermissionMode: "read_only"}
+			req.PlatformTextCapability = &platformclient.TextCapability{ContextWindowTokens: 9999999, MaxOutputTokens: 999999}
 			req.Budget.MaxSteps = 1
 			root, _, err := s.CreateStudioCloudAgentRun(context.Background(), "user", platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "platform_session=alice"}, req, "")
 			if err != nil {
@@ -126,6 +139,10 @@ func TestStudioAgentTextRetryOnlyAfterOriginalNoExecution(t *testing.T) {
 			state, err := cloudAgentDecode(run)
 			if err != nil {
 				t.Fatal(err)
+			}
+			budget := s.cloudAgentContextBudgetForRequest(state.Request)
+			if !budget.Configured || budget.ContextWindowTokens != 32000 || budget.MaxOutputTokens != 4096 {
+				t.Fatalf("published model capability was not frozen: %+v", budget)
 			}
 			err = s.enqueueCloudAgentTask(run, &state, CreateTaskRequest{Type: "canvas_text", Operation: cloudAgentStepOperation, Prompt: "hello", Model: "m", Input: map[string]any{"config": map[string]any{"channelId": StudioPlatformChannelID, "model": "m"}, "agentRequests": map[string]any{"canonical": state.Canonical}}}, nil)
 			if err != nil {
@@ -167,6 +184,12 @@ func TestStudioAgentTextRetryOnlyAfterOriginalNoExecution(t *testing.T) {
 			if task == nil {
 				t.Fatal("missing Pi step")
 			}
+			if task.ProviderRequestID != "platform-original-relay" {
+				t.Fatalf("missing original Platform request ID: %q", task.ProviderRequestID)
+			}
+			if s.cloudAgentPiTaskContextOverflow(task.ID) != (tc.name == "explicit_context_overflow") {
+				t.Fatal("only a confirmed context rejection may trigger compaction")
+			}
 			if len(ids) != tc.wantPosts || grants != 1 || !cloudAgentTaskTerminal(task.Status) {
 				t.Fatalf("posts=%d want=%d grants=%d task=%+v", len(ids), tc.wantPosts, grants, task.Status)
 			}
@@ -176,6 +199,24 @@ func TestStudioAgentTextRetryOnlyAfterOriginalNoExecution(t *testing.T) {
 				}
 			} else if task.Status == model.TaskStatusSucceeded || executions != 0 || charges != 0 {
 				t.Fatalf("status=%s executions=%d charges=%d", task.Status, executions, charges)
+			}
+			if tc.cancelAt > 0 {
+				cancelled, err := s.repo.CloudAgent("user", root.ID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := s.finishCloudAgentCleanup(context.Background(), cancelled); err != nil {
+					t.Fatal(err)
+				}
+				s.releaseCompletedStudioExecutions(context.Background())
+				cancelled, err = s.repo.CloudAgent("user", root.ID)
+				if err != nil || cancelled.CleanupPending || cancelled.ActiveTaskID != "" || cancelled.Status != "cancelled" {
+					t.Fatalf("cancel cleanup not completed: %+v %v", cancelled, err)
+				}
+				authority, err := s.repo.StudioExecution("user", root.ID)
+				if err != nil || !authority.Released {
+					t.Fatalf("root authority not released: %+v %v", authority, err)
+				}
 			}
 		})
 	}

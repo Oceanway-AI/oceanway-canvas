@@ -542,8 +542,11 @@ func TestCanonicalAgentBodiesPreserveAssistantToolCalls(t *testing.T) {
 		t.Fatalf("responses input = %#v", responseInput)
 	}
 	functionCall, _ := responseInput[2].(map[string]interface{})
-	if functionCall["type"] != "function_call" || functionCall["name"] != "canvas_get_state" || functionCall["id"] != "fc-5" || functionCall["item_reference"] != "fc-5" {
+	if functionCall["type"] != "function_call" || functionCall["name"] != "canvas_get_state" || functionCall["id"] != "fc-5" || functionCall["call_id"] != "call-5" {
 		t.Fatalf("responses function call = %#v", functionCall)
+	}
+	if _, exists := functionCall["item_reference"]; exists {
+		t.Fatalf("function_call contains an unsupported item_reference property: %#v", functionCall)
 	}
 }
 

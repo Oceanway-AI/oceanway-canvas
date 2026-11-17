@@ -170,6 +170,16 @@ func (r *Repository) CloudAgentIDsWaitingApprovalForCanvas(userID, canvasID stri
 	return ids, err
 }
 
+// CloudAgentTaskStates reads only control fields for the task center.
+func (r *Repository) CloudAgentTaskStates(userID string, ids []string) ([]model.CloudAgentExecution, error) {
+	var runs []model.CloudAgentExecution
+	if len(ids) == 0 {
+		return runs, nil
+	}
+	err := r.db.Select("id", "status", "cleanup_pending", "failure_message", "updated_at").Where("user_id = ? AND id IN ?", userID, ids).Find(&runs).Error
+	return runs, err
+}
+
 func (r *Repository) CloudAgentRoots() ([]model.Task, error) {
 	var tasks []model.Task
 	err := r.db.Where("operation = ? AND id NOT IN (SELECT id FROM cloud_agent_executions)", "cloud_agent").Order("created_at").Limit(50).Find(&tasks).Error

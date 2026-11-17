@@ -124,7 +124,7 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 		var body []byte
 		var consumption *platformclient.MediaConsumptionConstraints
 		if selected.Kind == "text" {
-			body, e = studioTextBody(req, selected)
+			body, e = s.studioTextBodyWithMaterials(ctx, userID, s.studioPlatform.Client.CurrentMaterials(session), req, selected)
 		} else {
 			body, e = s.studioMediaBody(ctx, userID, req, selected)
 			if e == nil {
@@ -237,6 +237,10 @@ func studioTaskMetadata(input map[string]any) map[string]any {
 }
 
 func studioTextBody(req CreateTaskRequest, selected platformintegration.ModelSelection) ([]byte, error) {
+	return studioTextBodyWithImages(req, selected, nil)
+}
+
+func studioTextBodyWithImages(req CreateTaskRequest, selected platformintegration.ModelSelection, images map[string]string) ([]byte, error) {
 	raw, err := json.Marshal(req.Input)
 	if err != nil {
 		return nil, BadAuthRequest("任务输入无效")
@@ -249,7 +253,7 @@ func studioTextBody(req CreateTaskRequest, selected platformintegration.ModelSel
 	if cfg.APIKey != "" || cfg.SecretKey != "" || cfg.BaseURL != "" || len(cfg.Headers) > 0 || cfg.WorkflowID != "" || cfg.RunningHubWalletKey != "" || cfg.RunningHubUploadKey != "" || req.Provider != "" && req.Provider != "platform" || cfg.ChannelID != StudioPlatformChannelID || req.LogicalModelID != "" {
 		return nil, BadAuthRequest("Studio 仅支持已发布的平台模型")
 	}
-	if len(input.ReferenceImages)+len(input.ReferenceVideos)+len(input.ReferenceAudios) > 0 || input.Mask != nil {
+	if len(input.ReferenceVideos)+len(input.ReferenceAudios) > 0 || input.Mask != nil || len(input.ReferenceImages) > 0 && len(images) == 0 {
 		return nil, NewAppError(501, "文本素材引用尚未接通")
 	}
 	canonical := canonicalAgentRequest{Messages: validatedTextHistory(input.TextHistory), SystemPrompt: cfg.SystemPrompt, ToolChoice: "auto"}
@@ -260,15 +264,35 @@ func studioTextBody(req CreateTaskRequest, selected platformintegration.ModelSel
 		}
 		canonical = *input.AgentRequests.Canonical
 		canonical.PassReasoning = true
+	} else if len(input.ReferenceImages) > 0 {
+		parts := []any{map[string]any{"type": "text", "text": req.Prompt}}
+		for _, reference := range input.ReferenceImages {
+			parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]any{"url": reference.StorageKey}})
+		}
+		canonical.Messages[len(canonical.Messages)-1]["content"] = parts
 	}
 	// Image references are adapted separately; arbitrary external URLs never
 	// enter native bodies through canonical conversation content.
+	imageCount := 0
 	for _, message := range canonical.Messages {
 		if content, ok := message["content"].([]any); ok {
 			for _, value := range content {
 				part, _ := value.(map[string]any)
-				if stringValue(part["type"]) != "text" {
-					return nil, NewAppError(501, "文本素材引用尚未接通")
+				switch stringValue(part["type"]) {
+				case "text":
+				case "image_url":
+					image, _ := part["image_url"].(map[string]any)
+					pixels := images[stringValue(image["url"])]
+					if pixels == "" || stringValue(message["role"]) != "user" {
+						return nil, BadAuthRequest("模型图片必须来自本次获准的账号资源")
+					}
+					imageCount++
+					if selected.TextCapability == nil || imageCount > selected.TextCapability.MaxImages {
+						return nil, BadAuthRequest("图片数量超过平台模型声明的限制")
+					}
+					image["url"] = pixels
+				default:
+					return nil, BadAuthRequest("文本会话包含不支持的内容块")
 				}
 			}
 		}
@@ -288,10 +312,14 @@ func studioTextBody(req CreateTaskRequest, selected platformintegration.ModelSel
 		body = bodies.Claude
 	}
 	limit := input.TextOptions.MaxOutputTokens
-	if limit == 0 {
-		limit = 4096
+	maxOutput := 131072
+	if selected.TextCapability != nil {
+		maxOutput = selected.TextCapability.MaxOutputTokens
 	}
-	if limit < 1 || limit > 131072 {
+	if limit == 0 {
+		limit = min(4096, maxOutput)
+	}
+	if limit < 1 || limit > maxOutput {
 		return nil, BadAuthRequest("文本输出上限无效")
 	}
 	body["model"], body["stream"], body[limitField] = selected.Name, false, limit
