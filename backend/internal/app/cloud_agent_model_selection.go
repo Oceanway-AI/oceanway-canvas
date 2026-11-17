@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -28,14 +29,19 @@ func cloudAgentApplyUniqueModelListSelection(state *cloudAgentRuntime, raw strin
 			return false
 		}
 		var query struct {
-			Mode             string   `json:"mode"`
-			ReferenceNodeIDs []string `json:"referenceNodeIds"`
+			Mode                  string   `json:"mode"`
+			ReferenceNodeIDs      []string `json:"referenceNodeIds"`
+			VideoStartFrameNodeID string   `json:"videoStartFrameNodeId"`
+			VideoEndFrameNodeID   string   `json:"videoEndFrameNodeId"`
 		}
-		if err := json.Unmarshal([]byte(stringValue(event.Payload["arguments"])), &query); err != nil || query.Mode != a.Mode || !sameStringSlice(query.ReferenceNodeIDs, a.ReferenceNodeIDs) {
+		if err := json.Unmarshal([]byte(stringValue(event.Payload["arguments"])), &query); err != nil || query.Mode != a.Mode || !sameStringSlice(query.ReferenceNodeIDs, a.ReferenceNodeIDs) || query.VideoStartFrameNodeID != a.VideoStartFrameNodeID || query.VideoEndFrameNodeID != a.VideoEndFrameNodeID {
 			return false
 		}
 		result, ok := event.Payload["result"].(map[string]any)
 		if !ok {
+			return false
+		}
+		if result["hasMore"] == true || result["totalMatches"] != nil && fmt.Sprint(result["totalMatches"]) != "1" {
 			return false
 		}
 		models := creationMaps(result["models"])
@@ -43,6 +49,9 @@ func cloudAgentApplyUniqueModelListSelection(state *cloudAgentRuntime, raw strin
 			return false
 		}
 		modelItem := models[0]
+		if modelItem["variantsComplete"] == false {
+			return false
+		}
 		if normalizeCapability(stringValue(modelItem["capability"])) != normalizeCapability(a.Mode) {
 			return false
 		}
@@ -58,7 +67,13 @@ func cloudAgentApplyUniqueModelListSelection(state *cloudAgentRuntime, raw strin
 		if decodeCloudAgentJSONObject(string(encoded), &selection) != nil || validateCloudAgentModelSelection(string(encoded), selection) != nil {
 			return false
 		}
+		if a.NativeVariantID != "" && selection.NativeVariantID != "" && a.NativeVariantID != selection.NativeVariantID {
+			return false
+		}
 		a.LogicalModelID, a.ChannelID, a.ChannelModelKey = selection.LogicalModelID, selection.ChannelID, selection.ChannelModelKey
+		if a.NativeVariantID == "" {
+			a.NativeVariantID = selection.NativeVariantID
+		}
 		return true
 	}
 	return false

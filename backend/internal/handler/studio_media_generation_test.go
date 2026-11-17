@@ -408,13 +408,15 @@ func TestStudioGenerationUsesAuthenticatedVariantFromLargeCatalog(t *testing.T) 
 	f.catalog = strings.ReplaceAll(f.catalog, "price-1", "price-2")
 	before := f.catalogCalls
 	send("platform_session=alice", "new-price", "price-2", 200)
-	if f.catalogCalls != before+1 {
+	// Saved requests without capability revisions resolve their named summary
+	// and then load only that model's pinned detail.
+	if f.catalogCalls != before+2 {
 		t.Error("different price revision did not refresh the authenticated catalog")
 	}
 	for _, other := range []string{"alice-other-session", "bob"} {
 		before = f.catalogCalls
 		send("platform_session="+other, "separate-"+other, "price-2", 200)
-		if f.catalogCalls != before+1 {
+		if f.catalogCalls != before+2 {
 			t.Fatalf("another authenticated session reused a prior schema: %s", other)
 		}
 	}

@@ -21,9 +21,12 @@ const (
 // ModelCatalogResponse 是创作端模型选择的统一读模型。
 // Channels 为唯一数据源；Models 固定为空，两个集合始终序列化为数组。
 type ModelCatalogResponse struct {
-	Source   ModelCatalogSource     `json:"source"`
-	Models   []PublicLogicalModel   `json:"models"`
-	Channels []PublicChannelCatalog `json:"channels"`
+	Source          ModelCatalogSource     `json:"source"`
+	Models          []PublicLogicalModel   `json:"models"`
+	Channels        []PublicChannelCatalog `json:"channels"`
+	CatalogRevision string                 `json:"catalogRevision,omitempty"`
+	NextCursor      string                 `json:"nextCursor,omitempty"`
+	HasMore         bool                   `json:"hasMore,omitempty"`
 }
 
 // PublicModelAvailability is the historical signal shown next to a model

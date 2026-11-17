@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"yingce/backend/internal/catalogtest"
 	"yingce/backend/internal/platformintegration"
 )
 
@@ -34,8 +35,9 @@ func TestStudioPlatformPublishedFixtureConsumption(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				switch {
-				case strings.HasSuffix(r.URL.Path, "/models"):
-					_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "data": map[string]any{"items": []platformclient.Model{fixture.Model}}})
+				case catalogtest.Route(r.URL.Path):
+					source, _ := json.Marshal(map[string]any{"success": true, "data": map[string]any{"items": []platformclient.Model{fixture.Model}}})
+					catalogtest.Write(t, w, r, source)
 				case strings.HasSuffix(r.URL.Path, "/consumption-preview"):
 					var input platformclient.PreviewRequest
 					_ = json.NewDecoder(r.Body).Decode(&input)

@@ -16,6 +16,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"yingce/backend/internal/catalogtest"
 	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platformintegration"
@@ -60,7 +61,7 @@ func newStudioFixture(t *testing.T) *studioFixture {
 			f.account(w, r)
 			return
 		}
-		if f.execution != nil && (strings.HasPrefix(r.URL.Path, "/internal/products/v1/media-generations") || strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/internal/materials/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || strings.HasSuffix(r.URL.Path, "/media/price-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
+		if f.execution != nil && !catalogtest.Route(r.URL.Path) && (strings.HasPrefix(r.URL.Path, "/internal/products/v1/media-generations") || strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/internal/materials/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || strings.HasSuffix(r.URL.Path, "/media/price-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {
 			f.execution(w, r)
 			return
 		}
@@ -71,11 +72,12 @@ func newStudioFixture(t *testing.T) *studioFixture {
 			f.materials(w, r)
 			return
 		}
-		if r.URL.Path == "/api/platform/v1/products/studio/models" {
+		if catalogtest.Route(r.URL.Path) {
 			f.mu.Lock()
 			f.catalogCalls++
 			f.mu.Unlock()
-			if r.Header.Get("X-Platform-Product-Key") != "fixture.secret" || r.Header.Get("Cookie") == "" {
+			worker := strings.HasPrefix(r.URL.Path, "/internal/relay/")
+			if r.Header.Get("X-Platform-Product-Key") != "fixture.secret" || !worker && r.Header.Get("Cookie") == "" || worker && (r.Header.Get("Cookie") != "" || r.Header.Get("X-Platform-Execution-Authorization") == "") {
 				t.Error("catalog did not carry both product and current account authority")
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -84,7 +86,7 @@ func newStudioFixture(t *testing.T) *studioFixture {
 				w.WriteHeader(503)
 				return
 			}
-			_, _ = w.Write([]byte(f.catalog))
+			catalogtest.Write(t, w, r, []byte(f.catalog))
 			return
 		}
 		if r.Header.Get("X-Platform-Product-Key") != "" {

@@ -138,6 +138,8 @@ type cloudAgentMediaBatchArgs struct {
 	Size               string `json:"size"`
 	Quality            string `json:"quality"`
 	ImageResolution    string `json:"imageResolution"`
+	NativeParameters   string `json:"nativeParameters"`
+	NativeVariantID    string `json:"nativeVariantId"`
 	Duration           int    `json:"durationSeconds"`
 	VideoGenerateAudio *bool  `json:"videoGenerateAudio"`
 	Concurrency        int    `json:"concurrency"`
@@ -234,6 +236,7 @@ func cloudAgentMediaBatchItemArgs(doc map[string]any, args cloudAgentMediaBatchA
 	a := cloudAgentMediaArgs{
 		Mode: args.Mode, Prompt: prompt, LogicalModelID: args.LogicalModelID, ChannelID: args.ChannelID, ChannelModelKey: args.ChannelModelKey,
 		Size: args.Size, Quality: args.Quality, ImageResolution: args.ImageResolution, NodeID: item.NodeID,
+		NativeParameters: args.NativeParameters, NativeVariantID: args.NativeVariantID,
 		Title: strings.TrimSpace(stringValue(node["title"])), ReferenceNodeIDs: []string{},
 	}
 	if a.Title == "" {

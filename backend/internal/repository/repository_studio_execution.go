@@ -14,6 +14,15 @@ func (r *Repository) StudioExecution(userID, taskID string) (*model.StudioExecut
 	return &v, err
 }
 
+// Compare the encrypted snapshot so concurrent detail reads merge instead of
+// replacing each other's frozen selections. A released root cannot gain data.
+func (r *Repository) SaveStudioAgentCatalog(userID, taskID, previous, next string) (bool, error) {
+	result := r.db.Model(&model.StudioExecution{}).
+		Where("task_id = ? AND user_id = ? AND state = ? AND released = ? AND envelope_encrypted = ?", taskID, userID, "agent", false, previous).
+		Update("envelope_encrypted", next)
+	return result.RowsAffected == 1, result.Error
+}
+
 func (r *Repository) StudioExecutionResponses(userID string, taskIDs []string) ([]model.StudioExecution, error) {
 	var rows []model.StudioExecution
 	err := r.db.Select("task_id", "response_encrypted").Where("user_id = ? AND task_id IN ?", userID, taskIDs).Find(&rows).Error

@@ -1,7 +1,7 @@
 import { ImageSizePicker } from "./image-size-picker";
 import { ImageParameterFields } from "./image-parameter-fields";
 import { PlatformNativeMediaSettings, type NativeMediaSettingKey } from "./platform-native-media-settings";
-import { nativeMediaProfile } from "@/lib/platform-native-media";
+import { nativeMediaProfile, platformModelDetailPending } from "@/lib/platform-native-media";
 import { imageResolutionUsesQuality, imageSizePresets } from "@/lib/image-size-presets";
 import { useEffect, useState, type ReactNode } from "react";
 import { ConfigProvider } from "antd";
@@ -68,6 +68,7 @@ export function ImageSettingsPanel({
     quickCount = 3,
     bypassPriceGuard = false,
 }: ImageSettingsPanelProps) {
+    if (platformModelDetailPending(config)) return <div role="status">等待模型参数加载</div>;
     if (nativeMediaProfile(config))
         return (
             <ImageSettingsTheme theme={theme}>

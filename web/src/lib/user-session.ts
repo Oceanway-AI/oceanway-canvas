@@ -1,13 +1,14 @@
 import { getFeatureAvailability, type AuthSessionPayload } from "@/services/api/auth";
 import { projectImageParameters, imageParametersForSpec } from "./image-parameters";
-import { getModelCatalog, type CapabilitySpec, type ModelCatalogResponse, type OptionConstraint, type PublicChannelCatalog, type PublicLogicalModel } from "@/services/api/logical-models";
+import { getModelCatalog, getModelCatalogPage, getModelCatalogDetail, type CapabilitySpec, type ModelCatalogResponse, type OptionConstraint, type PublicChannelCatalog, type PublicLogicalModel } from "@/services/api/logical-models";
+import { platformModelVersion } from "@/lib/platform-models";
 import { localForageStorage } from "@/lib/localforage-storage";
 import { appQueryClient } from "@/lib/query-client";
 import { scopedLocalStorage, setActiveUserScope, withUserScopedPersistenceSuppressed } from "@/lib/user-scope";
 import { CANVAS_STORE_KEY, flushCanvasStorePersistence, useCanvasStore, withCanvasStorePersistenceSuppressed } from "@/stores/canvas/use-canvas-store";
 import { CANVAS_HISTORY_STORE_KEY, useCanvasHistoryStore } from "@/stores/canvas/use-canvas-history-store";
 import { ASSET_STORE_KEY, flushAssetStorePersistence, useAssetStore, withAssetStorePersistenceSuppressed } from "@/stores/use-asset-store";
-import { CONFIG_STORE_KEY, defaultConfig, normalizeConfigSnapshot, useConfigStore, type ModelCapability, type ModelChannel } from "@/stores/use-config-store";
+import { CONFIG_STORE_KEY, defaultConfig, modelOptionName, resolveModelChannel, normalizeConfigSnapshot, useConfigStore, type ModelCapability, type ModelChannel } from "@/stores/use-config-store";
 import { CREATION_PREFERENCES_STORE_KEY, useCreationPreferencesStore } from "@/stores/use-creation-preferences-store";
 import { defaultModelCapabilityConfig, STANDARD_IMAGE_SIZE_VALUES, type ModelCapabilityConfig } from "@/lib/model-capabilities";
 import { isTextWire } from "@/lib/model-protocols";
@@ -37,11 +38,17 @@ export async function switchUserStorageScope(userId?: string | null) {
 let sessionGeneration = 0;
 let hydratingCatalogGeneration: number | null = null;
 let catalogRequest: { generation: number; userId: string; promise: Promise<void> } | null = null;
+let catalogSnapshot: ModelCatalogResponse | null = null;
+let catalogEpoch = 0;
+const catalogDetails = new Map<string, Promise<void>>();
 
 export async function applyUserSession(payload: AuthSessionPayload) {
     const generation = ++sessionGeneration;
     hydratingCatalogGeneration = generation;
     catalogRequest = null;
+    catalogSnapshot = null;
+    catalogEpoch++;
+    catalogDetails.clear();
     useModelCatalogStore.setState({ status: payload.user ? "loading" : "idle", error: null });
     withUserScopedPersistenceSuppressed(() => useConfigStore.getState().invalidateSystemChannels());
     const previousUserId = useUserStore.getState().user?.id || "";
@@ -174,7 +181,7 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
     request.promise = Promise.resolve().then(async () => {
         try {
             if (!isCurrentSession(generation, userId)) return;
-            const catalog = await getModelCatalog();
+            const catalog = useUserStore.getState().platformIdentity ? await loadPlatformCatalog(generation, userId) : await getModelCatalog();
             if (!isCurrentSession(generation, userId)) return;
             const channels = modelCatalogChannels(catalog);
             if (initializeDefaults) {
@@ -199,6 +206,9 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
             useModelCatalogStore.setState({ status: "ready", error: null });
         } catch (error) {
             if (!isCurrentSession(generation, userId)) return;
+            catalogSnapshot = null;
+            catalogEpoch++;
+            catalogDetails.clear();
             useConfigStore.getState().invalidateSystemChannels();
             useModelCatalogStore.setState({ status: "error", error: "模型目录读取失败，请重试。" });
             throw error;
@@ -207,9 +217,72 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
         }
     });
     catalogRequest = request;
+    catalogSnapshot = null;
+    catalogEpoch++;
+    catalogDetails.clear();
     useConfigStore.getState().invalidateSystemChannels();
     useModelCatalogStore.setState({ status: "loading", error: null });
     return request.promise;
+}
+
+async function loadPlatformCatalog(generation: number, userId: string): Promise<ModelCatalogResponse> {
+    const seen = new Set<string>();
+    let cursor = "";
+    let revision = "";
+    do {
+        const page = await getModelCatalogPage(cursor);
+        if (!isCurrentSession(generation, userId)) throw new Error("账号会话已切换");
+        if (page.source !== "platform" || !page.catalogRevision || !Array.isArray(page.channels)) throw new Error("模型目录摘要响应无效");
+        if (revision && revision !== page.catalogRevision) throw new Error("模型目录已更新，请重新加载");
+        revision = page.catalogRevision;
+        const channels = new Map((catalogSnapshot?.channels || []).map((channel) => [channel.id, channel]));
+        for (const channel of page.channels) {
+            const previous = channels.get(channel.id);
+            const models = new Map((previous?.models || []).map((item) => [item.modelKey, item]));
+            for (const item of channel.models) {
+                if (models.has(item.modelKey)) throw new Error("模型目录分页包含重复型号");
+                models.set(item.modelKey, item);
+            }
+            channels.set(channel.id, { ...channel, models: [...models.values()] });
+        }
+        catalogSnapshot = { ...page, channels: [...channels.values()] };
+        useConfigStore.getState().mergeSystemChannels(modelCatalogChannels(catalogSnapshot), Boolean(page.hasMore));
+        if (!page.hasMore) return catalogSnapshot;
+        if (!page.nextCursor || seen.has(page.nextCursor)) throw new Error("模型目录分页响应无效");
+        seen.add(page.nextCursor);
+        cursor = page.nextCursor;
+    } while (cursor);
+    throw new Error("模型目录分页响应无效");
+}
+
+export function ensurePlatformModelDetail(modelOption: string): Promise<void> {
+    const config = useConfigStore.getState().config;
+    const channel = resolveModelChannel(config, modelOption);
+    const model = channel.modelCosts?.find((item) => item.model === modelOptionName(modelOption))?.platform;
+    if (!model || model.state !== "summary") return Promise.resolve();
+    const generation = sessionGeneration;
+    const epoch = catalogEpoch;
+    const userId = useUserStore.getState().user?.id || "";
+    const key = JSON.stringify([generation, epoch, userId, platformModelVersion(model)]);
+    const existing = catalogDetails.get(key);
+    if (existing) return existing;
+    const promise = getModelCatalogDetail(model)
+        .then((result) => {
+            if (!isCurrentSession(generation, userId) || epoch !== catalogEpoch) throw new Error("模型目录或账号已更新，请重新选择");
+            const detail = result.model;
+            if (detail.modelKey !== model.model_name || detail.platform?.state !== "detail" || platformModelVersion(detail.platform) !== platformModelVersion(model)) throw new Error("模型详情版本不一致，请刷新目录");
+            if (!catalogSnapshot?.channels) throw new Error("模型目录尚未加载");
+            catalogSnapshot = {
+                ...catalogSnapshot,
+                channels: catalogSnapshot.channels.map((item) => (item.id === channel.id ? { ...item, models: item.models.map((entry) => (entry.modelKey === detail.modelKey ? detail : entry)) } : item)),
+            };
+            useConfigStore.getState().mergeSystemChannels(modelCatalogChannels(catalogSnapshot), Boolean(catalogSnapshot.hasMore));
+        })
+        .finally(() => {
+            if (catalogDetails.get(key) === promise) catalogDetails.delete(key);
+        });
+    catalogDetails.set(key, promise);
+    return promise;
 }
 
 // 目录仅接受系统渠道模型，避免畸形响应被当成空目录写入配置。

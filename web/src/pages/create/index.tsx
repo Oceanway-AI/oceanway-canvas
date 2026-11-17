@@ -12,7 +12,7 @@ import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation"
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
-import { nativeCreationSettings, nativeMediaProfile, studioMediaGenerationVariant, nativeMediaReferenceLimits } from "@/lib/platform-native-media";
+import { nativeCreationSettings, nativeMediaProfile, studioMediaGenerationVariant, nativeMediaReferenceLimits, platformModelDetailPending } from "@/lib/platform-native-media";
 import { assignFrameSlots, publishedFrameRoles, type FrameRole } from "@/lib/media-reference-slots";
 import { creationResultAssetIds, creationResultResourceIds, type CreationCanvasSelection } from "@/lib/canvas/canvas-asset-handoff";
 import { loadCanvasResourceHandoffPayloads } from "@/services/canvas-resource-handoff";
@@ -267,8 +267,9 @@ export default function CreatePage() {
     const selectedVideoProfile = mode === "video" ? nativeMediaProfile(config, preferredModel) : undefined;
     const candidateModel = selectedVideoProfile ? preferredModel : resolveCompatibleModel(config, preferredModel, modelRequirements) || preferredModel;
     const selectedModel = availableModels.includes(candidateModel) ? candidateModel : "";
-    const imageProfile = useMemo(() => (selectedModel ? modelCapabilityConfigFor(config, selectedModel).image : undefined), [config, selectedModel]);
-    const videoProfile = useMemo(() => (selectedModel ? modelCapabilityConfigFor(config, selectedModel).video : undefined), [config, selectedModel]);
+    const detailPending = platformModelDetailPending(config, selectedModel);
+    const imageProfile = useMemo(() => (selectedModel && !detailPending ? modelCapabilityConfigFor(config, selectedModel).image : undefined), [config, selectedModel, detailPending]);
+    const videoProfile = useMemo(() => (selectedModel && !detailPending ? modelCapabilityConfigFor(config, selectedModel).video : undefined), [config, selectedModel, detailPending]);
     const nativeProfile = selectedVideoProfile ?? nativeMediaProfile(config, selectedModel);
     const nativeSaved = mode === "video" ? savedNativePreferences.video : savedNativePreferences.image;
     const nativeCreation = nativeProfile
@@ -399,11 +400,12 @@ export default function CreatePage() {
     }, [composerPreferencesHydrated, composerPreferencesInitialized, mode, selectedModel, videoProfile]);
 
     useEffect(() => {
+        if (!selectedModel || detailPending) return;
         const reconciled = mode === "video" && videoReferenceLimits ? reconcileCreationAttachmentLimits(attachments, mentionReferences, videoReferenceLimits) : reconcileCreationAttachmentLimit(attachments, mentionReferences, maxReferences);
         if (reconciled.attachments === attachments) return;
         setAttachments(reconciled.attachments);
         if (reconciled.removedReferences.length) setPrompt((current) => removeCreationReferenceTokens(current, reconciled.removedReferences));
-    }, [attachments, maxReferences, mentionReferences, mode, videoReferenceLimits]);
+    }, [attachments, maxReferences, mentionReferences, mode, videoReferenceLimits, selectedModel, detailPending]);
 
     useEffect(() => {
         if (!userSessionHydrated) return;

@@ -2,7 +2,7 @@ import { defaultImageCapabilityConfig, modelCapabilityConfigFor, normalizeImageV
 import { videoResolutionComparisonKey } from "@/lib/video-generation-options";
 import { imageParameterRequest, imageParameterDefaults, imageParameterAccepts } from "./image-parameters";
 import { imageSizePresets } from "@/lib/image-size-presets";
-import { nativeVideoComposerVariants, nativeImageReferenceVariant, nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
+import { nativeVideoComposerVariants, nativeImageReferenceVariant, nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, platformModelDetailPending } from "@/lib/platform-native-media";
 import { modelOptionName, PUBLIC_MODEL_CATALOG_ID, resolveModelChannel, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
 
 export type ModelInputSummary = {
@@ -121,6 +121,26 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
     const visualInputCount = input ? input.imageCount + input.characterCount : 0;
     const channel = resolveModelChannel(config, model);
     const logicalCost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
+    if (logicalCost?.platform?.state === "summary") {
+        const summary = logicalCost.platform;
+        if (summary.model_type !== capability) return "模型与创作类型不匹配";
+        if (!input || !summary.variants_complete) return "";
+        const candidates = summary.variants || [];
+        const fits = candidates.some((variant) => {
+            if (!variant.references_complete) return true;
+            return [
+                ["image", visualInputCount],
+                ["video", input.videoCount],
+                ["audio", input.audioCount],
+            ].every(([kind, count]) => {
+                const slots = variant.references.filter((ref) => ref.role === `reference_${kind}` || (kind === "image" && ["first_frame", "last_frame"].includes(ref.role)));
+                const minimum = slots.reduce((total, ref) => total + (ref.min_items ?? 0), 0);
+                const maximum = slots.reduce((total, ref) => total + (ref.max_items ?? Number.POSITIVE_INFINITY), 0);
+                return Number(count) >= minimum && Number(count) <= maximum;
+            });
+        });
+        return fits ? "" : "当前参考素材数量不符合该模型能力";
+    }
     const nativeProfile = nativeMediaProfile(config, model);
     if (nativeProfile) {
         const current = nativeMediaVariant(config, model);
@@ -367,6 +387,16 @@ export function mergedImageCapabilityConfig(config: AiConfig, selected: string):
 
 // 切换模型后初始化图片参数为该模型能力默认值，避免旧参数在目标模型族不兼容导致无法切换。
 export function defaultImageParamsForModel(config: AiConfig, model: string): Pick<AiConfig, "size" | "imageResolution" | "quality" | "transparentBackground" | "imageParameters" | "nativeParameters" | "nativeVariantId"> {
+    if (platformModelDetailPending(config, model))
+        return {
+            size: config.size,
+            imageResolution: config.imageResolution,
+            quality: config.quality,
+            transparentBackground: config.transparentBackground,
+            imageParameters: config.imageParameters,
+            nativeParameters: config.nativeParameters,
+            nativeVariantId: config.nativeVariantId,
+        };
     if (nativeMediaProfile(config, model)) return { size: "", imageResolution: "", quality: "", transparentBackground: "false", imageParameters: "{}", ...nativeMediaDefaults(config, model) };
     const image = modelCapabilityConfigFor(config, model).image;
     if (!image) return { size: "1:1", imageResolution: "auto", quality: "auto", transparentBackground: "false" };
@@ -396,6 +426,7 @@ export function resolveModelGenerationDefaults(
     fallback: Partial<ModelGenerationDefaults> = {},
 ): Partial<ModelGenerationDefaults> {
     if (!capability) return {};
+    if (platformModelDetailPending(config, model)) return { ...fallback, ...explicit };
     if (nativeMediaProfile(config, model)) return { ...nativeMediaDefaults(config, model, explicit), imageParameters: "{}", count: "1" };
     const channel = resolveModelChannel(config, model);
     const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));

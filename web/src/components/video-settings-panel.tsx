@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { PlatformNativeMediaSettings, type NativeMediaSettingKey } from "./platform-native-media-settings";
-import { nativeMediaProfile } from "@/lib/platform-native-media";
+import { nativeMediaProfile, platformModelDetailPending } from "@/lib/platform-native-media";
 import { Switch } from "@/components/ui/base/switch";
 
 import { ImageSettingsTheme } from "@/components/image-settings-panel";
@@ -29,6 +29,7 @@ type VideoSettingsPanelProps = {
 };
 
 export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = true, className = "w-[292px] space-y-3" }: VideoSettingsPanelProps) {
+    if (platformModelDetailPending(config)) return <div role="status">等待模型参数加载</div>;
     if (nativeMediaProfile(config))
         return (
             <ImageSettingsTheme theme={theme}>

@@ -70,6 +70,16 @@ type ModelSelection struct {
 // SelectModel is shared by display and admission. Alternatives are never
 // unioned: the selected variant owns its own parameters and native endpoint.
 func SelectModel(m platformclient.Model, variant string) (ModelSelection, error) {
+	return selectModel(m, variant, nil)
+}
+
+// SelectModelFromProfile reuses the decoded published profile while enumerating
+// variants from the same model. Admission still validates the selected contract.
+func SelectModelFromProfile(m platformclient.Model, variant string, profile MediaProfile) (ModelSelection, error) {
+	return selectModel(m, variant, &profile)
+}
+
+func selectModel(m platformclient.Model, variant string, decoded *MediaProfile) (ModelSelection, error) {
 	selected := ModelSelection{Name: m.ModelName, Kind: m.ModelType}
 	if m.ModelName == "" || strings.TrimSpace(m.ModelName) != m.ModelName || json.Unmarshal(m.Price, &selected.Price) != nil || selected.Price.Version == "" || (selected.Price.Status != "available" && selected.Price.Status != "usage_dependent") {
 		return selected, errors.New("模型价格暂不可用")
@@ -100,7 +110,9 @@ func SelectModel(m platformclient.Model, variant string) (ModelSelection, error)
 		return selected, errors.New("模型暂不可用")
 	}
 	var profile MediaProfile
-	if json.Unmarshal(m.MediaGenerationProfile, &profile) != nil {
+	if decoded != nil {
+		profile = *decoded
+	} else if json.Unmarshal(m.MediaGenerationProfile, &profile) != nil {
 		return selected, errors.New("模型能力暂不可用")
 	}
 	if len(profile.Variants) > 0 {

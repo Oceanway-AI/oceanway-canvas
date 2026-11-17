@@ -18,6 +18,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"yingce/backend/internal/catalogtest"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/repository"
@@ -153,8 +154,8 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case strings.HasSuffix(r.URL.Path, "/models"):
-			_, _ = w.Write([]byte(catalog))
+		case catalogtest.Route(r.URL.Path):
+			catalogtest.Write(t, w, r, []byte(catalog))
 		case r.URL.Path == "/api/platform/v1/execution-authorizations":
 			issues++
 			var in map[string]string
@@ -316,6 +317,11 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 	}
 	if nativeProtocol != "" {
 		args.NativeVariantID, args.NativeParameters = "choice", `{"/seed":0,"/metadata":null}`
+		if kind == "image" {
+			// This native image fixture publishes no size field. Explicit public
+			// aliases now must map to the published contract instead of vanishing.
+			args.Size = ""
+		}
 	}
 	state.Calls = []cloudAgentCall{agentMediaCall(args)}
 	if err := s.repo.MutateCloudAgent("user", run.ID, run.Revision, func(current *model.CloudAgentExecution, _ *repository.Repository) error {

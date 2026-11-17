@@ -7,6 +7,12 @@ export type PlatformPrice = {
 };
 
 export type PlatformModel = {
+    state?: "summary" | "detail";
+    price_version?: string;
+    capability_revision?: string;
+    connection_revision?: number;
+    variants_complete?: boolean;
+    variants?: PlatformModelVariantSummary[];
     model_name: string;
     model_type: string;
     model_series?: string;
@@ -27,6 +33,16 @@ export type PlatformModel = {
     media_generation_profile?: Record<string, unknown>;
     [key: string]: unknown;
 };
+
+export type PlatformModelVariantSummary = {
+    id: string;
+    references_complete: boolean;
+    references: { role: string; mime_types: string[]; min_items?: number; max_items?: number }[];
+};
+
+export function platformModelVersion(model: PlatformModel) {
+    return JSON.stringify([model.model_name, model.price_version || model.price.version, model.capability_revision, model.connection_revision]);
+}
 
 export type PlatformSeriesInfo = { name: string; icon?: string; description?: string; display_order?: number };
 export type PlatformModelHealthBucket = { timestamp: number; sample_count: number; success_count: number; success_rate: number | null };
@@ -179,7 +195,7 @@ export function platformHealthTone(rate: number | null) {
 export function platformPriceLabel(price: PlatformPrice) {
     if (price.status === "unavailable") return "价格暂不可用";
     const unit = priceUnits[price.rate_unit || ""];
-    if (price.status === "usage_dependent" || !unit) return "按实际规格报价";
+    if (price.status === "usage_dependent" || price.usage_schema_required === true || !unit) return "按实际规格报价";
     const labels: Record<string, string> = { input: "输入", output: "输出", cached: "缓存", cache_read: "缓存读取", cache_write: "缓存写入", price: "", fixed: "" };
     const rates = Object.entries(price.rates || {})
         .filter(([, value]) => typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value))

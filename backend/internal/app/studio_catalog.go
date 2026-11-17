@@ -31,29 +31,33 @@ func (s *Service) StudioModelCatalog(ctx context.Context, session platformclient
 	}
 	channel := PublicChannelCatalog{ID: StudioPlatformChannelID, Name: "OceanWay", DisplayName: "OceanWay", Models: []PublicChannelModel{}, PlatformGroups: groups}
 	for _, item := range result.Data.Items {
-		selected, selectErr := platformintegration.SelectModel(item, "")
-		var content struct {
-			DisplayName string   `json:"display_name"`
-			Tagline     string   `json:"tagline"`
-			Tags        []string `json:"tags"`
-		}
-		_ = json.Unmarshal(item.Content, &content)
-		tags := make([]model.ChannelModelTag, 0, len(content.Tags))
-		for _, tag := range content.Tags {
-			tags = append(tags, model.ChannelModelTag{Text: tag, Color: "blue"})
-		}
-		m := PublicChannelModel{ID: strconv.Itoa(item.ID), ModelKey: item.ModelName, DisplayName: firstNonEmpty(content.DisplayName, item.ModelName), ChannelLabel: item.DisplayVendor, Description: firstNonEmpty(content.Tagline, item.Description), Icon: item.DisplayIcon, Capability: item.ModelType, Tags: tags, PriceTiers: []PublicChannelModelPriceTier{}, PricingMode: "platform", PriceLabel: "以平台报价为准", Available: selectErr == nil, Platform: wireModels[item.ModelName]}
-		if selectErr != nil {
-			m.UnavailableReason = selectErr.Error()
-		} else {
-			m.Protocol = model.ChannelInterfaceType(studioOACProtocol(selected))
-			m.TextWire = studioTextWire(selected.TextProtocol)
-			m.DefaultOptions = selected.Defaults
-			m.CapabilityConfig = studioCapabilityProjection(selected)
-		}
-		channel.Models = append(channel.Models, m)
+		channel.Models = append(channel.Models, studioCatalogPublicModel(item, wireModels[item.ModelName]))
 	}
 	return &ModelCatalogResponse{Source: "platform", Models: []PublicLogicalModel{}, Channels: []PublicChannelCatalog{channel}}, result.Response, nil
+}
+
+func studioCatalogPublicModel(item platformclient.Model, wire json.RawMessage) PublicChannelModel {
+	selected, selectErr := platformintegration.SelectModel(item, "")
+	var content struct {
+		DisplayName string   `json:"display_name"`
+		Tagline     string   `json:"tagline"`
+		Tags        []string `json:"tags"`
+	}
+	_ = json.Unmarshal(item.Content, &content)
+	tags := make([]model.ChannelModelTag, 0, len(content.Tags))
+	for _, tag := range content.Tags {
+		tags = append(tags, model.ChannelModelTag{Text: tag, Color: "blue"})
+	}
+	m := PublicChannelModel{ID: strconv.Itoa(item.ID), ModelKey: item.ModelName, DisplayName: firstNonEmpty(content.DisplayName, item.ModelName), ChannelLabel: item.DisplayVendor, Description: firstNonEmpty(content.Tagline, item.Description), Icon: item.DisplayIcon, Capability: item.ModelType, Tags: tags, PriceTiers: []PublicChannelModelPriceTier{}, PricingMode: "platform", PriceLabel: "以平台报价为准", Available: selectErr == nil, Platform: wire}
+	if selectErr != nil {
+		m.UnavailableReason = selectErr.Error()
+	} else {
+		m.Protocol = model.ChannelInterfaceType(studioOACProtocol(selected))
+		m.TextWire = studioTextWire(selected.TextProtocol)
+		m.DefaultOptions = selected.Defaults
+		m.CapabilityConfig = studioCapabilityProjection(selected)
+	}
+	return m
 }
 
 // Forward the authorized public wire objects intact. Re-encoding a narrow SDK

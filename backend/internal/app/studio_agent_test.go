@@ -12,10 +12,12 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"yingce/backend/internal/catalogtest"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platformintegration"
 )
@@ -28,11 +30,16 @@ func TestStudioPiModelStepUsesOriginalRunAuthority(t *testing.T) {
 	s.legacyCloudAgentRootTask = false
 	s.activeCancels = make(map[string]context.CancelFunc)
 	issues, submits, releases := 0, 0, 0
+	var catalogUnavailable atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case strings.HasSuffix(r.URL.Path, "/models"):
-			_, _ = w.Write([]byte(`{"success":true,"data":{"items":[{"model_name":"pi-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}}]}}`))
+		case catalogtest.Route(r.URL.Path):
+			if catalogUnavailable.Load() {
+				w.WriteHeader(503)
+				return
+			}
+			catalogtest.Write(t, w, r, []byte(`{"success":true,"data":{"items":[{"model_name":"pi-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}}]}}`))
 		case r.URL.Path == "/api/platform/v1/execution-authorizations":
 			issues++
 			var in map[string]string
@@ -69,6 +76,7 @@ func TestStudioPiModelStepUsesOriginalRunAuthority(t *testing.T) {
 		t.Fatal(err)
 	}
 	session := platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "platform_session=alice"}
+	catalogUnavailable.Store(true)
 	duplicate, _, err := s.CreateStudioCloudAgentRun(context.Background(), "user", session, req, "")
 	if err != nil || duplicate.ID != view.ID {
 		t.Fatalf("duplicate run changed identity: %v", err)
@@ -78,6 +86,7 @@ func TestStudioPiModelStepUsesOriginalRunAuthority(t *testing.T) {
 	if _, _, err := s.CreateStudioCloudAgentRun(context.Background(), "user", session, changed, ""); err == nil {
 		t.Fatal("changed intent reused original run")
 	}
+	catalogUnavailable.Store(false)
 	if _, err := s.CloudAgentRun("other", view.ID); err == nil {
 		t.Fatal("cross-account Agent access")
 	}
@@ -147,11 +156,11 @@ func testStudioPiRuntimeToolRoundTrip(t *testing.T, media bool) {
 		mu.Lock()
 		defer mu.Unlock()
 		switch {
-		case strings.HasSuffix(r.URL.Path, "/models"):
+		case catalogtest.Route(r.URL.Path):
 			if media {
-				_, _ = w.Write([]byte(studioAgentMediaFixtureCatalog))
+				catalogtest.Write(t, w, r, []byte(studioAgentMediaFixtureCatalog))
 			} else {
-				_, _ = w.Write([]byte(`{"success":true,"data":{"items":[{"model_name":"pi-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}}]}}`))
+				catalogtest.Write(t, w, r, []byte(`{"success":true,"data":{"items":[{"model_name":"pi-model","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}}]}}`))
 			}
 		case r.URL.Path == "/api/platform/v1/execution-authorizations":
 			issues++

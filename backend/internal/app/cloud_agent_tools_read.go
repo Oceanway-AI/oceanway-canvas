@@ -32,6 +32,27 @@ func cloudAgentMediaTool(name string) bool { return agenttool.Of(name).Media() }
 // 该上限高于正常画布分页读取所需次数，但足以在异常循环继续消耗模型额度前止损。
 const cloudAgentMaxReadToolCallsPerRun = 32
 
+// Leave room for call arguments and event metadata in the 128 KiB checkpoint.
+// Vision tools persist a separate small receipt and stage image bytes elsewhere.
+const cloudAgentReadResultLimit = 64 << 10
+
+func cloudAgentBoundReadResult(call cloudAgentCall, result any, err error) (any, error) {
+	if !cloudAgentReadToolReadOnly(call.Function.Name) || agenttool.Of(call.Function.Name).Vision {
+		return result, err
+	}
+	raw, encodeErr := json.Marshal(result)
+	if encodeErr == nil && len(raw) <= cloudAgentReadResultLimit {
+		return result, err
+	}
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"reason": "tool_result_too_large", "retryable": false,
+		"guidance": "读取结果超出单次容量，请缩小查询范围或分页读取。相同参数重试无法解决。",
+	}, NewAppError(502, "读取结果超出单次容量，请缩小查询范围或分页读取")
+}
+
 // 同一份缓存结果连续回放达到这个次数时只触发一次软收敛：下一步暂时收起只读工具，
 // 让模型使用已有事实继续回复。这里不直接结束运行，也不把 run 标为 failed。
 const cloudAgentMaxReadReplaysBeforeNudge = 4
@@ -201,7 +222,8 @@ func cloudAgentReadTool(repo *repository.Repository, userID string, state *cloud
 	if !known || binding.Handler.Read == nil {
 		return nil, BadAuthRequest("未知或不可读取的工具")
 	}
-	return binding.Handler.Read(repo, userID, state, call, services...)
+	result, err := binding.Handler.Read(repo, userID, state, call, services...)
+	return cloudAgentBoundReadResult(call, result, err)
 }
 
 func isReadableTextResource(resource *model.Resource) bool {

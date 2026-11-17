@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -27,6 +28,9 @@ func cloudAgentHandleCanvasPreflight(repo *repository.Repository, userID string,
 	args, err := decodeCloudAgentMediaBatchArgs(call.Function.Arguments)
 	if err != nil {
 		return nil, err
+	}
+	if s.UsesPlatformIdentity() && args.Mode != "image" && args.Mode != "video" {
+		return nil, BadAuthRequest("平台预检支持图片和视频")
 	}
 	canvas, err := repo.CanvasProjectForUser(userID, state.Request.CanvasID)
 	if err != nil {
@@ -111,6 +115,19 @@ func cloudAgentHandleCanvasPreflight(repo *repository.Repository, userID string,
 				req, plan, prepareErr := s.prepareCloudAgentMedia(run, probe, itemCall)
 				if prepareErr != nil {
 					fail("准入未通过：" + cloudAgentSafeToolError(prepareErr))
+				} else if s.UsesPlatformIdentity() {
+					selected, selectionErr := s.studioAgentMediaSelection(userID, run.ID, plan.Args.ChannelModelKey, plan.Args.NativeVariantID)
+					if selectionErr == nil {
+						_, selectionErr = s.studioMediaBody(context.Background(), userID, req, selected)
+					}
+					if selectionErr != nil {
+						fail("平台参数或素材检查未通过：" + cloudAgentSafeToolError(selectionErr))
+					} else {
+						videoSeconds += plan.Args.Duration
+						entry["model"], entry["nativeVariantId"] = selected.Name, selected.ID
+						entry["quoteAvailable"] = false
+						entry["quoteStatus"] = "approval_required"
+					}
 				} else {
 					preparation := &creationTaskPreparation{}
 					req.creationPrepare = preparation
@@ -165,18 +182,22 @@ func cloudAgentHandleCanvasPreflight(repo *repository.Repository, userID string,
 	budgetIssues := []string{}
 	if withModel {
 		budget := state.Request.Budget
-		orders, err := repo.BillingOrdersByTaskIDs(userID, state.TaskIDs)
-		if err != nil {
-			return nil, err
-		}
-		remaining := int64(math.Floor(budget.MaxCredits * float64(CreditScale)))
-		for _, order := range orders {
-			remaining -= order.AmountMicrocredits
-		}
-		result["estimatedCredits"] = cloudAgentCreditsLabel(total)
-		result["remainingCredits"] = cloudAgentCreditsLabel(remaining)
-		if total > remaining {
-			budgetIssues = append(budgetIssues, fmt.Sprintf("预计 %s，超过本轮剩余积分 %s", cloudAgentCreditsLabel(total), cloudAgentCreditsLabel(remaining)))
+		if s.UsesPlatformIdentity() {
+			result["fundingAuthority"], result["quoteAvailable"] = "platform", false
+		} else {
+			orders, err := repo.BillingOrdersByTaskIDs(userID, state.TaskIDs)
+			if err != nil {
+				return nil, err
+			}
+			remaining := int64(math.Floor(budget.MaxCredits * float64(CreditScale)))
+			for _, order := range orders {
+				remaining -= order.AmountMicrocredits
+			}
+			result["estimatedCredits"] = cloudAgentCreditsLabel(total)
+			result["remainingCredits"] = cloudAgentCreditsLabel(remaining)
+			if total > remaining {
+				budgetIssues = append(budgetIssues, fmt.Sprintf("预计 %s，超过本轮剩余积分 %s", cloudAgentCreditsLabel(total), cloudAgentCreditsLabel(remaining)))
+			}
 		}
 		if budget.MaxGenerationTasks > 0 && state.Generations+len(items) > budget.MaxGenerationTasks {
 			budgetIssues = append(budgetIssues, fmt.Sprintf("本轮最多还能生成 %d 条", budget.MaxGenerationTasks-state.Generations))
@@ -202,6 +223,9 @@ func cloudAgentHandleCanvasPreflight(repo *repository.Repository, userID string,
 	result["summary"] = summary
 	if result["ok"] == true {
 		result["next"] = "可以用相同参数调用 generate_media_batch 申请一次批准；条目多或模型新时建议 canary=true 先试跑"
+		if s.UsesPlatformIdentity() {
+			result["next"] = "可以逐节点调用 generate_media 申请平台报价和审批，实际提交时重新校验版本、额度和素材"
+		}
 	} else {
 		result["next"] = "先修正失败项（补提示词、等待参考生成完成、移出已有结果的节点或拆批），再重新体检"
 	}

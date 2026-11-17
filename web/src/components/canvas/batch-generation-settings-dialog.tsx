@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "antd";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { X, Play } from "lucide-react";
@@ -29,22 +29,25 @@ type BatchGenerationSettingsDialogProps = {
 export function BatchGenerationSettingsDialog({ open, config, rowCount, concurrency, onClose, onConfirm }: BatchGenerationSettingsDialogProps) {
     const { t } = useTranslation();
     const theme = canvasThemes[useActiveTheme()];
-    const [generationConfig, setGenerationConfig] = useState<AiConfig>(config);
+    const [draftConfig, setGenerationConfig] = useState<AiConfig>(config);
+    const generationConfig = useMemo(() => ({ ...draftConfig, channels: config.channels }), [draftConfig, config.channels]);
+    const configRef = useRef(config);
+    configRef.current = config;
     const [cameraControl, setCameraControl] = useState<CameraControlOptions | undefined>(undefined);
 
     useEffect(() => {
         if (open) {
-            setGenerationConfig(config);
+            setGenerationConfig(configRef.current);
             setCameraControl(undefined);
         }
-    }, [config, open]);
+    }, [open]);
 
     const handleConfigChange = (key: "quality" | "imageResolution" | "imageParameters" | "size" | "transparentBackground" | "count" | "nativeParameters" | "nativeVariantId", value: string) => {
         setGenerationConfig((current) => ({ ...current, [key]: value }));
     };
 
     const handleModelChange = (model: string) => {
-        setGenerationConfig((current) => ({ ...current, model, imageModel: model, ...defaultImageParamsForModel(current, model) }));
+        setGenerationConfig((current) => ({ ...current, model, imageModel: model, ...defaultImageParamsForModel({ ...current, channels: config.channels }, model) }));
     };
 
     const imageModel = generationConfig.imageModel || generationConfig.model;

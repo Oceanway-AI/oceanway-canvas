@@ -79,30 +79,84 @@ func (s *Service) studioSelectTaskModel(ctx context.Context, session platformcli
 	var scope studioCatalogScope
 	if len(scopes) == 1 {
 		scope = scopes[0]
+		if req.Platform != nil {
+			scope.workspace = req.Platform.WorkspaceID
+		}
 		// An exact variant and price identify the schema shown on this signed-in
 		// page. Platform still checks publication, current price, entitlement
 		// and any capability/connection constraints when it accepts the command.
 		pinned := req.Platform != nil && studioSHA256.MatchString(variant) && studioSHA256.MatchString(req.Platform.ExpectedPriceVersion)
 		if m, ok := s.studioMediaCatalog.lookup(scope, name, pinned); ok {
 			selected, err := selectModel(m)
-			if err == nil && selected.GenerationV1 && (req.Platform == nil || req.Platform.ExpectedPriceVersion == "" || req.Platform.ExpectedPriceVersion == selected.Price.Version) {
+			var revisions struct {
+				Capability string `json:"revision"`
+				Connection int64  `json:"connection_revision"`
+			}
+			_ = json.Unmarshal(m.MediaGenerationProfile, &revisions)
+			versionsMatch := req.Platform == nil || (req.Platform.ExpectedPriceVersion == "" || req.Platform.ExpectedPriceVersion == selected.Price.Version) && (req.Platform.ExpectedCapabilityRevision == "" || req.Platform.ExpectedCapabilityRevision == revisions.Capability) && (req.Platform.ExpectedConnectionRevision == 0 || req.Platform.ExpectedConnectionRevision == revisions.Connection)
+			if err == nil && selected.GenerationV1 && versionsMatch {
 				return selected, nil
 			}
 		}
 	}
-	catalog, err := s.studioPlatform.Client.Models(ctx, session)
-	catalog.Response.AppendCookies(response.Header)
-	if err != nil {
-		return platformintegration.ModelSelection{}, platformIdentityError(err)
+	query := platformclient.ModelDetailQuery{ModelName: name, VariantID: variant}
+	if req.Platform != nil {
+		query.WorkspaceID = req.Platform.WorkspaceID
+		query.ExpectedPriceVersion = req.Platform.ExpectedPriceVersion
+		query.ExpectedCapabilityRevision = req.Platform.ExpectedCapabilityRevision
+		query.ExpectedConnectionRevision = req.Platform.ExpectedConnectionRevision
 	}
-	s.studioMediaCatalog.remember(scope, catalog.Data.Items)
-	for _, m := range catalog.Data.Items {
-		if m.ModelName == name {
-			return selectModel(m)
+	// Existing saved requests may predate summary revisions. Resolve only their
+	// named model, then require that exact price/capability/connection for detail.
+	if query.ExpectedPriceVersion == "" || req.Type != "canvas_text" && (query.ExpectedCapabilityRevision == "" || query.ExpectedConnectionRevision == 0) {
+		pageQuery := platformclient.ModelSummaryQuery{WorkspaceID: query.WorkspaceID, Query: name, Limit: 50}
+		found := false
+		seenCursors := map[string]bool{}
+		revision := ""
+		for !found {
+			page, err := s.studioPlatform.Client.ModelSummaries(ctx, session, pageQuery)
+			page.Response.AppendCookies(response.Header)
+			if err != nil {
+				return platformintegration.ModelSelection{}, studioCatalogError(err)
+			}
+			if page.Data.Version != platformclient.ModelCatalogVersion || page.Data.State != "summary" || page.Data.CatalogRevision == "" || revision != "" && revision != page.Data.CatalogRevision {
+				return platformintegration.ModelSelection{}, NewAppError(409, "模型目录已更新，请刷新后继续")
+			}
+			revision = page.Data.CatalogRevision
+			for _, summary := range page.Data.Items {
+				if summary.ModelName == name {
+					resolved := studioSummaryDetailQuery(summary, variant)
+					resolved.WorkspaceID = query.WorkspaceID
+					if query.ExpectedPriceVersion != "" {
+						resolved.ExpectedPriceVersion = query.ExpectedPriceVersion
+					}
+					if query.ExpectedCapabilityRevision != "" {
+						resolved.ExpectedCapabilityRevision = query.ExpectedCapabilityRevision
+					}
+					if query.ExpectedConnectionRevision != 0 {
+						resolved.ExpectedConnectionRevision = query.ExpectedConnectionRevision
+					}
+					query, found = resolved, true
+					break
+				}
+			}
+			if !found && (!page.Data.HasMore || page.Data.NextCursor == "" || seenCursors[page.Data.NextCursor]) {
+				return platformintegration.ModelSelection{}, BadAuthRequest("所选平台模型暂不可用，请刷新模型目录")
+			}
+			seenCursors[page.Data.NextCursor] = true
+			pageQuery.Cursor = page.Data.NextCursor
 		}
 	}
-
-	return platformintegration.ModelSelection{}, BadAuthRequest("所选平台模型暂不可用，请刷新模型目录")
+	detail, err := s.studioPlatform.Client.ModelDetail(ctx, session, query)
+	detail.Response.AppendCookies(response.Header)
+	if err != nil {
+		return platformintegration.ModelSelection{}, studioCatalogError(err)
+	}
+	if err := studioValidateCatalogDetail(detail.Data, query); err != nil {
+		return platformintegration.ModelSelection{}, err
+	}
+	s.studioMediaCatalog.rememberDetail(scope, detail.Data.Model)
+	return selectModel(detail.Data.Model)
 }
 
 type StudioTaskPreview struct {
@@ -246,7 +300,56 @@ func studioDecodeInput(req CreateTaskRequest) (canvasGenerationInput, error) {
 	if cfg.ChannelID != StudioPlatformChannelID || cfg.APIKey != "" || cfg.SecretKey != "" || cfg.BaseURL != "" || len(cfg.Headers) > 0 || cfg.WorkflowID != "" || cfg.RunningHubWalletKey != "" || cfg.RunningHubUploadKey != "" || req.Provider != "" && req.Provider != "platform" || req.LogicalModelID != "" {
 		return input, BadAuthRequest("Studio 仅支持已发布的平台模型")
 	}
+	if err := studioResolveVideoFrameReferences(&input); err != nil {
+		return input, err
+	}
 	return input, nil
+}
+
+func studioResolveVideoFrameReferences(input *canvasGenerationInput) error {
+	start := metadataString(input.Metadata, "videoStartFrameNodeId")
+	end := metadataString(input.Metadata, "videoEndFrameNodeId")
+	if start == "" && end == "" {
+		return nil
+	}
+	foundStart, foundEnd := start == "", end == ""
+	images := make([]providerMedia, 0, len(input.ReferenceImages)+1)
+	frames := map[string]providerMedia{}
+	for _, ref := range input.ReferenceImages {
+		if ref.ID != start && ref.ID != end {
+			images = append(images, ref)
+			continue
+		}
+		if ref.Role != "" && ref.Role != "reference" && ref.Role != "reference_image" && !(ref.ID == start && ref.Role == "first_frame") && !(ref.ID == end && ref.Role == "last_frame") {
+			return BadAuthRequest("视频首尾帧选择与图片参考角色冲突")
+		}
+		identity := ref
+		identity.Role = ""
+		if previous, ok := frames[ref.ID]; ok {
+			if previous != identity {
+				return BadAuthRequest("同一首尾帧节点存在不同参考内容")
+			}
+			continue
+		}
+		frames[ref.ID] = identity
+		if ref.ID == start {
+			frame := ref
+			frame.Role = "first_frame"
+			images = append(images, frame)
+			foundStart = true
+		}
+		if ref.ID == end {
+			frame := ref
+			frame.Role = "last_frame"
+			images = append(images, frame)
+			foundEnd = true
+		}
+	}
+	if !foundStart || !foundEnd {
+		return BadAuthRequest("视频首尾帧必须包含在本次图片参考中")
+	}
+	input.ReferenceImages = images
+	return nil
 }
 
 func studioParameterName(key string) string {

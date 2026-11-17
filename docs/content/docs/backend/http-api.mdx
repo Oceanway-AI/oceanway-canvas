@@ -42,6 +42,10 @@ Platform 素材 `state=trashed` 时，显式新采用返回409；原 Resource �
 
 ## OceanWay Studio 首批接口边界
 
+Studio 的浏览器模型列表使用 `GET /api/model-catalog/summaries`，支持 `model_type/query/cursor/limit/workspace_id`。每页返回 `catalogRevision/nextCursor/hasMore`，浏览器逐页合并同一目录版本。`GET /api/model-catalog/detail` 按 `model_name` 获取详情，携带 `expected_price_version`，图片和视频还需 `expected_capability_revision/expected_connection_revision`。可用 `variant_id` 选择精确变体。目录版本冲突返回409。两个接口均校验当前账号并返回 `private, no-store`，模型详情仅进入当前会话内存。
+
+Agent 新轮次冻结摘要和所选文本能力，`model_list` 默认12项、最多24项、单页48 KiB，使用 `offset/nextOffset/hasMore` 分页。`channelModelKey/nativeVariantId` 用于读取精确参数。完整变体通过原有效执行授权读取并合并到加密运行记录。审批仍按当前账号重新核对能力、连接、价格和报价期限。旧轮次继续使用原冻结目录，原请求恢复保持原操作身份。普通只读工具回执超过64 KiB时持久化 `tool_result_too_large` 失败，模型可据此缩小查询范围。
+
 当前可执行入口使用 `RegisterStudioAPI`；下文上游接口清单不代表都已在新 Studio 开放。已开放 Platform 身份、模型目录、素材 v2、文本/图片/视频任务、原生 Pi、画布持久化/编辑租约/实时连接及外观/功能查询。旧密码认证、支付和供应商代理等未挂载接口返回 HTTP 501，`msg` 为“此功能暂不可用”；阶段内不暴露旧 `/api/openapi.yaml`。首发关闭短剧、电商、独立图片/视频工作台、插件、转写、外部灵感源等尚未接通的功能标志，旧配置不能重新启用这些入口。
 
 | 接口 | 当前合同 |

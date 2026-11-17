@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"yingce/backend/internal/catalogtest"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platformintegration"
 )
@@ -43,8 +44,8 @@ func TestStudioAgentSuccessfulOutputCorrection(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				switch r.URL.Path {
-				case "/api/platform/v1/products/studio/models":
-					io.WriteString(w, `{"success":true,"data":{"items":[{"model_name":"m","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}}]}}`)
+				case "/api/platform/v1/products/studio/models", "/api/platform/v1/products/studio/model-catalog/summaries", "/api/platform/v1/products/studio/model-catalog/detail":
+					catalogtest.Write(t, w, r, []byte(`{"success":true,"data":{"items":[{"model_name":"m","model_type":"text","invocation_status":"published_text","supported_protocols":["openai-chat"],"price":{"status":"available","version":"p1"}}]}}`))
 				case "/api/platform/v1/execution-authorizations":
 					var request map[string]string
 					if err := json.NewDecoder(r.Body).Decode(&request); err != nil {

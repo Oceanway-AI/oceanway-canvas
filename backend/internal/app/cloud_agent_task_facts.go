@@ -12,30 +12,38 @@ import (
 // Keep this typed: canvas reads, task_get and the fresh context frame must not
 // independently invent string-key contracts for the same execution facts.
 type cloudAgentTaskFacts struct {
-	TaskID             string                       `json:"taskId"`
-	TaskStatus         model.TaskStatus             `json:"taskStatus"`
-	TaskType           string                       `json:"taskType,omitempty"`
-	Operation          string                       `json:"operation,omitempty"`
-	AgentRunID         string                       `json:"agentRunId,omitempty"`
-	GenerationID       string                       `json:"generationId,omitempty"`
-	ApprovalID         string                       `json:"approvalId,omitempty"`
-	NodeID             string                       `json:"nodeId,omitempty"`
-	TaskSubmitted      bool                         `json:"taskSubmitted"`
-	SubmissionOutcome  string                       `json:"submissionOutcome"`
-	Phase              string                       `json:"phase,omitempty"`
-	DiagnosticCode     string                       `json:"diagnosticCode,omitempty"`
-	DiagnosticID       string                       `json:"diagnosticId,omitempty"`
-	FieldPath          string                       `json:"fieldPath,omitempty"`
-	RetryClass         string                       `json:"retryClass,omitempty"`
-	Error              string                       `json:"error,omitempty"`
-	WritebackOutcome   string                       `json:"writebackOutcome,omitempty"`
-	WritebackReason    string                       `json:"writebackReason,omitempty"`
-	WritebackNodeID    string                       `json:"writebackNodeId,omitempty"`
-	WritebackError     string                       `json:"writebackError,omitempty"`
-	CancellationSource string                       `json:"cancellationSource,omitempty"`
-	CancellationAt     *time.Time                   `json:"cancellationRequestedAt,omitempty"`
-	SubmissionReceipt  *cloudAgentSubmissionReceipt `json:"submissionReceipt,omitempty"`
-	Billing            *cloudAgentTaskBillingFacts  `json:"billing,omitempty"`
+	TaskID             string                          `json:"taskId"`
+	TaskStatus         model.TaskStatus                `json:"taskStatus"`
+	TaskType           string                          `json:"taskType,omitempty"`
+	Operation          string                          `json:"operation,omitempty"`
+	AgentRunID         string                          `json:"agentRunId,omitempty"`
+	GenerationID       string                          `json:"generationId,omitempty"`
+	ApprovalID         string                          `json:"approvalId,omitempty"`
+	NodeID             string                          `json:"nodeId,omitempty"`
+	TaskSubmitted      bool                            `json:"taskSubmitted"`
+	SubmissionOutcome  string                          `json:"submissionOutcome"`
+	Phase              string                          `json:"phase,omitempty"`
+	DiagnosticCode     string                          `json:"diagnosticCode,omitempty"`
+	DiagnosticID       string                          `json:"diagnosticId,omitempty"`
+	FieldPath          string                          `json:"fieldPath,omitempty"`
+	RetryClass         string                          `json:"retryClass,omitempty"`
+	Error              string                          `json:"error,omitempty"`
+	WritebackOutcome   string                          `json:"writebackOutcome,omitempty"`
+	WritebackReason    string                          `json:"writebackReason,omitempty"`
+	WritebackNodeID    string                          `json:"writebackNodeId,omitempty"`
+	WritebackError     string                          `json:"writebackError,omitempty"`
+	CancellationSource string                          `json:"cancellationSource,omitempty"`
+	CancellationAt     *time.Time                      `json:"cancellationRequestedAt,omitempty"`
+	SubmissionReceipt  *cloudAgentSubmissionReceipt    `json:"submissionReceipt,omitempty"`
+	Billing            *cloudAgentTaskBillingFacts     `json:"billing,omitempty"`
+	PlatformBilling    *cloudAgentPlatformBillingFacts `json:"platformBilling,omitempty"`
+}
+
+type cloudAgentPlatformBillingFacts struct {
+	FundsState     string `json:"fundsState"`
+	SettledPoints  string `json:"settledPoints,omitempty"`
+	StateAvailable bool   `json:"stateAvailable"`
+	Summary        string `json:"summary"`
 }
 
 type cloudAgentSubmissionReceipt struct {
@@ -106,7 +114,22 @@ func cloudAgentTaskDiagnostic(repo *repository.Repository, task *model.Task) map
 	} else if task.Status == model.TaskStatusFailed || task.Status == model.TaskStatusCancelled {
 		facts.Error = cloudAgentSafeMediaTaskError(task)
 	}
-	if task.BillingOrderID != "" {
+	if task.Provider == "platform" {
+		billing := &cloudAgentPlatformBillingFacts{FundsState: "unknown", Summary: "当前任务尚无平台结算回执，费用未知"}
+		var result struct {
+			FundsState    string `json:"fundsState"`
+			SettledPoints string `json:"settledPoints"`
+		}
+		if json.Unmarshal([]byte(task.ResultJSON), &result) == nil && result.FundsState != "" {
+			billing.FundsState, billing.StateAvailable = result.FundsState, true
+			billing.Summary = "平台正在处理本任务资金，实际费用以结算回执为准"
+			if result.FundsState == "settled" && studioValidDecimal(result.SettledPoints) {
+				billing.SettledPoints = result.SettledPoints
+				billing.Summary = "本任务已结算，settledPoints 为实际平台积分"
+			}
+		}
+		facts.PlatformBilling = billing
+	} else if task.BillingOrderID != "" {
 		facts.Billing = &cloudAgentTaskBillingFacts{
 			OrderID: task.BillingOrderID, AuthorizedChargeMicrocredits: task.AuthorizedChargeMicrocredits,
 		}

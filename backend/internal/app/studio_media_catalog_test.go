@@ -61,11 +61,11 @@ func TestStudioOpenTabUsesOnlyAnExactPublishedSchemaAfterCatalogExpiry(t *testin
 			catalogGets := 0
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				catalogGets++
-				if r.Method != "GET" || r.URL.Path != "/api/platform/v1/products/studio/models" {
+				if r.Method != "GET" || r.URL.Path != "/api/platform/v1/products/studio/model-catalog/summaries" {
 					t.Errorf("unexpected call %s %s", r.Method, r.URL.Path)
 				}
 				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(`{"success":true,"data":{"items":[]}}`))
+				_, _ = w.Write([]byte(`{"success":true,"data":{"version":"model-catalog.v1","state":"summary","catalog_revision":"empty","items":[]}}`))
 			}))
 			defer server.Close()
 			client, err := platformclient.NewClient(platformclient.Config{Origin: server.URL, Product: "studio", ProductKey: "fixture.secret", AllowedSessionHosts: []string{host}, AllowedOrigins: []string{"https://" + host}})
