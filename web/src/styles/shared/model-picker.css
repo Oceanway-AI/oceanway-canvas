@@ -1443,6 +1443,10 @@ html:not(.dark) .creation-home .creation-chat-composer .creation-model-picker.ca
     gap: 3px;
     font-size: 10px;
 }
+.ow-studio-picker-menu .canvas-model-picker-media-heading > .model-picker-price {
+    display: block;
+    white-space: nowrap;
+}
 .ow-studio-picker-menu .model-picker-price-icon {
     width: 10px;
     height: 10px;
