@@ -1438,3 +1438,18 @@ html:not(.dark) .creation-home .creation-chat-composer .creation-model-picker.ca
 .ow-studio-picker-menu .canvas-model-picker-option {
     width: 100%;
 }
+.ow-studio-picker-menu .canvas-model-picker-option .model-picker-price {
+    padding: 1px 4px;
+    gap: 3px;
+    font-size: 10px;
+}
+.ow-studio-picker-menu .model-picker-price-icon {
+    width: 10px;
+    height: 10px;
+    flex-basis: 10px;
+}
+.ow-studio-picker-menu .canvas-model-picker-media-copy .model-tags .model-tag {
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 1.4;
+}
