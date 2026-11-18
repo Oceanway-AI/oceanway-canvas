@@ -15,7 +15,7 @@ import { useEffectiveConfig } from "@/stores/use-config-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { dramaSegmentQuoteMissing, dramaSegmentVideoRequirements, dramaVideoOptionFor, SEGMENT_NO_QUOTE_HINT } from "./segment-quote";
 
-import { CAST_KIND_LABEL, formatCredits, mediaBusy, MediaThumb } from "../drama-shared";
+import { CAST_KIND_LABEL, mediaBusy, MediaThumb } from "../drama-shared";
 import { promptReady, secondsLabel, SegmentStatus, SegmentVideo, videoWaitLabel } from "./segment-parts";
 import { DramaTakeList } from "./take-list";
 import { CanvasResourceMentionTextarea } from "@/components/canvas/canvas-resource-mention-textarea";
@@ -217,10 +217,6 @@ export function SegmentDialog({
                                 <div>
                                     <dt>进入成片</dt>
                                     <dd>{segment.videoSeconds ? `${segment.videoSeconds} 秒` : "—"}</dd>
-                                </div>
-                                <div>
-                                    <dt>上次花费</dt>
-                                    <dd>{segment.videoJob ? `${formatCredits(segment.videoJob.costMicrocredits)} 积分` : "—"}</dd>
                                 </div>
                             </dl>
                             <DramaTakeList projectId={detail.episode.projectId} ownerId={segment.id} kind="video" />

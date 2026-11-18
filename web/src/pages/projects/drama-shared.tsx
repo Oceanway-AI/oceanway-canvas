@@ -25,7 +25,7 @@ export const STAGE_LABEL: Record<DramaEpisodeStage, string> = {
     done: "已完成",
 };
 
-export { DRAMA_CAST_KIND_LABEL as CAST_KIND_LABEL, DRAMA_STATUS_LABEL as STATUS_LABEL, formatDramaCredits as formatCredits } from "@/lib/drama/drama-format";
+export { DRAMA_CAST_KIND_LABEL as CAST_KIND_LABEL, DRAMA_STATUS_LABEL as STATUS_LABEL } from "@/lib/drama/drama-format";
 
 /** 段落衔接方式的文案：新建页与设置页共用。 */
 export const VIDEO_CONTINUITY_LABEL: Record<DramaVideoContinuity, { title: string; detail: string }> = {

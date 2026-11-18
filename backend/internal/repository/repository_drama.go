@@ -644,12 +644,12 @@ func (r *Repository) SaveDramaJob(job *model.DramaJob) error {
 	return r.db.Save(job).Error
 }
 
-// RecordDramaJobCost 按 attempts_json 乐观锁写入本次任务的去重记录与作业花费：结算后先落库再应用结果，
-// 中断恢复时已记录的任务不会再记一次。作品花费按订单汇总（DramaBillingTotals），这里不改 drama_productions。
-func (r *Repository) RecordDramaJobCost(job *model.DramaJob, previousAttempts string) error {
+// RecordDramaJobAttempt 按 attempts_json 乐观锁保存任务处理记录。
+// 中断恢复时沿原任务应用结果，冲突时由下一轮读取最新作业。
+func (r *Repository) RecordDramaJobAttempt(job *model.DramaJob, previousAttempts string) error {
 	result := r.db.Model(&model.DramaJob{}).
 		Where("id = ? AND project_id = ? AND task_id = ? AND COALESCE(attempts_json, '') = ?", job.ID, job.ProjectID, job.TaskID, previousAttempts).
-		Updates(map[string]any{"attempts_json": job.AttemptsJSON, "cost_microcredits": job.CostMicrocredits, "updated_at": time.Now()})
+		Updates(map[string]any{"attempts_json": job.AttemptsJSON, "updated_at": time.Now()})
 	if result.Error != nil {
 		return result.Error
 	}
@@ -817,7 +817,7 @@ func (r *Repository) SaveDramaProductionProgress(production *model.DramaProducti
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 		if err := tx.Model(&model.DramaProduction{}).Where("project_id = ?", production.ProjectID).Updates(map[string]any{
-			"stage": production.Stage, "bible_json": production.BibleJSON, "spent_microcredits": production.SpentMicrocredits,
+			"stage": production.Stage, "bible_json": production.BibleJSON,
 			"plan_done": production.PlanDone, "last_tick_at": production.LastTickAt, "updated_at": now,
 		}).Error; err != nil {
 			return err

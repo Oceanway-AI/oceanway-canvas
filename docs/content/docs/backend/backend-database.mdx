@@ -13,7 +13,7 @@ description: Studio PostgreSQL 业务表、Platform 主体与清理边界
 
 v99 移除 `resources` 和 `resource_deletion_jobs` 的 `endpoint`、`bucket`、`storage_setting_id` 六列。迁移前检查独立存储 provider 和非空旧位置，发现历史对象时停止并保留整个原事务。Platform 素材继续使用固定 Resource／Binding ID，系统本地清理任务继续使用 ObjectKey。迁移失败可修复原因后重入。旧 v98 制品无法使用 v99 数据库，回退到 v98 需恢复配套备份；在线回退须选择支持 v99 的制品。
 
-v100 移除 `ecommerce_agent_runs` 的 `billing_order_id`、`unit_microcredits`。电商创作保留页结果、取消状态、画布版本和用户幂等键，费用交由 Platform。旧结构制品不能直接连接 v100 数据库，回退需采用支持 v100 的制品或恢复对应备份。
+v100 移除 `ecommerce_agent_runs` 的 `billing_order_id`、`unit_microcredits`，`drama_productions` 的 `budget_microcredits`、`spent_microcredits` 及 `drama_jobs` 的 `cost_microcredits`。电商创作保留页结果、取消状态、画布版本和用户幂等键，短剧保留任务绑定、状态和历次执行记录，费用交由 Platform。旧结构制品不能直接连接 v100 数据库，回退需采用支持 v100 的制品或恢复对应备份。
 
 方舟认证会话和素材组的保留创作模型已移除 `billing_order_id`，认证、审核与入库源码沿原流程维护。`ark_portrait_*` 属于 Studio 退出表，不在 v98—v100 正式库中创建，也不额外迁移这些旧表。Platform 模式下方舟建组入口返回暂不可用，接入平台授权后另行验收。
 
@@ -168,18 +168,19 @@ Studio schema 94 新增 `studio_executions`：任务 ID、用户/command 唯一�
 
 | 表 | 用途 | 约束 |
 | --- | --- | --- |
-| `drama_productions` | 每个项目一行的控制面：`status`（draft/running/paused/completed）、全剧阶段 `stage`、作品设置 `settings_json`、作品圣经摘要 `bible_json`、预算与已用积分、分集游标 `plan_cursor` / `plan_done`、样片确认 `sample_approved`、参考图放行 `assets_released`、暂停原因 | 主键 `project_id`；用户操作只写状态、设置、预算与确认列；调度循环只写进度列，状态变更带 `status = running` 条件 |
+| `drama_productions` | 每个项目一行的控制面：`status`（draft/running/paused/completed）、全剧阶段 `stage`、作品设置 `settings_json`、作品圣经摘要 `bible_json`、分集游标 `plan_cursor` / `plan_done`、样片确认 `sample_approved`、参考图放行 `assets_released`、暂停原因 | 主键 `project_id`；用户操作只写状态、设置与确认列；调度循环只写进度列，状态变更带 `status = running` 条件 |
 | `drama_casts` | 全剧设定：角色（`kind=character`，含别名、外貌与声线 `voice_instructions`）、关键道具（`kind=prop`）和场景（`kind=scene`），当前参考图 `image_resource_id` 与状态 | 作品圣经建档；剧本里首次出现的人物、道具或地点即时建档，按标准名与别名归并；锁定后不再重新生成 |
 | `drama_episodes` | 集标题、大纲、钩子、悬念、素材类型 `source_format`（Schema 73）、阶段（queued → script → prompts → review → video → render → done）、`approved`（逐集确认模式下已确认本集提示词）、`media_released`、错误、成片资源、`final_stale`、`revision` | `(project_id, number)` 唯一；用户修改递增 `revision`，调度写入以 `revision` 为条件 |
 | `drama_shots` | 镜头脚本：剧情段 `segment_index` / `segment_title`、场景与场景设定 `scene_cast_id`、出场角色 `cast_ids_json`、关键道具 `prop_ids_json`、说话人、台词、动作、景别、运镜、转场 `transition`、时长、起幅画面 `image_prompt`、运动描述 `video_prompt`、原文出处 | 镜头只是撰写段提示词的素材，不产出媒体；修改后所在段的提示词与视频标记过期 |
 | `drama_segments` | 剧情段：模型撰写的完整视频提示词 `video_prompt`、撰写状态 `prompt_status`（空串待撰写、`running`、`ready`、`stale`、`failed`）与 `prompt_error`、撰写时的秒数 `prompt_seconds`、用户改写 `video_prompt_override`、按段视频模型 `video_model_json`、用户指定的参考图 `reference_cast_ids_json`（Schema 74）、视频状态 `video_status`、`video_resource_id`、`video_seconds`、`video_error`、本段视频最后一帧 `tail_frame_resource_id`、`revision` | `(episode_id, segment_index)` 唯一；剧本写入时建行，重新改编时重建；结果按 `revision` 条件写入，过期结果作废；某段视频变化会让后续已生成的段过期（它们承接的是旧最后一帧） |
 | `drama_takes` | 历史版本：设定参考图（`cast`）、剧情段视频（`video`，`owner_id` 为段 ID）与单集成片（`final`） | `(owner_id, kind)` 内递增 `version`；版本始终入库 |
-| `drama_jobs` | 调度队列：类型（bible/plan/cast_image/script/segment_prompt/segment_video/render）、目标、优先级、关联任务、重试次数、历次提交 `attempts_json`、错误、实际花费 | 任务在派发时才创建；`segment_prompt` / `segment_video` 的 `shot_id` 存放 `drama_segments.id` |
+| `drama_jobs` | 调度队列：类型（bible/plan/cast_image/script/segment_prompt/segment_video/render）、目标、优先级、关联任务、重试次数、历次提交 `attempts_json`、错误 | 任务在派发时才创建；`segment_prompt` / `segment_video` 的 `shot_id` 存放 `drama_segments.id` |
 
 参考图方案 `settings_json.assets` 新增可选的 `resolution`（`1k` / `1.5k` / `2k` / `4k`，空串按图片模型默认档位），不改表结构；旧作品没有该字段，按模型默认档位处理。
 
-短剧任务派发时，任务、计费预留与 `drama_jobs.task_id/status/started_at` 在同一事务中提交，绑定只在作业仍处于派发前的状态时生效（被取消或已绑定其他任务时整笔回滚），提交后才唤醒执行队列；提示词精简续任务和本地成片渲染也遵循这一边界。任务结算后先在 `drama_jobs` 上按 `attempts_json` 乐观锁原子写入去重记录与作业花费，再应用生成结果，中断恢复不会重复记账。作品花费仍以订单汇总为准，`drama_productions.spent_microcredits` 由调度按汇总回写。此调整不改变表结构。
-精修画布不新增表或列：作品的精修画布是 `canvas_projects.project_id` 等于作品 ID 的画布；作品花费（流水线与画布）都在读取时按 `tasks.billing_order_id` 关联 `billing_orders` 汇总（`repository.DramaBillingTotals`）：已结算取 `actual_amount_microcredits`，已退回不计，其余状态按 `amount_microcredits` 计为冻结额。`drama_productions.spent_microcredits` 只是流水线实收的缓存，调度时按汇总结果回写，展示与预算不以它为准；投送到画布的媒体在 `assets` 登记 ID 为 `drama-<resourceId>` 的素材入口（`payload_json.metadata.source=short-drama`），不复制文件。从画布采用的版本在 `drama_takes` 中按产出任务所属画布或 `prompt="画布采用"` 判断来源。
+短剧任务派发时，任务与 `drama_jobs.task_id/status/started_at` 在同一事务中提交，绑定只在作业仍处于派发前的状态时生效。期间被取消或绑定其他任务时整笔回滚，提交后唤醒执行队列。提示词精简续任务和本地成片渲染沿相同边界执行。任务结束后先按 `attempts_json` 乐观锁保存去重记录，再应用生成结果，中断恢复继续处理原任务。
+
+作品精修画布通过 `canvas_projects.project_id` 关联作品。投送到画布的媒体在 `assets` 登记 ID 为 `drama-<resourceId>` 的素材入口，`payload_json.metadata.source=short-drama`。从画布采用的版本在 `drama_takes` 中按产出任务所属画布或 `prompt="画布采用"` 判断来源。短剧列表、设置、队列和 Agent 读取已退出本地预算、冻结额和费用汇总，工作量估算继续提供集数、镜头、参考图、视频及文本调用数量。
 
 剧情段按连续场景切分，并保证每段总时长不超过所选视频模型的单次上限；单个镜头超过上限时改编失败并提示调整分镜规则。第 2 段起的视频请求以上一段视频的最后一帧作为首帧（`image_to_video`），上一段未生成时本段排队等待；开场段使用参考图（`reference_to_video`），模型不支持时退回 `text_to_video`。参考图按“角色 → 道具 → 场景”编号，与提示词里的“参考图N”一致，提交时在提示词开头追加对应说明。最后一帧由后端用 ffmpeg 抽取，镜像需包含 ffmpeg。
 

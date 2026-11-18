@@ -5,7 +5,6 @@ import { AlertCircle, ChevronDown, ChevronRight, ChevronUp, Loader2, RotateCcw }
 
 import { listDramaJobs, type DramaJob, type DramaSummary } from "@/services/api/drama";
 
-import { formatCredits } from "../drama-shared";
 import { formatJobTime, JOB_KIND_LABEL, JobDetailModal, JobStatusIcon } from "./job-detail";
 import { dramaKeys } from "./use-studio";
 
@@ -15,18 +14,13 @@ export function QueueBar({ projectId, summary, retrying, onRetry, onJump }: { pr
     const [open, setOpen] = useState(false);
     const [filter, setFilter] = useState<JobFilter>("all");
     const [detailJob, setDetailJob] = useState<DramaJob>();
-    const { jobCounts, production } = summary;
+    const { jobCounts } = summary;
     const failedItems = summary.inbox.filter((item) => item.kind === "segment_failed" || item.kind === "cast_failed" || item.kind === "episode_error").length;
     const jobsQuery = useQuery({ queryKey: dramaKeys.jobs(projectId), queryFn: ({ signal }) => listDramaJobs(projectId, 120, signal), enabled: open, refetchInterval: open ? 3_000 : false });
     const jobs = useMemo(
         () => (jobsQuery.data?.jobs || []).filter((job) => filter === "all" || (filter === "failed" ? job.status === "failed" || Boolean(job.error && job.status === "queued") : job.status === "running" || job.status === "queued")),
         [filter, jobsQuery.data],
     );
-    const budget = production.budgetMicrocredits;
-    const held = production.heldMicrocredits || 0;
-    // 预算进度与后端预算判断同一口径：已扣费加未结算订单的冻结额。
-    const committed = production.spentMicrocredits + held;
-    const usage = budget ? Math.min(1, committed / budget) : 0;
     return (
         <div className="drama-queue">
             <div className="drama-queue-bar">
@@ -50,16 +44,7 @@ export function QueueBar({ projectId, summary, retrying, onRetry, onJump }: { pr
                         全部重试
                     </Button>
                 ) : null}
-                <span className="drama-queue-budget">
-                    {budget ? (
-                        <span className="drama-queue-meter">
-                            <span className={usage >= 0.9 ? "is-warn" : ""} style={{ width: `${Math.max(usage * 100, committed ? 3 : 0)}%` }} />
-                        </span>
-                    ) : null}
-                    已用 <b>{formatCredits(production.spentMicrocredits)}</b>
-                    {held > 0 ? <> · 冻结 {formatCredits(held)}</> : null}
-                    {budget ? <> / {formatCredits(budget)} 积分</> : " 积分 · 不限预算"}
-                </span>
+
                 <button type="button" className="drama-queue-toggle" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
                     {open ? <ChevronDown className="size-3.5" /> : <ChevronUp className="size-3.5" />}
                     {open ? "收起队列" : "展开队列"}
@@ -100,7 +85,6 @@ export function QueueBar({ projectId, summary, retrying, onRetry, onJump }: { pr
                                     </span>
                                 )}
                                 <span className="drama-job-time">{formatJobTime(job.finishedAt || job.startedAt || job.createdAt)}</span>
-                                <span className="drama-job-cost">{job.costMicrocredits ? `${formatCredits(job.costMicrocredits)} 积分` : ""}</span>
                                 <ChevronRight className="drama-job-chevron size-3.5" />
                             </button>
                         ))}

@@ -500,56 +500,6 @@ func (s *Service) backfillDramaSegmentTail(userID string, segment model.DramaSeg
 	return err
 }
 
-// dramaCanvasSpent 是关联到作品的画布上生成任务的预算占用：已结算按实收、未结算按冻结额、已退回不计。
-func (s *Service) dramaCanvasSpent(production *model.DramaProduction) (int64, error) {
-	totals, err := s.dramaBillingTotals(production)
-	if err != nil {
-		return 0, err
-	}
-	return totals.CanvasChargedMicrocredits + totals.CanvasHeldMicrocredits, nil
-}
-
-// dramaTotalSpent 是预算判断使用的作品总占用，与调度派发同一口径：流水线与画布精修的实收，加上所有未结算订单的冻结额。
-func (s *Service) dramaTotalSpent(production *model.DramaProduction) (int64, error) {
-	totals, err := s.dramaBillingTotals(production)
-	if err != nil {
-		return 0, err
-	}
-	return totals.ChargedMicrocredits() + totals.HeldMicrocredits(), nil
-}
-
-func (s *Service) dramaBudgetExhausted(production *model.DramaProduction) (bool, error) {
-	if production.BudgetMicrocredits <= 0 {
-		return false, nil
-	}
-	spent, err := s.dramaTotalSpent(production)
-	if err != nil {
-		return false, err
-	}
-	return spent >= production.BudgetMicrocredits, nil
-}
-
-// ensureDramaCanvasBudget 在画布任务创建时检查关联作品的预算；未关联短剧或不限预算时放行。
-func (s *Service) ensureDramaCanvasBudget(projectID string) error {
-	production, err := s.repo.DramaProduction(projectID)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	exhausted, err := s.dramaBudgetExhausted(production)
-	if err != nil {
-		return err
-	}
-	if !exhausted {
-		return nil
-	}
-	budgetErr := BadAuthRequest("这部短剧已达到预算上限（含画布精修花费），请在短剧设置里提高预算后再生成")
-	budgetErr.Reason = ReasonDramaBudget
-	return budgetErr
-}
-
 // dramaLinkedCanvas 判断画布是否关联到当前用户的短剧作品；Agent 只在这种画布上暴露短剧工具。
 func dramaLinkedCanvas(repo *repository.Repository, canvas *model.CanvasProject) bool {
 	if canvas == nil || strings.TrimSpace(canvas.ProjectID) == "" {

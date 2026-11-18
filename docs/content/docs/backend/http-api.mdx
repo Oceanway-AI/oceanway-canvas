@@ -611,7 +611,6 @@ Agent 已不再注入、召回或写入下列经验条目，记忆设置页只�
 | 409 | 409 | `conflict` | 冲突 |
 | 409 | 409 | `project_name_conflict` | `POST /projects` 同一用户下已有同名项目；客户端可有限更换名称重试 |
 | 409 | 409 | `skill_version_conflict` | `PUT /skills/:id/files` 的 `baseVersionId` 已不是当前版本；`details.currentVersionId` 为最新版本，客户端需重新加载后再编辑 |
-| 400 | 400 | `drama_budget_exhausted` | 关联短剧的精修画布上创建生成任务时，作品已达到预算上限（预算含画布精修花费）；在短剧设置里提高预算后再生成 |
 | 409 | 409 | `drama_segment_changed` | 把画布视频采用为剧情段视频时，段版本与 `expectedRevision` 不符或刚被并发修改；刷新单集详情后重新采用 |
 | 409 | 409 | `drama_episode_confirm_required` | `DELETE /dramas/:id/episodes/:episodeId` 删除的集生成过视频，`confirm` 缺失或与“第 N 集”不一致；`details.confirmText` 是当前应输入的文字，用户输入后带上重新提交 |
 | 409 | 409 | `agent_interjection_run_finished` | 插话时本轮已结束；客户端把这条留在本机队列，作为下一轮发送 |
@@ -834,7 +833,6 @@ Agent 已不再注入、召回或写入下列经验条目，记忆设置页只�
 
 短剧是事实源与调度方，关联的画布是精修台：前端按需把设定、剧情段与成片投送到画布（节点 `metadata.dramaRef` 回指短剧对象），写回只经显式采用（设定参考图走 `PUT …/cast/:castId/image`，段视频走 `PUT …/segments/:index/video`），没有双向自动同步。
 
-- 预算口径：`GET /dramas/:id` 的 `production.spentMicrocredits` 是作品总花费，含关联画布上生成任务的花费；其中画布部分为 `canvasSpentMicrocredits`。画布花费在读取时汇总：任务的 `project_id` 是关联到作品的画布，按其计费订单下单金额计（已退款除外，在途订单也计入），口径与流水线一致。派发、继续制作与修改设置都按总花费判断预算；关联画布上创建生成任务时作品预算已用完返回 400 `drama_budget_exhausted`。
 - 资源保护：短剧表直接持有的资源（设定参考图、剧情段视频与尾帧、成片以及全部版本记录）在资源引用快照里记为 `短剧` 引用，素材“彻底删除”与 24 小时孤儿资源清理都会保留它们。
 - 段视图新增 `revision`（采用时的乐观并发校验）与 `videoSeconds`（当前视频进入成片的秒数，与成片时间线一致）。
 

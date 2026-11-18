@@ -33,12 +33,12 @@ func TestDramaDraftReplaceThenStart(t *testing.T) {
 	settings.AspectRatio = "16:9"
 	saved, err := svc.SaveDramaDraft("usr-drama", project, CreateDramaRequest{
 		Name: "草稿改名", Settings: settings, Chapters: []DramaChapterInput{{Title: "第一集", Text: "丙"}, {Title: "第二集", Text: "丁"}, {Title: "第三集", Text: "戊"}},
-		BudgetMicrocredits: 5_000_000, Draft: &DramaDraftForm{SourceText: "丙丁戊", StyleID: "real"},
+		Draft: &DramaDraftForm{SourceText: "丙丁戊", StyleID: "real"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if saved.Project.Name != "草稿改名" || saved.Project.AspectRatio != "16:9" || saved.Production.ChapterCount != 3 || len(saved.Episodes) != 3 || saved.Production.BudgetMicrocredits != 5_000_000 || saved.Production.Status != model.DramaStatusDraft {
+	if saved.Project.Name != "草稿改名" || saved.Project.AspectRatio != "16:9" || saved.Production.ChapterCount != 3 || len(saved.Episodes) != 3 || saved.Production.Status != model.DramaStatusDraft {
 		t.Fatalf("replaced draft = %+v %+v", saved.Project, saved.Production)
 	}
 	outline, err := svc.DramaChapterOutline("usr-drama", project)

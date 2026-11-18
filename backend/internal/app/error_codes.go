@@ -34,7 +34,6 @@ const (
 	ReasonQuotaExceeded                = kernel.ReasonQuotaExceeded
 	ReasonStorageCapacity              = kernel.ReasonStorageCapacityExceeded
 	ReasonStorageReadOnly              = kernel.ReasonStorageReadOnly
-	ReasonDramaBudget                  = kernel.ReasonDramaBudgetExhausted
 	ReasonDramaSegmentChanged          = kernel.ReasonDramaSegmentChanged
 	ReasonDramaEpisodeConfirmRequired  = kernel.ReasonDramaEpisodeConfirmRequired
 	ReasonAgentInterjectionRunFinished = kernel.ReasonAgentInterjectionRunFinished

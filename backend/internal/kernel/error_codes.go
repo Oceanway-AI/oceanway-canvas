@@ -43,7 +43,6 @@ const (
 	// 账号超出文件容量且宽限期已过：只允许读取、删除和购买扩容。
 	ReasonStorageReadOnly ErrorReason = "storage_read_only"
 	// 短剧作品预算已用完（含关联画布上的精修花费）：画布生成任务也被拒绝，提高预算后可继续。
-	ReasonDramaBudgetExhausted ErrorReason = "drama_budget_exhausted"
 	// 采用到剧情段时段版本已变（调度或其他页面刚改过），客户端需刷新后重新确认。
 	ReasonDramaSegmentChanged ErrorReason = "drama_segment_changed"
 	// 删除的集生成过视频：客户端需让用户输入“第 N 集”，带 confirm 重新提交。

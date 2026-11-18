@@ -144,13 +144,6 @@ export type DramaProductionView = {
     stage: "bible" | "produce" | "done";
     pauseReason: string;
     settings: DramaSettings;
-    budgetMicrocredits: number;
-    /** 作品已实际扣费：流水线任务加关联精修画布上的生成任务，按计费订单的实收汇总。 */
-    spentMicrocredits: number;
-    /** 其中精修画布上的实收。 */
-    canvasSpentMicrocredits: number;
-    /** 尚未结算订单的冻结额（冻结中）；预算按 spent + held 判断。 */
-    heldMicrocredits: number;
     planDone: boolean;
     /** 草稿保存了创建页表单，打开时回到创建页继续编辑。 */
     hasDraftForm?: boolean;
@@ -265,7 +258,6 @@ export type DramaJob = {
     episodeId?: string;
     shotId?: string;
     taskId?: string;
-    costMicrocredits: number;
     attempt: number;
     createdAt: string;
     startedAt?: string;
@@ -296,7 +288,7 @@ export type DramaJobTask = {
     resourceIds?: string[];
 };
 
-export type DramaJobAttempt = { taskId?: string; status: string; error?: string; costMicrocredits: number; at: string; task?: DramaJobTask };
+export type DramaJobAttempt = { taskId?: string; status: string; error?: string; at: string; task?: DramaJobTask };
 
 export type DramaJobDetail = { job: DramaJob; target: string; attempts: DramaJobAttempt[] };
 
@@ -436,9 +428,6 @@ export type DramaListItem = {
     coverResourceIds?: string[];
     aspectRatio: string;
     styleName?: string;
-    spentMicrocredits: number;
-    /** 尚未结算订单的冻结额，口径同 DramaProductionView.heldMicrocredits。 */
-    heldMicrocredits: number;
     updatedAt: string;
     /** 同 DramaProductionView.hasDraftForm。 */
     hasDraftForm?: boolean;
@@ -482,10 +471,6 @@ export type DramaEstimate = {
     images: number;
     videos: number;
     textCalls: number;
-    minMicrocredits: number;
-    maxMicrocredits: number;
-    sampleMicrocredits: number;
-    priced: boolean;
     note: string;
     durationMinutes: number;
 };
@@ -494,7 +479,6 @@ export type CreateDramaInput = {
     name: string;
     chapters: Array<{ title: string; text: string }>;
     settings: Partial<DramaSettings>;
-    budgetMicrocredits: number;
     start: boolean;
     sourceFormat: DramaSourceFormat;
     /** 剧本与分镜总是每章一集，服务端忽略 auto。 */
@@ -513,7 +497,6 @@ export type DramaDraft = {
     name: string;
     sourceFormat: DramaSourceFormat;
     settings: DramaSettings;
-    budgetMicrocredits: number;
     /** 加入制作的章节下标（从 0 起）。 */
     selectedChapters: number[];
     chapterCount: number;
@@ -559,7 +542,7 @@ export function getDrama(projectId: string, signal?: AbortSignal) {
     return http.get<DramaSummary>(base(projectId), { signal });
 }
 
-export function updateDramaSettings(projectId: string, input: { settings?: DramaSettings; budgetMicrocredits?: number }) {
+export function updateDramaSettings(projectId: string, input: { settings?: DramaSettings }) {
     return http.patch<DramaSummary>(`${base(projectId)}/settings`, input);
 }
 
@@ -740,7 +723,7 @@ export function releaseDramaMedia(projectId: string, target: "assets" | "episode
 // ===== 精修画布 =====
 
 /** 服务端稳定原因：预算已用完（含画布精修）、采用时剧情段刚被修改，以及删除生成过视频的集需要输入确认。 */
-export const DRAMA_ERROR_REASON = { budgetExhausted: "drama_budget_exhausted", segmentChanged: "drama_segment_changed", episodeConfirmRequired: "drama_episode_confirm_required" } as const;
+export const DRAMA_ERROR_REASON = { segmentChanged: "drama_segment_changed", episodeConfirmRequired: "drama_episode_confirm_required" } as const;
 
 export type DramaTakeKind = "cast" | "video" | "final";
 /** pipeline 流水线生成；upload 制作台上传；canvas 从精修画布采用。 */

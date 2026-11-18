@@ -287,11 +287,10 @@ const (
 )
 
 type CreateDramaRequest struct {
-	Name               string              `json:"name"`
-	Chapters           []DramaChapterInput `json:"chapters"`
-	Settings           DramaSettings       `json:"settings"`
-	BudgetMicrocredits int64               `json:"budgetMicrocredits"`
-	Start              bool                `json:"start"`
+	Name     string              `json:"name"`
+	Chapters []DramaChapterInput `json:"chapters"`
+	Settings DramaSettings       `json:"settings"`
+	Start    bool                `json:"start"`
 	// SourceFormat 是素材类型：novel 小说、script 剧本、storyboard 分镜；剧本与分镜总是每章一集。
 	SourceFormat string `json:"sourceFormat"`
 	EpisodeMode  string `json:"episodeMode"`
@@ -310,14 +309,13 @@ type DramaDraftForm struct {
 
 // DramaDraftView 是草稿回填创建页所需的全部内容；SelectedChapters 是加入制作的章节下标（从 0 起）。
 type DramaDraftView struct {
-	ProjectID          string         `json:"projectId"`
-	Name               string         `json:"name"`
-	SourceFormat       string         `json:"sourceFormat"`
-	Settings           DramaSettings  `json:"settings"`
-	BudgetMicrocredits int64          `json:"budgetMicrocredits"`
-	SelectedChapters   []int          `json:"selectedChapters"`
-	ChapterCount       int            `json:"chapterCount"`
-	Form               DramaDraftForm `json:"form"`
+	ProjectID        string         `json:"projectId"`
+	Name             string         `json:"name"`
+	SourceFormat     string         `json:"sourceFormat"`
+	Settings         DramaSettings  `json:"settings"`
+	SelectedChapters []int          `json:"selectedChapters"`
+	ChapterCount     int            `json:"chapterCount"`
+	Form             DramaDraftForm `json:"form"`
 }
 
 // ProduceDramaChaptersRequest 把预留的原著章节加入制作：按章节顺序每 ChaptersPerEpisode 章建成一集（不连续的章节不合并），
@@ -413,24 +411,16 @@ type DramaDialogueCheck struct {
 }
 
 type UpdateDramaSettingsRequest struct {
-	Settings           *DramaSettings `json:"settings"`
-	BudgetMicrocredits *int64         `json:"budgetMicrocredits"`
+	Settings *DramaSettings `json:"settings"`
 }
 
 type DramaProductionView struct {
-	Status             string        `json:"status"`
-	Stage              string        `json:"stage"`
-	PauseReason        string        `json:"pauseReason"`
-	Settings           DramaSettings `json:"settings"`
-	BudgetMicrocredits int64         `json:"budgetMicrocredits"`
-	// SpentMicrocredits 是作品已实际扣费的总额：流水线任务加关联画布上的精修任务，按订单结算实收计（退回不计）。
-	// CanvasSpentMicrocredits 是其中画布精修的部分；HeldMicrocredits 是尚未结算订单的冻结额（冻结中）。
-	// 预算按 SpentMicrocredits + HeldMicrocredits 保守判断。
-	SpentMicrocredits       int64 `json:"spentMicrocredits"`
-	CanvasSpentMicrocredits int64 `json:"canvasSpentMicrocredits"`
-	HeldMicrocredits        int64 `json:"heldMicrocredits"`
-	PlanDone                bool  `json:"planDone"`
-	PlanCursor              int   `json:"planCursor"`
+	Status      string        `json:"status"`
+	Stage       string        `json:"stage"`
+	PauseReason string        `json:"pauseReason"`
+	Settings    DramaSettings `json:"settings"`
+	PlanDone    bool          `json:"planDone"`
+	PlanCursor  int           `json:"planCursor"`
 	// HasDraftForm 同 DramaListItem.HasDraftForm。
 	HasDraftForm   bool   `json:"hasDraftForm,omitempty"`
 	SampleApproved bool   `json:"sampleApproved"`
@@ -491,20 +481,19 @@ type DramaInboxItem struct {
 }
 
 type DramaJobView struct {
-	ID               string `json:"id"`
-	Kind             string `json:"kind"`
-	Status           string `json:"status"`
-	Label            string `json:"label"`
-	Error            string `json:"error,omitempty"`
-	EpisodeID        string `json:"episodeId,omitempty"`
-	ShotID           string `json:"shotId,omitempty"`
-	TaskID           string `json:"taskId,omitempty"`
-	CostMicrocredits int64  `json:"costMicrocredits"`
-	Attempt          int    `json:"attempt"`
-	CreatedAt        string `json:"createdAt"`
-	StartedAt        string `json:"startedAt,omitempty"`
-	FinishedAt       string `json:"finishedAt,omitempty"`
-	UpdatedAt        string `json:"updatedAt"`
+	ID         string `json:"id"`
+	Kind       string `json:"kind"`
+	Status     string `json:"status"`
+	Label      string `json:"label"`
+	Error      string `json:"error,omitempty"`
+	EpisodeID  string `json:"episodeId,omitempty"`
+	ShotID     string `json:"shotId,omitempty"`
+	TaskID     string `json:"taskId,omitempty"`
+	Attempt    int    `json:"attempt"`
+	CreatedAt  string `json:"createdAt"`
+	StartedAt  string `json:"startedAt,omitempty"`
+	FinishedAt string `json:"finishedAt,omitempty"`
+	UpdatedAt  string `json:"updatedAt"`
 	// ProviderStage 是生成中任务的上游进度文案（如“候车 · 前面 3 条”），只在上游已接收任务时给出。
 	ProviderStage string `json:"providerStage,omitempty"`
 	// Wait 是排队作业还没提交的原因（作品暂停、账号同时任务已满、本池同时生成数已满）；下一轮就会提交时为空。
@@ -513,11 +502,10 @@ type DramaJobView struct {
 
 // DramaJobAttempt 是工作的一次提交记录；status 为任务状态，或 rejected（提交时被准入拒绝）。
 type DramaJobAttempt struct {
-	TaskID           string `json:"taskId,omitempty"`
-	Status           string `json:"status"`
-	Error            string `json:"error,omitempty"`
-	CostMicrocredits int64  `json:"costMicrocredits"`
-	At               string `json:"at"`
+	TaskID string `json:"taskId,omitempty"`
+	Status string `json:"status"`
+	Error  string `json:"error,omitempty"`
+	At     string `json:"at"`
 }
 
 // DramaJobTaskView 是队列详情里展示的任务快照：只暴露请求参数白名单，不回显渠道配置。
@@ -739,13 +727,10 @@ type DramaListItem struct {
 	DoneCount       int64         `json:"doneCount"`
 	CoverResourceID string        `json:"coverResourceId,omitempty"`
 	// CoverResourceIDs 是前几张角色参考图，卡片拼成封面；CoverResourceID 保留第一张。
-	CoverResourceIDs  []string `json:"coverResourceIds,omitempty"`
-	AspectRatio       string   `json:"aspectRatio"`
-	StyleName         string   `json:"styleName,omitempty"`
-	SpentMicrocredits int64    `json:"spentMicrocredits"`
-	// HeldMicrocredits 是尚未结算订单的冻结额，口径同 DramaProductionView。
-	HeldMicrocredits int64  `json:"heldMicrocredits"`
-	UpdatedAt        string `json:"updatedAt"`
+	CoverResourceIDs []string `json:"coverResourceIds,omitempty"`
+	AspectRatio      string   `json:"aspectRatio"`
+	StyleName        string   `json:"styleName,omitempty"`
+	UpdatedAt        string   `json:"updatedAt"`
 	// HasDraftForm 表示草稿保存了创建页表单，打开时回到创建页继续编辑。
 	HasDraftForm bool `json:"hasDraftForm,omitempty"`
 }
@@ -797,17 +782,13 @@ type DramaEstimateRequest struct {
 
 // DramaEstimate 的 Videos 是剧情段数（一段一次视频调用），Images 是参考图数。
 type DramaEstimate struct {
-	Episodes          int    `json:"episodes"`
-	Shots             int    `json:"shots"`
-	Images            int    `json:"images"`
-	Videos            int    `json:"videos"`
-	TextCalls         int    `json:"textCalls"`
-	MinMicrocredits   int64  `json:"minMicrocredits"`
-	MaxMicrocredits   int64  `json:"maxMicrocredits"`
-	SampleMicrocredit int64  `json:"sampleMicrocredits"`
-	Priced            bool   `json:"priced"`
-	Note              string `json:"note"`
-	DurationMinutes   int    `json:"durationMinutes"`
+	Episodes        int    `json:"episodes"`
+	Shots           int    `json:"shots"`
+	Images          int    `json:"images"`
+	Videos          int    `json:"videos"`
+	TextCalls       int    `json:"textCalls"`
+	Note            string `json:"note"`
+	DurationMinutes int    `json:"durationMinutes"`
 }
 
 // ReleaseDramaMediaRequest 在手动模式下放行生成：assets 只放行参考图，episodes 放行指定集，all 放行全部。

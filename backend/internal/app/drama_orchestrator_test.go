@@ -100,6 +100,9 @@ func (f *fakeDramaBackend) submit(userID string, req CreateTaskRequest, timeline
 func newDramaTestService(t *testing.T) (*Service, *fakeDramaBackend) {
 	t.Helper()
 	svc, db := newTimelineTaskTestService(t)
+	if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+		t.Fatal(err)
+	}
 	fake := &fakeDramaBackend{t: t, db: db, byKind: map[string]int{}}
 	svc.dramaTaskHook = fake.submit
 	svc.dramaTailFrameHook = func(userID, resourceID string) (string, error) {
@@ -381,21 +384,6 @@ func TestDramaTailFailureRetriesPaidOutputWithoutNewGeneration(t *testing.T) {
 	fake.db.Model(&model.DramaTake{}).Where("owner_id = ?", segs[0].ID).Count(&takes)
 	if takes != 1 {
 		t.Fatalf("same task should produce one history take: %d", takes)
-	}
-}
-
-func TestDramaBudgetPausesDispatch(t *testing.T) {
-	svc, fake := newDramaTestService(t)
-	project := createTestDrama(t, svc, DramaReviewAuto).Project.ID
-	// 预算按订单口径判断：冻结中的订单按冻结额计入，不看 spent_microcredits 缓存。
-	seedDramaBillingOrder(t, fake.db, project, "held", model.BillingOrder{AmountMicrocredits: 100, Status: model.BillingStatusReserved})
-	if err := svc.repo.UpdateDramaProduction(project, map[string]any{"budget_microcredits": 100}); err != nil {
-		t.Fatal(err)
-	}
-	runDramaTicks(t, svc, project, 1)
-	p, _ := svc.repo.DramaProduction(project)
-	if p.Status != "paused" || p.PauseReason != dramaBudgetPauseReason || len(fake.requests) != 0 {
-		t.Fatalf("budget: %+v", p)
 	}
 }
 

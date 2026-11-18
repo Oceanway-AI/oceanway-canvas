@@ -29,8 +29,6 @@ const (
 	dramaPlanBatchRunes    = 30000
 	dramaPlanBatchChapters = 12
 	dramaBibleSampleRunes  = 40000
-	dramaBudgetPauseReason = "已达到预算上限，提高预算后可继续"
-	dramaCreditsReason     = "积分不足，充值后点击继续制作"
 )
 
 var dramaWake = struct {
@@ -198,11 +196,9 @@ func (r *dramaRun) syncJobs() error {
 				if !errors.As(err, &deferred) {
 					return err
 				}
-				// 任务或账单暂时读不到、或订单还没结算：本作业保持运行、下一轮再读，不按失败或 0 花费落账。
-				// 不中断本轮，前面已回写的作业花费随本轮进度一起保存。等待结算与后台抽尾帧是正常过程，不记告警。
-				var pending *dramaPendingBilling
+				// 等待后台尾帧时保持作业运行，数据库错误留待下一轮重读。
 				var tail *dramaPendingTail
-				if !errors.As(deferred.err, &pending) && !errors.As(deferred.err, &tail) {
+				if !errors.As(deferred.err, &tail) {
 					slog.Warn("drama job sync deferred", "project", r.project.ID, "job", job.ID, "error", deferred.err)
 				}
 			}
@@ -217,7 +213,7 @@ func (r *dramaRun) syncJobs() error {
 	return nil
 }
 
-// dramaSyncDeferred 表示作业的任务或账单暂时读不到（如数据库繁忙），本轮跳过、下一轮重读。
+// dramaSyncDeferred 表示作业依赖暂时无法读取，本轮跳过、下一轮重读。
 type dramaSyncDeferred struct{ err error }
 
 func (e *dramaSyncDeferred) Error() string { return e.err.Error() }
@@ -243,8 +239,8 @@ func (r *dramaRun) syncRunningJob(job *model.DramaJob) error {
 			}
 			var next *dramaJobContinued
 			if errors.As(applyErr, &next) {
-				// 本任务的花费已记入历次提交；作业换成新任务继续运行，下一轮读取新任务的结果。
-				job.TaskID, job.CostMicrocredits = next.taskID, 0
+				// 本任务已记入历次提交，下一轮读取续任务的结果。
+				job.TaskID = next.taskID
 				return r.s.repo.SaveDramaJob(job)
 			}
 			var issue *dramaResultIssue
@@ -265,25 +261,19 @@ func (r *dramaRun) syncRunningJob(job *model.DramaJob) error {
 	return nil
 }
 
-// settleTaskAttempt 在应用结果前先落库本次任务的去重记录与作业花费，中断恢复时不会重复记账。
+// settleTaskAttempt 在应用结果前先落库本次任务的去重记录，恢复时继续处理原结果。
 // 写入冲突（作业已被取消或重试）或数据库错误时本轮跳过该作业，下一轮重新读取，不中断其他作业。
 func (r *dramaRun) settleTaskAttempt(job *model.DramaJob, task *model.Task, reason string) error {
 	if dramaAttemptRecorded(job, task.ID) {
 		return nil
 	}
-	cost, err := r.taskCost(task)
-	if err != nil {
-		return &dramaSyncDeferred{err: err}
-	}
 	previousAttempts := job.AttemptsJSON
-	job.CostMicrocredits = cost
-	recordDramaAttempt(job, task.ID, string(task.Status), reason, cost)
-	// 先原子保存去重记录与作品花费，再处理结果；中断恢复只重做结果应用。
-	if err := r.s.repo.RecordDramaJobCost(job, previousAttempts); err != nil {
+	recordDramaAttempt(job, task.ID, string(task.Status), reason)
+	// 先原子保存去重记录，再处理结果，中断恢复只重做结果应用。
+	if err := r.s.repo.RecordDramaJobAttempt(job, previousAttempts); err != nil {
 		job.AttemptsJSON = previousAttempts
 		return &dramaSyncDeferred{err: err}
 	}
-	r.production.SpentMicrocredits += cost
 	return nil
 }
 
@@ -296,30 +286,6 @@ func (e *dramaResultIssue) Error() string { return e.message }
 type dramaJobContinued struct{ taskID string }
 
 func (e *dramaJobContinued) Error() string { return "作业继续运行：" + e.taskID }
-
-// taskCost 是任务实际扣费：已结算记实收（不含差额退回），已退回记 0。
-// 订单还没结算时返回 dramaPendingBilling，由调用方推迟到下一轮；待人工核对（uncertain）或任务结束超过
-// dramaBillingSettleGrace 仍未结算时按冻结额记，避免作业无限等待。读账单出错同样推迟，不按 0 记账。
-func (r *dramaRun) taskCost(task *model.Task) (int64, error) {
-	if task.BillingOrderID == "" {
-		return 0, nil
-	}
-	order, err := r.s.repo.BillingOrder(task.BillingOrderID)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return 0, nil
-	}
-	if err != nil {
-		return 0, err
-	}
-	charged, held, settled := dramaOrderSpend(*order)
-	if settled {
-		return charged, nil
-	}
-	if order.Status != model.BillingStatusUncertain && time.Since(dramaTaskFinishedAt(task)) < dramaBillingSettleGrace {
-		return 0, &dramaPendingBilling{orderID: order.ID}
-	}
-	return held, nil
-}
 
 // failJob 让失败落到具体镜头或设定上，进入“待处理”而不是卡住整条流水线。
 func (r *dramaRun) failJob(job *model.DramaJob, reason string) error {
@@ -361,7 +327,7 @@ func (r *dramaRun) failJob(job *model.DramaJob, reason string) error {
 }
 
 // recordDramaAttempt 追加一次提交记录；最多保留最近 20 次，供队列详情回看历次请求。
-func recordDramaAttempt(job *model.DramaJob, taskID, status, reason string, cost int64) {
+func recordDramaAttempt(job *model.DramaJob, taskID, status, reason string) {
 	var attempts []DramaJobAttempt
 	_ = json.Unmarshal([]byte(job.AttemptsJSON), &attempts)
 	if taskID != "" {
@@ -371,7 +337,7 @@ func recordDramaAttempt(job *model.DramaJob, taskID, status, reason string, cost
 			}
 		}
 	}
-	attempts = append(attempts, DramaJobAttempt{TaskID: taskID, Status: status, Error: truncateRunes(reason, 500), CostMicrocredits: cost, At: time.Now().Format(time.RFC3339)})
+	attempts = append(attempts, DramaJobAttempt{TaskID: taskID, Status: status, Error: truncateRunes(reason, 500), At: time.Now().Format(time.RFC3339)})
 	if len(attempts) > 20 {
 		attempts = attempts[len(attempts)-20:]
 	}
@@ -674,7 +640,7 @@ func (r *dramaRun) castLookup(id string) (model.DramaCast, bool) {
 	return *cast, true
 }
 
-// dispatch 按优先级把排队工作提交为生成任务，受各并发池的同时生成数、账号并发与预算约束。
+// dispatch 按优先级把排队工作提交为生成任务，受各并发池的同时生成数、账号并发约束。
 // 挡住提交的条件与 dramaDispatchWaits 同源，详情页和队列显示的等待原因就是这里的判断。
 func (r *dramaRun) dispatch() error {
 	queued, err := r.s.repo.DramaJobsByStatus(r.project.ID, model.DramaJobQueued)
@@ -682,31 +648,15 @@ func (r *dramaRun) dispatch() error {
 		return err
 	}
 	sortDramaJobsForDispatch(queued)
-	// 预算按订单口径保守判断：流水线与画布精修的实收加上所有未结算订单的冻结额。每轮只汇总一次，
-	// 本轮新提交任务的冻结额逐项累加；同时把流水线实收回写到 spent_microcredits 缓存。
-	var committed int64
-	budgeted := r.production.BudgetMicrocredits > 0 && len(queued) > 0
-	if budgeted {
-		totals, err := r.s.dramaBillingTotals(r.production)
-		if err != nil {
-			return err
-		}
-		committed = totals.ChargedMicrocredits() + totals.HeldMicrocredits()
-		r.production.SpentMicrocredits = totals.PipelineChargedMicrocredits
-	}
 	for i := range queued {
 		job := &queued[i]
 		pool := dramaDispatchPool(job.Kind)
 		if r.running[pool] >= r.settings.Concurrency {
 			continue
 		}
-		if budgeted && committed >= r.production.BudgetMicrocredits {
-			r.production.Status, r.production.PauseReason = model.DramaStatusPaused, dramaBudgetPauseReason
-			return nil
-		}
 		task, skip, err := r.submit(job)
 		if errors.Is(err, repository.ErrDramaJobChanged) {
-			// 派发期间作业被取消或重试：任务与计费预留已随绑定一起回滚，按最新状态在下一轮处理。
+			// 派发期间作业被取消或重试：任务已随绑定一起回滚，按最新状态在下一轮处理。
 			continue
 		}
 		if err != nil {
@@ -714,13 +664,10 @@ func (r *dramaRun) dispatch() error {
 			switch {
 			case strings.Contains(message, "同时排队或运行的任务最多"):
 				return nil
-			case strings.Contains(message, "积分不足"):
-				r.production.Status, r.production.PauseReason = model.DramaStatusPaused, dramaCreditsReason
-				return nil
 			case strings.Contains(message, "维护"):
 				return nil
 			}
-			recordDramaAttempt(job, "", "rejected", message, 0)
+			recordDramaAttempt(job, "", "rejected", message)
 			if failErr := r.failJob(job, message); failErr != nil {
 				return failErr
 			}
@@ -743,16 +690,7 @@ func (r *dramaRun) dispatch() error {
 			return err
 		}
 		r.running[pool]++
-		if budgeted && task.BillingOrderID != "" {
-			order, err := r.s.repo.BillingOrder(task.BillingOrderID)
-			if err != nil {
-				// 读不到刚提交任务的冻结额时本轮不再派发，下一轮按订单重新汇总。
-				slog.Warn("drama dispatch billing read failed", "project", r.project.ID, "task", task.ID, "error", err)
-				return nil
-			}
-			charged, held, _ := dramaOrderSpend(*order)
-			committed += charged + held
-		}
+
 	}
 	return nil
 }
@@ -1794,7 +1732,7 @@ func (s *Service) persistDramaTask(job *model.DramaJob, task *model.Task) (*mode
 		return nil, err
 	}
 	bound := *job
-	bound.Status, bound.TaskID, bound.CostMicrocredits = model.DramaJobRunning, task.ID, 0
+	bound.Status, bound.TaskID = model.DramaJobRunning, task.ID
 	if bound.StartedAt == nil {
 		// 精简续任务沿用作业原来的开始时间，队列里的耗时不被截断。
 		now := time.Now()

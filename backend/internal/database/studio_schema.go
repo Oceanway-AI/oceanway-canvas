@@ -21,6 +21,8 @@ var studioMigrations = []migration{
 
 var retiredStudioCommercialColumns = map[string][]string{
 	"ecommerce_agent_runs": {"billing_order_id", "unit_microcredits"},
+	"drama_productions":    {"budget_microcredits", "spent_microcredits"},
+	"drama_jobs":           {"cost_microcredits"},
 }
 
 func StudioModels() []any {

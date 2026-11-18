@@ -5,7 +5,7 @@ import { Link } from "react-router";
 
 import { CachedResourceImage } from "@/components/cached-resource-image";
 import type { DramaCanvasPresence } from "@/lib/canvas/drama-canvas-projection";
-import { DRAMA_CAST_KIND_LABEL, DRAMA_STATUS_LABEL, dramaCastDisplayName, formatDramaCredits } from "@/lib/drama/drama-format";
+import { DRAMA_CAST_KIND_LABEL, DRAMA_STATUS_LABEL, dramaCastDisplayName } from "@/lib/drama/drama-format";
 import { dramaKeys } from "@/lib/drama/drama-query-keys";
 import { getDramaEpisode, type DramaCast, type DramaEpisodeRow, type DramaSegment, type DramaSummary } from "@/services/api/drama";
 
@@ -132,21 +132,6 @@ export const CanvasDramaSidebar = memo(function CanvasDramaSidebar({ summary, ca
             </div>
 
             <footer className="canvas-project-sidebar-assets shrink-0 border-t border-border/70 p-2">
-                <div className="px-1 pb-2 text-[var(--fs-micro)] leading-5 text-foreground/50">
-                    <div className="flex items-center justify-between gap-2">
-                        <span>已用积分</span>
-                        <span className="tabular-nums text-foreground/72">
-                            {formatDramaCredits(production.spentMicrocredits)}
-                            {production.budgetMicrocredits > 0 ? ` / ${formatDramaCredits(production.budgetMicrocredits)}` : ""}
-                        </span>
-                    </div>
-                    {production.canvasSpentMicrocredits > 0 ? (
-                        <div className="flex items-center justify-between gap-2">
-                            <span>其中画布精修</span>
-                            <span className="tabular-nums">{formatDramaCredits(production.canvasSpentMicrocredits)}</span>
-                        </div>
-                    ) : null}
-                </div>
                 <Link to={studioPath} className="canvas-project-sidebar-assets-button flex h-9 w-full items-center gap-2 rounded-md border border-border/45 px-2 text-xs text-foreground/65">
                     <Clapperboard className="size-3.5 text-foreground/42" />
                     <span className="flex-1 text-left">打开短剧制作台</span>

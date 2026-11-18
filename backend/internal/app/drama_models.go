@@ -463,24 +463,7 @@ func (s *Service) dramaVideoProfile(choice DramaModelChoice) (dramaVideoProfile,
 	return profile, nil
 }
 
-func (s *Service) quoteDramaChoice(userID string, choice DramaModelChoice, intent ModelRequestIntent) (int64, bool) {
-	if choice.Empty() {
-		return 0, false
-	}
-	var quote *LogicalModelQuote
-	var err error
-	if choice.LogicalModelID != "" {
-		quote, err = s.QuoteLogicalModel(userID, choice.LogicalModelID, intent)
-	} else {
-		quote, err = s.QuoteChannelModel(userID, ChannelModelQuoteRequest{ChannelID: choice.ChannelID, ModelKey: choice.ModelKey, Intent: intent})
-	}
-	if err != nil || quote == nil {
-		return 0, false
-	}
-	return quote.AmountMicrocredits, true
-}
-
-// EstimateDrama 依据真实报价估算整部剧的费用区间；数量按经验比例推算，结果只用于预算决策。
+// EstimateDrama 按篇幅和模型能力估算创作工作量。
 func (s *Service) EstimateDrama(userID string, req DramaEstimateRequest) (DramaEstimate, error) {
 	settings := req.Settings.normalized()
 	models, err := s.resolveDramaModels(userID, settings)
@@ -513,54 +496,7 @@ func (s *Service) EstimateDrama(userID string, req DramaEstimateRequest) (DramaE
 		TextCalls:       1 + (chapters+9)/10 + episodes*(1+segmentsPerEpisode),
 		DurationMinutes: episodes * settings.EpisodeSeconds / 60,
 	}
-	textCost, okText := s.quoteDramaChoice(userID, models.textFor(DramaStepScript), ModelRequestIntent{Capability: "text"})
-	// 参考图按每类实际提交的模型、尺寸与分辨率报价，避免按模型默认档位低估；角色、道具、场景按等量估算。
-	var imageTotal int64
-	imagePriced, okImage := 0, false
-	for _, kind := range []string{"character", "prop", "scene"} {
-		choice := models.imageFor(kind)
-		ratio := production.AssetImageRatio
-		if kind == "character" {
-			ratio = settings.Assets.CharacterRatio
-		}
-		imageIntent := *dramaModelIntent("image")
-		if request := s.dramaImageRequestFor(choice, ratio, settings.Assets.ResolutionFor(kind)); request.Issue == "" {
-			imageIntent.Options = map[string]any{}
-			if request.Size != "" {
-				imageIntent.Options["size"] = request.Size
-			}
-			if request.Resolution != "" {
-				imageIntent.Options["imageResolution"] = request.Resolution
-			}
-		}
-		if cost, ok := s.quoteDramaChoice(userID, choice, imageIntent); ok {
-			imageTotal += cost
-			imagePriced++
-			okImage = true
-		}
-	}
-	var imageCost int64
-	if imagePriced > 0 {
-		imageCost = imageTotal / int64(imagePriced)
-	}
-	operation, inputs := dramaSegmentOperation(settings, profile)
-	// 与剧情段提交时的画面参数和声音开关一致，价格档可能按分辨率与是否出声区分。
-	videoOptions := map[string]any{"videoSeconds": itoa(production.SnapVideoSeconds(int64(segmentSeconds)*1000, profile.Durations)), "videoGenerateAudio": strconv.FormatBool(profile.GenerateAudio)}
-	if screen := profile.screen(settings.AspectRatio, settings.VideoResolution); screen.Issue == "" {
-		screen.apply(videoOptions)
-	}
-	videoCost, okVideo := s.quoteDramaChoice(userID, models.Video, ModelRequestIntent{Capability: "video", Operation: operation, Inputs: inputs, Options: videoOptions})
-	total := int64(estimate.TextCalls)*textCost + int64(estimate.Images)*imageCost + int64(estimate.Videos)*videoCost
-	sample := textCost*int64(2+segmentsPerEpisode) + int64(casts)*imageCost + int64(segmentsPerEpisode)*videoCost
-	estimate.Priced = okText || okImage || okVideo
-	estimate.MinMicrocredits = total * 9 / 10
-	// 上限包含失败重试与返工的余量。
-	estimate.MaxMicrocredits = total * 14 / 10
-	estimate.SampleMicrocredit = sample
 	notes := []string{}
-	if !(okText && okImage && okVideo) {
-		notes = append(notes, "部分模型暂无报价，费用按已知部分估算")
-	}
 	if missing := missingDramaCapabilities(models); len(missing) > 0 {
 		notes = append(notes, "尚无可用的"+strings.Join(missing, "、")+"模型")
 	}

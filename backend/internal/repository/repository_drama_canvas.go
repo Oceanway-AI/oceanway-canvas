@@ -10,7 +10,6 @@ import (
 )
 
 // 短剧与精修画布之间的数据：产物版本读取、外部视频采用，以及短剧持有的资源引用。
-// 作品花费（含画布精修）的汇总在 drama_billing.go 的 DramaBillingTotals。
 
 // DramaTakes 返回某个产物最近的版本，新版本在前。
 func (r *Repository) DramaTakes(projectID string, ownerID string, kind string, limit int) ([]model.DramaTake, error) {

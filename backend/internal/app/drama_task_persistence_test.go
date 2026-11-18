@@ -62,8 +62,8 @@ func TestPersistDramaTaskRollsBackWhenJobChanged(t *testing.T) {
 	}
 }
 
-// 结算记录按 attempts_json 乐观锁写入：旧行的 NULL 也能匹配；已被改动的作业返回冲突，不改作品花费缓存。
-func TestRecordDramaJobCostUsesOptimisticAttempts(t *testing.T) {
+// 任务记录按 attempts_json 乐观锁写入，旧行的 NULL 也能匹配，已被改动的作业返回冲突。
+func TestRecordDramaJobAttemptUsesOptimisticAttempts(t *testing.T) {
 	svc, fake := newDramaTestService(t)
 	project := createTestDrama(t, svc, DramaReviewAuto).Project.ID
 	job := model.DramaJob{ID: newID(), ProjectID: project, Status: model.DramaJobRunning, Kind: model.DramaJobBible, TaskID: "task-a", Label: "作品圣经"}
@@ -73,20 +73,16 @@ func TestRecordDramaJobCostUsesOptimisticAttempts(t *testing.T) {
 	if err := fake.db.Exec("UPDATE drama_jobs SET attempts_json = NULL WHERE id = ?", job.ID).Error; err != nil {
 		t.Fatal(err)
 	}
-	before := mustDramaProduction(t, svc, project).SpentMicrocredits
-	recordDramaAttempt(&job, "task-a", string(model.TaskStatusSucceeded), "", 40)
-	job.CostMicrocredits = 40
-	if err := svc.repo.RecordDramaJobCost(&job, ""); err != nil {
+	recordDramaAttempt(&job, "task-a", string(model.TaskStatusSucceeded), "")
+	if err := svc.repo.RecordDramaJobAttempt(&job, ""); err != nil {
 		t.Fatalf("legacy NULL attempts must match: %v", err)
 	}
 	var stored model.DramaJob
-	if err := fake.db.First(&stored, "id = ?", job.ID).Error; err != nil || stored.CostMicrocredits != 40 || !dramaAttemptRecorded(&stored, "task-a") {
+	if err := fake.db.First(&stored, "id = ?", job.ID).Error; err != nil || !dramaAttemptRecorded(&stored, "task-a") {
 		t.Fatalf("attempt not stored: %+v %v", stored, err)
 	}
-	if err := svc.repo.RecordDramaJobCost(&job, ""); !errors.Is(err, repository.ErrDramaJobChanged) {
+	if err := svc.repo.RecordDramaJobAttempt(&job, ""); !errors.Is(err, repository.ErrDramaJobChanged) {
 		t.Fatalf("stale attempts must conflict: %v", err)
 	}
-	if after := mustDramaProduction(t, svc, project).SpentMicrocredits; after != before {
-		t.Fatalf("job cost must not touch the production spend cache: %d -> %d", before, after)
-	}
+
 }

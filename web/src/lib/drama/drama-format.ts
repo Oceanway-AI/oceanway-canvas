@@ -9,9 +9,3 @@ export const DRAMA_STATUS_LABEL: Record<DramaStatus, string> = { draft: "未开�
 export function dramaCastDisplayName(cast: Pick<DramaCast, "name" | "lookName">) {
     return cast.lookName ? `${cast.name} · ${cast.lookName}` : cast.name;
 }
-
-export function formatDramaCredits(microcredits: number) {
-    const credits = microcredits / 1_000_000;
-    if (credits >= 10_000) return `${(credits / 10_000).toFixed(credits >= 100_000 ? 0 : 1)}万`;
-    return credits.toLocaleString("zh-CN", { maximumFractionDigits: credits >= 100 ? 0 : 2 });
-}
