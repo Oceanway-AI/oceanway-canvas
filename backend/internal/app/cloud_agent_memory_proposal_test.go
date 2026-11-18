@@ -29,6 +29,12 @@ func proposalLesson(t *testing.T, s *Service, userID, topic string) model.AgentL
 	if err := s.repo.SaveAgentLesson(lesson); err != nil {
 		t.Fatal(err)
 	}
+	// The proposal input is read from PostgreSQL in production. Reload its
+	// persisted timestamp precision before computing content versions.
+	lesson, err = s.repo.AgentLessonForUser(userID, lesson.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	return *lesson
 }
 

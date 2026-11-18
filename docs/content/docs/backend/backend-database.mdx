@@ -216,6 +216,8 @@ Schema 67 `drama_segment_production` 从逐镜流程迁到剧情段流程：先�
 
 后端通过 GORM 管理 PostgreSQL 业务表。受管部署在 Backend 启动前运行独立迁移服务，Backend 校验 Studio 基线。业务写入通过 service 和 repository 的状态约束。
 
+Agent 详情、活动任务和调度扫描使用 PostgreSQL `REPEATABLE READ` 只读事务，共同读取执行检查点、事件窗口和消息。并发提交期间各次查询保持同一快照，下一次读取可见新的完整检查点。修改事务先按 revision 锁定执行行，再原子提交计数与关联记录。
+
 ## 素材资源引用边界
 
 资源引用快照同时读取素材表现的 `resource_id` 和 `metadata_json`（包括嵌套资源字段）；不能先按 `resource_id` 过滤表现记录，否则仅在 metadata 中引用的共享资源会漏检。素材批量删除保留其他素材仍引用的资源；管理员删除也复用这一引用边界。
