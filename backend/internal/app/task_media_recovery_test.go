@@ -141,10 +141,13 @@ func TestMediaRecoveryDownloadFailureResumesSameTaskAfterRestart(t *testing.T) {
 	}
 }
 
-func TestMediaRecoveryUploadFailureReusesStagedFileAndResource(t *testing.T) {
+func TestMediaRecoveryLocalWriteFailureReusesStagedFileAndResource(t *testing.T) {
 	t.Setenv("CANVAS_ALLOWED_PRIVATE_UPSTREAM_HOSTS", "127.0.0.1")
 	s, db := newMediaRecoveryTestService(t)
-	seedOSSEnabled(t, db, "media-user", "http://127.0.0.1:1")
+	blockedDirectory := filepath.Join(s.dataDir, "resources")
+	if err := os.WriteFile(blockedDirectory, []byte("blocked"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	task := seedMediaTask(t, db, providerConfig{})
 	temp, err := s.stageInlineMedia(mediaTestPNG(t))
 	if err != nil {
@@ -156,19 +159,17 @@ func TestMediaRecoveryUploadFailureReusesStagedFileAndResource(t *testing.T) {
 	}
 	_, failure := s.materializeTaskMedia(context.Background(), task, providerConfig{}, checkpoint)
 	var delivery *mediaRecoveryError
-	if !errors.As(failure, &delivery) || delivery.stage != "upload" {
-		t.Fatalf("expected OSS failure, got %v", failure)
+	if !errors.As(failure, &delivery) || delivery.stage != "local_save" {
+		t.Fatalf("expected local write failure, got %v", failure)
 	}
 	resource, err := s.resourceForUploadKey(task.UserID, mediaUploadKey(task.ID, 0))
-	if err != nil || resource == nil || resource.Status == model.ResourceStatusReady || resource.Provider == "local" {
-		t.Fatalf("silently degraded upload: %+v %v", resource, err)
+	if err != nil || resource == nil || resource.Status != model.ResourceStatusFailed || resource.Provider != "local" {
+		t.Fatalf("write failure was not retained: %+v %v", resource, err)
 	}
 	if _, err := os.Stat(s.mediaTempPath(temp)); err != nil {
 		t.Fatal("upload failure discarded download", err)
 	}
-	// Simulate fixing storage configuration on the same existing object identity.
-	resource.Provider, resource.ObjectKey = "local", "recovered/picture.png"
-	if err := s.repo.SaveResource(resource); err != nil {
+	if err := os.Remove(blockedDirectory); err != nil {
 		t.Fatal(err)
 	}
 	output, err := s.resumeTaskMedia(context.Background(), task)

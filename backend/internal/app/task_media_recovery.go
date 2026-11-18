@@ -228,26 +228,12 @@ func (s *Service) materializeTaskMedia(ctx context.Context, task *model.Task, co
 				}
 			}
 			stage := "local_save"
-			_, _, oss, settingErr := s.activeResourceOSSSetting(task.UserID)
-			if settingErr != nil {
-				return nil, &mediaRecoveryError{stage: "upload", cause: settingErr}
-			}
-			if oss || (resource != nil && resource.Provider != "local") {
-				stage = "upload"
-			}
 			if err := s.saveMediaCheckpoint(task, checkpoint, stage); err != nil {
 				return nil, err
 			}
 			started := time.Now()
-			var fallbackCause error
-			resource, fallbackCause, err = s.storeTaskMediaFile(task, index, path, item.MIMEType, checkpoint.Mode, resource)
-			if fallbackCause != nil {
-				// 直传失败已由本地兜底接住：分别记录失败的上传和成功的兜底保存。
-				s.logMediaStage(*task, stage, started, fallbackCause)
-				s.logMediaStage(*task, "local_fallback", started, nil)
-			} else {
-				s.logMediaStage(*task, stage, started, err)
-			}
+			resource, err = s.storeTaskMediaFile(task, index, path, item.MIMEType, checkpoint.Mode, resource)
+			s.logMediaStage(*task, stage, started, err)
 			if err != nil {
 				return nil, &mediaRecoveryError{stage: stage, retryable: retryableMediaRecovery(err), cause: err}
 			}
@@ -288,10 +274,6 @@ func retryableMediaRecovery(err error) bool {
 		return true
 	}
 	if retryableProtocolMediaDownload(err) || errors.Is(err, context.DeadlineExceeded) {
-		return true
-	}
-	// 对象存储的 503 / 限流 / 超时由各家 SDK 的错误类型表达，不是 providerHTTPError。
-	if classifyStorageError(err).Transient {
 		return true
 	}
 	var upstream providerHTTPError
@@ -525,12 +507,7 @@ func (s *Service) logMediaStage(task model.Task, stage string, started time.Time
 		status = model.ApiCallStatusFailed
 		code = "media_" + stage + "_failed"
 		message = mediaStageLabel(stage)
-		// 只附加存储服务返回的错误码和状态码，不写对象路径、URL 或凭据。
-		if label := classifyStorageError(err).Label(); label != "" {
-			message += "（存储返回 " + label + "）"
-		} else if errors.Is(err, errStorageCircuitOpen) {
-			message += "（存储熔断中，未直传）"
-		}
+
 	}
 	if logErr := s.LogAPICall(model.ApiCallLog{UserID: task.UserID, TaskID: task.ID, BillingOrderID: task.BillingOrderID, ProviderRequestID: task.ProviderRequestID, Source: "backend-task", Capability: capabilityFromTaskType(task.Type), Model: task.Model, RequestKind: stage, Method: "INTERNAL", Path: "task/media/" + stage, Status: status, ErrorCode: code, Error: message, DurationMs: time.Since(started).Milliseconds()}); logErr != nil {
 		_ = s.log(task.UserID, task.ID, "error", "记录作品保存阶段失败", logErr.Error())

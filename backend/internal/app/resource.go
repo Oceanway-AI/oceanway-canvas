@@ -79,13 +79,9 @@ func (s *Service) signPublicResource(resourceID string, expires string) (string,
 }
 
 func (s *Service) publicResourceBaseURL() (*url.URL, error) {
-	_, setting, err := s.readOSSSetting()
-	if err != nil {
-		return nil, err
-	}
-	raw := firstNonEmpty(setting.PublicBaseURL, os.Getenv("CANVAS_PUBLIC_BASE_URL"))
+	raw := strings.TrimSpace(os.Getenv("CANVAS_PUBLIC_BASE_URL"))
 	if raw == "" {
-		return nil, BadAuthRequest("服务器本地存储尚未配置服务器访问地址，请设置 CANVAS_PUBLIC_BASE_URL 或在存储设置中配置公网访问地址（或改用 OSS 存储）")
+		return nil, BadAuthRequest("系统素材访问需要配置 CANVAS_PUBLIC_BASE_URL")
 	}
 	return validatePublicResourceBaseURL(raw)
 }
@@ -128,13 +124,6 @@ func normalizeResourceKind(kind string, mimeType string) string {
 		return "audio"
 	}
 	return "file"
-}
-
-func ossObjectKey(setting ossSettingValue, userID string, kind string, fileName string, mimeType string, now time.Time) string {
-	ext := resourceFileExtension(fileName, mimeType, kind)
-	name := newID()
-	parts := []string{setting.PathPrefix, "users", safeObjectSegment(userID), kind, now.Format("2006/01/02"), name + ext}
-	return strings.Trim(strings.Join(nonEmptySegments(parts), "/"), "/")
 }
 
 func normalizeSingleByteRange(value string) string {

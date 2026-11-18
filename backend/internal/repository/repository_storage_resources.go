@@ -1,4 +1,4 @@
-// 对象存储配置、存储位置、上传配额与资源（Resource）记录。
+// 系统素材上传配额与资源（Resource）记录。
 //
 // 资源的物理删除不在这里做：业务删除写入 resource_deletion_jobs（Outbox），
 // 由后台 worker 幂等清理，见 resource_deletion.go。
@@ -12,87 +12,6 @@ import (
 	"gorm.io/gorm/clause"
 	"yingce/backend/internal/model"
 )
-
-func (r *Repository) LatestUserOSSSetting(userID string) (*model.UserOSSSetting, error) {
-	var setting model.UserOSSSetting
-	if err := r.db.Where("user_id = ?", userID).Order("created_at desc, id desc").First(&setting).Error; err != nil {
-		return nil, err
-	}
-	return &setting, nil
-}
-
-func (r *Repository) UserOSSSettingsForUser(userID string) ([]model.UserOSSSetting, error) {
-	var settings []model.UserOSSSetting
-	err := r.db.Where("user_id = ?", userID).Order("created_at desc, id desc").Find(&settings).Error
-	return settings, err
-}
-
-func (r *Repository) UserOSSSettingForUser(userID string, id string) (*model.UserOSSSetting, error) {
-	var setting model.UserOSSSetting
-	if err := r.db.First(&setting, "id = ? AND user_id = ?", id, userID).Error; err != nil {
-		return nil, err
-	}
-	return &setting, nil
-}
-
-func (r *Repository) CreateUserOSSSetting(setting *model.UserOSSSetting) error {
-	return r.db.Create(setting).Error
-}
-
-func (r *Repository) StorageLocation(id string) (*model.StorageLocation, error) {
-	var location model.StorageLocation
-	if err := r.db.First(&location, "id = ?", id).Error; err != nil {
-		return nil, err
-	}
-	return &location, nil
-}
-
-func (r *Repository) StorageLocationByDigest(scope string, ownerID string, provider string, digest string) (*model.StorageLocation, error) {
-	var location model.StorageLocation
-	if err := r.db.First(&location, "scope = ? AND owner_id = ? AND provider = ? AND location_digest = ?", scope, ownerID, provider, digest).Error; err != nil {
-		return nil, err
-	}
-	return &location, nil
-}
-
-func (r *Repository) StorageLocationHistoryCount(scope string, ownerID string) (int64, error) {
-	var count int64
-	err := r.db.Model(&model.StorageLocation{}).Where("scope = ? AND owner_id = ?", scope, ownerID).Count(&count).Error
-	return count, err
-}
-
-func (r *Repository) StorageLocationResourceCount(id string) (int64, error) {
-	var count int64
-	err := r.db.Model(&model.Resource{}).Where("storage_setting_id = ?", id).Count(&count).Error
-	return count, err
-}
-
-func (r *Repository) CreateStorageLocation(location *model.StorageLocation) error {
-	return r.db.Create(location).Error
-}
-
-func (r *Repository) SaveStorageLocation(location *model.StorageLocation) error {
-	return r.db.Save(location).Error
-}
-
-func (r *Repository) ActivateStorageLocation(scope string, ownerID string, id string, active bool) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&model.StorageLocation{}).Where("scope = ? AND owner_id = ? AND active = ?", scope, ownerID, true).Update("active", false).Error; err != nil {
-			return err
-		}
-		if !active {
-			return nil
-		}
-		result := tx.Model(&model.StorageLocation{}).Where("id = ? AND scope = ? AND owner_id = ?", id, scope, ownerID).Update("active", true)
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected != 1 {
-			return gorm.ErrRecordNotFound
-		}
-		return nil
-	})
-}
 
 func (r *Repository) ReserveDailyUpload(userID string, day string, size int64, limit int64) error {
 	usage := model.UserDailyUploadUsage{ID: userID + ":" + day, UserID: userID, Day: day}

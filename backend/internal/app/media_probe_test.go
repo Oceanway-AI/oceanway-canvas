@@ -77,9 +77,9 @@ func TestStoreTaskMediaFileRecordsVideoDimensions(t *testing.T) {
 	task := seedMediaTask(t, db, providerConfig{})
 	path := filepath.Join(t.TempDir(), "generated.mp4")
 	writeTestVideo(t, path, 768, 1344, nil)
-	resource, fallback, err := s.storeTaskMediaFile(task, 0, path, "video/mp4", "video", nil)
-	if err != nil || fallback != nil {
-		t.Fatalf("store: %v fallback=%v", err, fallback)
+	resource, err := s.storeTaskMediaFile(task, 0, path, "video/mp4", "video", nil)
+	if err != nil {
+		t.Fatalf("store: %v", err)
 	}
 	if resource.Width != 768 || resource.Height != 1344 || resource.DurationMs < 900 {
 		t.Fatalf("resource = %dx%d %dms, want 768x1344 ~1000ms", resource.Width, resource.Height, resource.DurationMs)

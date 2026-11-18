@@ -63,19 +63,15 @@ func (s *Service) resolveResourceAccess(resource *model.Resource, options Resour
 	if resource == nil {
 		return nil, NotFound("资源不存在")
 	}
-	var setting ossSettingValue
-	if resource.Provider != "local" {
-		var err error
-		setting, err = s.ossSettingForResource(resource.UserID, resource)
-		if err != nil {
-			return nil, WrapAppError(503, "无法解析资源实际存储位置", err)
-		}
-		setting = s.storageSettingWithRuntimePolicy(setting)
-	} else {
-		// 本地资源无需存储配置，只注入运行时策略，让平台签名地址同样遵循后台配置的有效期。
-		setting.Runtime = s.storageSettingWithRuntimePolicy(ossSettingValue{}).Runtime
+	policy, err := s.RuntimePolicy()
+	if err != nil {
+		return nil, err
 	}
-	return assets.ResolveAccess(resource, setting, options, time.Now().UTC(), func(variant assets.ResourceVariant, expires time.Time) (string, error) {
+	accessPolicy := assets.AccessPolicy{
+		AccessURLTTL:         time.Duration(policy.Storage.AccessURLTTLSeconds) * time.Second,
+		ProviderAccessURLTTL: time.Duration(policy.Storage.ProviderAccessURLTTLSeconds) * time.Second,
+	}
+	return assets.ResolveAccess(resource, accessPolicy, options, time.Now().UTC(), func(variant assets.ResourceVariant, expires time.Time) (string, error) {
 		if options.Purpose == assets.PurposeEcommerceExport {
 			u := &url.URL{Path: "/api/resources/" + url.PathEscape(resource.ID) + "/file"}
 			q := u.Query()

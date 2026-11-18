@@ -71,11 +71,8 @@ type RuntimeResourcePolicy struct {
 }
 
 type RuntimeStoragePolicy struct {
-	TransferTimeoutSeconds      int   `json:"transferTimeoutSeconds"`
-	AccessURLTTLSeconds         int   `json:"accessURLTTLSeconds"`
-	ProviderAccessURLTTLSeconds int   `json:"providerAccessURLTTLSeconds"`
-	NonSeekableBufferMB         int64 `json:"nonSeekableBufferMB"`
-	ErrorBodyKB                 int64 `json:"errorBodyKB"`
+	AccessURLTTLSeconds         int `json:"accessURLTTLSeconds"`
+	ProviderAccessURLTTLSeconds int `json:"providerAccessURLTTLSeconds"`
 }
 
 type RuntimeTaskPolicy struct {
@@ -161,11 +158,8 @@ func DefaultRuntimePolicy() RuntimePolicySetting {
 			RecycleBinRetentionDays: 30,
 		},
 		Storage: RuntimeStoragePolicy{
-			TransferTimeoutSeconds:      120,
 			AccessURLTTLSeconds:         14_400,
 			ProviderAccessURLTTLSeconds: 14_400,
-			NonSeekableBufferMB:         64,
-			ErrorBodyKB:                 1,
 		},
 		Task: RuntimeTaskPolicy{
 			WorkerConcurrency:        defaultWorkerConcurrencyLimit(),
@@ -408,20 +402,11 @@ func validateRuntimePolicy(value RuntimePolicySetting) error {
 		return kernel.BadAuthRequest("回收站保留天数必须是 0-365 的整数 (0 表示不自动清理)")
 	}
 	storage := value.Storage
-	if storage.TransferTimeoutSeconds < 10 || storage.TransferTimeoutSeconds > 3_600 {
-		return kernel.BadAuthRequest("对象存储传输超时必须是 10-3600 秒的整数")
-	}
 	if storage.AccessURLTTLSeconds < 60 || storage.AccessURLTTLSeconds > 86_400 {
-		return kernel.BadAuthRequest("对象存储访问地址有效期必须是 60-86400 秒的整数")
+		return kernel.BadAuthRequest("系统素材访问地址有效期必须是 60-86400 秒的整数")
 	}
 	if storage.ProviderAccessURLTTLSeconds < 300 || storage.ProviderAccessURLTTLSeconds > 86_400 {
 		return kernel.BadAuthRequest("模型输入资源地址有效期必须是 300-86400 秒的整数")
-	}
-	if storage.NonSeekableBufferMB < 1 || storage.NonSeekableBufferMB > maxRuntimeUploadMB {
-		return kernel.BadAuthRequest(fmt.Sprintf("对象存储非可寻址上传缓冲必须是 1-%d MB 的整数", maxRuntimeUploadMB))
-	}
-	if storage.ErrorBodyKB < 1 || storage.ErrorBodyKB > 1024 {
-		return kernel.BadAuthRequest("对象存储错误响应保留必须是 1-1024 KB 的整数")
 	}
 	task := value.Task
 	for label, item := range map[string]int{

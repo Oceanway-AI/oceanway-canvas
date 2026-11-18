@@ -160,8 +160,6 @@ type (
 	ModelErrorCode                         = app.ModelErrorCode
 	ModelRequestIntent                     = app.ModelRequestIntent
 	MoveUserAssetsRequest                  = app.MoveUserAssetsRequest
-	OSSConnectionTestResult                = app.OSSConnectionTestResult
-	OSSSettingRequest                      = app.OSSSettingRequest
 	OptionConstraint                       = app.OptionConstraint
 	OutboundHeader                         = app.OutboundHeader
 	ParameterSupport                       = app.ParameterSupport
@@ -208,7 +206,6 @@ type (
 	PublicModelAvailabilityDataState       = app.PublicModelAvailabilityDataState
 	PublicModelAvailabilityDay             = app.PublicModelAvailabilityDay
 	PublicModelChannel                     = app.PublicModelChannel
-	PublicOSSSetting                       = app.PublicOSSSetting
 	PublicRuntimeLimits                    = app.PublicRuntimeLimits
 	PublicRuntimePolicySetting             = app.PublicRuntimePolicySetting
 	RegisterTaskOutputRequest              = app.RegisterTaskOutputRequest

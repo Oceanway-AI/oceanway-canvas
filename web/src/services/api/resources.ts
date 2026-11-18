@@ -3,7 +3,6 @@ import { localForageStorageForScope } from "@/lib/localforage-storage";
 import { http, apiBaseURL, ApiError } from "@/services/api/request";
 import { getPlatformMaterialStorage, uploadPlatformResource } from "./platform-materials";
 import { delay } from "./video-response";
-import type { OSSConnectionTestInput, OSSConnectionTestResult, OSSProvider, S3Preset } from "@/lib/oss-settings";
 
 export type RemoteResource = {
     id: string;
@@ -28,40 +27,6 @@ export type RemoteResource = {
     error?: string;
     createdAt: string;
     updatedAt: string;
-};
-
-export type UserOSSSetting = {
-    enabled: boolean;
-    provider: OSSProvider;
-    s3Preset: S3Preset;
-    region: string;
-    endpoint: string;
-    cdnBaseUrl: string;
-    cdnAuthMode: "" | "public" | "qiniu" | string;
-    requireCDN: boolean;
-    allowPrivateProxy: boolean;
-    bucket: string;
-    accessKeyId: string;
-    hasAccessKeySecret: boolean;
-    sessionToken?: string;
-    hasSessionToken: boolean;
-    pathStyle: boolean;
-    allowUserS3: boolean;
-    publicBaseUrl: string;
-    pathPrefix: string;
-    testedAt?: string;
-    testedDigest?: string;
-    historyCount?: number;
-    referencedResourceCount?: number;
-    updatedAt?: string;
-};
-
-export type UserOSSSettingInput = Pick<UserOSSSetting, "enabled" | "provider" | "s3Preset" | "region" | "endpoint" | "cdnBaseUrl" | "bucket" | "accessKeyId" | "pathPrefix" | "pathStyle"> & {
-    accessKeySecret?: string;
-    sessionToken?: string;
-    cdnAuthMode?: "" | "public" | "qiniu" | string;
-    requireCDN?: boolean;
-    allowPrivateProxy?: boolean;
 };
 
 /** totalBytes = baseBytes（后台全局容量）+ purchasedBytes（当前生效的扩容）。 */
@@ -227,18 +192,6 @@ export function clearResourceAccessCache() {
 
 export function resourceStorageKey(id: string) {
     return `resource:${id}`;
-}
-
-export function getUserOSSSetting() {
-    return http.get<{ setting: UserOSSSetting }>("/settings/oss");
-}
-
-export function updateUserOSSSetting(input: UserOSSSettingInput) {
-    return http.patch<{ setting: UserOSSSetting }>("/settings/oss", input);
-}
-
-export function testUserOSSConnection(input: OSSConnectionTestInput) {
-    return http.post<OSSConnectionTestResult>("/settings/oss/test", input);
 }
 
 export async function getAccountFileStorageUsage() {

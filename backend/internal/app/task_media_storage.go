@@ -273,27 +273,26 @@ func mediaUploadKey(taskID string, index int) *string {
 	return &key
 }
 
-// storeTaskMediaFile 保存一份暂存作品。fallbackCause 非 nil 表示对象存储写入失败、
-// 作品已兜底保存到本地并登记了补传任务。
-func (s *Service) storeTaskMediaFile(task *model.Task, index int, path, mimeType, kind string, existing *model.Resource) (resource *model.Resource, fallbackCause error, err error) {
+// storeTaskMediaFile persists staged media for local creative processing.
+func (s *Service) storeTaskMediaFile(task *model.Task, index int, path, mimeType, kind string, existing *model.Resource) (resource *model.Resource, err error) {
 	info, err := os.Lstat(path)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if !info.Mode().IsRegular() {
-		return nil, nil, errors.New("暂存作品不是普通文件")
+		return nil, errors.New("暂存作品不是普通文件")
 	}
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer file.Close()
 	info, err = file.Stat()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if !info.Mode().IsRegular() {
-		return nil, nil, errors.New("暂存作品不是普通文件")
+		return nil, errors.New("暂存作品不是普通文件")
 	}
 	width, height := 0, 0
 	durationMs := int64(0)
@@ -308,12 +307,12 @@ func (s *Service) storeTaskMediaFile(task *model.Task, index int, path, mimeType
 			webp := mimeType == "image/webp" && n >= 12 && string(head[:4]) == "RIFF" && string(head[8:12]) == "WEBP"
 			avif := mimeType == "image/avif" && n >= 16 && string(head[4:8]) == "ftyp" && (strings.Contains(string(head[8:]), "avif") || strings.Contains(string(head[8:]), "avis"))
 			if !webp && !avif {
-				return nil, nil, fmt.Errorf("图片内容校验失败：%w", err)
+				return nil, fmt.Errorf("图片内容校验失败：%w", err)
 			}
 		}
 		width, height = config.Width, config.Height
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	} else if kind == "audio" || kind == "video" {
 		// Audio and video-processing duration is the source of truth for per-second
@@ -329,7 +328,7 @@ func (s *Service) storeTaskMediaFile(task *model.Task, index int, path, mimeType
 	}
 	day, err := s.reserveGeneratedResourceQuota(task.UserID, info.Size())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	committed := false
 	defer func() {
@@ -337,14 +336,14 @@ func (s *Service) storeTaskMediaFile(task *model.Task, index int, path, mimeType
 			s.releaseUserUploadQuota(task.UserID, day, info.Size())
 		}
 	}()
-	writeObject := s.taskMediaObjectWriter(task, path, &fallbackCause)
+	writeObject := s.storeResourceObject
 	if existing == nil {
 		resource, _, err = s.storeResourceWithWriter(task.UserID, kind, "generated."+extensionFromMimeType(mimeType), mimeType, info.Size(), width, height, durationMs, file, mediaUploadKey(task.ID, index), false, writeObject)
 	} else {
 		// Reuse the same object key after a failed upload; no orphan per retry.
 		resource = existing
 		if resource.UserID != task.UserID || resource.Size != info.Size() || resource.MimeType != mimeType {
-			return nil, nil, errors.New("恢复文件与原始资源不一致")
+			return nil, errors.New("恢复文件与原始资源不一致")
 		}
 		resource.DurationMs = durationMs
 		if kind == "video" && width > 0 && height > 0 {
@@ -363,7 +362,7 @@ func (s *Service) storeTaskMediaFile(task *model.Task, index int, path, mimeType
 		}
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	s.commitUserUploadQuota(task.UserID, info.Size())
 	committed = true
@@ -371,17 +370,7 @@ func (s *Service) storeTaskMediaFile(task *model.Task, index int, path, mimeType
 		s.recordActivity(task.UserID, "resource", 1)
 		s.maybeStartPlaybackTranscode(resource)
 	}
-	return resource, fallbackCause, nil
-}
-
-// storeTaskMediaObjectContext 直传对象存储。是否改存本地由 taskMediaObjectWriter
-// 决定：只有平台存储失败才会兜底，并且总会登记补传任务，不会静默改变存储位置。
-func (s *Service) storeTaskMediaObjectContext(ctx context.Context, resource *model.Resource, body io.Reader) (string, error) {
-	setting, err := s.ossSettingForResource(resource.UserID, resource)
-	if err != nil {
-		return "", err
-	}
-	return putOSSObjectContext(ctx, s.storageSettingWithRuntimePolicy(setting), resource.ObjectKey, resource.MimeType, resource.Size, body)
+	return resource, nil
 }
 
 // Cleanup is best effort only after durable completion. Expired leftovers are

@@ -49,6 +49,8 @@ go run ./cmd/migrate-schema status
 
 任务资金回执保存在已有 `tasks.result_json`，`Task.PlatformBilling` 是 `gorm:"-"` 输出投影。任务读取不查询或创建本地账务表。旧渠道路由与账务代码仍有源码清理余项，进度按 WP-STUDIO-020 登记。
 
+管理员／个人 OSS 设置、存储位置档案和补传任务模型已从源码与测试模型注册中移除。S3／COS／七牛专用适配及依赖随调用方退出。用户素材通过 Platform 上传、采用和授权访问，系统 Logo、Live2D 与 Agent 外观保留明确的本地文件路径。`.settings-key` 继续加密持久执行授权，服务重启必须沿用原密钥。运行策略中的存储传输超时、非可寻址缓冲和错误正文设置已退出，系统素材签名有效期继续保留。
+
 ## PostgreSQL 测试
 
 `internal/testdb.Open` 要求 `CANVAS_TEST_POSTGRES_DSN`，每个测试创建独立 schema，结束后清理。`Reopen` 在同一 schema 建立另一个连接池，用于多连接事务验证。数据库级容量和健康检查使用 `OpenDatabase` 创建独立数据库，测试账号需有 CREATEDB 权限，CI 使用 PostgreSQL 服务账号。Studio 路由夹具启动独立 Redis，避免限流和租约串扰。依赖缺失会使测试失败。

@@ -31,7 +31,6 @@ type Service struct {
 	dataDir                  string
 	cancelMu                 sync.Mutex
 	storageMu                sync.Mutex
-	storageTestMu            sync.Mutex
 	workerRuntimeMu          sync.Mutex
 	agentSchedulerMu         sync.Mutex
 	agentSchedulerWake       chan struct{}
@@ -39,7 +38,6 @@ type Service struct {
 	geminiCacheLockMu        sync.Mutex
 	agentSchedulerCursor     string
 	agentConflictStreak      map[string]int
-	activeStorageTests       map[string]bool
 	characterTaskMu          sync.Mutex
 	activeCancels            map[string]context.CancelFunc
 	pendingStorage           map[string]int64
@@ -146,7 +144,7 @@ func newService(repo *repository.Repository, dataDir string, gateway *platformin
 	coordinator, err := platform.NewCoordinator()
 	canvasRealtime := canvas.NewRealtimeHub(coordinator.Redis())
 	repo = repo.WithCanvasChangeNotifier(canvasRealtime.Changed)
-	service := &Service{studioPlatform: gateway, repo: repo, dataDir: dataDir, activeStorageTests: make(map[string]bool), activeCancels: make(map[string]context.CancelFunc), agentConflictStreak: make(map[string]int), agentSchedulerWake: make(chan struct{}, 1), taskDispatcherWake: make(chan struct{}, 1), piRunners: make(map[string]context.CancelFunc), coordinator: coordinator, runtimeErr: err, workerID: newID(), routeCatalogTTL: 30 * time.Second, routeCatalogMaxStale: 5 * time.Minute, routeHealthBlocked: make(map[string]time.Time), geminiCacheLocks: make(map[string]*geminiCacheKeyLock)}
+	service := &Service{studioPlatform: gateway, repo: repo, dataDir: dataDir, activeCancels: make(map[string]context.CancelFunc), agentConflictStreak: make(map[string]int), agentSchedulerWake: make(chan struct{}, 1), taskDispatcherWake: make(chan struct{}, 1), piRunners: make(map[string]context.CancelFunc), coordinator: coordinator, runtimeErr: err, workerID: newID(), routeCatalogTTL: 30 * time.Second, routeCatalogMaxStale: 5 * time.Minute, routeHealthBlocked: make(map[string]time.Time), geminiCacheLocks: make(map[string]*geminiCacheKeyLock)}
 	service.taskWorkerCoordinator = newTaskWorkerCoordinator(service)
 	service.taskLifecycleCoordinator = newTaskLifecycleCoordinator(service)
 	service.skills = skills.New(service.repo, service.dataDir, service.runWorkerLoop)

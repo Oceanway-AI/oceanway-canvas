@@ -222,7 +222,7 @@ HTTP 请求 -> handler -> service（稳定导入面 / 别名）-> app（组合�
 | 域包 | 职责 | 现状 |
 | --- | --- | --- |
 | `service` | HTTP 稳定导入面 | **已变薄**：仅 `aliases_*.go` / `doc.go`（4 个文件） |
-| `app` | 组合根、跨域编排、尚未拆出的业务实现 | **承接原 service 实现**：`provider_*`、`task_*`、`project_*`、OSS/配额、渠道、管理后台等 |
+| `app` | 组合根、跨域编排、尚未拆出的业务实现 | `provider_*`、`task_*`、`project_*`、Platform 适配、系统素材与技术限流；旧渠道和账务调用方清理沿 WP-STUDIO-020 |
 | `platform` | 运行时策略、功能开关、限流/并发协调、worker 与读缓存 | **已抽出**：`internal/platform`；`app/platform_bridge.go` 委托 |
 | `kernel` | 结构化错误、错误码、ID 与通用字符串/配额换算 | **已抽出**：`internal/kernel` |
 | `generation` | 协议注册表和生成域边界 | **部分抽出**：`internal/generation` 提供协议注册入口；`provider_*` 执行簇仍在 `app` |
@@ -231,7 +231,7 @@ HTTP 请求 -> handler -> service（稳定导入面 / 别名）-> app（组合�
 | `prompts` | 提示词模板、用户定制、风格档案、JSON 抽取 | **已抽出**：`internal/prompts` |
 | `canvasimport` | LibTV/TapNow 创作内容导入 | `internal/canvasimport` |
 | `canvas` | 画布公开分享、媒体引用守卫、用户画布/素材库同步 | **已抽出**：`internal/canvas` |
-| `assets` | 资源 URL/引用解析、流式交付类型 | **部分抽出**：`internal/assets`；OSS/配额/转码仍在 `app` |
+| `assets` | 资源 URL/引用解析、流式交付类型 | `internal/assets` 保留系统素材签名；用户素材沿 Platform 授权，技术限流与系统转码在 `app` |
 | `agentcontext` | Agent 上下文检查点的编码、解析与压缩提示词（provider 中立，不含触发与调度） | **已抽出**：`internal/agentcontext`；触发、暂停与恢复在 `app/cloud_agent_context_compaction.go` |
 | `poselibrary` | 站点姿势库：导入解析、图片同步与本地文件、用户目录、后台维护 | **新建**：`internal/poselibrary`；`app/pose_library_bridge.go` 注入管理员校验与审计，并负责选用时复制为用户资源 |
 
@@ -245,7 +245,7 @@ HTTP 请求 -> handler -> service（稳定导入面 / 别名）-> app（组合�
 | 模型响应拦截 | `handler/response_interception.go`、`handler/custom_proxy.go` | `internal/app/response_interception.go`、`repository/repository.go` |
 | 异步任务、文本 SSE 与 Agent | `handler/routes.go` | `internal/app` 组合根（`provider_*` 仍在此）+ `internal/generation` + `internal/outbound` + `task_text_stream.go`、`text_replay.go` |
 | 用户画布与素材 | `handler/user_data.go` | `internal/canvas` |
-| 文件和 OSS | `handler/routes.go` | `internal/app/resource.go`、`settings.go` |
+| 文件和执行加密 | Studio 素材路由、系统素材入口 | `internal/app/studio_material*.go`、`resource.go`、`settings.go` |
 | 画布分享 | `handler/canvas_share.go` | `internal/canvas` |
 | 技能库 | `handler/skills.go` | `internal/skills`、`repository/skills.go`；在线编辑在 `skills/skill_packages_edit.go`，乐观锁写入在 `repository/skill_packages.go` 的 `AddSkillVersionIfCurrent` |
 | 提示词模板 | `handler/auth.go`、`handler/user_data.go` | `internal/prompts` |

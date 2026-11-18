@@ -360,14 +360,7 @@ func TestAppearanceFallsBackWhenLocalLogoFileIsMissing(t *testing.T) {
 }
 
 func TestUploadAppearanceLogoAlwaysUsesServerLocalStorage(t *testing.T) {
-	svc, db, dataDir, admin := newAppearanceTestService(t)
-	requests := make(chan struct{}, 2)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		requests <- struct{}{}
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer server.Close()
-	seedOSSEnabled(t, db, admin.ID, server.URL)
+	svc, _, dataDir, admin := newAppearanceTestService(t)
 	pngBytes := append([]byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}, bytes.Repeat([]byte{0}, 32)...)
 
 	for _, slot := range []string{AppearanceAssetLogo, AppearanceAssetDarkLogo} {
@@ -381,9 +374,6 @@ func TestUploadAppearanceLogoAlwaysUsesServerLocalStorage(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(dataDir, "resources", filepath.FromSlash(resource.ObjectKey))); err != nil {
 			t.Fatalf("UploadAppearanceAsset(%s) local file: %v", slot, err)
 		}
-	}
-	if len(requests) != 0 {
-		t.Fatalf("logo upload unexpectedly contacted object storage %d time(s)", len(requests))
 	}
 }
 

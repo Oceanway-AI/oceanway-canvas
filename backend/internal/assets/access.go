@@ -6,7 +6,6 @@ import (
 
 	"yingce/backend/internal/kernel"
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/storage"
 )
 
 type AccessPurpose string
@@ -91,9 +90,23 @@ func NormalizeAccessOptions(options AccessOptions, allowProvider bool) (AccessOp
 	return options, nil
 }
 
-// ResolveAccess is the sole delivery policy. The caller must authorize resource ownership/scene first.
-// Local URL signing is injected by the composition root; storage adapters never know application keys.
-func ResolveAccess(resource *model.Resource, setting storage.Settings, options AccessOptions, now time.Time,
+type AccessPolicy struct {
+	AccessURLTTL         time.Duration
+	ProviderAccessURLTTL time.Duration
+}
+
+func (p AccessPolicy) normalized() AccessPolicy {
+	if p.AccessURLTTL <= 0 {
+		p.AccessURLTTL = 4 * time.Hour
+	}
+	if p.ProviderAccessURLTTL <= 0 {
+		p.ProviderAccessURLTTL = 4 * time.Hour
+	}
+	return p
+}
+
+// ResolveAccess signs system-owned local resources after ownership authorization.
+func ResolveAccess(resource *model.Resource, policy AccessPolicy, options AccessOptions, now time.Time,
 	platformURL func(ResourceVariant, time.Time) (string, error)) (*ResourceAccess, error) {
 	options, err := NormalizeAccessOptions(options, true)
 	if err != nil {
@@ -102,20 +115,23 @@ func ResolveAccess(resource *model.Resource, setting storage.Settings, options A
 	if resource == nil {
 		return nil, kernel.NotFound("资源不存在")
 	}
+	if resource.Provider != "local" {
+		return nil, AccessError(400, "platform_material_required", "此资源必须通过 Platform 素材授权访问")
+	}
 	if resource.Status != model.ResourceStatusReady {
 		return nil, AccessError(http.StatusConflict, "resource_not_ready", "资源尚未上传完成")
 	}
 	if options.Purpose == PurposeEcommerceExport && (resource.Kind != "image" || resource.Size > 32*1024*1024 || resource.Size <= 0 || (resource.MimeType != "image/png" && resource.MimeType != "image/jpeg" && resource.MimeType != "image/webp")) {
 		return nil, AccessError(http.StatusBadRequest, "ecommerce_export_invalid", "电商导出仅支持32 MB以内的PNG、JPEG和WebP商品图片")
 	}
-	// 有效期来自后台「资源与请求策略」；未注入运行时策略时回落到存储层默认值（均为 4 小时）。
-	runtime := storage.NormalizeSettings(storage.Settings{Runtime: setting.Runtime}).Runtime
+	// 系统素材签名采用运行时策略，默认有效期为四小时。
+	runtime := policy.normalized()
 	ttl := runtime.AccessURLTTL
 	if options.Purpose == PurposeProvider {
 		ttl = runtime.ProviderAccessURLTTL
 	}
 	// 浏览器读取的签名地址按固定时间窗对齐：窗口内同一对象的签名地址逐字节相同，
-	// 刷新页面或多实例签发都能命中浏览器 HTTP 缓存，不会重复从对象存储拉取字节。
+	// 刷新页面或多实例签发可以复用浏览器 HTTP 缓存。
 	signedAt := time.Time{}
 	if browserCacheable(options.Purpose) {
 		signedAt = alignedSigningTime(now, ttl)
@@ -131,9 +147,9 @@ func ResolveAccess(resource *model.Resource, setting storage.Settings, options A
 		return nil, kernel.Forbidden("资源授权已过期")
 	}
 	access := &ResourceAccess{ResourceID: resource.ID, RequestedVariant: options.Variant, ActualVariant: VariantOriginal,
-		IssuedAt: now, ExpiresAt: &expires, RefreshAt: now.Add(expires.Sub(now) * 4 / 5), Revision: resource.ETag + ":" + resource.PlaybackStatus + ":" + storage.DeliveryRevision(setting)}
+		IssuedAt: now, ExpiresAt: &expires, RefreshAt: now.Add(expires.Sub(now) * 4 / 5), Revision: resource.ETag + ":" + resource.PlaybackStatus}
 	if options.Variant == VariantPlayback {
-		if resource.Provider == "local" && resource.PlaybackStatus == model.PlaybackStatusReady && resource.PlaybackObjectKey != "" {
+		if resource.PlaybackStatus == model.PlaybackStatusReady && resource.PlaybackObjectKey != "" {
 			access.ActualVariant = VariantPlayback
 		} else {
 			access.FallbackReason = "playback_not_ready"
@@ -146,66 +162,13 @@ func ResolveAccess(resource *model.Resource, setting storage.Settings, options A
 		access.Delivery = DeliveryProxy
 		access.FallbackReason = "ecommerce_export_processing"
 		access.ExpiresAt = nil
-	} else if resource.Provider == "local" {
-		access.Delivery = DeliveryLocal
-	} else if !InlineMediaType(resource.MimeType) {
-		// A redirect cannot enforce our attachment and sandbox response headers.
-		access.Delivery = DeliveryProxy
-		access.FallbackReason = "attachment_required"
-	} else if options.Purpose == PurposeDownload && setting.Delivery.CDNAuthMode == "public" && storage.CDNEnabled(setting) {
-		// Public COS/OSS CDN deployments can forward this response override to
-		// their origin. Keeping it on the download-only URL lets images and
-		// videos continue to use their normal inline CDN URL for display.
-		access.URL, err = storage.PublicCDNObjectDownloadURL(setting, resource.ObjectKey, options.DownloadName)
-		access.Delivery = DeliveryCDN
-		access.ExpiresAt = nil
-	} else if options.Purpose == PurposeDownload {
-		// Cross-origin `a[download]` is only advisory. A real browser download must
-		// therefore be enforced by the object store response itself. Downloads use
-		// a signed origin URL carrying Content-Disposition=attachment; media bytes
-		// never pass through the application server or a Blob relay.
-		if !storage.PublicOrigin(setting) {
-			return nil, AccessError(503, "resource_origin_private", "对象存储源站不可由浏览器直连，无法在不占用服务器带宽的前提下下载")
-		}
-		access.URL, err = storage.SignedOriginObjectDownloadURL(setting, resource.ObjectKey, expires, options.DownloadName)
-		access.Delivery = DeliveryOrigin
-	} else if storage.CDNEnabled(setting) {
-		access.URL, err = storage.SignCDNURL(setting, resource.ObjectKey, expires)
-		access.Delivery = DeliveryCDN
-		if setting.Delivery.CDNAuthMode == "public" {
-			access.ExpiresAt = nil
-		}
-	} else if setting.Delivery.RequireCDN {
-		return nil, AccessError(503, "resource_cdn_unconfigured", "CDN 访问鉴权未配置，请检查存储分发设置")
-	} else if storage.PublicOrigin(setting) {
-		if signedAt.IsZero() {
-			access.URL, err = storage.SignedOriginObjectURL(setting, resource.ObjectKey, expires)
-		} else {
-			access.URL, err = storage.SignedOriginObjectDisplayURL(setting, resource.ObjectKey, signedAt, expires)
-		}
-		access.Delivery = DeliveryOrigin
-		if setting.CDNBaseURL != "" {
-			access.FallbackReason = "cdn_auth_unconfigured"
-		}
-	} else if options.Purpose == PurposeProvider && setting.Delivery.AllowPrivateProxy {
-		// Only the server-side provider-input path may opt into a private-origin
-		// proxy. Browser display/copy/process/download traffic for OSS resources
-		// must never relay media bytes through the application server.
-		access.Delivery = DeliveryProxy
-		access.FallbackReason = "private_origin"
 	} else {
-		return nil, AccessError(503, "resource_origin_private", "对象存储源站不可由浏览器直连，请配置公网 OSS 源站或 CDN")
+		access.Delivery = DeliveryLocal
 	}
+
+	access.URL, err = platformURL(access.ActualVariant, expires)
 	if err != nil {
-		failure := AccessError(503, "resource_signing_failed", "资源访问地址签发失败，请检查存储分发设置")
-		failure.Cause = err
-		return nil, failure
-	}
-	if access.Delivery == DeliveryLocal || access.Delivery == DeliveryProxy {
-		access.URL, err = platformURL(access.ActualVariant, expires)
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 	return access, nil
 }

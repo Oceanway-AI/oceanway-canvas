@@ -1,6 +1,6 @@
 // 资源写入：上传、URL 导入、生成结果落盘与失败重试。
 //
-// 写入先落对象存储再登记 Resource 行；对象存储失败时明确报错，不静默降级到本地盘。
+// Platform 素材通过授权接口保存，系统自有素材沿本地持久目录保存。
 
 package app
 
@@ -29,9 +29,7 @@ func (s *Service) UploadResource(userID string, header *multipart.FileHeader, ki
 	return s.uploadResource(userID, header, kind, width, height, durationMs, false, uploadIdentity...)
 }
 
-// uploadLocalResource keeps small system-owned assets on the server even when
-// the uploader or platform has enabled object storage. The resource still uses
-// the normal database record and persistent data directory lifecycle.
+// uploadLocalResource stores validated system-owned assets in the persistent data directory.
 func (s *Service) uploadLocalResource(userID string, header *multipart.FileHeader, kind string, width int, height int, durationMs int64, uploadIdentity ...string) (*model.Resource, error) {
 	return s.uploadResource(userID, header, kind, width, height, durationMs, true, uploadIdentity...)
 }
@@ -256,6 +254,9 @@ func (s *Service) OpenResourceRange(userID string, id string, rangeHeader string
 }
 
 func (s *Service) openResourceRange(userID string, resource *model.Resource, rangeHeader string) (*ResourceStream, error) {
+	if resource == nil || resource.UserID != userID {
+		return nil, Forbidden("资源不可访问")
+	}
 	if resource.Status != model.ResourceStatusReady {
 		return nil, BadAuthRequest("资源尚未上传完成")
 	}
@@ -266,22 +267,7 @@ func (s *Service) openResourceRange(userID string, resource *model.Resource, ran
 		}
 		return &ResourceStream{Resource: resource, Body: body, StatusCode: http.StatusOK, ContentLength: resource.Size, AcceptRanges: "bytes"}, nil
 	}
-	setting, err := s.ossSettingForResource(userID, resource)
-	if err != nil {
-		return nil, err
-	}
-	if setting.AccessKeyID == "" || setting.AccessKeySecret == "" {
-		return nil, errors.New("对象存储访问密钥不可用")
-	}
-	setting.Provider = firstNonEmpty(resource.Provider, setting.Provider)
-	setting.Endpoint = firstNonEmpty(resource.Endpoint, setting.Endpoint)
-	setting.Bucket = firstNonEmpty(resource.Bucket, setting.Bucket)
-	setting = s.storageSettingWithRuntimePolicy(setting)
-	stream, err := getOriginOSSObjectRange(setting, resource.ObjectKey, normalizeSingleByteRange(rangeHeader))
-	if err != nil {
-		return nil, err
-	}
-	return &ResourceStream{Resource: resource, Body: stream.Body, StatusCode: stream.StatusCode, ContentLength: stream.ContentLength, ContentRange: stream.ContentRange, AcceptRanges: stream.AcceptRanges}, nil
+	return nil, BadAuthRequest("此资源必须通过 Platform 素材授权访问")
 }
 
 func (s *Service) storeResource(userID string, kind string, fileName string, mimeType string, size int64, width int, height int, durationMs int64, body io.Reader, uploadKey *string, forceLocal bool, reservationIDs ...string) (*model.Resource, bool, error) {
@@ -298,6 +284,9 @@ func (e *resourceObjectWriteError) Error() string { return e.err.Error() }
 func (e *resourceObjectWriteError) Unwrap() error { return e.err }
 
 func (s *Service) storeResourceWithWriter(userID string, kind string, fileName string, mimeType string, size int64, width int, height int, durationMs int64, body io.Reader, uploadKey *string, forceLocal bool, writeObject func(*model.Resource, string, io.Reader) (string, error), reservationIDs ...string) (*model.Resource, bool, error) {
+	if s.UsesPlatformIdentity() && !forceLocal {
+		return nil, false, NewAppError(501, "用户素材必须通过 Platform 素材授权上传")
+	}
 	reservationID := ""
 	if len(reservationIDs) > 0 {
 		reservationID = reservationIDs[0]
@@ -318,28 +307,7 @@ func (s *Service) storeResourceWithWriter(userID string, kind string, fileName s
 		return nil, false, resourceUploadInProgress()
 	}
 	now := time.Now()
-	var setting ossSettingValue
-	var storageSettingID string
-	var useOSS bool
-	var err error
-	if !forceLocal {
-		setting, storageSettingID, useOSS, err = s.activeResourceOSSSetting(userID)
-		if err != nil {
-			return nil, false, err
-		}
-	}
-	provider := "local"
-	objectKey := localObjectKey(userID, kind, fileName, mimeType, now)
-	resource := model.Resource{ID: newID(), UserID: userID, Kind: kind, Status: model.ResourceStatusPending, Provider: provider, ObjectKey: objectKey, MimeType: mimeType, Size: size, Width: width, Height: height, DurationMs: durationMs, UploadKey: uploadKey, CreatedAt: now, UpdatedAt: now}
-	if useOSS {
-		provider = setting.Provider
-		objectKey = ossObjectKey(setting, userID, kind, fileName, mimeType, now)
-		resource.Provider = provider
-		resource.Endpoint = setting.Endpoint
-		resource.Bucket = setting.Bucket
-		resource.StorageSettingID = storageSettingID
-		resource.ObjectKey = objectKey
-	}
+	resource := model.Resource{ID: newID(), UserID: userID, Kind: kind, Status: model.ResourceStatusPending, Provider: "local", ObjectKey: localObjectKey(userID, kind, fileName, mimeType, now), MimeType: mimeType, Size: size, Width: width, Height: height, DurationMs: durationMs, UploadKey: uploadKey, CreatedAt: now, UpdatedAt: now}
 	if err := s.repo.CreateResource(&resource); err != nil {
 		if existing, lookupErr := s.resourceForUploadKey(userID, uploadKey); lookupErr == nil && existing != nil {
 			if existing.Status == model.ResourceStatusReady {
@@ -352,8 +320,7 @@ func (s *Service) storeResourceWithWriter(userID string, kind string, fileName s
 		}
 		return nil, false, err
 	}
-	var etag string
-	etag, err = writeObject(&resource, fileName, body)
+	etag, err := writeObject(&resource, fileName, body)
 	resource.UpdatedAt = time.Now()
 	if err != nil {
 		err = &resourceObjectWriteError{provider: resource.Provider, err: err}
@@ -404,9 +371,7 @@ func writeLocalResourceObject(filePath string, body io.Reader) error {
 	return closeErr
 }
 
-// storeResourceObject writes to the configured origin. When object storage is
-// enabled, a failed origin write must fail the resource instead of silently
-// changing its storage location to local disk.
+// storeResourceObject writes system-owned local objects. Platform resources use the material API.
 func (s *Service) storeResourceObject(resource *model.Resource, fileName string, body io.Reader) (string, error) {
 	if resource == nil {
 		return "", errors.New("资源不存在")
@@ -414,15 +379,7 @@ func (s *Service) storeResourceObject(resource *model.Resource, fileName string,
 	if resource.Provider == "local" {
 		return "", writeLocalResourceObject(filepath.Join(s.dataDir, "resources", filepath.FromSlash(resource.ObjectKey)), body)
 	}
-	setting, settingErr := s.ossSettingForResource(resource.UserID, resource)
-	if settingErr != nil {
-		return "", settingErr
-	}
-	etag, err := putOSSObject(s.storageSettingWithRuntimePolicy(setting), resource.ObjectKey, resource.MimeType, resource.Size, body)
-	if err != nil {
-		return "", err
-	}
-	return etag, nil
+	return "", BadAuthRequest("此资源必须通过 Platform 素材授权上传")
 }
 
 func (s *Service) retryStoredResource(userID string, resource *model.Resource, kind string, mimeType string, size int64, body io.Reader) (*model.Resource, error) {
@@ -466,8 +423,7 @@ func (s *Service) retryStoredResource(userID string, resource *model.Resource, k
 		}
 		return nil, err
 	}
-	var etag string
-	etag, err = s.storeResourceObject(resource, "", body)
+	etag, err := s.storeResourceObject(resource, "", body)
 	resource.UpdatedAt = time.Now()
 	if err != nil {
 		s.releaseRetryUploadQuota(userID, day, size)
