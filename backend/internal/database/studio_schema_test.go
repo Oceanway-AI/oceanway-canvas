@@ -64,6 +64,35 @@ func TestStudioSchema(t *testing.T) {
 	}
 }
 
+func TestStudioSchema100BindingCommandUpgrade(t *testing.T) {
+	db := studioSchemaDB(t)
+	if err := MigrateStudioSchema(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Migrator().DropColumn(&model.StudioMaterialReference{}, "BindingCommandID"); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Where("version = ?", 101).Delete(&schemaMigration{}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("INSERT INTO studio_material_references (resource_id, user_id, binding_id) VALUES ('old-resource', '101', 'original-binding')").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := MigrateStudioSchema(db); err != nil {
+		t.Fatal(err)
+	}
+	var ref model.StudioMaterialReference
+	if err := db.First(&ref, "resource_id = ?", "old-resource").Error; err != nil {
+		t.Fatal(err)
+	}
+	if ref.BindingID != "original-binding" || ref.BindingCommandID != "" || ref.BindingCommand() != "studio-resource-old-resource" {
+		t.Fatalf("migration replaced an existing binding: %+v", ref)
+	}
+	if err := MigrateStudioSchema(db); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestStudioSchemaRejectsUnclearedData(t *testing.T) {
 	for _, row := range []any{&model.User{}, &model.CanvasProject{}} {
 		t.Run(fmt.Sprintf("%T", row), func(t *testing.T) {

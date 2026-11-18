@@ -247,7 +247,7 @@ func (c *studioMaterialCall) adopt(a platformclient.Asset, meta StudioResourceMe
 		return nil, NewAppError(502, "素材类型不受支持")
 	}
 	now := time.Now()
-	ref := model.StudioMaterialReference{ResourceID: id, UserID: c.userID, AssetID: a.AssetID, VersionID: a.Version.VersionID, FileID: a.File.FileID, OwnerID: a.Owner.ID, SHA256: a.File.SHA256, ByteLength: a.File.ByteLength, CreatedAt: now, UpdatedAt: now}
+	ref := model.StudioMaterialReference{ResourceID: id, UserID: c.userID, AssetID: a.AssetID, VersionID: a.Version.VersionID, FileID: a.File.FileID, OwnerID: a.Owner.ID, SHA256: a.File.SHA256, ByteLength: a.File.ByteLength, BindingCommandID: "studio-resource-" + uuid.NewString(), CreatedAt: now, UpdatedAt: now}
 	meta = meta.withOriginal(originalStudioMetadata(a))
 	if kind == "image" {
 		meta.DurationMs = 0
@@ -267,9 +267,27 @@ func (c *studioMaterialCall) adopt(a platformclient.Asset, meta StudioResourceMe
 	if saved.Status == model.ResourceStatusReady {
 		return saved, nil
 	}
-	command := "studio-resource-" + id
+	stored, err := repo.StudioMaterialReference(c.userID, id)
+	if err != nil {
+		return nil, err
+	}
+	// The persisted command wins concurrent adoption and survives a lost reply.
+	// A fresh local reference after reset gets a new command for the same Resource.
+	validBinding := func(b platformclient.Binding) bool {
+		return studioMaterialID.MatchString(b.BindingID) && b.AssetID == a.AssetID && b.VersionID == a.Version.VersionID && b.TargetApp == "studio" && b.TargetType == "resource" && b.TargetID == id && b.Slot == "original"
+	}
+	command := stored.BindingCommand()
 	b, err := c.m.Binding(c.ctx, command)
 	c.collect(b.Response)
+	if err == nil && validBinding(b.Data) && b.Data.State == "released" {
+		stored, err = repo.RenewStudioMaterialBindingCommand(*stored, b.Data.BindingID, "studio-resource-"+uuid.NewString())
+		if err != nil {
+			return nil, err
+		}
+		command = stored.BindingCommand()
+		b, err = c.m.Binding(c.ctx, command)
+		c.collect(b.Response)
+	}
 	var upstream *platformclient.Error
 	if errors.As(err, &upstream) && upstream.StatusCode == 404 {
 		b, err = c.m.Bind(c.ctx, a.AssetID, platformclient.BindingRequest{CommandID: command, VersionID: a.Version.VersionID, TargetType: "resource", TargetID: id, Slot: "original"})
@@ -278,13 +296,10 @@ func (c *studioMaterialCall) adopt(a platformclient.Asset, meta StudioResourceMe
 	if err != nil {
 		return nil, studioMaterialError(err)
 	}
-	validBinding := func(b platformclient.Binding) bool {
-		return studioMaterialID.MatchString(b.BindingID) && b.AssetID == a.AssetID && b.VersionID == a.Version.VersionID && b.TargetApp == "studio" && b.TargetType == "resource" && b.TargetID == id && b.Slot == "original"
-	}
 	if !validBinding(b.Data) || (b.Data.State != "pending" && b.Data.State != "active") {
 		return nil, NewAppError(502, "素材绑定响应不匹配")
 	}
-	if err := repo.SetStudioMaterialBinding(c.userID, id, b.Data.BindingID); err != nil {
+	if err := repo.SetStudioMaterialBinding(c.userID, id, stored.BindingCommandID, b.Data.BindingID); err != nil {
 		return nil, err
 	}
 	if b.Data.State == "pending" {

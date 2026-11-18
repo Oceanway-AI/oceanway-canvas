@@ -43,17 +43,25 @@ type StudioMaterialUpload struct {
 // A Resource pins one immutable version. CurrentVersionID and signed URLs are
 // deliberately absent: a newer asset version cannot replace an existing canvas.
 type StudioMaterialReference struct {
-	ResourceID string `gorm:"primaryKey;size:36"`
-	UserID     string `gorm:"index;size:36;uniqueIndex:idx_studio_material_version,priority:1"`
-	AssetID    string `gorm:"size:128;uniqueIndex:idx_studio_material_version,priority:2"`
-	VersionID  string `gorm:"size:128;uniqueIndex:idx_studio_material_version,priority:3"`
-	FileID     string `gorm:"size:128"`
-	OwnerID    string `gorm:"size:80"`
-	SHA256     string `gorm:"size:64"`
-	ByteLength string `gorm:"size:32"`
-	BindingID  string `gorm:"size:128"`
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ResourceID       string `gorm:"primaryKey;size:36"`
+	UserID           string `gorm:"index;size:36;uniqueIndex:idx_studio_material_version,priority:1"`
+	AssetID          string `gorm:"size:128;uniqueIndex:idx_studio_material_version,priority:2"`
+	VersionID        string `gorm:"size:128;uniqueIndex:idx_studio_material_version,priority:3"`
+	FileID           string `gorm:"size:128"`
+	OwnerID          string `gorm:"size:80"`
+	SHA256           string `gorm:"size:64"`
+	ByteLength       string `gorm:"size:32"`
+	BindingID        string `gorm:"size:128"`
+	BindingCommandID string `gorm:"not null;default:'';size:128"`
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+func (r StudioMaterialReference) BindingCommand() string {
+	if r.BindingCommandID != "" {
+		return r.BindingCommandID
+	}
+	return "studio-resource-" + r.ResourceID
 }
 
 // An approval belongs to one project node and one action within its original run.

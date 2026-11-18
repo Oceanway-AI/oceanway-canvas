@@ -5,12 +5,98 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
 	"yingce/backend/internal/model"
 )
+
+func TestStudioReadoptsMaterialAfterClearedLocalReference(t *testing.T) {
+	f := newStudioFixture(t)
+	asset := studioMaterialFixtureAsset()
+	var mu sync.Mutex
+	bindings := map[string]*platformclient.Binding{}
+	commands := []string{}
+	loseResponse := true
+	f.materials = func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		respond := func(value any) { _ = json.NewEncoder(w).Encode(value) }
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/api/platform/v1/materials/assets/asset_1":
+			respond(asset)
+		case r.Method == "GET" && r.URL.Path == "/api/platform/v1/materials/bindings":
+			binding := bindings[r.URL.Query().Get("command_id")]
+			if binding == nil {
+				w.WriteHeader(404)
+				return
+			}
+			respond(binding)
+		case r.Method == "POST" && r.URL.Path == "/api/platform/v1/materials/assets/asset_1/bindings":
+			var in platformclient.BindingRequest
+			_ = json.NewDecoder(r.Body).Decode(&in)
+			if bindings[in.CommandID] == nil {
+				commands = append(commands, in.CommandID)
+				bindings[in.CommandID] = &platformclient.Binding{BindingID: "binding_" + in.CommandID, AssetID: asset.AssetID, VersionID: asset.Version.VersionID, TargetApp: "studio", TargetType: in.TargetType, TargetID: in.TargetID, Slot: in.Slot, State: "pending"}
+			}
+			if loseResponse {
+				loseResponse = false
+				w.WriteHeader(503)
+				return
+			}
+			respond(bindings[in.CommandID])
+		case strings.HasSuffix(r.URL.Path, "/confirm"):
+			for _, binding := range bindings {
+				if strings.Contains(r.URL.Path, binding.BindingID) {
+					binding.State = "active"
+					respond(binding)
+					return
+				}
+			}
+			w.WriteHeader(404)
+		default:
+			w.WriteHeader(500)
+		}
+	}
+	body := `{"assetId":"asset_1","versionId":"version_1"}`
+	f.request(t, "POST", "/api/resources/adopt", "platform_session=alice", body, 503)
+	f.request(t, "POST", "/api/resources/adopt", "platform_session=alice", body, 200)
+	if len(commands) != 1 {
+		t.Fatal("lost response created another binding")
+	}
+	resourceID := bindings[commands[0]].TargetID
+	bindings[commands[0]].State = "released"
+	for _, table := range []any{&model.StudioMaterialReference{}, &model.Resource{}} {
+		if err := f.db.Where("user_id = ?", "101").Delete(table).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	var wg sync.WaitGroup
+	for range 2 {
+		wg.Go(func() { f.request(t, "POST", "/api/resources/adopt", "platform_session=alice", body, 200) })
+	}
+	wg.Wait()
+	if len(commands) != 2 || bindings[commands[1]].State != "active" || bindings[commands[1]].TargetID != resourceID {
+		t.Fatalf("re-adoption lost stable Resource or duplicated binding: %v", commands)
+	}
+	// An older failed adoption can already have a pending local row with the
+	// original deterministic command. Advance it only after confirmed release.
+	legacy := "studio-resource-" + resourceID
+	bindings[legacy] = &platformclient.Binding{BindingID: "legacy-binding", AssetID: asset.AssetID, VersionID: asset.Version.VersionID, TargetApp: "studio", TargetType: "resource", TargetID: resourceID, Slot: "original", State: "released"}
+	if err := f.db.Model(&model.StudioMaterialReference{}).Where("resource_id = ?", resourceID).Updates(map[string]any{"binding_command_id": "", "binding_id": "legacy-binding"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := f.db.Model(&model.Resource{}).Where("id = ?", resourceID).Update("status", model.ResourceStatusPending).Error; err != nil {
+		t.Fatal(err)
+	}
+	f.request(t, "POST", "/api/resources/adopt", "platform_session=alice", body, 200)
+	if len(commands) != 3 || bindings[commands[2]].State != "active" || bindings[legacy].State != "released" {
+		t.Fatal("legacy released command was reused")
+	}
+}
 
 func studioMaterialFixtureAsset() platformclient.Asset {
 	return platformclient.Asset{AssetID: "asset_1", Owner: platformclient.MaterialOwner{Kind: "account", ID: "101"}, Kind: "image", State: "ready", CurrentVersionID: "version_1", Version: platformclient.AssetVersion{AssetID: "asset_1", VersionID: "version_1", FileID: "file_1"}, File: platformclient.AssetFile{FileID: "file_1", SHA256: strings.Repeat("a", 64), ByteLength: "8", ContentType: "image/png", State: "ready"}}

@@ -11,12 +11,13 @@ import (
 )
 
 // The Studio baseline never replays the retired account and commercial migrations.
-const CurrentStudioSchemaVersion int64 = 100
+const CurrentStudioSchemaVersion int64 = 101
 
 var studioMigrations = []migration{
 	{version: 98, name: "studio_platform_identity", checksum: "sha256:studio-platform-identity-v98-20261118"},
 	{version: 99, name: "studio_platform_storage", checksum: "sha256:studio-platform-storage-v99-20261118"},
 	{version: 100, name: "studio_platform_commercial_fields", checksum: "sha256:studio-platform-commercial-fields-v100-20261118"},
+	{version: 101, name: "studio_material_binding_command", checksum: "sha256:studio-material-binding-command-v101-20261118"},
 }
 
 var retiredStudioCommercialColumns = map[string][]string{
@@ -172,6 +173,16 @@ func MigrateStudioSchema(db *gorm.DB) error {
 						}
 					}
 					if err := recordStudioMigration(tx, studioMigrations[2]); err != nil {
+						return err
+					}
+				}
+				if status.Current < 101 {
+					if !tx.Migrator().HasColumn(&model.StudioMaterialReference{}, "BindingCommandID") {
+						if err := tx.Migrator().AddColumn(&model.StudioMaterialReference{}, "BindingCommandID"); err != nil {
+							return err
+						}
+					}
+					if err := recordStudioMigration(tx, studioMigrations[3]); err != nil {
 						return err
 					}
 				}

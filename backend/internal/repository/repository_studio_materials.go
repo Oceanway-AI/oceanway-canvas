@@ -70,8 +70,8 @@ func (r *Repository) CreateStudioMaterialResource(ref model.StudioMaterialRefere
 	})
 }
 
-func (r *Repository) SetStudioMaterialBinding(userID, resourceID, bindingID string) error {
-	result := r.db.Model(&model.StudioMaterialReference{}).Where("resource_id = ? AND user_id = ? AND (binding_id = '' OR binding_id = ?)", resourceID, userID, bindingID).Update("binding_id", bindingID)
+func (r *Repository) SetStudioMaterialBinding(userID, resourceID, commandID, bindingID string) error {
+	result := r.db.Model(&model.StudioMaterialReference{}).Where("resource_id = ? AND user_id = ? AND binding_command_id = ? AND (binding_id = '' OR binding_id = ?)", resourceID, userID, commandID, bindingID).Update("binding_id", bindingID)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -79,6 +79,16 @@ func (r *Repository) SetStudioMaterialBinding(userID, resourceID, bindingID stri
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+func (r *Repository) RenewStudioMaterialBindingCommand(ref model.StudioMaterialReference, releasedID, commandID string) (*model.StudioMaterialReference, error) {
+	result := r.db.Model(&model.StudioMaterialReference{}).
+		Where("resource_id = ? AND user_id = ? AND binding_command_id = ? AND (binding_id = '' OR binding_id = ?)", ref.ResourceID, ref.UserID, ref.BindingCommandID, releasedID).
+		Updates(map[string]any{"binding_command_id": commandID, "binding_id": "", "updated_at": time.Now()})
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return r.StudioMaterialReference(ref.UserID, ref.ResourceID)
 }
 
 func (r *Repository) ReadyStudioMaterialResource(userID, resourceID string) error {

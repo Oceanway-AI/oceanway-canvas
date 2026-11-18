@@ -49,6 +49,9 @@ func TestStudioResetResumesReferencesBeforeDroppingData(t *testing.T) {
 			return
 		}
 		id := strings.TrimPrefix(r.URL.Query().Get("command_id"), "studio-resource-")
+		if id == "new-b" {
+			id = "b"
+		}
 		if r.Method == "POST" {
 			id = strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/internal/materials/bindings/binding-"), "/release")
 			if id == "b" && failSecond {
@@ -99,7 +102,11 @@ func TestStudioResetResumesReferencesBeforeDroppingData(t *testing.T) {
 		&model.CanvasProject{ID: "old-canvas", UserID: oldOwner},
 	}
 	for _, id := range []string{"a", "b"} {
-		rows = append(rows, &model.StudioMaterialReference{ResourceID: id, UserID: oldOwner, OwnerID: "101", AssetID: "asset-" + id, VersionID: "version-" + id, BindingID: "binding-" + id})
+		ref := &model.StudioMaterialReference{ResourceID: id, UserID: oldOwner, OwnerID: "101", AssetID: "asset-" + id, VersionID: "version-" + id, BindingID: "binding-" + id}
+		if id == "b" {
+			ref.BindingCommandID = "new-b"
+		}
+		rows = append(rows, ref)
 	}
 	for _, row := range rows {
 		if err := db.Create(row).Error; err != nil {

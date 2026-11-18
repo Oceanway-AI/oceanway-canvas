@@ -29,6 +29,8 @@ bun run dev
 
 通过已在 Platform 登记的 HTTPS 开发入口访问。Vite 使用 `VITE_API_PROXY_TARGET` 代理后端请求。子路径部署设置 `VITE_APP_BASE_PATH=/studio/`，后端设置 `STUDIO_PUBLIC_BASE_PATH=/studio`。部署时两者必须匹配。
 
+自有预构建 Web Release 默认使用根路径。子路径的 Web 需以相同源码和 `VITE_APP_BASE_PATH` 构建，单独修改后端运行变量无法改变已构建的前端路径。
+
 ## 数据与协调
 
 开发、测试和部署统一使用 PostgreSQL。数据库结构为 Studio v98，空库直接创建创作业务表。Redis 承担限流、并发和跨实例协调。数据目录保存临时媒体、技能文件与加密设置密钥。

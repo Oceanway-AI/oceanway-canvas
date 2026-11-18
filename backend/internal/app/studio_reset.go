@@ -88,7 +88,7 @@ func (s *Service) releaseStudioResetData(ctx context.Context, db *gorm.DB) error
 		materials := s.studioPlatform.Client.WorkerMaterials(platformclient.MaterialContext{Authorization: auth})
 		call, cancel := context.WithTimeout(ctx, 15*time.Second)
 		// Resolve the stable command even if a previous bind response was lost.
-		binding, err := materials.Binding(call, "studio-resource-"+ref.ResourceID)
+		binding, err := materials.Binding(call, ref.BindingCommand())
 		cancel()
 		var upstream *platformclient.Error
 		if errors.As(err, &upstream) && upstream.StatusCode == 404 && ref.BindingID == "" {
