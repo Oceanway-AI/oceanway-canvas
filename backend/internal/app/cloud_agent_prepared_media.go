@@ -124,7 +124,7 @@ func cloudAgentMediaDependencyHash(doc map[string]any, args cloudAgentMediaArgs)
 }
 
 func cloudAgentResourceSignature(resource *model.Resource) string {
-	return creationHash(map[string]any{"id": resource.ID, "userId": resource.UserID, "provider": resource.Provider, "endpoint": resource.Endpoint, "bucket": resource.Bucket, "objectKey": resource.ObjectKey, "storageSettingId": resource.StorageSettingID, "etag": resource.ETag, "size": resource.Size, "mimeType": resource.MimeType, "width": resource.Width, "height": resource.Height, "durationMs": resource.DurationMs})
+	return creationHash(map[string]any{"id": resource.ID, "userId": resource.UserID, "provider": resource.Provider, "objectKey": resource.ObjectKey, "etag": resource.ETag, "size": resource.Size, "mimeType": resource.MimeType, "width": resource.Width, "height": resource.Height, "durationMs": resource.DurationMs})
 }
 
 func cloudAgentPreparedReferences(repo *repository.Repository, userID string, prepared *cloudAgentPreparedMedia) (map[string]any, error) {

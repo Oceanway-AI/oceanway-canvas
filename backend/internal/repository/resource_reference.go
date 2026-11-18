@@ -113,8 +113,10 @@ func (r *Repository) ResourceStorageReferenceCount(resource *model.Resource, exc
 		return 0, nil
 	}
 	query := r.db.Model(&model.Resource{}).
-		Where("endpoint = ? AND bucket = ? AND object_key = ?", resource.Endpoint, resource.Bucket, resource.ObjectKey)
-	if strings.TrimSpace(resource.Provider) == "" || strings.EqualFold(strings.TrimSpace(resource.Provider), "local") {
+		Where("object_key = ?", resource.ObjectKey)
+	if resource.Provider == "platform" || strings.TrimSpace(resource.ObjectKey) == "" {
+		query = query.Where("id = ?", resource.ID)
+	} else if strings.TrimSpace(resource.Provider) == "" || strings.EqualFold(strings.TrimSpace(resource.Provider), "local") {
 		query = query.Where("provider IN ?", []string{"", "local"})
 	} else {
 		query = query.Where("provider = ?", resource.Provider)

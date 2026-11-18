@@ -228,24 +228,16 @@ func TestHydrateGenerationMediaRejectsUnreachableImageWithOriginalMessage(t *tes
 func TestHydrateProviderMediaRejectsImageOnlyWithPreferredObjectURL(t *testing.T) {
 	s, db := textModelTestService(t)
 	original := textModelTestNoisyPNG(t, 1400, 1000, false)
-	if err := db.Create(&model.Resource{ID: "ref-oss", UserID: "user", Kind: "image", Status: model.ResourceStatusReady, Provider: "aliyun", Bucket: "private-bucket", ObjectKey: "users/user/image/ref-oss.png", MimeType: "image/png", Size: int64(len(original)), Width: 1400, Height: 1000}).Error; err != nil {
+	if err := db.Create(&model.Resource{ID: "ref-remote", UserID: "user", Kind: "image", Status: model.ResourceStatusReady, Provider: "platform", MimeType: "image/png", Size: int64(len(original)), Width: 1400, Height: 1000}).Error; err != nil {
 		t.Fatal(err)
 	}
-	media := providerMedia{StorageKey: "resource:ref-oss", MimeType: "image/png"}
+	media := providerMedia{StorageKey: "resource:ref-remote", MimeType: "image/png"}
 	err := s.hydrateProviderMedia("user", &media, providerMediaHydrationPolicy{imageOnly: true, preferURL: true, maxBytes: 30 << 20})
 	if !errors.Is(err, errTextModelImageLimitNeedsPixels) {
 		t.Fatalf("imageOnly must not hand the upstream a signed object URL: %v", err)
 	}
 	if media.URL != "" {
 		t.Fatal("the guarded path must not fill in a signed URL")
-	}
-	// 去掉 imageOnly（普通生成任务）时仍按原协议优先公网地址，不受这条守卫影响。
-	plain := providerMedia{StorageKey: "resource:ref-oss", MimeType: "image/png"}
-	if err := s.hydrateProviderMedia("user", &plain, providerMediaHydrationPolicy{preferURL: true}); err != nil {
-		t.Skipf("本用例夹具未配置对象存储密钥，公网地址分支无法在此验证：%v", err)
-	}
-	if plain.URL == "" || plain.DataURL != "" {
-		t.Fatalf("non-vision hydration lost its preferred object URL: %#v", plain)
 	}
 }
 

@@ -11,9 +11,12 @@ import (
 )
 
 // The Studio baseline never replays the retired account and commercial migrations.
-const CurrentStudioSchemaVersion int64 = 98
+const CurrentStudioSchemaVersion int64 = 99
 
-var studioBaseline = migration{version: CurrentStudioSchemaVersion, name: "studio_platform_identity", checksum: "sha256:studio-platform-identity-v98-20261118"}
+var studioMigrations = []migration{
+	{version: 98, name: "studio_platform_identity", checksum: "sha256:studio-platform-identity-v98-20261118"},
+	{version: 99, name: "studio_platform_storage", checksum: "sha256:studio-platform-storage-v99-20261118"},
+}
 
 func StudioModels() []any {
 	return []any{
@@ -131,6 +134,18 @@ func MigrateStudioSchema(db *gorm.DB) error {
 				return err
 			}
 			if count > 0 {
+				status, err := ReadStudioSchemaStatus(tx)
+				if err != nil {
+					return err
+				}
+				if status.Current == 98 {
+					if err := migrateStudioPlatformStorage(tx); err != nil {
+						return err
+					}
+					if err := recordStudioMigration(tx, studioMigrations[1]); err != nil {
+						return err
+					}
+				}
 				return RequireStudioSchemaVersion(tx)
 			}
 		}
@@ -156,9 +171,44 @@ func MigrateStudioSchema(db *gorm.DB) error {
 				return err
 			}
 		}
-		row := schemaMigration{Version: studioBaseline.version, Name: studioBaseline.name, Checksum: studioBaseline.checksum, AppliedAt: time.Now().UTC()}
-		return tx.Create(&row).Error
+		for _, migration := range studioMigrations {
+			if err := recordStudioMigration(tx, migration); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
+}
+
+func recordStudioMigration(tx *gorm.DB, applied migration) error {
+	return tx.Create(&schemaMigration{Version: applied.version, Name: applied.name, Checksum: applied.checksum, AppliedAt: time.Now().UTC()}).Error
+}
+
+func migrateStudioPlatformStorage(tx *gorm.DB) error {
+	for _, table := range []string{"resources", "resource_deletion_jobs"} {
+		var external int64
+		if err := tx.Table(table).Where("COALESCE(provider, '') NOT IN ('', 'local', 'platform')").Count(&external).Error; err != nil {
+			return err
+		}
+		if external > 0 {
+			return fmt.Errorf("%s 仍有独立对象存储记录，须先完成原对象清理", table)
+		}
+		for _, column := range []string{"endpoint", "bucket", "storage_setting_id"} {
+			if !tx.Migrator().HasColumn(table, column) {
+				continue
+			}
+			if err := tx.Table(table).Where(column + " <> ''").Count(&external).Error; err != nil {
+				return err
+			}
+			if external > 0 {
+				return fmt.Errorf("%s.%s 仍有独立对象存储位置，须先完成原对象清理", table, column)
+			}
+			if err := tx.Migrator().DropColumn(table, column); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func ReadStudioSchemaStatus(db *gorm.DB) (SchemaStatus, error) {
@@ -172,22 +222,17 @@ func ReadStudioSchemaStatus(db *gorm.DB) (SchemaStatus, error) {
 	if err := db.Model(&schemaMigration{}).Select("COALESCE(MAX(version), 0)").Scan(&status.Current).Error; err != nil {
 		return status, err
 	}
-	if status.Current != status.Expected {
-		return status, nil
-	}
-	var count int64
-	if err := db.Model(&schemaMigration{}).Count(&count).Error; err != nil {
+	var rows []schemaMigration
+	if err := db.Order("version").Find(&rows).Error; err != nil {
 		return status, err
 	}
-	if count != 1 {
-		return status, errors.New("Studio 基线包含旧迁移记录，必须完成显式清理")
-	}
-	var row schemaMigration
-	if err := db.First(&row, "version = ?", CurrentStudioSchemaVersion).Error; err != nil {
-		return status, err
-	}
-	if err := validateMigrationRecord(row, studioBaseline); err != nil {
-		return status, err
+	for index, row := range rows {
+		if index >= len(studioMigrations) || row.Version != studioMigrations[index].version {
+			return status, errors.New("Studio 包含未知或缺失的迁移记录")
+		}
+		if err := validateMigrationRecord(row, studioMigrations[index]); err != nil {
+			return status, err
+		}
 	}
 	tables, err := db.Migrator().GetTables()
 	if err != nil {
@@ -202,7 +247,16 @@ func ReadStudioSchemaStatus(db *gorm.DB) (SchemaStatus, error) {
 			return status, fmt.Errorf("Studio 数据库仍包含退出表 %s，必须完成显式清理", table)
 		}
 	}
-	status.Ready = true
+	status.Ready = status.Current == status.Expected && len(rows) == len(studioMigrations)
+	if status.Ready {
+		for _, table := range []string{"resources", "resource_deletion_jobs"} {
+			for _, column := range []string{"endpoint", "bucket", "storage_setting_id"} {
+				if db.Migrator().HasColumn(table, column) {
+					return status, fmt.Errorf("Studio 数据库仍包含退出字段 %s.%s", table, column)
+				}
+			}
+		}
+	}
 	return status, nil
 }
 

@@ -29,23 +29,19 @@ func ValidProjectUnitTitle(value string) bool {
 const AssetIDMaxLength = 80
 
 type Resource struct {
-	ID       string         `json:"id" gorm:"primaryKey;size:36"`
-	UserID   string         `json:"userId" gorm:"index;size:36;index:idx_resources_user_created,priority:1;uniqueIndex:idx_resources_user_upload_key,priority:1"`
-	Kind     string         `json:"kind" gorm:"index;size:24"`
-	Status   ResourceStatus `json:"status" gorm:"index;size:24"`
-	Provider string         `json:"provider" gorm:"size:24"`
-	Endpoint string         `json:"endpoint"`
-	Bucket   string         `json:"bucket" gorm:"size:160"`
-	// 用户 OSS 每次修改都会生成新版本，资源固定引用创建时的存储与密钥；只有同一存储位置才可复用当前 CDN。
-	StorageSettingID string `json:"-" gorm:"index;size:36"`
-	ObjectKey        string `json:"objectKey" gorm:"index"`
-	PublicURL        string `json:"publicUrl"`
-	MimeType         string `json:"mimeType" gorm:"size:120"`
-	Size             int64  `json:"size"`
-	Width            int    `json:"width"`
-	Height           int    `json:"height"`
-	DurationMs       int64  `json:"durationMs"`
-	ETag             string `json:"etag" gorm:"size:160"`
+	ID         string         `json:"id" gorm:"primaryKey;size:36"`
+	UserID     string         `json:"userId" gorm:"index;size:36;index:idx_resources_user_created,priority:1;uniqueIndex:idx_resources_user_upload_key,priority:1"`
+	Kind       string         `json:"kind" gorm:"index;size:24"`
+	Status     ResourceStatus `json:"status" gorm:"index;size:24"`
+	Provider   string         `json:"provider" gorm:"size:24"`
+	ObjectKey  string         `json:"objectKey" gorm:"index"`
+	PublicURL  string         `json:"publicUrl"`
+	MimeType   string         `json:"mimeType" gorm:"size:120"`
+	Size       int64          `json:"size"`
+	Width      int            `json:"width"`
+	Height     int            `json:"height"`
+	DurationMs int64          `json:"durationMs"`
+	ETag       string         `json:"etag" gorm:"size:160"`
 	// 浏览器兼容播放副本（HEVC/H.265 原片在 Chrome 等无法解码，由 ffmpeg 转 H.264）：
 	// PlaybackStatus: none|processing|ready|failed；PlaybackObjectKey 为本地播放目录下的文件名。
 	PlaybackStatus    string `json:"playbackStatus" gorm:"index;size:24"`
@@ -68,22 +64,19 @@ type Resource struct {
 // physical object cleanup. Storage fields are frozen because the Resource row
 // is removed in the same transaction that creates this job.
 type ResourceDeletionJob struct {
-	ID               string                 `json:"id" gorm:"primaryKey;size:36"`
-	UserID           string                 `json:"userId" gorm:"index;size:36"`
-	ResourceID       string                 `json:"resourceId" gorm:"index;size:36"`
-	Provider         string                 `json:"provider" gorm:"size:24"`
-	Endpoint         string                 `json:"endpoint"`
-	Bucket           string                 `json:"bucket" gorm:"size:160"`
-	StorageSettingID string                 `json:"-" gorm:"index;size:36"`
-	ObjectKey        string                 `json:"objectKey" gorm:"index"`
-	Status           ResourceDeletionStatus `json:"status" gorm:"index:idx_resource_deletion_jobs_due,priority:1;size:24"`
-	Attempts         int                    `json:"attempts"`
-	LastError        string                 `json:"lastError" gorm:"type:text"`
-	NextAttemptAt    time.Time              `json:"nextAttemptAt" gorm:"index:idx_resource_deletion_jobs_due,priority:2"`
-	LeaseOwner       string                 `json:"-" gorm:"index;size:120"`
-	LeaseExpiresAt   *time.Time             `json:"-" gorm:"index"`
-	CreatedAt        time.Time              `json:"createdAt"`
-	UpdatedAt        time.Time              `json:"updatedAt"`
+	ID             string                 `json:"id" gorm:"primaryKey;size:36"`
+	UserID         string                 `json:"userId" gorm:"index;size:36"`
+	ResourceID     string                 `json:"resourceId" gorm:"index;size:36"`
+	Provider       string                 `json:"provider" gorm:"size:24"`
+	ObjectKey      string                 `json:"objectKey" gorm:"index"`
+	Status         ResourceDeletionStatus `json:"status" gorm:"index:idx_resource_deletion_jobs_due,priority:1;size:24"`
+	Attempts       int                    `json:"attempts"`
+	LastError      string                 `json:"lastError" gorm:"type:text"`
+	NextAttemptAt  time.Time              `json:"nextAttemptAt" gorm:"index:idx_resource_deletion_jobs_due,priority:2"`
+	LeaseOwner     string                 `json:"-" gorm:"index;size:120"`
+	LeaseExpiresAt *time.Time             `json:"-" gorm:"index"`
+	CreatedAt      time.Time              `json:"createdAt"`
+	UpdatedAt      time.Time              `json:"updatedAt"`
 }
 
 // AnnouncementImageDraft marks an uploaded image as temporary until an

@@ -52,7 +52,8 @@ func (r *Repository) UserStoredFileBytes(userID string) (int64, error) {
 					SELECT MAX(size) AS size
 					FROM resources
 					WHERE user_id = ? AND status = ?
-					GROUP BY COALESCE(NULLIF(provider, ''), 'local'), endpoint, bucket, object_key
+					GROUP BY COALESCE(NULLIF(provider, ''), 'local'),
+						CASE WHEN provider = 'platform' OR COALESCE(object_key, '') = '' THEN id ELSE object_key END
 				) AS physical_resources
 			), 0)
 	`, userID, model.ResourceStatusReady).Scan(&total).Error

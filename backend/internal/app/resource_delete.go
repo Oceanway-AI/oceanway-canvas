@@ -224,8 +224,7 @@ func resourceDeletionJobs(userID string, physicalObjects map[string]*model.Resou
 		resource := physicalObjects[key]
 		jobs = append(jobs, model.ResourceDeletionJob{
 			ID: newID(), UserID: userID, ResourceID: resource.ID,
-			Provider: resource.Provider, Endpoint: resource.Endpoint, Bucket: resource.Bucket,
-			StorageSettingID: resource.StorageSettingID, ObjectKey: resource.ObjectKey,
+			Provider: resource.Provider, ObjectKey: resource.ObjectKey,
 			Status: model.ResourceDeletionStatusPending, NextAttemptAt: now,
 		})
 	}
@@ -289,7 +288,7 @@ func resourceStorageIdentity(resource *model.Resource) string {
 	if provider == "" {
 		provider = "local"
 	}
-	return strings.Join([]string{provider, resource.Endpoint, resource.Bucket, resource.ObjectKey}, "\x00")
+	return strings.Join([]string{provider, resource.ObjectKey}, "\x00")
 }
 
 func (s *Service) deleteStoredResourceObject(userID string, resource *model.Resource) error {

@@ -11,8 +11,6 @@ export type RemoteResource = {
     kind: "image" | "video" | "audio" | "file" | string;
     status: "pending" | "ready" | "failed" | "deleted" | string;
     provider: string;
-    endpoint: string;
-    bucket: string;
     objectKey: string;
     publicUrl: string;
     mimeType: string;

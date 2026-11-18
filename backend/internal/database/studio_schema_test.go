@@ -154,3 +154,96 @@ func TestStudioSchemaRollsBackFailedInitialization(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func studioSchema98DB(t *testing.T) *gorm.DB {
+	t.Helper()
+	db := studioSchemaDB(t)
+	if err := MigrateStudioSchema(db); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Delete(&schemaMigration{}, "version = 99").Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range []string{"resources", "resource_deletion_jobs"} {
+		if err := db.Exec("ALTER TABLE " + table + " ADD COLUMN endpoint text, ADD COLUMN bucket varchar(160), ADD COLUMN storage_setting_id varchar(36)").Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	return db
+}
+
+func TestStudioSchema98StorageUpgradePreservesCreativeData(t *testing.T) {
+	db := studioSchema98DB(t)
+	resource := model.Resource{ID: "platform-file", UserID: "101", Provider: "platform", Status: model.ResourceStatusReady, Size: 42}
+	if err := db.Create(&resource).Error; err != nil {
+		t.Fatal(err)
+	}
+	job := model.ResourceDeletionJob{ID: "local-cleanup", ResourceID: "system-logo", Provider: "local", ObjectKey: "system/logo.png", Status: model.ResourceDeletionStatusPending}
+	if err := db.Create(&job).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := RequireStudioSchemaVersion(db); err == nil {
+		t.Fatal("started new binary before storage migration")
+	}
+	var wg sync.WaitGroup
+	for range 3 {
+		wg.Go(func() {
+			if err := MigrateStudioSchema(db); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	wg.Wait()
+	if err := RequireStudioSchemaVersion(db); err != nil {
+		t.Fatal(err)
+	}
+	var stored model.Resource
+	if err := db.First(&stored, "id = ?", resource.ID).Error; err != nil || stored.UserID != resource.UserID || stored.Size != resource.Size {
+		t.Fatalf("changed adopted material: %#v, %v", stored, err)
+	}
+	var storedJob model.ResourceDeletionJob
+	if err := db.First(&storedJob, "id = ?", job.ID).Error; err != nil || storedJob.ObjectKey != job.ObjectKey || storedJob.Status != job.Status {
+		t.Fatalf("changed local cleanup: %#v, %v", storedJob, err)
+	}
+}
+
+func TestStudioSchema98StorageUpgradeRollsBackAndResumes(t *testing.T) {
+	db := studioSchema98DB(t)
+	// A dependency on the last table interrupts DDL after earlier columns drop.
+	if err := db.Exec("CREATE VIEW retained_storage AS SELECT bucket FROM resource_deletion_jobs").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := MigrateStudioSchema(db); err == nil {
+		t.Fatal("expected dependency failure")
+	}
+	status, err := ReadStudioSchemaStatus(db)
+	if err != nil || status.Current != 98 || status.Ready || !db.Migrator().HasColumn("resources", "endpoint") {
+		t.Fatalf("partial upgrade escaped transaction: %#v, %v", status, err)
+	}
+	if err := db.Exec("DROP VIEW retained_storage").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := MigrateStudioSchema(db); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestStudioSchema98StorageUpgradeRejectsUnreleasedObjects(t *testing.T) {
+	for _, table := range []string{"resources", "resource_deletion_jobs"} {
+		for _, column := range []string{"provider", "endpoint", "bucket", "storage_setting_id"} {
+			t.Run(table+"/"+column, func(t *testing.T) {
+				db := studioSchema98DB(t)
+				if err := db.Table(table).Create(map[string]any{"id": "legacy", column: "old-storage"}).Error; err != nil {
+					t.Fatal(err)
+				}
+				if err := MigrateStudioSchema(db); err == nil {
+					t.Fatal("discarded a historical object location")
+				}
+				var preserved int64
+				if err := db.Table(table).Where(column+" = ?", "old-storage").Count(&preserved).Error; err != nil || preserved != 1 {
+					t.Fatalf("lost historical location: %d, %v", preserved, err)
+				}
+			})
+		}
+	}
+}

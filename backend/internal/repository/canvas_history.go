@@ -172,7 +172,7 @@ func (r *Repository) CanvasHistoryReferencesObject(resource *model.Resource) (bo
 		}
 		return count > 0, err
 	}
-	aliases := r.db.Model(&model.Resource{}).Select("id").Where("endpoint = ? AND bucket = ? AND object_key = ?", resource.Endpoint, resource.Bucket, resource.ObjectKey)
+	aliases := r.db.Model(&model.Resource{}).Select("id").Where("provider IN ? AND object_key = ?", []string{"", "local"}, resource.ObjectKey)
 	err := r.db.Model(&model.CanvasSnapshotResource{}).
 		Where("resource_id = ? OR resource_id IN (?)", resource.ID, aliases).
 		Count(&count).Error

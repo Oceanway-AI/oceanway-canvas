@@ -368,7 +368,7 @@ func TestUploadAppearanceLogoAlwaysUsesServerLocalStorage(t *testing.T) {
 		if err != nil {
 			t.Fatalf("UploadAppearanceAsset(%s): %v", slot, err)
 		}
-		if resource.Provider != "local" || resource.Endpoint != "" || resource.Bucket != "" || resource.StorageSettingID != "" {
+		if resource.Provider != "local" {
 			t.Fatalf("UploadAppearanceAsset(%s) storage = %#v", slot, resource)
 		}
 		if _, err := os.Stat(filepath.Join(dataDir, "resources", filepath.FromSlash(resource.ObjectKey))); err != nil {
