@@ -122,9 +122,7 @@ func TestStudioPiModelStepUsesOriginalRunAuthority(t *testing.T) {
 	if s.cloudAgentModelTaskRetryable(id) {
 		t.Fatal("Platform step entered old auto retry")
 	}
-	var count int64
-	db.Model(&model.BillingOrder{}).Count(&count)
-	if count != 0 {
+	if db.Migrator().HasTable("billing_orders") {
 		t.Fatal("Pi created local bill")
 	}
 }

@@ -131,8 +131,7 @@ func TestMediaRecoveryDownloadFailureResumesSameTaskAfterRestart(t *testing.T) {
 	if count != 1 {
 		t.Fatalf("duplicate assets: %d", count)
 	}
-	db.Model(&model.BillingOrder{}).Count(&count)
-	if count != 0 {
+	if db.Migrator().HasTable("billing_orders") {
 		t.Fatal("recovery created a billing order")
 	}
 	files, err := os.ReadDir(filepath.Join(s.dataDir, "media-staging"))
@@ -338,7 +337,7 @@ func TestMediaRecoveryManualGuardsKeepOriginalTask(t *testing.T) {
 			case "deleted-project":
 				task.ProjectID = "deleted-project"
 			}
-			if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}); err != nil {
+			if err := db.Migrator().DropTable("billing_orders", "credit_accounts"); err != nil {
 				t.Fatal(err)
 			}
 			if err := s.saveMediaCheckpoint(task, checkpoint, "upload"); err != nil {

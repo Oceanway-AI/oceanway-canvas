@@ -136,11 +136,7 @@ func (s *Service) ecommerceStageModelRef(role EcommerceOrchestrationRole) (Ecomm
 func (s *Service) legacyEcommerceAgentSetting() (EcommerceAgentSetting, error) {
 	row, err := s.repo.SystemSetting(ecommerceAgentSettingKey)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		access, catalogErr := s.systemGroupAccess()
-		if catalogErr != nil {
-			return EcommerceAgentSetting{}, catalogErr
-		}
-		models, catalogErr := s.PublicLogicalModels(access, nil)
+		models, catalogErr := s.PublicLogicalModels(nil)
 		if catalogErr != nil {
 			return EcommerceAgentSetting{}, catalogErr
 		}

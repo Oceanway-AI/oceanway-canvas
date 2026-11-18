@@ -88,7 +88,6 @@ type (
 	ChannelModelCatalogOptions             = app.ChannelModelCatalogOptions
 	ChannelModelPriceTierRequest           = app.ChannelModelPriceTierRequest
 	ChannelModelRequest                    = app.ChannelModelRequest
-	ChannelModelQuoteRequest               = app.ChannelModelQuoteRequest
 	ChannelModelsRequest                   = app.ChannelModelsRequest
 	ChannelRequest                         = app.ChannelRequest
 	CharacterAssetSummary                  = app.CharacterAssetSummary
@@ -117,7 +116,6 @@ type (
 	CreationRequest                        = app.CreationRequest
 	CreationRunOutput                      = app.CreationRunOutput
 	CreationSubmissionOutput               = app.CreationSubmissionOutput
-	CreditPolicy                           = app.CreditPolicy
 	DiagnosticBundle                       = app.DiagnosticBundle
 	DiagnosticClientEvent                  = app.DiagnosticClientEvent
 	DiagnosticExportRequest                = app.DiagnosticExportRequest
@@ -151,7 +149,6 @@ type (
 	LinkCanvasUnitRequest                  = app.LinkCanvasUnitRequest
 	LinkProjectAssetRequest                = app.LinkProjectAssetRequest
 	LinkShotAssetRequest                   = app.LinkShotAssetRequest
-	LogicalModelQuote                      = app.LogicalModelQuote
 	ModelCapabilityConfig                  = app.ModelCapabilityConfig
 	ModelCatalogResponse                   = app.ModelCatalogResponse
 	ModelCatalogSource                     = app.ModelCatalogSource

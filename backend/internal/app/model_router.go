@@ -160,12 +160,6 @@ func (s *Service) loadRouteCatalog() (*routeCatalogSnapshot, error) {
 			if !ok || !channelModel.Enabled || !enabledSystemChannels[channelModel.ChannelID] {
 				continue
 			}
-			if item.PricePolicy == "unified" && item.BillingMode == "token" && !supportsTokenBilling(item.Capability, channelModel.Protocol) {
-				continue
-			}
-			if item.PricePolicy == "channel" && !channelModelHasActivePriceTier(channelModel) {
-				continue
-			}
 			capabilitySpec, specErr := channelModelCapabilitySpec(channelModel, s.protocolRegistry())
 			if specErr != nil {
 				log.Printf("logical route omitted from catalog route_id=%s channel_model_id=%s: invalid capability: %v", route.ID, channelModel.ID, specErr)
@@ -188,10 +182,9 @@ func (s *Service) loadRouteCatalog() (*routeCatalogSnapshot, error) {
 }
 
 // ResolveLogicalModel 将创作意图解析为一次可执行的路由快照。
-// 解析同时约束能力合同、启用状态、价格档和渠道协议；调用方不得在解析完成后自行替换其中任一供应链字段，
+// 解析同时约束能力合同、启用状态和渠道协议；调用方不得在解析完成后自行替换其中任一供应链字段，
 // 否则会出现“目录显示可用、任务实际走另一条线路”的配置漂移。
-// access 为 nil 时不按用户分组过滤线路，只允许内部能力探测和离线迁移工具使用。
-func (s *Service) ResolveLogicalModel(access *userGroupAccess, logicalModelID string, intent ModelRequestIntent) (*RoutedModel, error) {
+func (s *Service) ResolveLogicalModel(logicalModelID string, intent ModelRequestIntent) (*RoutedModel, error) {
 	snapshot, err := s.routeCatalogSnapshot()
 	if err != nil {
 		return nil, err
@@ -209,35 +202,22 @@ func (s *Service) ResolveLogicalModel(access *userGroupAccess, logicalModelID st
 	if match := MatchCapability(cached.ProductSpec, intent); !match.Matched {
 		return nil, modelCapabilityMismatchError(match)
 	}
-	eligible := s.eligibleLogicalRoutes(access, cached.Routes, intent, nil, cached.Model.PricePolicy == "channel")
+	eligible := s.eligibleLogicalRoutes(cached.Routes, intent, nil)
 	if len(eligible) == 0 {
 		return nil, BadAuthRequest("当前模型暂时无法满足这组输入和参数")
 	}
 	selected := weightedRoute(eligible)
-	var priceTier *model.ChannelModelPriceTier
-	if cached.Model.PricePolicy == "channel" {
-		priceTier = channelModelPriceTierForIntent(selected.ChannelModel, intent, selected.CapabilitySpec)
-		if priceTier == nil {
-			return nil, BadAuthRequest("当前模型尚未配置所选规格的价格")
-		}
-	}
-	return &RoutedModel{LogicalModel: cached.Model, Revision: cached.Revision, Route: selected.Route, ChannelModel: selected.ChannelModel, CapabilitySpec: selected.CapabilitySpec, PriceTier: priceTier, Defaults: cached.Defaults, Intent: intent}, nil
+	return &RoutedModel{LogicalModel: cached.Model, Revision: cached.Revision, Route: selected.Route, ChannelModel: selected.ChannelModel, CapabilitySpec: selected.CapabilitySpec, PriceTier: channelModelPriceTierForIntent(selected.ChannelModel, intent, selected.CapabilitySpec), Defaults: cached.Defaults, Intent: intent}, nil
 }
 
-func (s *Service) eligibleLogicalRoutes(access *userGroupAccess, routes []cachedLogicalRoute, intent ModelRequestIntent, tried map[string]bool, requirePriceTier bool) []cachedLogicalRoute {
+func (s *Service) eligibleLogicalRoutes(routes []cachedLogicalRoute, intent ModelRequestIntent, tried map[string]bool) []cachedLogicalRoute {
 	eligible := make([]cachedLogicalRoute, 0, len(routes))
 	maxPriority := math.MinInt
 	for _, route := range routes {
 		if !route.Route.Enabled || route.Route.Weight <= 0 || tried[route.Route.ID] || s.logicalRouteBlocked(route) {
 			continue
 		}
-		if access != nil && !access.allowsChannel(route.ChannelModel.ChannelID) {
-			continue
-		}
 		if match := MatchCapability(route.CapabilitySpec, intent); !match.Matched {
-			continue
-		}
-		if requirePriceTier && channelModelPriceTierForIntent(route.ChannelModel, intent, route.CapabilitySpec) == nil {
 			continue
 		}
 		if route.Route.Priority > maxPriority {

@@ -13,11 +13,3 @@ type CreditCostPricing struct {
 	ReferenceVideoUnitPriceMicrocredits        int64 `json:"referenceVideoUnitPriceMicrocredits" gorm:"not null;default:0"`
 	ReferenceVideoOutputTokenPriceMicrocredits int64 `json:"referenceVideoOutputTokenPriceMicrocredits" gorm:"not null;default:0"`
 }
-
-// BillingCostSnapshot 独立于销售价格，切换供应线路时始终更新为实际执行线路的成本。
-type BillingCostSnapshot struct {
-	CostPricing            CreditCostPricing `json:"-" gorm:"embedded;embeddedPrefix:cost_"`
-	CostBillingMode        string            `json:"-" gorm:"size:32;not null;default:''"`
-	CostQuantity           int64             `json:"-" gorm:"not null;default:0"`
-	CostVideoFormulaTokens int64             `json:"-" gorm:"not null;default:0"`
-}

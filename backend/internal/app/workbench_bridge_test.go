@@ -46,7 +46,7 @@ func TestCreateWorkbenchVideoTaskUsesReferenceModeAndPrice(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			config, err := s.resolveWorkbenchProviderConfig(testGroupUserID(s), req.Kind, resolved.Operation, resolved.Model, resolved.LogicalModelID, resolved.ChannelID, resolved.Parameters, resolved.Input)
+			config, err := s.resolveWorkbenchProviderConfig(creativeTestUserID(s), req.Kind, resolved.Operation, resolved.Model, resolved.LogicalModelID, resolved.ChannelID, resolved.Parameters, resolved.Input)
 			if err != nil || config["priceTierId"] != tc.price {
 				t.Fatalf("pre-admission config = %v, error = %v, want price %q", config, err, tc.price)
 			}
@@ -89,10 +89,6 @@ func TestCreateWorkbenchVideoTaskUsesReferenceModeAndPrice(t *testing.T) {
 					t.Fatalf("provider images = %+v, want role %q", providerRequest.Images, wantRole)
 				}
 			}
-			var order model.BillingOrder
-			if err := db.First(&order, "id = ?", task.BillingOrderID).Error; err != nil || order.PriceTierID != tc.price {
-				t.Fatalf("billing price = %q, error = %v, want %q", order.PriceTierID, err, tc.price)
-			}
 		})
 	}
 	// An image-to-video-only model must still reject an ordinary reference image.
@@ -108,15 +104,15 @@ func TestCreateWorkbenchVideoTaskUsesReferenceModeAndPrice(t *testing.T) {
 	if err := db.Model(&model.Task{}).Count(&count).Error; err != nil || count != 3 {
 		t.Fatalf("task count = %d, error = %v; rejected input must not create a task", count, err)
 	}
-	if err := db.Model(&model.BillingOrder{}).Count(&count).Error; err != nil || count != 3 {
-		t.Fatalf("order count = %d, error = %v; rejected input must not create a billing order", count, err)
+	if db.Migrator().HasTable("billing_orders") {
+		t.Fatal("workbench recreated retired billing table")
 	}
 }
 
 func TestResolveWorkbenchProviderConfigMapsWorkbenchParameters(t *testing.T) {
 	service := &Service{}
 
-	image, err := service.resolveWorkbenchProviderConfig(testGroupUserID(service), WorkbenchKindImage, "image", "image-model", "logical-image", "", map[string]any{
+	image, err := service.resolveWorkbenchProviderConfig(creativeTestUserID(service), WorkbenchKindImage, "image", "image-model", "logical-image", "", map[string]any{
 		"size": "1024x1024", "quality": "high", "imageResolution": "2k", "count": 2,
 	}, map[string]any{})
 	if err != nil {
@@ -128,7 +124,7 @@ func TestResolveWorkbenchProviderConfigMapsWorkbenchParameters(t *testing.T) {
 		}
 	}
 
-	video, err := service.resolveWorkbenchProviderConfig(testGroupUserID(service), WorkbenchKindVideo, "text_to_video", "video-model", "logical-video", "", map[string]any{
+	video, err := service.resolveWorkbenchProviderConfig(creativeTestUserID(service), WorkbenchKindVideo, "text_to_video", "video-model", "logical-video", "", map[string]any{
 		"seconds": 8, "ratio": "9:16", "resolution": "1080P", "generateAudio": true, "watermark": false,
 	}, map[string]any{})
 	if err != nil {

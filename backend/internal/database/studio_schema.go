@@ -20,6 +20,8 @@ var studioMigrations = []migration{
 }
 
 var retiredStudioCommercialColumns = map[string][]string{
+	"tasks":                {"billing_order_id", "authorized_charge_microcredits"},
+	"api_call_logs":        {"billing_order_id"},
 	"ecommerce_agent_runs": {"billing_order_id", "unit_microcredits"},
 	"drama_productions":    {"budget_microcredits", "spent_microcredits"},
 	"drama_jobs":           {"cost_microcredits"},

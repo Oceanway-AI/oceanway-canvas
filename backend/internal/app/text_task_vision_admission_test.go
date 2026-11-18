@@ -86,7 +86,7 @@ func TestCreateTextTaskWithImagesOnNonVisionModelDoesNotReserveCredits(t *testin
 	channelModel := model.ChannelModel{ID: newID(), ChannelID: channel.ID, ModelKey: "text-model", ProviderModelKey: "provider-text", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, Enabled: true, CapabilityConfigJSON: string(capabilityJSON)}
 	tier := newSelectionPriceTier("text-tier", `{}`, "provider-text", "fixed_request")
 	tier.ChannelModelID = channelModel.ID
-	for _, item := range []any{&channel, &channelModel, &tier, &model.User{ID: "user-text-vision", Email: "vision@example.com", Username: "vision"}, &model.CreditAccount{UserID: "user-text-vision", AvailableMicrocredits: 1_000_000}} {
+	for _, item := range []any{&channel, &channelModel, &tier, &model.User{ID: "user-text-vision", Email: "vision@example.com", Username: "vision"}} {
 		if err := db.Create(item).Error; err != nil {
 			t.Fatal(err)
 		}
@@ -96,10 +96,12 @@ func TestCreateTextTaskWithImagesOnNonVisionModelDoesNotReserveCredits(t *testin
 	if err == nil {
 		t.Fatal("non-vision text model accepted reference images")
 	}
-	var orders, tasks int64
-	db.Model(&model.BillingOrder{}).Count(&orders)
+	var tasks int64
+	if db.Migrator().HasTable("billing_orders") {
+		t.Fatal("admission recreated retired billing table")
+	}
 	db.Model(&model.Task{}).Count(&tasks)
-	if orders != 0 || tasks != 0 {
-		t.Fatalf("rejected admission left orders=%d tasks=%d", orders, tasks)
+	if tasks != 0 {
+		t.Fatalf("rejected admission left tasks=%d", tasks)
 	}
 }

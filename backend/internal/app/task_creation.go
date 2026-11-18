@@ -313,13 +313,8 @@ func (s *Service) resolveTaskModelSelection(userID string, input map[string]any,
 		if logicalModelID == "" {
 			return nil, input, InvalidModelSelection("前台模型模式下必须指定 logicalModelId")
 		}
-		// 系统渠道和前台模型都按用户分组过滤可用渠道；自定义渠道不受分组约束。
-		access, err := s.userGroupAccess(userID)
-		if err != nil {
-			return nil, input, err
-		}
 		intent := ModelRequestIntentFromTaskInput(input, taskType, operation)
-		routed, err := s.ResolveLogicalModel(access, logicalModelID, intent)
+		routed, err := s.ResolveLogicalModel(logicalModelID, intent)
 		if err != nil {
 			return nil, input, err
 		}
@@ -335,11 +330,7 @@ func (s *Service) resolveTaskModelSelection(userID string, input map[string]any,
 	// 自定义渠道没有系统 channelId；它会在后续由自定义渠道功能开关、
 	// 能力校验和 provider 配置校验共同处理，不能误报为“缺少系统渠道”。
 	if !customChannelTask {
-		access, err := s.userGroupAccess(userID)
-		if err != nil {
-			return nil, input, err
-		}
-		resolvedInput, err := s.resolveSystemChannelModelSelection(access, input, taskType, operation)
+		resolvedInput, err := s.resolveSystemChannelModelSelection(input, taskType, operation)
 		if err != nil {
 			return nil, input, err
 		}
@@ -525,7 +516,7 @@ func (s *Service) requireCustomChannelsForTaskInput(input map[string]any) error 
 // resolveSystemChannelModelSelection 是系统渠道任务的 admission 边界。
 // 客户端只负责表达创作参数；模型协议、能力合同、价格档和上游模型标识必须从服务端记录重建，
 // 避免出现“按一个规格校验/计费，却按另一个规格执行”的跨阶段漂移。
-func (s *Service) resolveSystemChannelModelSelection(access *userGroupAccess, input map[string]any, taskType string, operation string) (map[string]any, error) {
+func (s *Service) resolveSystemChannelModelSelection(input map[string]any, taskType string, operation string) (map[string]any, error) {
 	config, ok := input["config"].(map[string]any)
 	if !ok {
 		return input, InvalidModelSelection("缺少模型配置")
@@ -544,9 +535,6 @@ func (s *Service) resolveSystemChannelModelSelection(access *userGroupAccess, in
 	}
 	if !channel.Enabled || channel.Scope != model.ChannelScopeSystem {
 		return input, InvalidModelSelection("指定的渠道不可用")
-	}
-	if err := access.requireChannel(channelID); err != nil {
-		return input, err
 	}
 
 	channelModel, err := s.repo.ChannelModelByKey(channelID, modelKey)
@@ -700,15 +688,15 @@ func (s *Service) resolveSystemChannelModelSelection(access *userGroupAccess, in
 	if priceTier == nil {
 		priceTier = channelModelPriceTierForIntent(*channelModel, intent, pricingSpecs...)
 	}
-	if priceTier == nil || !ValidatePriceTierPrice(priceTier, channelModel.Capability, channelModel.Protocol) {
-		return input, ModelPriceNotConfigured("指定的模型未配置当前规格的有效价格")
-	}
 
 	nextConfig["channelId"] = channel.ID
 	nextConfig["model"] = channelModel.ModelKey
 	nextConfig["channelModelKey"] = channelModel.ModelKey
-	nextConfig["priceTierId"] = priceTier.ID
-	nextConfig["providerModelKey"] = firstNonEmpty(priceTier.ProviderModelKey, channelModel.ProviderModelKey, channelModel.ModelKey)
+	nextConfig["providerModelKey"] = firstNonEmpty(channelModel.ProviderModelKey, channelModel.ModelKey)
+	if priceTier != nil {
+		nextConfig["priceTierId"] = priceTier.ID
+		nextConfig["providerModelKey"] = firstNonEmpty(priceTier.ProviderModelKey, stringValue(nextConfig["providerModelKey"]))
+	}
 	nextConfig["interfaceType"] = string(channelModel.Protocol)
 	nextConfig["apiFormat"] = channelAPIFormatForProtocol(channel.APIFormat, channelModel.Protocol)
 	return input, nil

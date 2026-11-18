@@ -74,7 +74,7 @@ func TestSanitizeChannelModelRejectsCorruptCapabilityConfig(t *testing.T) {
 	}
 }
 
-func TestSanitizeChannelModelAvailabilityRequiresValidPriceTier(t *testing.T) {
+func TestSanitizeChannelModelAvailabilityUsesCapabilityAndEnabledState(t *testing.T) {
 	svc := &Service{}
 	channelModel := &model.ChannelModel{
 		ID:                    "image-model",
@@ -92,19 +92,20 @@ func TestSanitizeChannelModelAvailabilityRequiresValidPriceTier(t *testing.T) {
 		t.Fatal(err)
 	}
 	if public.Available {
-		t.Fatal("legacy scalar price must not make a system channel model available")
+		t.Fatal("disabled model published as available")
 	}
 
 	channelModel.PriceTiers = []model.ChannelModelPriceTier{{
 		ID: "tier-1", BillingMode: "fixed_request", UnitPriceMicrocredits: 10,
 		Enabled: true, PriceConfigured: true,
 	}}
+	channelModel.Enabled = true
 	public, err = svc.sanitizeChannelModel(channelModel)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !public.Available || len(public.PriceTiers) != 1 {
-		t.Fatalf("valid price tier was not published: %#v", public)
+	if !public.Available || len(public.PriceTiers) != 0 || public.PricingMode != "platform" || public.DisplayPrice != nil {
+		t.Fatalf("local price leaked into capability catalog: %#v", public)
 	}
 }
 
@@ -154,7 +155,7 @@ func TestPublicSystemChannelCatalogIsolatesCorruptModel(t *testing.T) {
 		}
 	}
 
-	catalog, err := svc.publicSystemChannelCatalog(testGroupAccess(svc), nil)
+	catalog, err := svc.publicSystemChannelCatalog(nil)
 	if err != nil {
 		t.Fatal(err)
 	}

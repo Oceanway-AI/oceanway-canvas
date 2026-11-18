@@ -177,11 +177,7 @@ func (s *Service) resolveWorkbenchProviderConfig(userID, kind, operation, modelN
 	if err != nil {
 		return nil, err
 	}
-	access, err := s.userGroupAccess(userID)
-	if err != nil {
-		return nil, err
-	}
-	resolved, err := s.resolveSystemChannelModelSelection(access, normalizedInput, "canvas_"+kind, operation)
+	resolved, err := s.resolveSystemChannelModelSelection(normalizedInput, "canvas_"+kind, operation)
 	if err != nil {
 		return nil, err
 	}

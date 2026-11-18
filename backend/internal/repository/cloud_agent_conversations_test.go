@@ -4,82 +4,36 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
-	"os"
 	"sync"
 	"testing"
-	"time"
 
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"yingce/backend/internal/model"
+	"yingce/backend/internal/testdb"
 )
 
 func TestCloudAgentConversationAdmissionAcrossConnections(t *testing.T) {
-	for _, driver := range []string{"postgres"} {
-		for _, billed := range []bool{false, true} {
-			t.Run(fmt.Sprintf("%s/billed=%t", driver, billed), func(t *testing.T) {
-				config := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
-				var dialector gorm.Dialector
-				if driver == "postgres" {
-					dsn := os.Getenv("CANVAS_TEST_POSTGRES_DSN")
-					if dsn == "" {
-						t.Skip("set CANVAS_TEST_POSTGRES_DSN to an isolated test database")
-					}
-					admin, err := gorm.Open(postgres.Open(dsn), config)
-					if err != nil {
-						t.Fatal(err)
-					}
-					schema := fmt.Sprintf("agent_conversation_%d", time.Now().UnixNano())
-					if err := admin.Exec("CREATE SCHEMA " + schema).Error; err != nil {
-						t.Fatal(err)
-					}
-					t.Cleanup(func() {
-						if err := admin.Exec("DROP SCHEMA " + schema + " CASCADE").Error; err != nil {
-							t.Error(err)
-						}
-						conn, _ := admin.DB()
-						_ = conn.Close()
-					})
-					parsed, err := url.Parse(dsn)
-					if err != nil {
-						t.Fatal(err)
-					}
-					query := parsed.Query()
-					query.Set("search_path", schema)
-					parsed.RawQuery = query.Encode()
-					dialector = postgres.Open(parsed.String())
-				}
-				open := func() *Repository {
-					db, err := gorm.Open(dialector, config)
-					if err != nil {
-						t.Fatal(err)
-					}
-					conn, err := db.DB()
-					if err != nil {
-						t.Fatal(err)
-					}
-					t.Cleanup(func() { _ = conn.Close() })
-					return New(db)
-				}
-				a, b := open(), open()
-				testCloudAgentConversationAdmission(t, a, b, billed)
-			})
-		}
+	db, err := testdb.Open(t, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		t.Fatal(err)
 	}
+	second, err := testdb.Reopen(t, db, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	testCloudAgentConversationAdmission(t, New(db), New(second))
 }
 
-func testCloudAgentConversationAdmission(t *testing.T, a, b *Repository, billed bool) {
+func testCloudAgentConversationAdmission(t *testing.T, a, b *Repository) {
 	t.Helper()
-	if err := a.db.AutoMigrate(&model.Task{}, &model.CloudAgentExecution{}, &model.CanvasProject{}, &model.CreditAccount{}, &model.BillingOrder{}, &model.CreditLedgerEntry{}); err != nil {
+	if err := a.db.AutoMigrate(&model.Task{}, &model.CloudAgentExecution{}, &model.CanvasProject{}); err != nil {
 		t.Fatal(err)
 	}
 	for _, item := range []any{
 		&model.CloudAgentExecution{ID: "parent", UserID: "user", ConversationID: "parent", Status: "completed", Revision: 7},
 		&model.CanvasProject{ID: "canvas-a", UserID: "user"},
 		&model.CanvasProject{ID: "canvas-b", UserID: "user"},
-		&model.CreditAccount{UserID: "user", AvailableMicrocredits: 1000},
 	} {
 		if err := a.db.Create(item).Error; err != nil {
 			t.Fatal(err)
@@ -95,11 +49,7 @@ func testCloudAgentConversationAdmission(t *testing.T, a, b *Repository, billed 
 			defer wg.Done()
 			<-start
 			task := &model.Task{ID: fmt.Sprintf("child-%d", i), UserID: "user", ProjectID: fmt.Sprintf("canvas-%c", 'a'+i), Operation: "cloud_agent", Status: model.TaskStatusTextReplay, InputJSON: string(input)}
-			if billed {
-				results <- repo.CreateTaskWithCreditReservation(task, &model.BillingOrder{ID: "order-" + task.ID, UserID: "user", TaskID: task.ID, AmountMicrocredits: 100, BillingMode: "fixed_request"}, 100)
-			} else {
-				results <- repo.CreateTaskWithActiveLimit(task, 100)
-			}
+			results <- repo.CreateTaskWithActiveLimit(task, 100)
 		}(i, repo)
 	}
 	close(start)
@@ -119,23 +69,9 @@ func testCloudAgentConversationAdmission(t *testing.T, a, b *Repository, billed 
 	if accepted != 1 || stale != 1 {
 		t.Fatalf("same parent branched across canvases: accepted=%d stale=%d", accepted, stale)
 	}
-	var tasks, orders int64
+	var tasks int64
 	if err := a.db.Model(&model.Task{}).Count(&tasks).Error; err != nil || tasks != 1 {
 		t.Fatalf("task count=%d %v", tasks, err)
-	}
-	if err := a.db.Model(&model.BillingOrder{}).Count(&orders).Error; err != nil {
-		t.Fatal(err)
-	}
-	account, err := b.CreditAccount("user")
-	if err != nil {
-		t.Fatal(err)
-	}
-	expectedReserve := int64(0)
-	if billed {
-		expectedReserve = 100
-	}
-	if orders != expectedReserve/100 || account.AvailableMicrocredits != 1000-expectedReserve || account.ReservedMicrocredits != expectedReserve {
-		t.Fatalf("duplicate reservation: orders=%d account=%+v", orders, account)
 	}
 	var parent model.CloudAgentExecution
 	if err := a.db.First(&parent, "id = ?", "parent").Error; err != nil || parent.Revision != 7 {

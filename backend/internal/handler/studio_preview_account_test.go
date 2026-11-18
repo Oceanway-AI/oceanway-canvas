@@ -76,7 +76,7 @@ func TestStudioMediaPreviewBindsAccountAndCommandBeforeCreation(t *testing.T) {
 			t.Fatal("missing explicit re-preview reason")
 		}
 	}
-	if f.db.Migrator().HasTable(&model.BillingOrder{}) {
+	if f.db.Migrator().HasTable("billing_orders") {
 		t.Fatal("Studio created local billing")
 	}
 	for _, table := range []any{&model.Task{}, &model.StudioExecution{}} {

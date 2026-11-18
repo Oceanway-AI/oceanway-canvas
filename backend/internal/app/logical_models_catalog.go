@@ -1,35 +1,22 @@
-// 逻辑模型的前台目录与价格展示：把后台配置的逻辑模型投影成用户可见的列表和价格档。
+// 逻辑模型的能力目录，供保留的创作流程解析模型与规格。
 
 package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
-
-	"yingce/backend/internal/model"
 )
 
-// PublicLogicalModels 只发布当前分组可用渠道上的线路；价格按分组换算为实际扣费的微积分。
-func (s *Service) PublicLogicalModels(access *userGroupAccess, intent *ModelRequestIntent) ([]PublicLogicalModel, error) {
-	if access == nil {
-		return nil, Unauthorized("请先登录")
-	}
-	policy, err := s.creditPolicy()
-	if err != nil {
-		return nil, err
-	}
+// PublicLogicalModels projects declared capabilities and current route health.
+func (s *Service) PublicLogicalModels(intent *ModelRequestIntent) ([]PublicLogicalModel, error) {
 	snapshot, err := s.routeCatalogSnapshot()
 	if err != nil {
 		return nil, err
 	}
 	result := make([]PublicLogicalModel, 0, len(snapshot.Ordered))
 	for _, id := range snapshot.Ordered {
-		cached, visible, groupErr := s.groupLogicalModel(policy, access, snapshot.Models[id])
-		if groupErr != nil || !visible {
-			continue
-		}
+		cached := snapshot.Models[id]
 		structuralSpecs := availableCachedRouteSpecs(cached.Routes)
 		coverageValid := logicalModelCapabilityCovered(cached.ProductSpec, structuralSpecs)
 		available := coverageValid && hasHealthyCachedRoute(s, cached.Routes)
@@ -43,8 +30,7 @@ func (s *Service) PublicLogicalModels(access *userGroupAccess, intent *ModelRequ
 			available = false
 			if coverageValid {
 				for _, route := range cached.Routes {
-					priceCompatible := cached.Model.PricePolicy != "channel" || channelModelHasCompatiblePriceTier(route.ChannelModel, resolvedIntent, route.CapabilitySpec)
-					if route.Route.Enabled && route.Route.Weight > 0 && !s.logicalRouteBlocked(route) && MatchCapability(route.CapabilitySpec, resolvedIntent).Matched && priceCompatible {
+					if route.Route.Enabled && route.Route.Weight > 0 && !s.logicalRouteBlocked(route) && MatchCapability(route.CapabilitySpec, resolvedIntent).Matched {
 						available = true
 						break
 					}
@@ -54,59 +40,6 @@ func (s *Service) PublicLogicalModels(access *userGroupAccess, intent *ModelRequ
 		result = append(result, publicLogicalModel(cached, available))
 	}
 	return result, nil
-}
-
-// groupLogicalModel 返回按分组过滤线路并换算价格后的副本，不修改共享路由快照。
-// 没有任何可见线路时 visible=false；分组缺少货币兑换比例的线路被跳过。
-func (s *Service) groupLogicalModel(policy CreditPolicy, access *userGroupAccess, cached cachedLogicalModel) (cachedLogicalModel, bool, error) {
-	routes := make([]cachedLogicalRoute, 0, len(cached.Routes))
-	for _, route := range cached.Routes {
-		if !access.allowsChannel(route.ChannelModel.ChannelID) {
-			continue
-		}
-		if cached.Model.PricePolicy == "channel" {
-			channelModel := route.ChannelModel
-			tiers := make([]model.ChannelModelPriceTier, len(channelModel.PriceTiers))
-			copy(tiers, channelModel.PriceTiers)
-			skip := false
-			for index := range tiers {
-				pricing, prices, err := groupTierPricesWithPolicy(policy, access, &channelModel, &tiers[index], channelModel.ModelKey)
-				if err != nil {
-					skip = true
-					break
-				}
-				tiers[index].UnitPriceMicrocredits = effectiveCatalogPrice(prices.Unit, pricing.MultiplierBPS)
-				tiers[index].InputTokenPriceMicrocredits = effectiveCatalogPrice(prices.Input, pricing.MultiplierBPS)
-				tiers[index].OutputTokenPriceMicrocredits = effectiveCatalogPrice(prices.Output, pricing.MultiplierBPS)
-				tiers[index].CachedTokenPriceMicrocredits = effectiveCatalogPrice(prices.Cached, pricing.MultiplierBPS)
-				tiers[index].CacheWriteTokenPriceMicrocredits = effectiveCatalogPrice(prices.CacheWrite, pricing.MultiplierBPS)
-			}
-			if skip {
-				continue
-			}
-			channelModel.PriceTiers = tiers
-			route.ChannelModel = channelModel
-		}
-		routes = append(routes, route)
-	}
-	if len(routes) == 0 && len(cached.Routes) > 0 {
-		return cached, false, nil
-	}
-	cached.Routes = routes
-	if cached.Model.PricePolicy != "channel" {
-		pricing, err := access.pricing(model.PriceCurrencyCredits, cached.Model.Code)
-		if err != nil {
-			return cached, false, err
-		}
-		item := cached.Model
-		item.UnitPriceMicrocredits = effectiveCatalogPrice(item.UnitPriceMicrocredits, pricing.MultiplierBPS)
-		item.InputPriceMicrocredits = effectiveCatalogPrice(item.InputPriceMicrocredits, pricing.MultiplierBPS)
-		item.OutputPriceMicrocredits = effectiveCatalogPrice(item.OutputPriceMicrocredits, pricing.MultiplierBPS)
-		item.CachedPriceMicrocredits = effectiveCatalogPrice(item.CachedPriceMicrocredits, pricing.MultiplierBPS)
-		item.CacheWritePriceMicrocredits = effectiveCatalogPrice(item.CacheWritePriceMicrocredits, pricing.MultiplierBPS)
-		cached.Model = item
-	}
-	return cached, true, nil
 }
 
 func publicLogicalModel(cached cachedLogicalModel, available bool) PublicLogicalModel {
@@ -125,59 +58,14 @@ func publicLogicalModel(cached cachedLogicalModel, available bool) PublicLogical
 		}
 	}
 
-	priceTiers := publicLogicalModelPriceTiers(cached)
-	pricingMode, displayPrice, priceLabel := computeModelPriceDisplay(item, priceTiers)
-
 	return PublicLogicalModel{
 		ID: item.ID, Code: item.Code, Name: item.Name, Icon: item.Icon,
 		Description: item.Description, Capability: item.Capability, SortOrder: item.SortOrder,
-		PricePolicy: item.PricePolicy, PricingMode: pricingMode, DisplayPrice: displayPrice,
-		PriceLabel: priceLabel, BillingMode: item.BillingMode,
-		UnitPriceMicrocredits:       item.UnitPriceMicrocredits,
-		InputPriceMicrocredits:      item.InputPriceMicrocredits,
-		OutputPriceMicrocredits:     item.OutputPriceMicrocredits,
-		CachedPriceMicrocredits:     item.CachedPriceMicrocredits,
-		CacheWritePriceMicrocredits: item.CacheWritePriceMicrocredits,
-		PriceTiers:                  priceTiers, LegacyModelIDs: decodeLegacyModelIDs(item.LegacyModelIDsJSON),
+		PricingMode: "platform", PriceLabel: "以平台报价为准",
+		PriceTiers: []PublicLogicalModelPriceTier{}, LegacyModelIDs: decodeLegacyModelIDs(item.LegacyModelIDsJSON),
 		CapabilitySpec: productSpec, CapabilityProfiles: profiles,
 		DefaultOptions: cached.Defaults, Available: available,
 	}
-}
-
-func publicLogicalModelPriceTiers(cached cachedLogicalModel) []PublicLogicalModelPriceTier {
-	if cached.Model.PricePolicy != "channel" {
-		return []PublicLogicalModelPriceTier{}
-	}
-	result := make([]PublicLogicalModelPriceTier, 0)
-	seen := make(map[string]bool)
-	for _, route := range cached.Routes {
-		if !route.Route.Enabled || route.Route.Weight <= 0 {
-			continue
-		}
-		for _, tier := range route.ChannelModel.PriceTiers {
-			if !tier.Enabled || !tier.PriceConfigured {
-				continue
-			}
-			selector := skuSelectorForTier(tier)
-			if parameters := route.CapabilitySpec.ImageParameters; parameters != nil {
-				selector = model.DecodeSKUSelector(tier.SelectorJSON)
-				if validateImageParameterPriceSelector(parameters, selector) != nil {
-					continue
-				}
-			}
-			_, selectorKey, selectorErr := model.CanonicalSKUSelector(selector)
-			if selectorErr != nil {
-				continue
-			}
-			key := fmt.Sprintf("%s:%s:%d:%d:%d:%d:%d", selectorKey, tier.BillingMode, tier.UnitPriceMicrocredits, tier.InputTokenPriceMicrocredits, tier.OutputTokenPriceMicrocredits, tier.CachedTokenPriceMicrocredits, tier.CacheWriteTokenPriceMicrocredits)
-			if seen[key] {
-				continue
-			}
-			seen[key] = true
-			result = append(result, PublicLogicalModelPriceTier{Selector: selector, Resolution: normalizeChannelModelTierResolution(tier.Resolution), VideoSeconds: tier.VideoSeconds, BillingMode: tier.BillingMode, UnitPriceMicrocredits: tier.UnitPriceMicrocredits, InputTokenPriceMicrocredits: tier.InputTokenPriceMicrocredits, OutputTokenPriceMicrocredits: tier.OutputTokenPriceMicrocredits, CachedTokenPriceMicrocredits: tier.CachedTokenPriceMicrocredits, CacheWriteTokenPriceMicrocredits: tier.CacheWriteTokenPriceMicrocredits})
-		}
-	}
-	return result
 }
 
 func decodeLegacyModelIDs(raw string) []string {

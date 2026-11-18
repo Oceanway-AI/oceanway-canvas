@@ -361,7 +361,7 @@ func TestStudioPlatformLoginCanvasPersistenceAndIsolation(t *testing.T) {
 	f.request(t, "GET", "/api/canvas-projects/canvas-1", "platform_session=bob", "", 404)
 	f.request(t, "GET", "/api/canvas-projects/canvas-1", "", "", 401)
 	f.request(t, "POST", "/api/canvas-projects/canvas-1/share", "platform_session=alice", `{"expiresDays":1}`, 501)
-	for _, table := range []any{"user_identities", "auth_sessions", &model.CreditAccount{}, &model.BillingOrder{}} {
+	for _, table := range []any{"user_identities", "auth_sessions", "billing_orders"} {
 		if f.db.Migrator().HasTable(table) {
 			t.Fatalf("unexpected retired table %T", table)
 		}

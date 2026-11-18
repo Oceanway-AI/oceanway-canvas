@@ -35,7 +35,7 @@ func TestQueuedCustomChannelRecheck(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s, db := newMediaRecoveryTestService(t)
-			if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+			if err := db.Migrator().DropTable("billing_orders", "credit_accounts", "credit_ledger_entries"); err != nil {
 				t.Fatal(err)
 			}
 			actor := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}

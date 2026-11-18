@@ -444,7 +444,7 @@ func TestEcommerceSelectedDirectionFlowsToPlanningAndImageTask(t *testing.T) {
 
 	// Stage 3: the image task created from plan image 1 carries the lock to
 	// the provider and survives a service restart without local settlement.
-	if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+	if err := db.Migrator().DropTable("billing_orders", "credit_accounts", "credit_ledger_entries"); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(plan.Images[0].Prompt, "本轮已选Skills图片执行约束") {
@@ -464,8 +464,8 @@ func TestEcommerceSelectedDirectionFlowsToPlanningAndImageTask(t *testing.T) {
 		t.Fatal(err)
 	}
 	storedImage, _ := svc.repo.Task(imageTask.ID)
-	if storedImage.Status != model.TaskStatusSucceeded || storedImage.BillingOrderID != "" {
-		t.Fatalf("image task status=%s local order=%q", storedImage.Status, storedImage.BillingOrderID)
+	if storedImage.Status != model.TaskStatusSucceeded {
+		t.Fatalf("image task status=%s", storedImage.Status)
 	}
 	providerPrompt := stringValue(imageRequest["prompt"])
 	if !strings.Contains(providerPrompt, locks[chosen.ID]) {

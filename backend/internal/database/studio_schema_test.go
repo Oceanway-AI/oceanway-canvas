@@ -36,7 +36,7 @@ func TestStudioSchema(t *testing.T) {
 			t.Fatalf("missing creative table %T", table)
 		}
 	}
-	for _, table := range []any{&model.User{}, "user_identities", "auth_sessions", &model.ModelChannel{}, &model.CreditAccount{}, &model.BillingOrder{}, "payment_orders", "payment_provider_configs", "sms_channels", &model.UserGroup{}, "user_storage_grants", &model.PluginPlatformState{}, &model.AnnouncementImageDraft{}} {
+	for _, table := range []any{&model.User{}, "user_identities", "auth_sessions", &model.ModelChannel{}, "billing_orders", "payment_orders", "payment_provider_configs", "sms_channels", "user_groups", "user_storage_grants", &model.PluginPlatformState{}, &model.AnnouncementImageDraft{}} {
 		if db.Migrator().HasTable(table) {
 			t.Fatalf("retired table created %T", table)
 		}
@@ -176,6 +176,12 @@ func studioSchema98DB(t *testing.T) *gorm.DB {
 		t.Fatal(err)
 	}
 	if err := db.Exec("ALTER TABLE drama_jobs ADD COLUMN cost_microcredits bigint").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("ALTER TABLE tasks ADD COLUMN billing_order_id text, ADD COLUMN authorized_charge_microcredits bigint").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("ALTER TABLE api_call_logs ADD COLUMN billing_order_id text").Error; err != nil {
 		t.Fatal(err)
 	}
 	return db

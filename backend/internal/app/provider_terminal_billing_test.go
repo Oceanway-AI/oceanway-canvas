@@ -95,7 +95,7 @@ func TestProviderTerminalStatusRecordsFailureWithoutLocalFinance(t *testing.T) {
 			if err := db.Create(task).Error; err != nil {
 				t.Fatal(err)
 			}
-			if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}); err != nil {
+			if err := db.Migrator().DropTable("billing_orders", "credit_accounts"); err != nil {
 				t.Fatal(err)
 			}
 

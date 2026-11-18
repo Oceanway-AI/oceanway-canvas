@@ -7,63 +7,14 @@ import (
 	"time"
 
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"yingce/backend/internal/model"
 )
 
 var (
-	ErrInsufficientCredits     = errors.New("积分不足，请先充值")
-	ErrActiveTaskLimit         = errors.New("同时进行的任务数已达上限，请等待已有任务完成")
-	ErrTaskNotRetryable        = errors.New("该任务当前状态不支持重试")
-	ErrBillingStateConflict    = errors.New("计费状态已变化，请刷新后重试")
-	ErrBillingUsageUnavailable = errors.New("暂时无法获取用量，计费未完成")
-	ErrBillingChargeLimit      = errors.New("本次费用超过授权上限，已拒绝扣费")
-	ErrChannelModelInUse       = errors.New("该渠道模型正在被使用，无法删除或停用")
+	ErrActiveTaskLimit   = errors.New("同时进行的任务数已达上限，请等待已有任务完成")
+	ErrTaskNotRetryable  = errors.New("该任务当前状态不支持重试")
+	ErrChannelModelInUse = errors.New("该渠道模型正在被使用，无法删除或停用")
 )
-
-func (r *Repository) CreditAccount(userID string) (*model.CreditAccount, error) {
-	var account model.CreditAccount
-	err := r.db.First(&account, "user_id = ?", userID).Error
-	if err == nil {
-		return &account, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
-	}
-	account = model.CreditAccount{UserID: userID}
-	if err := r.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&account).Error; err != nil {
-		return nil, err
-	}
-	return &account, nil
-}
-
-func (r *Repository) CreateTaskWithCreditReservation(task *model.Task, order *model.BillingOrder, activeTaskLimit int) error {
-	return r.Transaction(func(repo *Repository) error {
-		tx := repo.db
-		if err := repo.requireCurrentCloudAgentParent(task); err != nil {
-			return err
-		}
-		if err := New(tx).requireExclusiveCanvasAgent(task); err != nil {
-			return err
-		}
-		if err := r.requireActiveLogicalModelForTask(tx, task); err != nil {
-			return err
-		}
-		if err := enforceActiveTaskLimit(tx, task.UserID, activeTaskLimit); err != nil {
-			return err
-		}
-		if err := reserveBillingOrder(tx, order); err != nil {
-			return err
-		}
-		if err := tx.Create(task).Error; err != nil {
-			return err
-		}
-		if task.Operation == "cloud_agent" && task.ProjectID != "" {
-			repo.canvasChanged(task.UserID, task.ProjectID)
-		}
-		return nil
-	})
-}
 
 func (r *Repository) CreateTaskWithActiveLimit(task *model.Task, activeTaskLimit int) error {
 	return r.Transaction(func(repo *Repository) error {

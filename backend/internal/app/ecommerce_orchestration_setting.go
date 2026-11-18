@@ -72,7 +72,7 @@ func (s *Service) UpdateEcommerceOrchestrationSetting(actor *model.User, setting
 	if setting.Version != 1 || setting.Enabled {
 		return EcommerceOrchestrationSetting{}, BadAuthRequest("电商 Agent 阶段模型配置版本无效")
 	}
-	catalog, err := s.ModelCatalogForUser(actor, nil)
+	catalog, err := s.ModelCatalog(nil)
 	if err != nil {
 		return EcommerceOrchestrationSetting{}, err
 	}

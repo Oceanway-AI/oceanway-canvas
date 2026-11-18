@@ -100,7 +100,7 @@ func (f *fakeDramaBackend) submit(userID string, req CreateTaskRequest, timeline
 func newDramaTestService(t *testing.T) (*Service, *fakeDramaBackend) {
 	t.Helper()
 	svc, db := newTimelineTaskTestService(t)
-	if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+	if err := db.Migrator().DropTable("billing_orders", "credit_accounts", "credit_ledger_entries"); err != nil {
 		t.Fatal(err)
 	}
 	fake := &fakeDramaBackend{t: t, db: db, byKind: map[string]int{}}

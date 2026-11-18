@@ -189,22 +189,6 @@ func TestCreateTaskDoesNotClassifyCustomChannelAsMissingSystemModel(t *testing.T
 	}
 }
 
-func TestTaskBillingOrderSkipsPricingWhenCreditsDisabled(t *testing.T) {
-	svc, _ := newFeatureAvailabilityTestService(t)
-	actor := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
-	if _, err := svc.UpdateFeatureAvailability(actor, FeatureAvailability{ShortDramaEnabled: true, TaskCenterEnabled: true, CreditsEnabled: false, CustomChannelsEnabled: true}); err != nil {
-		t.Fatal(err)
-	}
-
-	order, err := svc.taskBillingOrder("user-1", &model.Task{ID: "task-1"}, map[string]any{"config": map[string]any{"channelId": "missing", "model": "missing"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if order != nil {
-		t.Fatalf("taskBillingOrder() = %#v, want nil", order)
-	}
-}
-
 func newFeatureAvailabilityTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
 	db, err := testdb.Open(t, &gorm.Config{})

@@ -1,8 +1,6 @@
 package model
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -76,70 +74,4 @@ func (r TokenPriceRule) MatchesTime(at time.Time) bool {
 	}
 	minute := local.Hour()*60 + local.Minute()
 	return minute >= start && minute < end
-}
-
-// BillingTokenPriceRule 是订单固化的一条候选规则：时段已在下单时判定，
-// 结算只按真实输入 Token 选档。单价已按分组与计价货币换算为微积分。
-type BillingTokenPriceRule struct {
-	// Rule 是规则在价格档内的序号（从 1 起），用于账单回溯。
-	Rule           int   `json:"rule"`
-	MinInputTokens int64 `json:"minInputTokens"`
-	MaxInputTokens int64 `json:"maxInputTokens"`
-	Input          int64 `json:"input"`
-	Output         int64 `json:"output"`
-	Cached         int64 `json:"cached"`
-	CacheWrite     int64 `json:"cacheWrite"`
-}
-
-// MatchBillingTokenPriceRule 按顺序取第一条覆盖 inputTokens 的候选规则；预授权与结算共用。
-func MatchBillingTokenPriceRule(rules []BillingTokenPriceRule, inputTokens int64) (BillingTokenPriceRule, bool) {
-	for _, rule := range rules {
-		if inputTokens >= rule.MinInputTokens && (rule.MaxInputTokens <= 0 || inputTokens < rule.MaxInputTokens) {
-			return rule, true
-		}
-	}
-	return BillingTokenPriceRule{}, false
-}
-
-// TokenPriceSet 是一次结算实际使用的四类 Token 单价（微积分 / 百万 Token）。
-type TokenPriceSet struct {
-	Input, Output, Cached, CacheWrite int64
-}
-
-// EncodeBillingTokenPriceRules 生成订单快照；没有候选规则时返回空串，旧订单语义不变。
-func EncodeBillingTokenPriceRules(rules []BillingTokenPriceRule) (string, error) {
-	if len(rules) == 0 {
-		return "", nil
-	}
-	encoded, err := json.Marshal(rules)
-	if err != nil {
-		return "", err
-	}
-	return string(encoded), nil
-}
-
-// BillingTokenPriceRules 解码订单固化的候选规则。快照损坏时返回错误，结算不能静默回退基础价。
-func (o BillingOrder) BillingTokenPriceRules() ([]BillingTokenPriceRule, error) {
-	raw := strings.TrimSpace(o.TokenPriceRulesJSON)
-	if raw == "" {
-		return nil, nil
-	}
-	var rules []BillingTokenPriceRule
-	if err := json.Unmarshal([]byte(raw), &rules); err != nil {
-		return nil, errors.New("订单分时 Token 价格快照无效")
-	}
-	return rules, nil
-}
-
-// TokenPrices 返回结算应使用的 Token 单价与命中的规则序号（0 表示基础价）。
-func (o BillingOrder) TokenPrices(inputTokens int64) (TokenPriceSet, int, error) {
-	base := TokenPriceSet{Input: o.InputTokenPriceMicrocredits, Output: o.OutputTokenPriceMicrocredits, Cached: o.CachedTokenPriceMicrocredits, CacheWrite: o.CacheWriteTokenPriceMicrocredits}
-	rules, err := o.BillingTokenPriceRules()
-	if err != nil {
-		return base, 0, err
-	}
-	if rule, ok := MatchBillingTokenPriceRule(rules, inputTokens); ok {
-		return TokenPriceSet{Input: rule.Input, Output: rule.Output, Cached: rule.Cached, CacheWrite: rule.CacheWrite}, rule.Rule, nil
-	}
-	return base, 0, nil
 }

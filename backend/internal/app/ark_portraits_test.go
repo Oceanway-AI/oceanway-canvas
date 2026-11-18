@@ -142,7 +142,7 @@ func arkPortraitTestService(t *testing.T, mutate ...func(*arkPrivateAssetSetting
 	t.Setenv("CANVAS_ALLOW_PRIVATE_UPSTREAMS", "true")
 	t.Setenv("CANVAS_PUBLIC_BASE_URL", "https://canvas.example.test")
 	s, db, _, _ := creationTestService(t)
-	if err := db.Migrator().DropTable(&model.CreditLedgerEntry{}, &model.BillingOrder{}, &model.CreditAccount{}); err != nil {
+	if err := db.Migrator().DropTable("credit_ledger_entries", "billing_orders", "credit_accounts"); err != nil {
 		t.Fatal(err)
 	}
 	fake := &fakeArkPortraitControlPlane{assetStatus: "Processing"}

@@ -114,7 +114,7 @@ func TestStudioTextExecutionRecoversOriginalWithoutResubmission(t *testing.T) {
 			}
 			f.request(t, "GET", "/api/tasks/by-command/intent-1", "platform_session=alice", "", 200)
 			f.request(t, "GET", "/api/tasks/by-command/intent-1", "platform_session=bob", "", 404)
-			if f.db.Migrator().HasTable(&model.BillingOrder{}) {
+			if f.db.Migrator().HasTable("billing_orders") {
 				t.Fatal("created local billing order")
 			}
 		})

@@ -75,7 +75,7 @@ func TestCloudAgentReferenceOnlyVideoModelIsListedAndResolved(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	catalog, err := s.cloudAgentModelList(testGroupUserID(s), intent)
+	catalog, err := s.cloudAgentModelList(creativeTestUserID(s), intent)
 	if err != nil {
 		t.Fatal(err)
 	}

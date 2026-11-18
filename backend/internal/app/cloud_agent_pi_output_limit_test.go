@@ -42,7 +42,6 @@ func piOutputLimitFixture(t *testing.T) (*Service, *gorm.DB, string) {
 			&model.ModelChannel{ID: "channel", Scope: model.ChannelScopeSystem, Enabled: true},
 			&model.ChannelModel{ID: "cm", ChannelID: "channel", ModelKey: "text-test", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: profile, BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true},
 			&model.ChannelModelPriceTier{ID: "tier", ChannelModelID: "cm", SelectorKey: "{}", SelectorJSON: "{}", BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true},
-			&model.CreditAccount{UserID: "user", AvailableMicrocredits: 10000},
 		} {
 			if err := db.Create(row).Error; err != nil {
 				t.Fatal(err)

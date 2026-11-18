@@ -388,7 +388,7 @@ func (s *Service) logMediaStage(task model.Task, stage string, started time.Time
 		message = mediaStageLabel(stage)
 
 	}
-	if logErr := s.LogAPICall(model.ApiCallLog{UserID: task.UserID, TaskID: task.ID, BillingOrderID: task.BillingOrderID, ProviderRequestID: task.ProviderRequestID, Source: "backend-task", Capability: capabilityFromTaskType(task.Type), Model: task.Model, RequestKind: stage, Method: "INTERNAL", Path: "task/media/" + stage, Status: status, ErrorCode: code, Error: message, DurationMs: time.Since(started).Milliseconds()}); logErr != nil {
+	if logErr := s.LogAPICall(model.ApiCallLog{UserID: task.UserID, TaskID: task.ID, ProviderRequestID: task.ProviderRequestID, Source: "backend-task", Capability: capabilityFromTaskType(task.Type), Model: task.Model, RequestKind: stage, Method: "INTERNAL", Path: "task/media/" + stage, Status: status, ErrorCode: code, Error: message, DurationMs: time.Since(started).Milliseconds()}); logErr != nil {
 		_ = s.log(task.UserID, task.ID, "error", "记录作品保存阶段失败", logErr.Error())
 	}
 }

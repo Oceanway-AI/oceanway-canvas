@@ -82,8 +82,6 @@ func TestEcommerceCreativeAdmissionPreservesOwnershipChargesAndSelectedStyle(t *
 	if !strings.Contains(prompt, response.Directions[1].Name) || !strings.Contains(prompt, ecommerceagent.CreativeKnowledgeVersion) || strings.Contains(prompt, "无需检索知识库") || !strings.Contains(prompt, "4–10字主题标题") || !strings.Contains(prompt, "布光") {
 		t.Fatal("selected style or sparse-brief knowledge lost at task admission")
 	}
-	var before, after int64
-	db.Model(&model.BillingOrder{}).Count(&before)
 	if _, err := svc.CreateEcommercePlanningTask("other", project.ID, creationTextRequest()); err == nil {
 		t.Fatal("cross-owner task admitted")
 	}
@@ -92,9 +90,8 @@ func TestEcommerceCreativeAdmissionPreservesOwnershipChargesAndSelectedStyle(t *
 	if _, err := svc.CreateEcommercePlanningTask("user", project.ID, bad); err == nil {
 		t.Fatal("image accepted by text-only admission")
 	}
-	db.Model(&model.BillingOrder{}).Count(&after)
-	if before != after {
-		t.Fatal("rejected requests reserved credits")
+	if db.Migrator().HasTable("billing_orders") {
+		t.Fatal("rejected requests created a retired billing table")
 	}
 	req := creationTextRequest()
 	req.Input["metadata"] = map[string]any{"source": "untrusted-client", "stage": "planning", "ecommerceProjectId": "untrusted-project"}
@@ -113,8 +110,7 @@ func TestEcommerceCreativeAdmissionPreservesOwnershipChargesAndSelectedStyle(t *
 	if stringValue(metadata["ecommerceProjectId"]) != project.ID || stringValue(metadata["source"]) != "ecommerce-agent" {
 		t.Fatal("client changed ownership snapshot")
 	}
-	db.Model(&model.BillingOrder{}).Where("task_id = ?", task.ID).Count(&after)
-	if after != 1 {
-		t.Fatalf("expected one shared order, got %d", after)
+	if db.Migrator().HasTable("billing_orders") {
+		t.Fatal("planning task created a retired billing table")
 	}
 }

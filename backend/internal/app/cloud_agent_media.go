@@ -18,15 +18,11 @@ import (
 
 // The Agent uses the same public catalog as the composer, never a second routing policy.
 func (s *Service) cloudAgentModelList(userID string, intent *ModelRequestIntent) (any, error) {
-	access, err := s.userGroupAccess(userID)
+	catalog, err := s.ModelCatalog(intent)
 	if err != nil {
 		return nil, err
 	}
-	catalog, err := s.ModelCatalog(access, intent)
-	if err != nil {
-		return nil, err
-	}
-	logicalModels, err := s.PublicLogicalModels(access, intent)
+	logicalModels, err := s.PublicLogicalModels(intent)
 	if err != nil {
 		return nil, err
 	}
@@ -207,16 +203,12 @@ func (s *Service) cloudAgentMediaModelName(a cloudAgentMediaArgs) (string, error
 	if !cloudAgentGenerationModeSupported(a.Mode) {
 		return "", BadAuthRequest("生成模式当前不受 Agent 支持")
 	}
-	// 只把模型标识翻译成展示名，不做授权；授权在任务准入和账单预留中按用户分组完成。
-	access, err := s.systemGroupAccess()
+	// Resolve the model label from the creative capability catalog.
+	catalog, err := s.ModelCatalog(nil)
 	if err != nil {
 		return "", err
 	}
-	catalog, err := s.ModelCatalog(access, nil)
-	if err != nil {
-		return "", err
-	}
-	logicalModels, err := s.PublicLogicalModels(access, nil)
+	logicalModels, err := s.PublicLogicalModels(nil)
 	if err != nil {
 		return "", err
 	}

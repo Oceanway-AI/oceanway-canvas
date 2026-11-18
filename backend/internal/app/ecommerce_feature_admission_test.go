@@ -212,7 +212,7 @@ func TestEcommerceQueuedFeatureCheckPreservesAcceptedWork(t *testing.T) {
 			s, db := newMediaRecoveryTestService(t)
 			project := &model.EcommerceProject{ID: newID(), UserID: "user", DraftJSON: "{}", PlanJSON: "{}", Revision: 1}
 			task := &model.Task{ID: newID(), UserID: "user", ProjectID: project.ID, Type: "canvas_text", Status: model.TaskStatusQueued, InputJSON: `{"mode":"text","config":{"channelId":"system","model":"test"}}`, RouteRun: 1, ProviderRequestID: tc.requestID}
-			if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+			if err := db.Migrator().DropTable("billing_orders", "credit_accounts", "credit_ledger_entries"); err != nil {
 				t.Fatal(err)
 			}
 			for _, value := range []any{project, task} {

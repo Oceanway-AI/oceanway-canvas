@@ -39,12 +39,12 @@ func capabilityMatchNeedsImage(match CapabilityMatch) bool {
 }
 
 // 目录尚未组装剧情段素材；同时接受纯文本和单张参考图入口，实际素材数量在提交时校验。
-func (s *Service) resolveDramaLogicalModel(access *userGroupAccess, id, capability string) (*RoutedModel, error) {
+func (s *Service) resolveDramaLogicalModel(id, capability string) (*RoutedModel, error) {
 	intent := *dramaModelIntent(capability)
-	routed, err := s.ResolveLogicalModel(access, id, intent)
+	routed, err := s.ResolveLogicalModel(id, intent)
 	if err != nil && capability == "video" {
 		intent.Inputs = map[string]int{"image": 1}
-		return s.ResolveLogicalModel(access, id, intent)
+		return s.ResolveLogicalModel(id, intent)
 	}
 	return routed, err
 }
@@ -81,10 +81,6 @@ func (s *Service) validateDramaVideoSettings(settings DramaSettings) error {
 // dramaModelOptions 列出某能力下的平台模型：可由服务端无人值守执行的进入 options，
 // 其余带原因进入 unavailable。候选与创作端目录同源（不带意图过滤），避免“别处能选、这里看不到”。
 func (s *Service) dramaModelOptions(userID string, capability string) ([]DramaModelOption, []DramaModelUnavailable, error) {
-	access, err := s.userGroupAccess(userID)
-	if err != nil {
-		return nil, nil, err
-	}
 	options := []DramaModelOption{}
 	unavailable := []DramaModelUnavailable{}
 	seen := map[string]bool{}
@@ -97,7 +93,7 @@ func (s *Service) dramaModelOptions(userID string, capability string) ([]DramaMo
 		if !available {
 			reason = "模型暂不可用或未配置有效价格"
 		} else {
-			reason = s.dramaChoiceIssue(access, choice, capability)
+			reason = s.dramaChoiceIssue(choice, capability)
 		}
 		if reason != "" {
 			unavailable = append(unavailable, DramaModelUnavailable{Choice: choice, Reason: reason})
@@ -110,7 +106,7 @@ func (s *Service) dramaModelOptions(userID string, capability string) ([]DramaMo
 		return nil, nil, err
 	}
 	if frontendEnabled {
-		models, err := s.PublicLogicalModels(access, nil)
+		models, err := s.PublicLogicalModels(nil)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -121,7 +117,7 @@ func (s *Service) dramaModelOptions(userID string, capability string) ([]DramaMo
 			add(DramaModelChoice{LogicalModelID: item.ID, Label: item.Name, PriceLabel: item.PriceLabel}, "l:"+item.ID, item.Name, item.PriceLabel, item.Available)
 		}
 	}
-	catalog, err := s.ModelCatalog(access, nil)
+	catalog, err := s.ModelCatalog(nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -138,10 +134,10 @@ func (s *Service) dramaModelOptions(userID string, capability string) ([]DramaMo
 }
 
 // dramaChoiceIssue 返回模型不能用于短剧的原因；空串表示可用。
-func (s *Service) dramaChoiceIssue(access *userGroupAccess, choice DramaModelChoice, capability string) string {
+func (s *Service) dramaChoiceIssue(choice DramaModelChoice, capability string) string {
 	intent := dramaModelIntent(capability)
 	if choice.LogicalModelID != "" {
-		if _, err := s.resolveDramaLogicalModel(access, choice.LogicalModelID, capability); err != nil {
+		if _, err := s.resolveDramaLogicalModel(choice.LogicalModelID, capability); err != nil {
 			return dramaIntentIssue(capability, err.Error())
 		}
 	} else {
@@ -420,7 +416,7 @@ func (s *Service) dramaVideoProfile(choice DramaModelChoice) (dramaVideoProfile,
 	var capability *ModelCapabilityConfig
 	if choice.LogicalModelID != "" {
 		// 只读取能力画像；用户授权在任务准入时按分组校验。
-		routed, err := s.resolveDramaLogicalModel(nil, choice.LogicalModelID, "video")
+		routed, err := s.resolveDramaLogicalModel(choice.LogicalModelID, "video")
 		if err != nil {
 			return dramaVideoProfile{}, err
 		}

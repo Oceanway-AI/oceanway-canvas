@@ -96,7 +96,6 @@ type Service struct {
 	approvalFollowUpWg       sync.WaitGroup
 	approvalFollowUps        map[string]struct{} // 正在执行批准后收尾的审批（runID:approvalID），见 cloud_agent_approval_followup.go
 	approvalFollowUpClosed   bool
-	userGroups               userGroupState
 	modelAvailabilityMu      sync.RWMutex
 	modelAvailabilityCache   map[publicModelAvailabilityKey]*PublicModelAvailability
 	modelAvailabilityAt      time.Time

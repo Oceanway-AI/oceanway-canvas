@@ -2,6 +2,8 @@ package app
 
 import "yingce/backend/internal/model"
 
+const CreditScale int64 = 1_000_000
+
 const maxChannelModelTokenPriceMicrocredits = int64(1_000_000) * CreditScale
 
 func validateTokenPrices(capability string, inputPrice, outputPrice, cachedPrice, cacheWritePrice int64) error {

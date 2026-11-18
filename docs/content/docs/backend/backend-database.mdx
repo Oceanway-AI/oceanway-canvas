@@ -13,7 +13,9 @@ description: Studio PostgreSQL 业务表、Platform 主体与清理边界
 
 v99 移除 `resources` 和 `resource_deletion_jobs` 的 `endpoint`、`bucket`、`storage_setting_id` 六列。迁移前检查独立存储 provider 和非空旧位置，发现历史对象时停止并保留整个原事务。Platform 素材继续使用固定 Resource／Binding ID，系统本地清理任务继续使用 ObjectKey。迁移失败可修复原因后重入。旧 v98 制品无法使用 v99 数据库，回退到 v98 需恢复配套备份；在线回退须选择支持 v99 的制品。
 
-v100 移除 `ecommerce_agent_runs` 的 `billing_order_id`、`unit_microcredits`，`drama_productions` 的 `budget_microcredits`、`spent_microcredits` 及 `drama_jobs` 的 `cost_microcredits`。电商创作保留页结果、取消状态、画布版本和用户幂等键，短剧保留任务绑定、状态和历次执行记录，费用交由 Platform。旧结构制品不能直接连接 v100 数据库，回退需采用支持 v100 的制品或恢复对应备份。
+v100 移除 `ecommerce_agent_runs` 的 `billing_order_id`、`unit_microcredits`，`drama_productions` 的 `budget_microcredits`、`spent_microcredits`，`drama_jobs` 的 `cost_microcredits`，`tasks` 的 `billing_order_id`、`authorized_charge_microcredits` 及 `api_call_logs` 的 `billing_order_id`。电商创作保留页结果、取消状态、画布版本和用户幂等键，短剧保留任务绑定、状态和历次执行记录，费用交由 Platform。旧结构制品不能直接连接 v100 数据库，回退需采用支持 v100 的制品或恢复对应备份。
+
+任务和调用日志已退出本地账单关联。`BillingOrder`、`CreditAccount`、`CreditLedgerEntry`、`UserGroup` 和 `UserGroupChannel` 的源码实体及测试迁移已删除，`User` 请求投影退出 `userGroup`。任务准入继续使用活动任务上限，换线路通过任务状态和原线路 ID 的条件更新维护一致性。Creation 审批重新核对模型、渠道、线路及功能配置，签名不读取旧积分策略与价格表。
 
 方舟认证会话和素材组的保留创作模型已移除 `billing_order_id`，认证、审核与入库源码沿原流程维护。`ark_portrait_*` 属于 Studio 退出表，不在 v98—v100 正式库中创建，也不额外迁移这些旧表。Platform 模式下方舟建组入口返回暂不可用，接入平台授权后另行验收。
 

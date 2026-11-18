@@ -468,7 +468,7 @@ func TestSystemTextThinkingSurvivesAdmissionAndProviderResolution(t *testing.T) 
 	if err := db.Model(&channel).Update("base_url", "https://8.8.8.8/v1").Error; err != nil {
 		t.Fatal(err)
 	}
-	input, err := svc.resolveSystemChannelModelSelection(testGroupAccess(svc), map[string]any{
+	input, err := svc.resolveSystemChannelModelSelection(map[string]any{
 		"mode": "text", "prompt": "test", "textOptions": map[string]any{"thinkingLevel": "max"},
 		"config": map[string]any{"channelId": channel.ID, "model": channelModel.ModelKey,
 			"capabilityConfig": &ModelCapabilityConfig{Text: &TextCapabilityConfig{Thinking: legacyTextThinkingConfig(protocolcontract.TextWireChatCompletion)}},

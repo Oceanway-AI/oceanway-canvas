@@ -29,7 +29,7 @@ func TestModelCatalogAlwaysSerializesCollectionsAsArrays(t *testing.T) {
 				}
 			}
 
-			catalog, err := svc.ModelCatalog(testGroupAccess(svc), nil)
+			catalog, err := svc.ModelCatalog(nil)
 			if err != nil {
 				t.Fatal(err)
 			}

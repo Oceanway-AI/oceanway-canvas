@@ -753,9 +753,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 	if assets != 0 {
 		t.Fatal("Pi created a duplicate local material")
 	}
-	var bills int64
-	db.Model(&model.BillingOrder{}).Count(&bills)
-	if bills != 0 {
+	if db.Migrator().HasTable("billing_orders") {
 		t.Fatal("created a local bill")
 	}
 }

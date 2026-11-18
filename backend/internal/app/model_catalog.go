@@ -114,12 +114,11 @@ type PublicChannelModelPriceTier struct {
 }
 
 // ModelCatalog 的创作端目录始终来自系统渠道模型，不反查逻辑模型或路由。
-// 系统渠道目录只负责安全发布可解释的读模型；任务创建仍会用持久化能力与价格档再次强校验。
-// access 决定可见渠道和展示价格；价格档单价已按用户分组换算为实际扣费的微积分。
-func (s *Service) ModelCatalog(access *userGroupAccess, intent *ModelRequestIntent) (*ModelCatalogResponse, error) {
+// 这里保留创作能力读模型。正式 Studio 目录、授权和报价由 StudioModelCatalog 接入 Platform。
+func (s *Service) ModelCatalog(intent *ModelRequestIntent) (*ModelCatalogResponse, error) {
 	// 两个集合都初始化成非 nil 空切片：空目录要发 []，不能因为“没有模型”而丢掉字段。
 	response := &ModelCatalogResponse{Models: []PublicLogicalModel{}, Channels: []PublicChannelCatalog{}}
-	channels, err := s.publicSystemChannelCatalog(access, intent)
+	channels, err := s.publicSystemChannelCatalog(intent)
 	if err != nil {
 		return nil, err
 	}
@@ -137,14 +136,7 @@ func (s *Service) ModelCatalog(access *userGroupAccess, intent *ModelRequestInte
 
 // publicSystemChannelCatalog 组装普通用户可见的系统渠道读模型，不暴露密钥、Base URL 等执行凭证。
 // 这是读展示路径：单个损坏模型被隔离并记录诊断；仓储查询失败仍整体返回错误，避免伪装成空目录。
-func (s *Service) publicSystemChannelCatalog(access *userGroupAccess, intent *ModelRequestIntent) ([]PublicChannelCatalog, error) {
-	if access == nil {
-		return nil, Unauthorized("请先登录")
-	}
-	policy, err := s.creditPolicy()
-	if err != nil {
-		return nil, err
-	}
+func (s *Service) publicSystemChannelCatalog(intent *ModelRequestIntent) ([]PublicChannelCatalog, error) {
 	channels, err := s.repo.SystemChannels(true)
 	if err != nil {
 		return nil, err
@@ -152,7 +144,7 @@ func (s *Service) publicSystemChannelCatalog(access *userGroupAccess, intent *Mo
 
 	result := make([]PublicChannelCatalog, 0, len(channels))
 	for _, channel := range channels {
-		if !channel.Enabled || !access.allowsChannel(channel.ID) {
+		if !channel.Enabled {
 			continue
 		}
 
@@ -183,9 +175,6 @@ func (s *Service) publicSystemChannelCatalog(access *userGroupAccess, intent *Mo
 			}
 
 			publicModel, sanitizeErr := s.sanitizeChannelModel(&cm)
-			if sanitizeErr == nil {
-				sanitizeErr = s.applyGroupCatalogPricing(policy, access, &cm, &publicModel)
-			}
 			if sanitizeErr != nil {
 				if logging.Every("catalog-omit:"+cm.ID, 10*time.Minute) {
 					slog.Warn("system channel model omitted from catalog", "id", cm.ID, "error", sanitizeErr)
@@ -221,42 +210,6 @@ func (s *Service) sanitizeChannelModel(cm *model.ChannelModel) (PublicChannelMod
 	if err != nil {
 		return PublicChannelModel{}, err
 	}
-	// 仓储层已预加载价格档；这里只发布当前启用且价格字段自洽的活动档位。
-	priceTiers := cm.PriceTiers
-
-	referenceVideoBilling := cm.Capability == "video" && cm.ReferenceVideoBilling
-	publicTiers := make([]PublicChannelModelPriceTier, 0, len(priceTiers))
-	for _, tier := range priceTiers {
-		if !tier.Enabled || !tier.PriceConfigured || !ValidatePriceTierPrice(&tier, cm.Capability, cm.Protocol) {
-			continue
-		}
-		if normalized != nil && normalized.Image != nil && normalized.Image.Parameters != nil {
-			if validateImageParameterPriceSelector(normalized.Image.Parameters, model.DecodeSKUSelector(tier.SelectorJSON)) != nil {
-				continue
-			}
-		}
-		publicTiers = append(publicTiers, PublicChannelModelPriceTier{
-			ID:                               tier.ID,
-			Selector:                         model.DecodeSKUSelector(tier.SelectorJSON),
-			Resolution:                       tier.Resolution,
-			VideoSeconds:                     tier.VideoSeconds,
-			BillingMode:                      tier.BillingMode,
-			UnitPriceMicrocredits:            tier.UnitPriceMicrocredits,
-			InputTokenPriceMicrocredits:      tier.InputTokenPriceMicrocredits,
-			OutputTokenPriceMicrocredits:     tier.OutputTokenPriceMicrocredits,
-			CachedTokenPriceMicrocredits:     tier.CachedTokenPriceMicrocredits,
-			CacheWriteTokenPriceMicrocredits: tier.CacheWriteTokenPriceMicrocredits,
-			TokenPriceRules:                  publicTokenPriceRules(cm.Capability, tier),
-		})
-		if referenceVideoBilling {
-			publicTiers[len(publicTiers)-1].ReferenceVideoUnitPriceMicrocredits = tier.ReferenceVideoUnitPriceMicrocredits
-			publicTiers[len(publicTiers)-1].ReferenceVideoOutputTokenPriceMicrocredits = tier.ReferenceVideoOutputTokenPriceMicrocredits
-		}
-	}
-
-	// 展示价格和 Available 必须从同一批有效档位派生，不能回退旧标量价格制造“可用”假象。
-	pricingMode, displayPrice, priceLabel := computeChannelModelPriceDisplay(cm, publicTiers)
-
 	var capabilityConfig map[string]any
 	if normalized != nil {
 		capabilityConfig, err = modelCapabilityConfigToMap(normalized)
@@ -290,90 +243,11 @@ func (s *Service) sanitizeChannelModel(cm *model.ChannelModel) (PublicChannelMod
 		TextWire:         s.textModelWire(cm.Capability, cm.Protocol),
 		CapabilityConfig: capabilityConfig,
 		DefaultOptions:   defaultOptions,
-		PriceTiers:       publicTiers,
-		PricingMode:      pricingMode,
-		DisplayPrice:     displayPrice,
-		PriceLabel:       priceLabel,
-		Available:        len(publicTiers) > 0,
-
-		ReferenceVideoBilling: referenceVideoBilling,
+		PriceTiers:       []PublicChannelModelPriceTier{},
+		PricingMode:      "platform",
+		PriceLabel:       "以平台报价为准",
+		Available:        cm.Enabled,
 	}, nil
-}
-
-// applyGroupCatalogPricing 把公开价格档换算为当前分组实际扣费的微积分单价（含全局积分策略倍率），
-// 与 newBillingOrderWithPriceTier 使用同一换算函数。分组缺少该货币兑换比例时整模型不发布。
-func (s *Service) applyGroupCatalogPricing(policy CreditPolicy, access *userGroupAccess, cm *model.ChannelModel, publicModel *PublicChannelModel) error {
-	for index := range publicModel.PriceTiers {
-		tier := &publicModel.PriceTiers[index]
-		pricing, prices, err := groupTierPricesWithPolicy(policy, access, cm, &model.ChannelModelPriceTier{
-			UnitPriceMicrocredits: tier.UnitPriceMicrocredits, InputTokenPriceMicrocredits: tier.InputTokenPriceMicrocredits,
-			OutputTokenPriceMicrocredits: tier.OutputTokenPriceMicrocredits, CachedTokenPriceMicrocredits: tier.CachedTokenPriceMicrocredits,
-			CacheWriteTokenPriceMicrocredits: tier.CacheWriteTokenPriceMicrocredits,
-		}, cm.ModelKey)
-		if err != nil {
-			return err
-		}
-		// 带参考视频价格复用同一换算：按秒价换算 Unit，Token 价换算 Output。
-		_, referencePrices, err := groupTierPricesWithPolicy(policy, access, cm, &model.ChannelModelPriceTier{
-			UnitPriceMicrocredits: tier.ReferenceVideoUnitPriceMicrocredits, OutputTokenPriceMicrocredits: tier.ReferenceVideoOutputTokenPriceMicrocredits,
-		}, cm.ModelKey)
-		if err != nil {
-			return err
-		}
-		tier.ReferenceVideoUnitPriceMicrocredits = effectiveCatalogPrice(referencePrices.Unit, pricing.MultiplierBPS)
-		tier.ReferenceVideoOutputTokenPriceMicrocredits = effectiveCatalogPrice(referencePrices.Output, pricing.MultiplierBPS)
-		tier.UnitPriceMicrocredits = effectiveCatalogPrice(prices.Unit, pricing.MultiplierBPS)
-		tier.InputTokenPriceMicrocredits = effectiveCatalogPrice(prices.Input, pricing.MultiplierBPS)
-		tier.OutputTokenPriceMicrocredits = effectiveCatalogPrice(prices.Output, pricing.MultiplierBPS)
-		tier.CachedTokenPriceMicrocredits = effectiveCatalogPrice(prices.Cached, pricing.MultiplierBPS)
-		tier.CacheWriteTokenPriceMicrocredits = effectiveCatalogPrice(prices.CacheWrite, pricing.MultiplierBPS)
-		for ruleIndex := range tier.TokenPriceRules {
-			rule := &tier.TokenPriceRules[ruleIndex]
-			_, rulePrices, ruleErr := groupTierPricesWithPolicy(policy, access, cm, &model.ChannelModelPriceTier{
-				InputTokenPriceMicrocredits: rule.InputTokenPriceMicrocredits, OutputTokenPriceMicrocredits: rule.OutputTokenPriceMicrocredits,
-				CachedTokenPriceMicrocredits: rule.CachedTokenPriceMicrocredits, CacheWriteTokenPriceMicrocredits: rule.CacheWriteTokenPriceMicrocredits,
-			}, cm.ModelKey)
-			if ruleErr != nil {
-				return ruleErr
-			}
-			rule.InputTokenPriceMicrocredits = effectiveCatalogPrice(rulePrices.Input, pricing.MultiplierBPS)
-			rule.OutputTokenPriceMicrocredits = effectiveCatalogPrice(rulePrices.Output, pricing.MultiplierBPS)
-			rule.CachedTokenPriceMicrocredits = effectiveCatalogPrice(rulePrices.Cached, pricing.MultiplierBPS)
-			rule.CacheWriteTokenPriceMicrocredits = effectiveCatalogPrice(rulePrices.CacheWrite, pricing.MultiplierBPS)
-		}
-	}
-	publicModel.PricingMode, publicModel.DisplayPrice, publicModel.PriceLabel = computeChannelModelPriceDisplay(cm, publicModel.PriceTiers)
-	return nil
-}
-
-// publicTokenPriceRules 只发布会参与计费的规则副本，避免后续换算改写仓储快照。
-func publicTokenPriceRules(capability string, tier model.ChannelModelPriceTier) []model.TokenPriceRule {
-	if capability != "text" || tier.BillingMode != "token" || !tier.TokenPriceRulesEnabled {
-		return nil
-	}
-	rules := make([]model.TokenPriceRule, 0, len(tier.TokenPriceRules))
-	for _, rule := range tier.TokenPriceRules {
-		if rule.Enabled {
-			rule.Weekdays = append([]int(nil), rule.Weekdays...)
-			rules = append(rules, rule)
-		}
-	}
-	if len(rules) == 0 {
-		return nil
-	}
-	return rules
-}
-
-// effectiveCatalogPrice 是展示用单价：价格 × 倍率并向上取整。实际扣费在数量相乘后再取整，误差不超过 1 微积分。
-func effectiveCatalogPrice(price int64, multiplierBPS int64) int64 {
-	if price <= 0 {
-		return price
-	}
-	amount, err := creditAmount(price, 1, multiplierBPS)
-	if err != nil {
-		return price
-	}
-	return amount
 }
 
 // computeChannelModelPriceDisplay 从已过滤的公开价格档生成展示信息。

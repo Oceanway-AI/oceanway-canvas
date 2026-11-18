@@ -20,7 +20,7 @@ func TestCloudAgentTaskDiagnosticProjectsDurableExecutionFacts(t *testing.T) {
 	task := &model.Task{
 		ID: "task-facts", UserID: "101", Provider: "platform", ResultJSON: `{"fundsState":"released"}`, ProjectID: "canvas", Type: "canvas_video", Status: model.TaskStatusFailed,
 		Operation: "cloud_agent_generate_media", AgentRunID: "run-1", GenerationID: "generation-1", ApprovalID: "approval-1",
-		BillingOrderID: "order-facts", AuthorizedChargeMicrocredits: 700, CancellationSource: model.TaskCancellationUserRequest,
+		CancellationSource:      model.TaskCancellationUserRequest,
 		CancellationRequestedAt: &now, InputJSON: `{"metadata":{"source":"cloud_agent","nodeId":"video-node"}}`,
 		ExecutionDiagnosticJSON: string(rawDiagnostic), CreatedAt: now,
 	}
@@ -60,7 +60,7 @@ func TestRecordTaskDiagnosticDoesNotClaimUnsubmittedRequest(t *testing.T) {
 
 func TestCloudAgentTaskDiagnosticDoesNotReadLocalBilling(t *testing.T) {
 	// A repository without a connection exposes any accidental local ledger read.
-	task := &model.Task{ID: "task", UserID: "101", Status: model.TaskStatusQueued, BillingOrderID: "old-order", AuthorizedChargeMicrocredits: 9}
+	task := &model.Task{ID: "task", UserID: "101", Status: model.TaskStatusQueued}
 	facts := cloudAgentTaskDiagnostic(&repository.Repository{}, task)
 	if facts["billing"] != nil || facts["platformBilling"] != nil {
 		t.Fatalf("local billing state exposed: %#v", facts)

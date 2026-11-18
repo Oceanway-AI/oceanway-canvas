@@ -13,10 +13,12 @@
 | 范围 | 命令与结果 |
 | --- | --- |
 | PostgreSQL 创作与 Agent | `go test ./internal/app -run 'Test(Creation\|AgentMedia\|CloudAgent.*(Media\|Preflight\|ImageSize\|Budget\|ApprovalSettings\|Idempotency\|Conversation\|Exclusivity)\|DramaTask)' -count=1`，通过，59.545 秒 |
-| Platform 原生审批与恢复 | app／handler 定向 `go test -race`，通过，5.954／19.187 秒。覆盖 Platform 资金权威、Pi 媒体报价、原文本请求恢复与未知提交恢复 |
+| Platform 资金权威与恢复 | app／handler 定向 `go test -race`，通过，5.954／19.187 秒。覆盖 Platform 资金权威、原文本请求恢复与未知提交恢复。该次表达式未选中名称带后缀的 Pi 审批用例，Pi 结果以接续记录为准 |
 | 最终内部准备标记 | 四项并发创作、Agent 来源、自动审批与媒体批次专项，通过，7.132 秒 |
 | 前端 | 创作恢复、工具审批、分镜提交和重新生成四个测试文件，30 项、126 断言通过；`bun run typecheck` 通过 |
 
 共享测试夹具删除本地账务表后，首轮暴露三处旧测试直接查询 `billing_orders`。已改为检查真实任务、审批、画布状态和幂等结果，重跑通过。旧 Token 账单授权测试随已退出功能删除，Platform 报价冻结与资金权威专项继续执行。
 
 本批为本机源码验证。自有 Release、真实平台全矩阵和生产升级仍需按最终提交接续，WP 保持 doing。
+
+接续核对已修正 Pi 测试表达式为 `StudioPi.*Approval.*`。三项 Pi 顶层测试和相关子例在后续源码上通过 race，详见 `finance-and-group-retirement.md`。

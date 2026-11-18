@@ -12,8 +12,6 @@ type ChannelInterfaceType string
 type ApiCallStatus string
 type ResourceStatus string
 type ResourceDeletionStatus string
-type BillingStatus string
-type CreditLedgerType string
 type AnnouncementStatus string
 type AnnouncementLevel string
 type ProjectStatus string
@@ -97,26 +95,9 @@ const (
 	ResourceDeletionStatusPending    ResourceDeletionStatus = "pending"
 	ResourceDeletionStatusProcessing ResourceDeletionStatus = "processing"
 
-	BillingStatusReserved  BillingStatus = "reserved"
-	BillingStatusRunning   BillingStatus = "running"
-	BillingStatusSettled   BillingStatus = "settled"
-	BillingStatusRefunded  BillingStatus = "refunded"
-	BillingStatusUncertain BillingStatus = "uncertain"
-
 	ProviderCancelStatusRequested ProviderCancelStatus = "requested"
 	ProviderCancelStatusConfirmed ProviderCancelStatus = "confirmed"
 	ProviderCancelStatusUncertain ProviderCancelStatus = "uncertain"
-
-	CreditLedgerRedeem       CreditLedgerType = "redeem"
-	CreditLedgerAdminGrant   CreditLedgerType = "admin_grant"
-	CreditLedgerReserve      CreditLedgerType = "reserve"
-	CreditLedgerConsume      CreditLedgerType = "consume"
-	CreditLedgerRefund       CreditLedgerType = "refund"
-	CreditLedgerAdminAdjust  CreditLedgerType = "admin_adjustment"
-	CreditLedgerSignupBonus  CreditLedgerType = "signup_bonus"
-	CreditLedgerCheckinBonus CreditLedgerType = "checkin_bonus"
-	CreditLedgerPaymentTopup CreditLedgerType = "payment_topup"
-	CreditLedgerReferral     CreditLedgerType = "referral_commission"
 
 	AnnouncementStatusActive AnnouncementStatus = "active"
 	AnnouncementStatusClosed AnnouncementStatus = "closed"

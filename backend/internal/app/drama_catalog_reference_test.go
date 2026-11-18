@@ -16,7 +16,7 @@ func TestDramaCatalogAcceptsRequiredReference(t *testing.T) {
 	video.Operations = []string{"reference_to_video", "image_to_video"}
 	video.DefaultOperation = "reference_to_video"
 	setDramaVideoCapability(t, svc, fake, video)
-	if issue := svc.dramaChoiceIssue(nil, fakeDramaModels.Video, "video"); issue != "" {
+	if issue := svc.dramaChoiceIssue(fakeDramaModels.Video, "video"); issue != "" {
 		t.Fatalf("reference model excluded from catalog: %s", issue)
 	}
 	profile, err := svc.dramaVideoProfile(fakeDramaModels.Video)

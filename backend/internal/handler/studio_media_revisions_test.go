@@ -76,7 +76,7 @@ func TestStudioMediaRevisionsMissingOrChangedRejectBeforeAuthorization(t *testin
 				quote = eventual
 			}
 			f.request(t, "POST", path, "platform_session=alice", request, want)
-			if f.db.Migrator().HasTable(&model.BillingOrder{}) {
+			if f.db.Migrator().HasTable("billing_orders") {
 				t.Fatal("Studio created local billing")
 			}
 			for _, table := range []any{&model.Task{}, &model.StudioExecution{}} {

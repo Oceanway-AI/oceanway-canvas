@@ -134,13 +134,9 @@ func (s *Service) ecommerceVisionText(userID string, cfg ecommerceProviderConfig
 
 func (s *Service) ecommerceConfiguredTextFor(userID string, cfg ecommerceProviderConfig, ref EcommerceAgentModelRef, stage string) (ecommerceProviderConfig, error) {
 	channelID, modelKey := ref.ChannelID, ref.ModelKey
-	access, err := s.userGroupAccess(userID)
-	if err != nil {
-		return cfg, err
-	}
 	if ref.ChannelModelID != "" {
 		selected, lookupErr := s.repo.ChannelModel(ref.ChannelModelID)
-		if lookupErr != nil || !selected.Enabled || selected.DeletedAt.Valid || !selected.PriceConfigured || selected.Capability != "text" || selected.ChannelID != channelID || selected.ModelKey != modelKey {
+		if lookupErr != nil || !selected.Enabled || selected.DeletedAt.Valid || selected.Capability != "text" || selected.ChannelID != channelID || selected.ModelKey != modelKey {
 			return cfg, ecommerceErr("UNAVAILABLE", "已配置的电商 Agent "+stage+"模型已停用或变更，请管理员重新选择")
 		}
 		channels, channelErr := s.repo.SystemChannelsByIDs([]string{selected.ChannelID}, false)
@@ -157,7 +153,7 @@ func (s *Service) ecommerceConfiguredTextFor(userID string, cfg ecommerceProvide
 		}
 	}
 	if ref.LogicalModelID != "" {
-		routed, routeErr := s.ResolveLogicalModel(access, ref.LogicalModelID, ModelRequestIntent{Capability: "text", Inputs: map[string]int{"image": 1}})
+		routed, routeErr := s.ResolveLogicalModel(ref.LogicalModelID, ModelRequestIntent{Capability: "text", Inputs: map[string]int{"image": 1}})
 		if routeErr != nil {
 			return cfg, ecommerceErr("UNAVAILABLE", "电商 Agent "+stage+"模型没有可用的图片理解线路")
 		}
@@ -165,9 +161,6 @@ func (s *Service) ecommerceConfiguredTextFor(userID string, cfg ecommerceProvide
 	}
 	if channelID == "" || modelKey == "" {
 		return cfg, ecommerceErr("UNAVAILABLE", "请先在后台选择电商 Agent "+stage+"模型")
-	}
-	if err := access.requireChannel(channelID); err != nil {
-		return cfg, err
 	}
 	resolved, err := s.resolveProviderConfig(providerConfig{ChannelID: channelID, ChannelModelKey: modelKey, Model: modelKey})
 	if err != nil {

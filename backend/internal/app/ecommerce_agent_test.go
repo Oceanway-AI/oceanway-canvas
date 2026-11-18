@@ -29,7 +29,7 @@ func mockEcommerceAgentService(t *testing.T) (*Service, *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = db.AutoMigrate(&model.SystemSetting{}, &model.ModelChannel{}, &model.ChannelModel{}, &model.Resource{}, &model.EcommerceProject{}, &model.EcommerceAgentAnalysis{}, &model.EcommerceAgentRun{}, &model.EcommerceAgentPage{}, &model.EcommerceAgentCanvasVersion{}, &model.User{}, &model.UserGroup{}, &model.UserGroupChannel{}, &model.EcommerceKnowledgeSource{}, &model.EcommerceKnowledgeEntry{}); err != nil {
+	if err = db.AutoMigrate(&model.SystemSetting{}, &model.ModelChannel{}, &model.ChannelModel{}, &model.Resource{}, &model.EcommerceProject{}, &model.EcommerceAgentAnalysis{}, &model.EcommerceAgentRun{}, &model.EcommerceAgentPage{}, &model.EcommerceAgentCanvasVersion{}, &model.User{}, &model.EcommerceKnowledgeSource{}, &model.EcommerceKnowledgeEntry{}); err != nil {
 		t.Fatal(err)
 	}
 	if err = db.Create(&model.User{ID: "owner", Username: "owner"}).Error; err != nil {

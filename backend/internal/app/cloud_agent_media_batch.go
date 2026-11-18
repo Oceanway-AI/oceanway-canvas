@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
-	"strconv"
 	"strings"
 	"time"
 
@@ -338,12 +336,6 @@ func cloudAgentMediaBatchResourceIDs(input map[string]any) []string {
 		}
 	}
 	return ids
-}
-
-func cloudAgentCreditsLabel(micro int64) string {
-	value := float64(micro) / float64(CreditScale)
-	text := strconv.FormatFloat(math.Round(value*100)/100, 'f', -1, 64)
-	return text + " 积分"
 }
 
 // cloudAgentMediaBatchItemAdmissionError 只把"去掉这一条就能继续"的问题交回模型修正；

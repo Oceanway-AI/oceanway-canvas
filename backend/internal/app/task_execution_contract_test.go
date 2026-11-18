@@ -11,7 +11,7 @@ import (
 func TestAgentMediaAdmissionPersistsOriginWithoutLocalFinance(t *testing.T) {
 	s, db, args := agentMediaFixture(t)
 	run, state := agentMediaRun(t, s, args, "auto")
-	if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+	if err := db.Migrator().DropTable("billing_orders", "credit_accounts", "credit_ledger_entries"); err != nil {
 		t.Fatal(err)
 	}
 	req, _, err := s.prepareCloudAgentMedia(run, &state, agentMediaCall(args))
@@ -51,7 +51,7 @@ func TestAgentMediaRetryRequiresNewGenerationAuthorization(t *testing.T) {
 			t.Fatalf("media retry retained old authorization: %v", err)
 		}
 		stored, err := s.repo.Task(task.ID)
-		if err != nil || stored.Status != model.TaskStatusFailed || stored.BillingOrderID != "" {
+		if err != nil || stored.Status != model.TaskStatusFailed {
 			t.Fatalf("retry changed old execution: %+v %v", stored, err)
 		}
 	}
@@ -59,7 +59,7 @@ func TestAgentMediaRetryRequiresNewGenerationAuthorization(t *testing.T) {
 
 func TestOrdinaryFailedAndCancelledTasksKeepRetryIdentity(t *testing.T) {
 	s, db, _ := agentMediaFixture(t)
-	if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+	if err := db.Migrator().DropTable("billing_orders", "credit_accounts", "credit_ledger_entries"); err != nil {
 		t.Fatal(err)
 	}
 	for _, status := range []model.TaskStatus{model.TaskStatusFailed, model.TaskStatusCancelled} {

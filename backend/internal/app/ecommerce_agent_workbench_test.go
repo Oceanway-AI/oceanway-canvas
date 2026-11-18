@@ -134,11 +134,13 @@ func TestEcommerceWorkbenchDirectionsTaskSnapshotReceiptAndOwner(t *testing.T) {
 	if err != nil || selection.PlanningContext["imageCount"] != float64(10) {
 		t.Fatalf("invalid stored selection: %+v %v", selection, err)
 	}
-	var orders, runs int64
-	db.Model(&model.BillingOrder{}).Where("task_id = ?", task.ID).Count(&orders)
+	var runs int64
+	if db.Migrator().HasTable("billing_orders") {
+		t.Fatal("ecommerce recreated retired billing table")
+	}
 	db.Model(&model.EcommerceAgentRun{}).Count(&runs)
-	if calls != 1 || orders != 1 || runs != 0 {
-		t.Fatalf("duplicate work: %d %d %d", calls, orders, runs)
+	if calls != 1 || runs != 0 {
+		t.Fatalf("duplicate work: calls=%d runs=%d", calls, runs)
 	}
 	input := canvasGenerationInput{Metadata: map[string]any{"stage": "creative-directions", "ecommerceAgentAdapter": "workbench-v1", "ecommerceProjectId": project.ID, "ecommerceDraft": draft}}
 	if err := svc.validateEcommerceWorkbenchResult("user", input, map[string]any{"text": `{}`}); err == nil {
@@ -386,11 +388,13 @@ func TestEcommerceWorkbenchPlanningUsesSharedTaskAndSingleOrder(t *testing.T) {
 	if len(got.Images) != 1 || !strings.Contains(got.Images[0].Prompt, ecommerceProductAnchor) || got.Images[0].Copy != "看见设计" {
 		t.Fatalf("invalid legacy plan: %+v", got)
 	}
-	var orders, runs int64
-	db.Model(&model.BillingOrder{}).Where("task_id = ?", task.ID).Count(&orders)
+	var runs int64
+	if db.Migrator().HasTable("billing_orders") {
+		t.Fatal("ecommerce recreated retired billing table")
+	}
 	db.Model(&model.EcommerceAgentRun{}).Count(&runs)
-	if calls != 1 || orders != 1 || runs != 0 {
-		t.Fatalf("nested generation/billing: calls=%d orders=%d runs=%d", calls, orders, runs)
+	if calls != 1 || runs != 0 {
+		t.Fatalf("nested generation: calls=%d runs=%d", calls, runs)
 	}
 	metadata := map[string]any{"source": "ecommerce-agent", "stage": "planning", "ecommerceProjectId": project.ID}
 	if _, err := svc.prepareEcommerceWorkbenchTask("other", map[string]any{"mode": "text", "metadata": metadata}, "prompt"); err == nil {

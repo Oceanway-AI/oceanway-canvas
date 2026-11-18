@@ -15,7 +15,7 @@ func TestStudioTaskFundsReadsOriginalPlatformReceipt(t *testing.T) {
 		{"no-amount", `{"fundsState":"settled"}`, "settled", ""},
 		{"unknown", `{}`, "unknown", ""},
 	} {
-		task := model.Task{ID: tc.id, UserID: "101", Provider: "platform", Type: "canvas_image", Status: model.TaskStatusSucceeded, ResultJSON: tc.result, BillingOrderID: "retired-order"}
+		task := model.Task{ID: tc.id, UserID: "101", Provider: "platform", Type: "canvas_image", Status: model.TaskStatusSucceeded, ResultJSON: tc.result}
 		if err := f.db.Create(&task).Error; err != nil {
 			t.Fatal(err)
 		}
@@ -25,7 +25,7 @@ func TestStudioTaskFundsReadsOriginalPlatformReceipt(t *testing.T) {
 			t.Fatal(err)
 		}
 		funds := body.Data.PlatformBilling
-		if funds == nil || funds.FundsState != tc.state || funds.SettledPoints != tc.points || funds.StateAvailable != (tc.state != "unknown") || body.Data.BillingOrderID != "" {
+		if funds == nil || funds.FundsState != tc.state || funds.SettledPoints != tc.points || funds.StateAvailable != (tc.state != "unknown") {
 			t.Fatalf("task funds = %s", w.Body.String())
 		}
 		f.request(t, "GET", "/api/tasks/"+tc.id, "platform_session=bob", "", 404)

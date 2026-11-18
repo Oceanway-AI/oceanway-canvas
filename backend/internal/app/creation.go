@@ -439,7 +439,7 @@ func (s *Service) prepareCreationTask(userID string, req CreateTaskRequest) (*mo
 			return nil, "", err
 		}
 	}
-	sig, err := s.repo.CreationPriceSignature(task, stringValue(resolved["channelId"]), stringValue(resolved["model"]))
+	sig, err := s.repo.CreationConfigurationSignature(task, stringValue(resolved["channelId"]), stringValue(resolved["model"]))
 	return task, sig, err
 }
 func creationQuoteFor(task *model.Task, signature string, expires time.Time) CreationQuote {
@@ -774,7 +774,7 @@ func (s *Service) ApproveCreationSubmissions(userID, id string, req CreationRequ
 			if item.ProposalVersion > 0 && item.ProposalHash != run.ApprovedProposalHash {
 				return repository.ErrCreationConflict
 			}
-			if e = checkCreationPriceSignature(repo, prepared[sid], signatures[sid]); e != nil {
+			if e = checkCreationConfigurationSignature(repo, prepared[sid], signatures[sid]); e != nil {
 				return e
 			}
 			if item.ApprovedAt == nil {
@@ -789,11 +789,11 @@ func (s *Service) ApproveCreationSubmissions(userID, id string, req CreationRequ
 	})
 	return map[string]any{"submissions": out}, creationError(err)
 }
-func checkCreationPriceSignature(repo *repository.Repository, task *model.Task, want string) error {
+func checkCreationConfigurationSignature(repo *repository.Repository, task *model.Task, want string) error {
 	var input map[string]any
 	_ = json.Unmarshal([]byte(task.InputJSON), &input)
 	config, _ := input["config"].(map[string]any)
-	got, err := repo.CreationPriceSignature(task, stringValue(config["channelId"]), stringValue(config["model"]))
+	got, err := repo.CreationConfigurationSignature(task, stringValue(config["channelId"]), stringValue(config["model"]))
 	if err != nil {
 		return err
 	}
@@ -874,7 +874,7 @@ func (s *Service) ExecuteCreationSubmission(userID, id string, req CreationReque
 		if fresh.ProposalVersion > 0 && fresh.ProposalHash != current.ApprovedProposalHash {
 			return repository.ErrCreationConflict
 		}
-		if e = checkCreationPriceSignature(repo, task, signature); e != nil {
+		if e = checkCreationConfigurationSignature(repo, task, signature); e != nil {
 			return e
 		}
 		if e = createTaskWithStorageQuotaRepository(repo, task, policy); e != nil {
