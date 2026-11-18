@@ -1,0 +1,50 @@
+{
+  "source_head": "3e2ba309bc6ec3b8d438fc7f0eea378847050295",
+  "sdk": "platformclient/v1.0.0-rc.5",
+  "working_directory": "backend",
+  "command": "GOWORK=off go test ./internal/handler -run 'TestStudio(WorkspaceEntry|TeamCanvas)AcceptanceProbe' -count=1 -json",
+  "expected_result": "RED before ST1/ST2 implementation",
+  "fixture": "real Studio routes and published SDK; local HTTP provider and SQLite; no remote data",
+  "cases": [
+    {
+      "name": "TestStudioWorkspaceEntryAcceptanceProbe/explicit-team",
+      "result": "fail",
+      "observations": [
+        "studio_workspace_entry_probe_test.go:57: team entry read implicit personal funds 1 time(s)",
+        "studio_workspace_entry_probe_test.go:67: team entry did not retain its team summary: status=200"
+      ]
+    },
+    {
+      "name": "TestStudioWorkspaceEntryAcceptanceProbe/team-default",
+      "result": "fail",
+      "observations": [
+        "studio_workspace_entry_probe_test.go:57: team entry read implicit personal funds 1 time(s)",
+        "studio_workspace_entry_probe_test.go:60: new entry never read the confirmed session workspace",
+        "studio_workspace_entry_probe_test.go:67: team entry did not retain its team summary: status=200"
+      ]
+    },
+    {
+      "name": "TestStudioWorkspaceEntryAcceptanceProbe/unavailable-default",
+      "result": "fail",
+      "observations": [
+        "studio_workspace_entry_probe_test.go:57: team entry read implicit personal funds 1 time(s)",
+        "studio_workspace_entry_probe_test.go:60: new entry never read the confirmed session workspace",
+        "studio_workspace_entry_probe_test.go:64: unavailable team default returned a successful personal summary"
+      ]
+    },
+    {
+      "name": "TestStudioWorkspaceEntryAcceptanceProbe",
+      "result": "fail",
+      "observations": []
+    },
+    {
+      "name": "TestStudioTeamCanvasAcceptanceProbe",
+      "result": "fail",
+      "observations": [
+        "studio_workspace_entry_probe_test.go:87: GET /api/canvas-projects/team-probe?workspace_id=team_alpha status=404 want=200 body={\"code\":404,\"data\":null,\"msg\":\"record not found\",\"reason\":\"not_found\"}"
+      ]
+    }
+  ],
+  "test_patch": "red-host-cases.patch",
+  "runtime_verified": false
+}

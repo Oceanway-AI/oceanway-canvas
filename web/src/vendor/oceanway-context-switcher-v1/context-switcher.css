@@ -1,0 +1,246 @@
+.ow-context-switcher {
+  --ow-switcher-surface: var(--account-surface, var(--popover, #fff));
+  --ow-switcher-foreground: var(--account-text, var(--foreground, #202126));
+  --ow-switcher-muted: var(
+    --account-secondary,
+    var(--muted-foreground, #686b75)
+  );
+  --ow-switcher-border: var(--account-edge, var(--border, #e3e4e8));
+  --ow-switcher-accent: var(--account-accent, var(--primary, #345fe8));
+  --ow-switcher-hover: var(--account-card, var(--muted, #f4f5f7));
+  position: relative;
+  min-width: 0;
+  width: 100%;
+  color: var(--ow-switcher-foreground);
+  font: inherit;
+  font-size: 12px;
+}
+
+.ow-context-switcher *,
+.ow-context-switcher *::before,
+.ow-context-switcher *::after {
+  box-sizing: border-box;
+}
+
+.ow-context-trigger,
+.ow-context-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 8px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.ow-context-trigger:hover,
+.ow-context-option:hover,
+.ow-context-option[aria-current] {
+  background: var(--ow-switcher-hover);
+}
+.ow-context-trigger:focus-visible,
+.ow-context-option:focus-visible,
+.ow-context-retry:focus-visible {
+  outline: 2px solid var(--ow-switcher-accent);
+  outline-offset: 2px;
+}
+.ow-context-trigger:disabled,
+.ow-context-option:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ow-context-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+}
+.ow-context-icon:empty {
+  display: none;
+}
+.ow-context-icon > * {
+  max-width: 100%;
+  max-height: 100%;
+}
+.ow-context-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 450;
+}
+.ow-context-chevron {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--ow-switcher-muted);
+}
+.ow-context-trigger[aria-expanded="true"] .ow-context-chevron {
+  transform: rotate(180deg);
+}
+.ow-context-panel {
+  --ow-switcher-surface: var(--account-surface, var(--popover, #fff));
+  --ow-switcher-foreground: var(--account-text, var(--foreground, #202126));
+  --ow-switcher-muted: var(
+    --account-secondary,
+    var(--muted-foreground, #686b75)
+  );
+  --ow-switcher-border: var(--account-edge, var(--border, #e3e4e8));
+  --ow-switcher-accent: var(--account-accent, var(--primary, #345fe8));
+  --ow-switcher-hover: var(--account-card, var(--muted, #f4f5f7));
+  z-index: 80;
+  width: var(--radix-popover-trigger-width);
+  max-width: calc(100vw - 16px);
+  max-height: min(380px, var(--radix-popover-content-available-height));
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 5px;
+  border: 1px solid var(--ow-switcher-border);
+  border-radius: 10px;
+  color: var(--ow-switcher-foreground);
+  background: var(--ow-switcher-surface);
+  box-shadow: 0 8px 24px #00000018;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  outline: none;
+  box-sizing: border-box;
+}
+.ow-context-panel[data-side-menu] {
+  width: 220px;
+}
+.ow-context-panel[data-compact] {
+  width: 260px;
+}
+.ow-context-switcher[data-side="right"] .ow-context-chevron {
+  transform: rotate(-90deg);
+}
+.ow-context-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ow-context-copy {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ow-context-copy > span {
+  display: block;
+}
+.ow-context-copy small {
+  display: block;
+  margin-top: 3px;
+  color: var(--ow-switcher-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ow-context-check {
+  flex: 0 0 auto;
+  color: var(--ow-switcher-accent);
+}
+.ow-context-pending {
+  flex: 0 1 auto;
+  color: var(--ow-switcher-muted);
+  font-size: 12px;
+}
+.ow-context-status {
+  margin: 0;
+  padding: 10px;
+  color: var(--ow-switcher-muted);
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.ow-context-status p {
+  margin: 0 0 8px;
+}
+.ow-context-retry {
+  border: 0;
+  background: transparent;
+  color: var(--ow-switcher-accent);
+  font: inherit;
+  padding: 6px 0;
+  cursor: pointer;
+}
+.ow-context-switcher[data-compact] {
+  width: auto;
+}
+.ow-context-switcher[data-compact] .ow-context-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+@media (forced-colors: active) {
+  .ow-context-panel {
+    border: 1px solid CanvasText;
+  }
+  .ow-context-option[aria-current] {
+    outline: 1px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+.ow-workspace-avatar {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: var(--ow-avatar-size, 28px);
+  height: var(--ow-avatar-size, 28px);
+  vertical-align: middle;
+}
+.ow-workspace-avatar-person,
+.ow-workspace-avatar-team {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.ow-workspace-avatar-person {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.ow-workspace-avatar-team {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 30%;
+  height: 30%;
+  border: 1.5px solid var(--account-surface, #fff);
+  border-radius: 34%;
+  background: var(--account-card, #f4f5f7);
+  box-sizing: content-box;
+  font-size: calc(var(--ow-avatar-size, 28px) * 0.2);
+}
+.ow-workspace-avatar-person > *,
+.ow-workspace-avatar-team > * {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ow-context-switcher[data-side="right"] .ow-context-trigger {
+  min-height: 34px;
+  padding: 7px 8px;
+}
+.ow-context-switcher[data-side="right"] .ow-context-icon {
+  width: 16px;
+  height: 16px;
+  flex-basis: 16px;
+  font-size: 10px;
+}
+.ow-context-panel[data-side-menu] .ow-context-icon {
+  width: 20px;
+  height: 20px;
+  flex-basis: 20px;
+  font-size: 11px;
+}

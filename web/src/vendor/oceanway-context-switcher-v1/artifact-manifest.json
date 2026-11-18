@@ -1,0 +1,17 @@
+{
+  "name": "oceanway-context-switcher",
+  "version": "1.0.0",
+  "runtime_dependencies": {
+    "react": "19.2.8",
+    "radix-ui": "1.6.7"
+  },
+  "repository": "Oceanway-AI/Oceanway-design",
+  "source_commit": "289386183b4479b15be4f8fa56dbe64cf0df5218",
+  "source_path": "design-system/packages/ui/src/components/ocean/context-switcher",
+  "digest": "8054b873f702c03b122b69c8ff35cd49a7b3edf2c913a06c1c4ad4e00fd8cdb4",
+  "files": {
+    "context-switcher.tsx": "757064f813c104162f1ef425c1ac40fdfa49ef3847e2fd728f1f0a933eb64dff",
+    "context-switcher.css": "db4b9c3ceb2932e0c02cd7337c1833e043b0973e632ce1789f5903855ae2acf9",
+    "README.md": "4589da0b5010bc4b7c42f152551a6ffe973bf0d045b4e382003b16a2c4ea4e57"
+  }
+}

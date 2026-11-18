@@ -15,3 +15,5 @@ bun.lock
 
 # Preserve the published account component and its checksum manifest byte for byte.
 /src/vendor/oceanway-account-v1/
+/src/vendor/oceanway-account-panel-v1/
+/src/vendor/oceanway-context-switcher-v1/

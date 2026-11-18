@@ -56,6 +56,13 @@ Agent 新轮次冻结摘要和所选文本能力，`model_list` 默认12项、�
 | `POST /api/auth/session` | 浏览器工作区初始化：同上，并以真实 Origin 签发仅限素材的委托授权，按当前 SID 加密保存在服务端；返回 `provider: platform`，不返回授权正文 |
 | `POST /api/auth/logout` | SDK 退出，逐项透传清理 Cookie；必须带实际允许的 Origin |
 | `GET /api/auth/profile` | 平台身份只读视图：`provider=platform`、`consoleURL`，无本地密码/验证码管理能力 |
+| `GET /api/auth/workspace-context` | 工作区缓存恢复前读取。可传 `workspace_id`、`membership_generation`、`canvas_id`；原画布服务端归属优先，其次显式空间，最后为 Platform 已确认默认空间。重复、数组别名或畸形参数拒绝。响应为宿主 `userId/workspaceId/workspaceKind/workspaceName/membershipGeneration/supported`；空间失效、旧成员代次或提供方失败不回退个人。 |
+| `GET /api/auth/account-summary` | 使用与上行相同的空间参数，核验真实账号／空间／成员代次后，调用正式 SDK `AccountSummaryForWorkspace`。返回 `workspaceKind/membershipGeneration`、订阅、可用权益、本人用量、办理权限和已授权产品的展示投影；保留积分字符串精度、各区域的不可读状态及所有 Cookie 轮换。当前页面固定已核验空间，不因 Console 默认值改变而切换付款主体。 |
+| `GET /api/auth/workspaces` | 只读可用空间选项，返回 `userId/items`；项目含 `id/name/kind/membershipGeneration/supported`，不返回所有者或角色文案。逐页核验当前真实账号、空间类别和成员代次；重复空间或异常分页拒绝。团队暂为 `supported=false`，接口不写默认空间。 |
+| `GET /api/auth/product-navigation` | 必须且只能各传一次 `user_id/workspace_id/membership_generation/product`。重新核验会话、指定空间及当前获权产品目录，返回产品登记的 HTTPS 入口，携带原空间和成员代次。拒绝用户 URL、过期账号、重复或未知参数；不改变已打开画布的归属或默认空间。 |
+| `GET /api/auth/console-navigation` | 沿正式 SDK 校验指定账号与空间及原产品返回地址；个人空间可办理目标为 `account/wallet/usage/subscriptions/plans/orders/recharge`，由 Platform 再核验每个目标的权限。返回地址保持原页面，团队办理尚未开放；不在 Studio 实现第二套购买和支付。 |
+
+WP-STUDIO-018 的 ST1 候选已接入上下文门禁及已验收的三处公共控件：侧栏顶部产品切换、底部姓名／空间、点击后独立账户弹层；空间选项另开弹层，画布与专注模式保留可达入口。账户各区域分别呈现零值、未知、受限和失败；购买入口只按 `can_purchase` 展示。菜单开启时画布快捷键及粘贴暂停，Escape 先关闭菜单。当前画布持久化仍仅支持个人，团队返回 `supported=false`，不恢复个人缓存。该阶段不是 ST2 团队画布、生成或协作已实现的声明。登录回跳在读取缓存之前带回原画布 ID；现有对象仍由服务端查归属。阶段证据见 `docs/verification/unified-context-gate-20261117/` 和 `docs/verification/unified-controls-20261117/`；部署另行记录。
 
 所有阶段 API 校验实际 Host 和允许 Origin；写请求缺少 Origin 时拒绝。忽略 forwarded headers 对身份的声明。会话响应不缓存，Cookie 不写入 JSON；平台产品密钥只留在后端。
 

@@ -1,0 +1,30 @@
+{
+  "recorded_at": "2026-11-17T12:00:58.130281+00:00",
+  "studio": {
+    "endpoint": "https://test.oceanway.tech/studio/api/health/live",
+    "http_status": 200,
+    "reported_build": {
+      "version": "v1.8.2",
+      "commit": "7ec8a07191be8934dbfd9f712690414041192388",
+      "buildTime": "2026-11-17T10:48:49Z",
+      "goVersion": "go1.25.14"
+    },
+    "sdk_in_reported_source": "platformclient/v1.0.0-rc.5",
+    "image_digest_verified": false,
+    "unchanged_boundary_files_against_main": [
+      "backend/internal/app/studio_account_summary.go",
+      "backend/internal/handler/studio_api.go",
+      "web/src/lib/user-session.ts",
+      "web/src/lib/user-scope.ts",
+      "backend/internal/repository/canvas_project_read.go"
+    ]
+  },
+  "platform": {
+    "endpoint": "https://test.oceanway.tech/api/status",
+    "http_status": 200,
+    "reported_version": "",
+    "oceanway_platform_enabled": true,
+    "running_revision_verified": false
+  },
+  "limits": "Read-only anonymous health metadata; no login, mutation, deployment or paid call. Source dependency is not independent binary attestation."
+}

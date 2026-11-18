@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import { DEFAULT_DRAWING_ENGINE, type CanvasDrawingEngineSetting } from "@/lib/canvas/canvas-drawing-engine";
 import type { PublicUserGroup } from "@/services/api/user-groups";
+import type { StudioWorkspaceContext } from "@/services/api/studio-workspace";
 
 export type LocalUser = {
     id: string;
@@ -68,6 +69,8 @@ export const defaultFeatureAvailability: FeatureAvailability = {
 
 type UserStore = {
     hydrated: boolean;
+    workspaceContext: StudioWorkspaceContext | null;
+    workspaceError: string | null;
     platformIdentity: boolean;
     user: LocalUser | null;
     runtimeLimits: RuntimeLimits;
@@ -88,6 +91,8 @@ type UserStore = {
 
 export const useUserStore = create<UserStore>()((set) => ({
     hydrated: false,
+    workspaceContext: null,
+    workspaceError: null,
     platformIdentity: false,
     user: null,
     runtimeLimits: { activeTaskLimit: 5, resourceUploadMB: 50, recycleBinRetentionDays: 30 },
@@ -105,6 +110,8 @@ export const useUserStore = create<UserStore>()((set) => ({
     clearSession: () =>
         set({
             user: null,
+            workspaceContext: null,
+            workspaceError: null,
             runtimeLimits: { activeTaskLimit: 5, resourceUploadMB: 50, recycleBinRetentionDays: 30 },
             drawingEngine: { defaultEngine: DEFAULT_DRAWING_ENGINE },
             features: defaultFeatureAvailability,

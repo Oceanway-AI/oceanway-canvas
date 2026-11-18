@@ -8,7 +8,8 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
 import { AuthLoginLink } from "@/components/auth/auth-login-link";
-import studioBrandMark from "@/vendor/oceanway-account-v1/oceanway-ai-app-micro.svg";
+import { StudioProductSwitcher } from "./studio-product-switcher";
+import { StudioAccountBar } from "./studio-account-bar";
 import { BrandLogoFrame } from "@/components/brand/brand-logo";
 import { UserAvatar } from "@/components/layout/user-avatar";
 import { UserGroupAvatarRing, UserGroupBadge } from "@/components/layout/user-group-badge";
@@ -108,15 +109,7 @@ function WorkspaceSidebarProfile({ collapsed, user, onExpand, onCollapse }: { co
     if (platformIdentity) {
         return (
             <div className={cn("app-workspace-sidebar-profile-row", collapsed && "is-collapsed")}>
-                <Link to="/settings?section=profile" className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label="Studio 设置">
-                    <UserAvatar user={user} className="app-workspace-sidebar-profile-avatar" />
-                    {!collapsed && (
-                        <span className="app-workspace-sidebar-profile-copy">
-                            <strong>{profileName}</strong>
-                            <span>Studio 设置</span>
-                        </span>
-                    )}
-                </Link>
+                <StudioAccountBar compact={collapsed} />
                 <button type="button" className={cn("app-workspace-sidebar-collapse-toggle", collapsed && "is-collapsed")} aria-label={collapsed ? t("shell.expandSidebarMenu") : t("shell.collapseSidebar")} onClick={collapsed ? onExpand : onCollapse}>
                     {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
                 </button>
@@ -174,9 +167,13 @@ function WorkspaceSwitcher({ collapsed, onNavigate }: { collapsed: boolean; onNa
     const { t } = useTranslation();
     // 未上传自定义 Logo 时用内置取景框字形（与欢迎页、登录框、加载页同一个 /logo.svg），放在墨色实底方块里；
     // 自定义 Logo 的配色不可预知，改用中性浅底方块承托。
-    const mark = platformIdentity ? (
-        <img src={studioBrandMark} alt="" className="size-5" />
-    ) : (
+    if (platformIdentity)
+        return (
+            <div className={cn("app-workspace-sidebar-brand-row relative shrink-0", collapsed && "is-collapsed")}>
+                <StudioProductSwitcher compact={collapsed} />
+            </div>
+        );
+    const mark = (
         <BrandLogoFrame
             className={cn("app-workspace-brand-mark grid shrink-0 place-items-center", !appearance.logoConfigured && "is-builtin")}
             logoClassName="size-5 object-contain"

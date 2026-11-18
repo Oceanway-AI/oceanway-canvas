@@ -39,6 +39,7 @@ type studioFixture struct {
 	avatar       string
 	account      http.HandlerFunc
 	navigation   http.HandlerFunc
+	workspace    http.HandlerFunc
 	materials    http.HandlerFunc
 	delivery     http.HandlerFunc
 	execution    http.HandlerFunc
@@ -69,6 +70,10 @@ func newStudioFixtureWithBase(t *testing.T, base string) *studioFixture {
 		}
 		if r.URL.Path == "/api/platform/v1/account/summary" && f.account != nil {
 			f.account(w, r)
+			return
+		}
+		if f.workspace != nil && (strings.HasPrefix(r.URL.Path, "/api/platform/v1/me/workspace") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/workspaces/")) {
+			f.workspace(w, r)
 			return
 		}
 		if f.execution != nil && !catalogtest.Route(r.URL.Path) && (strings.HasPrefix(r.URL.Path, "/internal/products/v1/media-generations") || strings.HasPrefix(r.URL.Path, "/internal/relay/") || strings.HasPrefix(r.URL.Path, "/internal/materials/") || strings.HasPrefix(r.URL.Path, "/api/platform/v1/execution-authorizations") || strings.HasSuffix(r.URL.Path, "/media/consumption-preview") || strings.HasSuffix(r.URL.Path, "/media/price-preview") || r.Header.Get("X-Platform-Execution-Authorization") != "") {

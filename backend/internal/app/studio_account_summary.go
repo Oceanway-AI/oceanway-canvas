@@ -7,27 +7,46 @@ import (
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"yingce/backend/internal/model"
 )
 
 type StudioAccountSummary struct {
-	UserID        string                              `json:"userId"`
-	DisplayName   string                              `json:"displayName"`
-	AvatarURL     string                              `json:"avatarUrl,omitempty"`
-	WorkspaceID   string                              `json:"workspaceId"`
-	WorkspaceName string                              `json:"workspaceName"`
-	Balance       platformclient.AccountBalance       `json:"balance"`
-	Applications  []platformclient.AccountApplication `json:"applications"`
-	AccountURL    string                              `json:"accountUrl,omitempty"`
-	WalletURL     string                              `json:"walletUrl,omitempty"`
-	UsageURL      string                              `json:"usageUrl,omitempty"`
+	UserID               string                              `json:"userId"`
+	DisplayName          string                              `json:"displayName"`
+	AvatarURL            string                              `json:"avatarUrl,omitempty"`
+	WorkspaceID          string                              `json:"workspaceId"`
+	WorkspaceName        string                              `json:"workspaceName"`
+	WorkspaceKind        string                              `json:"workspaceKind"`
+	MembershipGeneration int64                               `json:"membershipGeneration"`
+	Membership           platformclient.AccountMembership    `json:"membership"`
+	Benefits             platformclient.AccountBenefits      `json:"benefits"`
+	Spending             platformclient.AccountSpending      `json:"spending"`
+	Capabilities         platformclient.AccountCapabilities  `json:"capabilities"`
+	Balance              platformclient.AccountBalance       `json:"balance"`
+	Applications         []platformclient.AccountApplication `json:"applications"`
+	AccountURL           string                              `json:"accountUrl,omitempty"`
+	WalletURL            string                              `json:"walletUrl,omitempty"`
+	UsageURL             string                              `json:"usageUrl,omitempty"`
 }
 
-// The creation surface issues personal execution grants. Use that same payer for
-// its account bar until Studio supports team-bound projects and execution.
-func (s *Service) StudioAccountSummary(ctx context.Context, session platformclient.SessionContext) (*StudioAccountSummary, *platformclient.Response, error) {
-	summary, response, err := s.studioPersonalAccount(ctx, session)
+func (s *Service) StudioAccountSummary(ctx context.Context, session platformclient.SessionContext, user *model.User, workspaceID, canvasID string, generation *int64) (*StudioAccountSummary, *platformclient.Response, error) {
+	if s.studioPlatform == nil {
+		return nil, nil, NewAppError(503, "Platform 尚未配置")
+	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	entry, response, err := s.StudioWorkspaceContext(ctx, session, user, workspaceID, canvasID, generation)
 	if err != nil {
 		return nil, response, err
+	}
+	result, err := s.studioPlatform.Client.AccountSummaryForWorkspace(ctx, session, entry.workspace)
+	result.Response.AppendCookies(response.Header)
+	if err != nil {
+		return nil, response, platformIdentityError(err)
+	}
+	summary := result.Data
+	if summary.User.Status != 1 {
+		return nil, response, NewAppError(503, "暂时无法确认当前空间")
 	}
 	name := summary.User.DisplayName
 	if name == "" {
@@ -41,7 +60,7 @@ func (s *Service) StudioAccountSummary(ctx context.Context, session platformclie
 			application.URL = s.StudioConsoleURL() + "/console"
 		} else {
 			target, parseErr := url.Parse(application.URL)
-			if parseErr != nil || target.Scheme != "https" || target.Hostname() == "" || target.User != nil {
+			if parseErr != nil || target.Scheme != "https" || target.Hostname() == "" || target.User != nil || target.RawQuery != "" || target.Fragment != "" || target.RawPath != "" {
 				continue
 			}
 		}
@@ -50,6 +69,8 @@ func (s *Service) StudioAccountSummary(ctx context.Context, session platformclie
 	return &StudioAccountSummary{
 		UserID: s.studioUserID(summary.User.ID), DisplayName: name, AvatarURL: summary.User.AvatarURL,
 		WorkspaceID: summary.Workspace.ID, WorkspaceName: summary.Workspace.Name, Balance: summary.Balance,
+		WorkspaceKind: summary.Workspace.Kind, MembershipGeneration: summary.Workspace.MembershipGeneration,
+		Membership: summary.Membership, Benefits: summary.Benefits, Spending: summary.Spending, Capabilities: summary.Capabilities,
 		Applications: applications, AccountURL: s.studioConsoleLink(summary.AccountPath),
 		WalletURL: s.studioConsoleLink(summary.WalletPath), UsageURL: s.studioConsoleLink(summary.UsagePath),
 	}, response, nil

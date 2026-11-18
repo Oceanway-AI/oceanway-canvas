@@ -1,0 +1,485 @@
+/* Products override colors only; geometry and hierarchy stay shared. */
+.ow-shared-account-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  padding: 16px;
+  color: var(--account-text, var(--foreground, #f4f4f5));
+  background: var(--account-surface, var(--popover, #202124));
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ow-shared-account-panel-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ow-shared-account-panel-identity > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+.ow-shared-account-panel-identity strong {
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ow-shared-account-panel-identity > div > span {
+  font-size: 12px;
+  color: var(--account-secondary, var(--muted-foreground, #a1a1aa));
+  overflow-wrap: anywhere;
+}
+.ow-shared-account-panel-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ow-shared-account-membership {
+  border: 1px solid var(--account-edge, var(--border, #ffffff1a));
+  border-radius: 12px;
+  background: var(
+    --account-membership,
+    linear-gradient(
+      115deg,
+      color-mix(
+        in srgb,
+        var(--account-accent, var(--primary, #c6d9ff)) 15%,
+        var(--account-surface, var(--popover, #202124))
+      ),
+      color-mix(
+        in srgb,
+        var(--account-accent, var(--primary, #c6d9ff)) 5%,
+        var(--account-surface, var(--popover, #202124))
+      )
+    )
+  );
+  overflow: hidden;
+}
+.ow-shared-account-membership-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 12px;
+}
+.ow-shared-account-membership-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 4px;
+}
+.ow-shared-account-membership-copy strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+.ow-shared-account-membership-copy strong > span {
+  overflow-wrap: anywhere;
+}
+.ow-shared-account-membership-copy img,
+.ow-shared-account-membership-copy svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.ow-shared-account-membership-copy > span {
+  font-size: 11px;
+  color: var(--account-secondary, var(--muted-foreground, #a1a1aa));
+  overflow-wrap: anywhere;
+}
+.ow-shared-account-panel button {
+  font: inherit;
+  cursor: pointer;
+}
+.ow-shared-account-panel button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ow-shared-account-panel button:focus-visible,
+.ow-shared-account-panel summary:focus-visible {
+  outline: 2px solid var(--account-accent, var(--primary, #c6d9ff));
+  outline-offset: 2px;
+}
+.ow-shared-account-pill {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: var(--account-accent, var(--primary, #c6d9ff));
+  color: var(--account-on-accent, var(--primary-foreground, #15181f));
+}
+.ow-shared-account-membership-links {
+  display: flex;
+  border-top: 1px solid var(--account-edge, var(--border, #ffffff1a));
+  padding: 8px 0;
+}
+.ow-shared-account-membership-links > button {
+  flex: 1;
+  min-width: 0;
+  padding: 0 6px;
+  background: transparent;
+  border: 0;
+  color: var(--account-secondary, var(--muted-foreground, #a1a1aa));
+  font-size: 11px;
+}
+.ow-shared-account-membership-links > button + button {
+  border-left: 1px solid var(--account-edge, var(--border, #ffffff1a));
+}
+.ow-shared-account-credits h3 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--account-secondary, var(--muted-foreground, #a1a1aa));
+  font-weight: 400;
+}
+.ow-shared-account-credits-card {
+  padding: 0 12px;
+  background: var(--account-card, var(--muted, #2b2c30));
+  border-radius: 12px;
+}
+.ow-shared-account-credits-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 60px;
+}
+.ow-shared-account-credits-main > strong {
+  font-size: 22px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.ow-shared-account-inline {
+  border: 0;
+  background: transparent;
+  color: var(--account-secondary, var(--muted-foreground, #a1a1aa));
+  padding: 4px 0;
+  font-size: 11px !important;
+}
+.ow-shared-account-credits-secondary {
+  border-top: 1px solid var(--account-edge, var(--border, #ffffff1a));
+  padding: 10px 0;
+  font-size: 12px;
+}
+.ow-shared-account-metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--account-secondary, var(--muted-foreground, #a1a1aa));
+}
+.ow-shared-account-metric + .ow-shared-account-metric {
+  margin-top: 6px;
+}
+.ow-shared-account-panel-tools {
+  border-top: 1px solid var(--account-edge, var(--border, #ffffff1a));
+  padding-top: 12px;
+}
+.ow-shared-account-action,
+.ow-shared-account-space-summary {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--account-text, var(--foreground, #f4f4f5));
+  text-align: left;
+}
+.ow-shared-account-action:hover,
+.ow-shared-account-space-summary:hover {
+  background: var(--account-card, var(--muted, #2b2c30));
+}
+.ow-shared-account-action > svg,
+.ow-shared-account-space-summary > svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  color: var(--account-secondary, var(--muted-foreground, #a1a1aa));
+}
+.ow-shared-account-action > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ow-shared-account-action .ow-shared-account-action-trailing,
+.ow-shared-account-space-summary > span:last-child {
+  margin-left: auto;
+  color: var(--account-secondary, var(--muted-foreground, #a1a1aa));
+  font-size: 11px;
+  text-align: right;
+  overflow-wrap: anywhere;
+  max-width: 50%;
+}
+.ow-shared-account-space-summary {
+  cursor: pointer;
+  list-style: none;
+}
+.ow-shared-account-space-summary::-webkit-details-marker {
+  display: none;
+}
+.ow-shared-account-spaces {
+  margin: 4px 0 8px;
+  padding: 4px;
+  border: 1px solid var(--account-edge, var(--border, #ffffff1a));
+  border-radius: 10px;
+}
+.ow-shared-account-spaces .ow-shared-account-action[aria-pressed="true"] {
+  background: var(--account-card, var(--muted, #2b2c30));
+}
+.ow-shared-account-panel
+  .ow-shared-account-action:has(+ .ow-shared-account-spaces) {
+  margin-bottom: 4px;
+}
+
+.ow-shared-account-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--account-text, var(--foreground, #202126));
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.ow-shared-account-trigger:hover,
+.ow-shared-account-trigger[aria-expanded="true"] {
+  background: var(--account-card, var(--muted, #f4f5f7));
+}
+.ow-shared-account-trigger:focus-visible {
+  outline: 2px solid var(--account-accent, var(--primary, #3159d6));
+  outline-offset: 2px;
+}
+.ow-shared-account-trigger-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+.ow-shared-account-trigger-copy strong,
+.ow-shared-account-trigger-copy > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ow-shared-account-trigger-copy strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.ow-shared-account-trigger-copy > span {
+  font-size: 11px;
+  color: var(--account-secondary, var(--muted-foreground, #686b75));
+}
+.ow-shared-account-trigger-chevron {
+  font-size: 12px;
+  opacity: 0.6;
+}
+.ow-shared-account-popover {
+  z-index: 70;
+  width: min(288px, calc(100vw - 16px));
+  max-height: var(--radix-popover-content-available-height);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--account-edge, var(--border, #e3e4e8));
+  border-radius: 14px;
+  background: var(--account-surface, var(--popover, #fff));
+  box-shadow:
+    0 2px 6px #00000008,
+    0 12px 40px #00000014;
+  outline: none;
+}
+.ow-shared-account-panel[data-density="compact"] {
+  padding: 14px;
+  gap: 16px;
+  font-size: 12px;
+  line-height: 1.45;
+  background:
+    radial-gradient(
+      ellipse at top left,
+      color-mix(
+        in srgb,
+        var(--account-accent, var(--primary, #c6d9ff)) 5%,
+        transparent
+      ),
+      transparent 55%
+    ),
+    var(--account-surface, var(--popover, #202124));
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-panel-identity {
+  gap: 10px;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-panel-identity
+  strong {
+  font-size: 13px;
+  font-weight: 550;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-panel-identity
+  > div
+  > span {
+  font-size: 11px;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-panel-cards {
+  gap: 12px;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-membership-main {
+  padding: 12px 10px;
+  gap: 8px;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-membership-copy
+  img,
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-membership-copy
+  svg {
+  width: 18px;
+  height: 18px;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-credits-main {
+  min-height: 50px;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-credits-main
+  > strong {
+  font-size: 20px;
+  font-weight: 450;
+  letter-spacing: -0.025em;
+}
+.ow-shared-account-panel[data-density="compact"] .ow-shared-account-action {
+  min-height: 34px;
+  padding: 7px 8px;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-panel-tools {
+  padding-top: 6px;
+}
+
+.ow-shared-account-unit {
+  margin-inline-start: 6px;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--account-secondary, var(--muted-foreground, #a1a1aa));
+}
+.ow-shared-account-panel[data-density="compact"] .ow-shared-account-membership {
+  border-color: color-mix(
+    in srgb,
+    var(--account-edge, var(--border, #ffffff1a)) 60%,
+    transparent
+  );
+  border-radius: 11px;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-membership-copy
+  strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-membership-copy
+  > span {
+  font-size: 10px;
+}
+.ow-shared-account-panel[data-density="compact"] .ow-shared-account-pill {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+  padding: 3px 9px;
+  color: var(--account-text, var(--foreground, #f4f4f5));
+  background: linear-gradient(
+    120deg,
+    color-mix(
+      in srgb,
+      var(--account-accent, var(--primary, #c6d9ff)) 23%,
+      var(--account-surface, var(--popover, #202124))
+    ),
+    color-mix(
+      in srgb,
+      var(--account-accent, var(--primary, #c6d9ff)) 9%,
+      var(--account-surface, var(--popover, #202124))
+    )
+  );
+  box-shadow: inset 0 0 0 1px
+    color-mix(
+      in srgb,
+      var(--account-accent, var(--primary, #c6d9ff)) 8%,
+      transparent
+    );
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-membership-links {
+  border-color: color-mix(
+    in srgb,
+    var(--account-edge, var(--border, #ffffff1a)) 65%,
+    transparent
+  );
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-membership-links
+  > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 10px;
+}
+.ow-shared-account-panel[data-density="compact"] .ow-shared-account-credits h3 {
+  font-size: 10px;
+  margin-bottom: 7px;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-credits-card {
+  background: color-mix(
+    in srgb,
+    var(--account-card, var(--muted, #2b2c30)) 72%,
+    var(--account-surface, var(--popover, #202124))
+  );
+  border-radius: 11px;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-credits-secondary {
+  font-size: 11px;
+  padding: 10px 0;
+  border-color: color-mix(
+    in srgb,
+    var(--account-edge, var(--border, #ffffff1a)) 70%,
+    transparent
+  );
+}
+.ow-shared-account-panel[data-density="compact"] .ow-shared-account-inline {
+  font-size: 10px !important;
+}
+.ow-shared-account-panel[data-density="compact"] .ow-shared-account-action {
+  font-size: 12px;
+  font-weight: 450;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-action
+  > svg {
+  width: 15px;
+  height: 15px;
+  color: var(--account-secondary, var(--muted-foreground, #a1a1aa));
+  flex: none;
+}
+.ow-shared-account-panel[data-density="compact"]
+  .ow-shared-account-action-trailing {
+  font-size: 10px;
+}

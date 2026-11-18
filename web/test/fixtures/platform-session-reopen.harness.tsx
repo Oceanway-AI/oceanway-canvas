@@ -72,6 +72,8 @@ for (const knownInMemory of [false, true]) {
                 await sessionResponse;
                 return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { provider: "platform", user } } };
             }
+            if (config.url === "/auth/workspace-context")
+                return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { userId: user.id, workspaceId: "personal-101", workspaceKind: "personal", workspaceName: "Personal", membershipGeneration: 0, supported: true } } };
             if (config.url === "/model-catalog/summaries") return { config, status: 200, statusText: "OK", headers: {}, data: { code: 0, data: { source: "platform", catalogRevision: "catalog-v1", channels: [], hasMore: false } } };
             throw new Error(`Unexpected request: ${config.method} ${config.url}`);
         };
@@ -102,7 +104,7 @@ for (const knownInMemory of [false, true]) {
             expect(useUserStore.getState().platformIdentity).toBe(true);
             expect(getActiveUserScope()).toBe(user.id);
             expect(useCreationPreferencesStore.getState().preferences.mode).toBe("video");
-            expect(requests).toEqual(["post /auth/session", "get /model-catalog/summaries"]);
+            expect(requests).toEqual(["post /auth/session", "get /auth/workspace-context", "get /model-catalog/summaries"]);
         } finally {
             unsubscribe();
             await act(async () => root.unmount());
@@ -122,6 +124,14 @@ test("a visible Studio window confirms focus against the live session and never 
     const previous = apiClient.defaults.adapter;
     apiClient.defaults.adapter = async (config) => {
         if (config.url === "/auth/session") reads++;
+        if (config.url === "/auth/workspace-context")
+            return {
+                config,
+                headers: {},
+                status: 200,
+                statusText: "OK",
+                data: { code: 0, data: { userId: actual.id, workspaceId: "personal-" + actual.id, workspaceKind: "personal", workspaceName: "Personal", membershipGeneration: 0, supported: true } },
+            };
         return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: config.url === "/auth/session" ? { provider: "platform", user: actual } : { source: "platform", channels: [] } } };
     };
     const host = document.createElement("div");

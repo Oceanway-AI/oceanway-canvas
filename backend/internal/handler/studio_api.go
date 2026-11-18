@@ -38,9 +38,39 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 		}
 		ok(c, gin.H{"url": target})
 	})
+	api.GET("/auth/workspace-context", func(c *gin.Context) {
+		c.Header("Cache-Control", "private, no-store")
+		workspaceID, canvasID, generation, err := studioWorkspaceIntent(c)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		entry, response, err := svc.StudioWorkspaceContext(c.Request.Context(), platformintegration.Session(c.Request), user, workspaceID, canvasID, generation)
+		response.AppendCookies(c.Writer.Header())
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, entry)
+	})
 	api.GET("/auth/account-summary", func(c *gin.Context) {
 		c.Header("Cache-Control", "private, no-store")
-		summary, response, err := svc.StudioAccountSummary(c.Request.Context(), platformintegration.Session(c.Request))
+		workspaceID, canvasID, generation, err := studioWorkspaceIntent(c)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		summary, response, err := svc.StudioAccountSummary(c.Request.Context(), platformintegration.Session(c.Request), user, workspaceID, canvasID, generation)
 		if response != nil {
 			response.AppendCookies(c.Writer.Header())
 		}
@@ -51,6 +81,7 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 		ok(c, summary)
 	})
 	registerStudioConsoleNavigation(api, svc)
+	registerStudioAccountControls(api, svc)
 	api.GET("/auth/profile", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

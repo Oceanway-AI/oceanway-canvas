@@ -5,6 +5,7 @@ import { Button, Dropdown } from "antd";
 import { AntTooltip as Tooltip } from "@/components/ui/base/tooltip/ant-tooltip";
 
 import { StudioAccountBar } from "@/components/layout/studio-account-bar";
+import { StudioProductSwitcher } from "@/components/layout/studio-product-switcher";
 import { WorkspaceCreditGiftMark } from "@/components/layout/workspace-credit-gift-mark";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { openWorkspaceWallet } from "@/lib/workspace-wallet";
@@ -226,7 +227,12 @@ export function CanvasTopBar({
                             </Button>
                         </Dropdown>
                     </CanvasTopBarTooltip>
-                    {user && platformIdentity && <StudioAccountBar compact />}
+                    {user && platformIdentity && (
+                        <>
+                            <StudioProductSwitcher compact />
+                            <StudioAccountBar compact />
+                        </>
+                    )}
                     {user && creditsEnabled ? (
                         <CanvasTopBarTooltip label="打开积分中心">
                             <button

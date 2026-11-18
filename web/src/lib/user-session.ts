@@ -22,6 +22,7 @@ import { clearResourceBlobCache } from "@/services/resource-blob-cache";
 import { withGenerationConsumersPaused } from "@/services/generation-consumer-lifecycle";
 import { recordDiagnosticEvent } from "@/services/diagnostics/client-diagnostics";
 import { useModelCatalogStore } from "@/stores/use-model-catalog-store";
+import { getStudioWorkspaceContext } from "@/services/api/studio-workspace";
 
 export async function switchUserStorageScope(userId?: string | null) {
     await withGenerationConsumersPaused(async () => {
@@ -53,10 +54,12 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     withUserScopedPersistenceSuppressed(() => useConfigStore.getState().invalidateSystemChannels());
     const previousUserId = useUserStore.getState().user?.id || "";
     const nextUserId = payload.user?.id || "";
-    useUserStore.getState().setHydrated(false);
+    useUserStore.setState({ hydrated: false, workspaceContext: null, workspaceError: null });
     // Query key 不携带用户 ID；身份变化时必须取消并清空旧账号请求，避免跨账号复用内存数据。
     if (previousUserId !== nextUserId) appQueryClient.clear();
-    await switchUserStorageScope(payload.user?.id);
+    // Flush the old actor's drafts, then leave its namespace before checking
+    // the next entry. No personal cache is read while team intent is unresolved.
+    await switchUserStorageScope(null);
     // 切换存储 scope 时 user store 仍保留旧身份；此处只能先检查 generation。
     if (!isCurrentGeneration(generation)) return;
     withCanvasStorePersistenceSuppressed(() =>
@@ -73,6 +76,22 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     useUserStore.getState().setFeatures(payload.features);
     useUserStore.getState().setReferralAvailable(payload.referralAvailable);
     useUserStore.getState().setUserGroup(payload.userGroup);
+    if (payload.provider === "platform" && payload.user) {
+        try {
+            const context = await getStudioWorkspaceContext();
+            if (!isCurrentSession(generation, nextUserId)) return;
+            if (context.userId !== nextUserId || !context.workspaceId || !["personal", "team"].includes(context.workspaceKind) || !Number.isSafeInteger(context.membershipGeneration) || context.membershipGeneration < 0)
+                throw new Error("暂时无法确认当前空间，请重试。");
+            if (!context.supported || context.workspaceKind !== "personal" || context.membershipGeneration !== 0) throw new Error("Studio 团队空间尚未开放。请返回 Console 选择可用空间后重新进入。");
+            useUserStore.setState({ workspaceContext: context });
+        } catch (error) {
+            if (!isCurrentSession(generation, nextUserId)) return;
+            useUserStore.setState({ workspaceError: error instanceof Error ? error.message : "暂时无法确认当前空间，请重试。" });
+            throw error;
+        }
+    }
+    await switchUserStorageScope(payload.user?.id);
+    if (!isCurrentSession(generation, nextUserId)) return;
     installRemoteUserDataAutoSync();
     try {
         // 缓存恢复和同步基线必须先于工作区开放，防止生成/编辑抢跑，或被初始化误记为已同步。

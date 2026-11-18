@@ -56,8 +56,11 @@ func TestStudioConsoleNavigationKeepsOriginalAccountAndPage(t *testing.T) {
 			w.WriteHeader(403)
 			return
 		}
-		paths := map[string]string{"wallet": "/console/wallet", "account": "/console/account", "usage": "/console/records"}
+		paths := map[string]string{"wallet": "/console/wallet", "account": "/console/account", "usage": "/console/records", "subscriptions": "/console/subscriptions", "plans": "/console/plans", "orders": "/console/orders", "recharge": "/console/wallet"}
 		params := url.Values{"workspace_id": {"personal-101"}, "return_workspace_id": {"personal-101"}, "return_generation": {"0"}, "return_product": {"studio"}, "return_path": {q.Get("return_path")}}
+		if q.Get("destination") == "recharge" {
+			params.Set("recharge", "1")
+		}
 		consolePath := paths[q.Get("destination")] + "?" + params.Encode()
 		if malformed {
 			consolePath = "https://other.example/console/wallet"
@@ -69,7 +72,7 @@ func TestStudioConsoleNavigationKeepsOriginalAccountAndPage(t *testing.T) {
 		return f.request(t, "GET", "/api/auth/console-navigation?"+query.Encode(), "platform_session=alice", "", status).Result()
 	}
 	for _, returnPath := range []string{"/studio", "/studio/create", "/studio/tasks", "/studio/assets", "/studio/settings", "/studio/canvas", "/studio/skills", "/studio/skills/" + skill.SkillID + "/edit", "/studio/canvas/original-canvas"} {
-		for _, destination := range []string{"account", "wallet", "usage"} {
+		for _, destination := range []string{"account", "wallet", "usage", "subscriptions", "plans", "orders", "recharge"} {
 			query.Set("return_path", returnPath)
 			query.Set("destination", destination)
 			response := request(302)
@@ -99,7 +102,7 @@ func TestStudioConsoleNavigationKeepsOriginalAccountAndPage(t *testing.T) {
 	query.Set("workspace_id", "another-space")
 	request(409)
 	query.Set("workspace_id", "personal-101")
-	query.Set("destination", "orders")
+	query.Set("destination", "invalid")
 	request(400)
 	query.Set("destination", "wallet")
 	query.Add("return_path", "/studio/tasks")
