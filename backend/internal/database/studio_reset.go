@@ -68,7 +68,16 @@ func StudioDataInventory(db *gorm.DB) (StudioResetInventory, error) {
 		result.Tables = append(result.Tables, item)
 	}
 	if db.Migrator().HasTable(&model.Task{}) {
-		if err := db.Model(&model.Task{}).Where("status NOT IN ?", []string{"succeeded", "failed", "cancelled"}).Count(&result.ActiveTasks).Error; err != nil {
+		active := db.Model(&model.Task{}).Where("status NOT IN ?", []string{"succeeded", "failed", "cancelled"})
+		if db.Migrator().HasTable(&model.CloudAgentExecution{}) {
+			// Pi keeps its root task as a replay carrier after the run ends.
+			// Only a matching, fully cleaned execution proves it is inactive.
+			finished := db.Model(&model.CloudAgentExecution{}).
+				Select("1").Where("id = tasks.id AND user_id = tasks.user_id").
+				Where("status IN ? AND cleanup_pending = ?", []string{"completed", "failed", "cancelled", "rejected"}, false)
+			active = active.Where("NOT (status = ? AND operation = ? AND EXISTS (?))", model.TaskStatusTextReplay, "cloud_agent", finished)
+		}
+		if err := active.Count(&result.ActiveTasks).Error; err != nil {
 			return result, err
 		}
 	}
