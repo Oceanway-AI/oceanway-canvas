@@ -165,7 +165,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: .github/scripts
+          sparse-checkout: |
+            .github/scripts
+            backend/internal
       - uses: actions/download-artifact@v4
         with:
           pattern: go-test-timings-*
