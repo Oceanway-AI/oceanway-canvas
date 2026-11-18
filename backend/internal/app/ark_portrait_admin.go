@@ -289,7 +289,7 @@ func (s *Service) AdminCreateArkGroup(ctx context.Context, actor *model.User, re
 			group.AuthorizedAt, group.ExpiresAt = &now, &expiresAt
 		}
 	}
-	registered, err := s.repo.CreateArkPortraitGroupWithCharge(group, "")
+	registered, err := s.repo.CreateArkPortraitGroup(group)
 	if errors.Is(err, repository.ErrArkPortraitGroupTaken) {
 		return nil, NewAppError(http.StatusConflict, "该方舟素材组已登记在其他账号名下")
 	}

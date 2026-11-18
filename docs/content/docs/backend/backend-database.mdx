@@ -15,6 +15,8 @@ v99 移除 `resources` 和 `resource_deletion_jobs` 的 `endpoint`、`bucket`、
 
 v100 移除 `ecommerce_agent_runs` 的 `billing_order_id`、`unit_microcredits`。电商创作保留页结果、取消状态、画布版本和用户幂等键，费用交由 Platform。旧结构制品不能直接连接 v100 数据库，回退需采用支持 v100 的制品或恢复对应备份。
 
+方舟认证会话和素材组的保留创作模型已移除 `billing_order_id`，认证、审核与入库源码沿原流程维护。`ark_portrait_*` 属于 Studio 退出表，不在 v98—v100 正式库中创建，也不额外迁移这些旧表。Platform 模式下方舟建组入口返回暂不可用，接入平台授权后另行验收。
+
 | 范围 | 当前持久化边界 |
 | --- | --- |
 | 画布、项目、偏好 | operations、快照、项目、素材和既有用户数据键直接按 Platform ID 隔离 |

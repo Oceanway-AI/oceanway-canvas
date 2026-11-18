@@ -6,20 +6,19 @@ import { useTranslation } from "react-i18next";
 
 import { VerificationQRCode } from "@/components/verification-qr-code";
 import { Callout } from "@/components/ui/product/callout";
-import { formatCredits } from "@/constant/credits";
 import { useCopyText } from "@/hooks/use-copy-text";
 import { currentLocale } from "@/i18n";
-import { arkGroupPrice, formatArkTime } from "@/lib/ark-assets";
+import { formatArkTime } from "@/lib/ark-assets";
 import { cn } from "@/lib/utils";
-import { cancelArkPortraitSession, checkArkPortraitSession, createArkPortraitSession, createArkVirtualGroup, getArkPortraitSession, type ArkAssetConfig, type ArkPortraitSession } from "@/services/api/ark-portraits";
+import { cancelArkPortraitSession, checkArkPortraitSession, createArkPortraitSession, createArkVirtualGroup, getArkPortraitSession, type ArkPortraitSession } from "@/services/api/ark-portraits";
 
-type ComposerProps = { config: ArkAssetConfig; onCancel: () => void };
+type ComposerProps = { onCancel: () => void };
 
 /**
  * 真人素材组的三步流程：填写姓名 → 本人扫码完成 H5 认证 → 选中新素材组后上传照片。
  * 电脑端每 3 秒读取一次本地会话状态；手机完成认证后由服务端回调写入结果。
  */
-export function ArkRealGroupComposer({ config, resume, onCancel, onVerified, onSessionsChanged }: ComposerProps & { resume?: ArkPortraitSession; onVerified: (arkGroupId: string) => void; onSessionsChanged: () => void }) {
+export function ArkRealGroupComposer({ resume, onCancel, onVerified, onSessionsChanged }: ComposerProps & { resume?: ArkPortraitSession; onVerified: (arkGroupId: string) => void; onSessionsChanged: () => void }) {
     const { message } = App.useApp();
     const { t } = useTranslation();
     const copyText = useCopyText();
@@ -27,7 +26,6 @@ export function ArkRealGroupComposer({ config, resume, onCancel, onVerified, onS
     const [session, setSession] = useState<ArkPortraitSession | null>(resume || null);
     const [working, setWorking] = useState<"" | "start" | "check" | "cancel">("");
     const finished = useRef(false);
-    const price = arkGroupPrice(config, "real");
     const step = session ? 2 : 1;
 
     const statusQuery = useQuery({
@@ -138,7 +136,6 @@ export function ArkRealGroupComposer({ config, resume, onCancel, onVerified, onS
                         <Input autoFocus value={name} maxLength={40} placeholder={t("library.ark.realFlow.namePlaceholder")} onChange={(event) => setName(event.target.value)} onPressEnter={() => void start()} />
                     </label>
                     <Callout tone="info">{t("library.ark.realFlow.consent")}</Callout>
-                    <p className="ark-fee-note">{price > 0 ? t("library.ark.realFlow.fee", { price: formatCredits(price) }) : t("library.ark.realFlow.free")}</p>
                     <div className="ark-composer-actions">
                         <Button onClick={onCancel}>{t("common.cancel")}</Button>
                         <Button type="primary" icon={<UserRoundPlus className="size-4" />} loading={working === "start"} disabled={!name.trim()} onClick={() => void start()}>
@@ -157,7 +154,6 @@ export function ArkRealGroupComposer({ config, resume, onCancel, onVerified, onS
                         <strong>{t("library.ark.realFlow.sessionTitle", { name: session.name })}</strong>
                         <span>{t("library.ark.realFlow.sessionHint")}</span>
                         <span>{t("library.ark.realFlow.sessionExpires", { time: formatArkTime(session.expiresAt, currentLocale()) })}</span>
-                        {session.reservedMicrocredits > 0 ? <span className="ark-session-reserved">{t("library.ark.realFlow.reserved", { price: formatCredits(session.reservedMicrocredits) })}</span> : null}
                         <div className="ark-composer-actions is-start">
                             {session.h5Link ? (
                                 <>
@@ -183,14 +179,13 @@ export function ArkRealGroupComposer({ config, resume, onCancel, onVerified, onS
     );
 }
 
-/** 虚拟素材组：名称与说明，创建成功后才扣费。 */
-export function ArkVirtualGroupComposer({ config, onCancel, onCreated }: ComposerProps & { onCreated: (arkGroupId: string) => void }) {
+/** 虚拟素材组的名称与说明。 */
+export function ArkVirtualGroupComposer({ onCancel, onCreated }: ComposerProps & { onCreated: (arkGroupId: string) => void }) {
     const { message } = App.useApp();
     const { t } = useTranslation();
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [working, setWorking] = useState(false);
-    const price = arkGroupPrice(config, "virtual");
 
     const submit = async () => {
         const trimmed = name.trim();
@@ -228,7 +223,6 @@ export function ArkVirtualGroupComposer({ config, onCancel, onCreated }: Compose
                     <span>{t("library.ark.virtualFlow.descriptionLabel")}</span>
                     <Input.TextArea value={description} maxLength={200} autoSize={{ minRows: 2, maxRows: 4 }} placeholder={t("library.ark.virtualFlow.descriptionPlaceholder")} onChange={(event) => setDescription(event.target.value)} />
                 </label>
-                <p className="ark-fee-note">{price > 0 ? t("library.ark.virtualFlow.fee", { price: formatCredits(price) }) : t("library.ark.virtualFlow.free")}</p>
                 <div className="ark-composer-actions">
                     <Button onClick={onCancel}>{t("common.cancel")}</Button>
                     <Button type="primary" loading={working} disabled={!name.trim()} onClick={() => void submit()}>

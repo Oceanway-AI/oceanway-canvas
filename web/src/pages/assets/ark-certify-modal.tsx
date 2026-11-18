@@ -9,8 +9,7 @@ import { SegmentedControl } from "@/components/ui/base/segmented-control";
 import { Select } from "@/components/ui/base/select";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { Callout } from "@/components/ui/product/callout";
-import { formatCredits } from "@/constant/credits";
-import { arkGroupPrice, arkGroupQuotaLeft, arkGroupWritable, arkKindEnabled, arkLibraryProgressMap, arkLibrarySubmissionBlockerKey, arkReviewRequired } from "@/lib/ark-assets";
+import { arkGroupQuotaLeft, arkGroupWritable, arkKindEnabled, arkLibraryProgressMap, arkLibrarySubmissionBlockerKey, arkReviewRequired } from "@/lib/ark-assets";
 import { arkPortraitOverviewQueryKey, createArkPortraitAsset, createArkVirtualGroup, getArkPortraitOverview } from "@/services/api/ark-portraits";
 import { resourceIdFromStorageKey } from "@/services/api/resources";
 import { arkImageSizeProblem } from "@/services/ark-asset-upload";
@@ -68,7 +67,6 @@ export function ArkCertifyModal({ asset, onClose }: { asset: ImageAsset | null; 
     const blocked = !overview?.enabled ? t("library.ark.certify.unavailable") : !resourceId ? t("library.ark.certify.notCloud") : asset.arkCertification ? t("library.ark.upload.alreadyCertified") : blockerKey ? t(blockerKey) : sizeProblem;
     const creatingGroup = groupId === NEW_GROUP;
     const ready = !blocked && kinds.length > 0 && Boolean(groupId) && (!creatingGroup || Boolean(newName.trim()));
-    const virtualPrice = arkGroupPrice(config, "virtual");
 
     const submit = async () => {
         if (!ready) return;
@@ -170,7 +168,6 @@ export function ArkCertifyModal({ asset, onClose }: { asset: ImageAsset | null; 
                             <label className="flex flex-col gap-2">
                                 <span className="text-[var(--fs-caption)] font-medium">{t("library.ark.certify.newVirtualName")}</span>
                                 <Input value={newName} maxLength={40} placeholder={t("library.ark.virtualFlow.namePlaceholder")} onChange={(event) => setNewName(event.target.value)} />
-                                <span className="text-[var(--fs-label)] text-muted-foreground">{virtualPrice > 0 ? t("library.ark.virtualFlow.fee", { price: formatCredits(virtualPrice) }) : t("library.ark.virtualFlow.free")}</span>
                             </label>
                         ) : null}
                         {groupId && arkReviewRequired(config, kind) ? <p className="m-0 text-[var(--fs-label)] text-muted-foreground">{t("library.ark.group.reviewNotice")}</p> : null}

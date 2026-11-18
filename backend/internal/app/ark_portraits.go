@@ -10,7 +10,6 @@
 //   - 回调地址只带一次性随机 state，不带登录态；BytedToken 加密保存且只在服务端换取 GroupId。
 //   - 任务引用他人个人组、未授权平台组或已过期真人组的素材 ID 时拒绝执行（validateArkPortraitReferences）。
 //   - 登记方舟控制台已有的素材组只允许管理员操作，避免普通用户认领同账号下他人的组。
-//   - 用户自建素材组的费用先冻结后结算：真人认证成功、虚拟组创建成功才扣费，失败、过期或取消自动退回。
 
 package app
 
@@ -69,16 +68,13 @@ var (
 )
 
 type ArkAssetConfigView struct {
-	RealEnabled                   bool  `json:"realEnabled"`
-	VirtualEnabled                bool  `json:"virtualEnabled"`
-	RealGroupLimit                int   `json:"realGroupLimit"`
-	VirtualGroupLimit             int   `json:"virtualGroupLimit"`
-	BillingEnabled                bool  `json:"billingEnabled"`
-	RealGroupPriceMicrocredits    int64 `json:"realGroupPriceMicrocredits"`
-	VirtualGroupPriceMicrocredits int64 `json:"virtualGroupPriceMicrocredits"`
-	RealReviewRequired            bool  `json:"realReviewRequired"`
-	VirtualReviewRequired         bool  `json:"virtualReviewRequired"`
-	RealAuthorizationDays         int   `json:"realAuthorizationDays"`
+	RealEnabled           bool `json:"realEnabled"`
+	VirtualEnabled        bool `json:"virtualEnabled"`
+	RealGroupLimit        int  `json:"realGroupLimit"`
+	VirtualGroupLimit     int  `json:"virtualGroupLimit"`
+	RealReviewRequired    bool `json:"realReviewRequired"`
+	VirtualReviewRequired bool `json:"virtualReviewRequired"`
+	RealAuthorizationDays int  `json:"realAuthorizationDays"`
 }
 
 type ArkAssetUsageView struct {
@@ -153,19 +149,21 @@ type ArkPortraitAssetView struct {
 }
 
 type ArkPortraitSessionView struct {
-	ID                   string    `json:"id"`
-	Name                 string    `json:"name"`
-	Scope                string    `json:"scope"`
-	Status               string    `json:"status"`
-	H5Link               string    `json:"h5Link,omitempty"`
-	GroupID              string    `json:"groupId,omitempty"`
-	Error                string    `json:"error,omitempty"`
-	ReservedMicrocredits int64     `json:"reservedMicrocredits"`
-	ExpiresAt            time.Time `json:"expiresAt"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Scope     string    `json:"scope"`
+	Status    string    `json:"status"`
+	H5Link    string    `json:"h5Link,omitempty"`
+	GroupID   string    `json:"groupId,omitempty"`
+	Error     string    `json:"error,omitempty"`
+	ExpiresAt time.Time `json:"expiresAt"`
 }
 
 // arkCredentialSetting 读取凭据完整的方舟配置；所有调用方舟控制面的操作都从这里取配置。
 func (s *Service) arkCredentialSetting() (arkPrivateAssetSettingValue, error) {
+	if s.UsesPlatformIdentity() {
+		return arkPrivateAssetSettingValue{}, NewAppError(501, "方舟素材组尚未接通平台授权")
+	}
 	_, setting, err := s.readArkPrivateAssetSetting()
 	if err != nil {
 		return setting, err
@@ -212,64 +210,13 @@ func validArkGroupKind(kind string) bool {
 	return kind == arkGroupKindReal || kind == arkGroupKindVirtual || kind == arkGroupKindIP
 }
 
-// arkGroupCharge 返回用户自建该类素材组要支付的积分；平台积分功能关闭或未开启收费时为 0。
-func (s *Service) arkGroupCharge(setting arkPrivateAssetSettingValue, kind string) (int64, error) {
-	price := setting.groupPrice(kind)
-	if price <= 0 {
-		return 0, nil
-	}
-	enabled, err := s.FeatureEnabled(FeatureCredits)
-	if err != nil {
-		return 0, err
-	}
-	if !enabled {
-		return 0, nil
-	}
-	return price, nil
-}
-
 func (s *Service) arkAssetConfigView(setting arkPrivateAssetSettingValue) (ArkAssetConfigView, error) {
-	billing := false
-	if setting.BillingEnabled {
-		enabled, err := s.FeatureEnabled(FeatureCredits)
-		if err != nil {
-			return ArkAssetConfigView{}, err
-		}
-		billing = enabled
-	}
 	return ArkAssetConfigView{
 		RealEnabled: setting.RealEnabled, VirtualEnabled: setting.VirtualEnabled,
 		RealGroupLimit: setting.RealGroupLimit, VirtualGroupLimit: setting.VirtualGroupLimit,
-		BillingEnabled: billing, RealGroupPriceMicrocredits: setting.RealGroupPriceMicrocredits, VirtualGroupPriceMicrocredits: setting.VirtualGroupPriceMicrocredits,
 		RealReviewRequired: setting.RealReviewRequired, VirtualReviewRequired: setting.VirtualReviewRequired,
 		RealAuthorizationDays: setting.RealAuthorizationDays,
 	}, nil
-}
-
-func arkGroupBillingOrder(userID string, key string, kind string, amount int64) *model.BillingOrder {
-	return &model.BillingOrder{
-		ID: newID(), UserID: userID, IdempotencyKey: "ark-group:" + key,
-		Model: "方舟" + strings.ReplaceAll(arkGroupKindLabel(kind), " ", "") + "素材组", Capability: "ark_asset", Scene: model.BillingSceneArkAssetGroup,
-		BillingMode: "fixed_request", UnitPriceMicrocredits: amount, MultiplierBasisPoints: 10000, Quantity: 1,
-		AmountMicrocredits: amount, ReservedAmountMicrocredits: amount, Status: model.BillingStatusReserved,
-	}
-}
-
-func arkGroupSettleNote(kind string, name string) string {
-	return arkGroupKindLabel(kind) + " · " + name
-}
-
-func insufficientArkCredits(amount int64) error {
-	return BadAuthRequest(fmt.Sprintf("积分不足：创建该素材组需要 %s 积分，请充值后重试", formatArkCredits(amount)))
-}
-
-func formatArkCredits(amount int64) string {
-	whole := amount / CreditScale
-	fraction := amount % CreditScale
-	if fraction == 0 {
-		return fmt.Sprintf("%d", whole)
-	}
-	return strings.TrimRight(strings.TrimRight(fmt.Sprintf("%d.%06d", whole, fraction), "0"), ".")
 }
 
 func (s *Service) ArkPortraitOverview(ctx context.Context, actor *model.User) (*ArkPortraitOverview, error) {
@@ -416,23 +363,9 @@ func (s *Service) arkAssetViewsForUser(userID string, assets []model.ArkPortrait
 }
 
 func (s *Service) arkSessionViews(sessions []model.ArkPortraitSession) ([]ArkPortraitSessionView, error) {
-	orderIDs := make([]string, 0, len(sessions))
-	for _, session := range sessions {
-		if session.BillingOrderID != "" {
-			orderIDs = append(orderIDs, session.BillingOrderID)
-		}
-	}
-	orders, err := s.repo.BillingOrdersByIDs(orderIDs)
-	if err != nil {
-		return nil, err
-	}
 	views := make([]ArkPortraitSessionView, 0, len(sessions))
 	for _, session := range sessions {
-		view := arkPortraitSessionView(session)
-		if order, ok := orders[session.BillingOrderID]; ok && order.Status == model.BillingStatusReserved {
-			view.ReservedMicrocredits = order.AmountMicrocredits
-		}
-		views = append(views, view)
+		views = append(views, arkPortraitSessionView(session))
 	}
 	return views, nil
 }
@@ -472,7 +405,6 @@ func (s *Service) createArkPortraitSession(ctx context.Context, actor *model.Use
 	if recent >= maxArkPortraitSessionsPerHour {
 		return nil, RateLimited("真人认证发起过于频繁，请一小时后再试")
 	}
-	var order *model.BillingOrder
 	session := &model.ArkPortraitSession{
 		ID: newID(), UserID: actor.ID, Scope: scope, State: randomToken(), Name: name, Description: description,
 		Site: setting.Site, Region: setting.Region, ProjectName: setting.ProjectName,
@@ -493,24 +425,13 @@ func (s *Service) createArkPortraitSession(ctx context.Context, actor *model.Use
 		if groups+sessions >= int64(setting.RealGroupLimit) {
 			return nil, BadAuthRequest(fmt.Sprintf("每个账号最多创建 %d 个真人素材组（含认证中的会话）", setting.RealGroupLimit))
 		}
-		price, err := s.arkGroupCharge(setting, arkGroupKindReal)
-		if err != nil {
-			return nil, err
-		}
-		if price > 0 {
-			order = arkGroupBillingOrder(actor.ID, "session:"+session.ID, arkGroupKindReal, price)
-			session.BillingOrderID = order.ID
-		}
 	}
-	// 先登记会话并冻结费用，再调用方舟；方舟失败时退回冻结积分并把会话标记失败。
-	if err := s.repo.CreateArkPortraitSessionWithReservation(session, order); err != nil {
-		if errors.Is(err, repository.ErrInsufficientCredits) && order != nil {
-			return nil, insufficientArkCredits(order.AmountMicrocredits)
-		}
+	// 会话先持久化，随后记录外部认证的结果。
+	if err := s.repo.CreateArkPortraitSession(session); err != nil {
 		return nil, err
 	}
 	fail := func(message string, cause error) (*ArkPortraitSessionView, error) {
-		if _, finishErr := s.repo.FinishArkPortraitSession(session.ID, arkPortraitSessionFailed, "", message, "发起真人认证失败，冻结积分已退回"); finishErr != nil {
+		if _, finishErr := s.repo.FinishArkPortraitSession(session.ID, arkPortraitSessionFailed, "", message); finishErr != nil {
 			return nil, errors.Join(cause, finishErr)
 		}
 		return nil, WrapAppError(http.StatusBadGateway, message, cause)
@@ -535,9 +456,6 @@ func (s *Service) createArkPortraitSession(ctx context.Context, actor *model.Use
 		return fail("保存真人认证凭据失败", err)
 	}
 	view := arkPortraitSessionView(*session)
-	if order != nil {
-		view.ReservedMicrocredits = order.AmountMicrocredits
-	}
 	// H5 链接内含方舟签发的临时凭据，只在发起时返回给本人，不落库。
 	view.H5Link = h5Link
 	return &view, nil
@@ -573,7 +491,7 @@ func (s *Service) HandleArkPortraitCallback(ctx context.Context, state string, q
 		if sub := strings.TrimSpace(query.Get("algorithmBaseRespCode")); sub != "" {
 			detail += "，algorithmBaseRespCode=" + truncateRunes(sub, 20)
 		}
-		_, _ = s.repo.FinishArkPortraitSession(session.ID, arkPortraitSessionFailed, truncateRunes(resultCode, 40), detail+"），请重新发起认证", "真人认证未通过，冻结积分已退回")
+		_, _ = s.repo.FinishArkPortraitSession(session.ID, arkPortraitSessionFailed, truncateRunes(resultCode, 40), detail+"），请重新发起认证")
 		return result(arkPortraitSessionFailed, session.Scope)
 	}
 	if token := strings.TrimSpace(query.Get("bytedToken")); token != "" {
@@ -631,7 +549,7 @@ func (s *Service) CancelArkPortraitSession(actor *model.User, id string) (*ArkPo
 		return nil, err
 	}
 	if session.Status == arkPortraitSessionPending {
-		if _, err := s.repo.FinishArkPortraitSession(session.ID, arkPortraitSessionCancelled, "", "已取消真人认证", "已取消真人认证，冻结积分已退回"); err != nil {
+		if _, err := s.repo.FinishArkPortraitSession(session.ID, arkPortraitSessionCancelled, "", "已取消真人认证"); err != nil {
 			return nil, err
 		}
 	}
@@ -650,7 +568,7 @@ func (s *Service) arkPortraitSessionForUser(actor *model.User, id string) (*mode
 }
 
 func (s *Service) expireArkPortraitSession(id string) {
-	_, _ = s.repo.FinishArkPortraitSession(id, arkPortraitSessionExpired, "", "认证会话已过期", "真人认证未在有效期内完成，冻结积分已退回")
+	_, _ = s.repo.FinishArkPortraitSession(id, arkPortraitSessionExpired, "", "认证会话已过期")
 }
 
 func (s *Service) completeArkPortraitSession(ctx context.Context, session *model.ArkPortraitSession) (*model.ArkPortraitGroup, error) {
@@ -684,11 +602,11 @@ func (s *Service) completeArkPortraitSession(ctx context.Context, session *model
 	group := &model.ArkPortraitGroup{
 		ID: newID(), UserID: session.UserID, Kind: arkGroupKindReal, Scope: firstNonEmpty(session.Scope, arkGroupScopeUser),
 		Name: session.Name, Description: session.Description, Site: setting.Site, Region: setting.Region, ProjectName: setting.ProjectName,
-		GroupID: groupID, Source: arkGroupSourceLiveness, AuthorizedAt: &now, ExpiresAt: &expiresAt, BillingOrderID: session.BillingOrderID,
+		GroupID: groupID, Source: arkGroupSourceLiveness, AuthorizedAt: &now, ExpiresAt: &expiresAt,
 	}
-	registered, err := s.repo.CompleteArkPortraitSession(session.ID, group, arkGroupSettleNote(arkGroupKindReal, session.Name))
+	registered, err := s.repo.CompleteArkPortraitSession(session.ID, group)
 	if errors.Is(err, repository.ErrArkPortraitGroupTaken) {
-		_, _ = s.repo.FinishArkPortraitSession(session.ID, arkPortraitSessionFailed, arkPortraitSuccessCode, "该真人素材组已被其他账号登记", "真人素材组已被其他账号登记，冻结积分已退回")
+		_, _ = s.repo.FinishArkPortraitSession(session.ID, arkPortraitSessionFailed, arkPortraitSuccessCode, "该真人素材组已被其他账号登记")
 		return nil, NewAppError(http.StatusConflict, "该真人素材组已被其他账号登记")
 	}
 	if errors.Is(err, repository.ErrArkPortraitSessionClosed) {

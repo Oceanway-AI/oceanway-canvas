@@ -1,7 +1,7 @@
 import { App, Button, Form, Input, InputNumber, Skeleton } from "antd";
 import { Select } from "@/components/ui/base/select";
 import { AdminSegmented, Switch } from "@/pages/admin/ui/controls";
-import { AlertTriangle, CloudUpload, Coins, KeyRound, RefreshCw, RotateCcw, Save, UsersRound } from "lucide-react";
+import { AlertTriangle, CloudUpload, KeyRound, RefreshCw, RotateCcw, Save, UsersRound } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker, useSearchParams } from "react-router";
 
@@ -16,8 +16,7 @@ import "./ark-assets/ark-admin.css";
 type ArkSite = AdminArkPrivateAssetSetting["site"];
 type ArkTab = "groups" | "reviews" | "settings";
 
-const MICRO_PER_CREDIT = 1_000_000;
-const PAGE_DESCRIPTION = "管理平台方舟账号下的真人、虚拟与版权 IP 素材组，审核用户上传，并配置方舟凭据、开放范围与建组收费";
+const PAGE_DESCRIPTION = "管理平台方舟账号下的真人、虚拟与版权 IP 素材组，审核用户上传，并配置方舟凭据、开放范围";
 
 type ArkPrivateAssetForm = {
     enabled: boolean;
@@ -25,9 +24,6 @@ type ArkPrivateAssetForm = {
     virtualEnabled: boolean;
     realGroupLimit: number;
     virtualGroupLimit: number;
-    billingEnabled: boolean;
-    realGroupPrice: number;
-    virtualGroupPrice: number;
     realReviewRequired: boolean;
     virtualReviewRequired: boolean;
     realAuthorizationDays: number;
@@ -46,9 +42,6 @@ type ArkPrivateAssetPayload = Pick<
     | "virtualEnabled"
     | "realGroupLimit"
     | "virtualGroupLimit"
-    | "billingEnabled"
-    | "realGroupPriceMicrocredits"
-    | "virtualGroupPriceMicrocredits"
     | "realReviewRequired"
     | "virtualReviewRequired"
     | "realAuthorizationDays"
@@ -124,7 +117,6 @@ function ArkPrivateAssetsSettingsForm() {
     const draftEnabled = watchedValues?.enabled === true;
     const draftRealEnabled = watchedValues?.realEnabled === true;
     const draftVirtualEnabled = watchedValues?.virtualEnabled === true;
-    const draftBillingEnabled = watchedValues?.billingEnabled === true;
     const draftSite: ArkSite = watchedValues?.site === "byteplus" ? "byteplus" : "volcengine";
     const siteMeta = ARK_SITE_META[draftSite];
 
@@ -187,7 +179,7 @@ function ArkPrivateAssetsSettingsForm() {
         navigationTriggerRef.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
         modal.confirm({
             title: "放弃方舟素材库调整？",
-            content: "当前页面有尚未保存的同步策略、开放范围、收费或 IAM 凭据草稿，离开后这些内容会丢失。服务端正在使用的配置不会改变。",
+            content: "当前页面有尚未保存的同步策略、开放范围或 IAM 凭据草稿，离开后这些内容会丢失。服务端正在使用的配置不会改变。",
             okText: "放弃并离开",
             cancelText: "继续编辑",
             okButtonProps: { danger: true },
@@ -483,38 +475,6 @@ function ArkPrivateAssetsSettingsForm() {
                                 </div>
                             </SettingsSectionCard>
                         </div>
-                        <div id="admin-ark-billing" className="admin-settings-anchor">
-                            <SettingsSectionCard
-                                className="admin-ark-section admin-ark-policy-section"
-                                icon={<Coins className="size-4" aria-hidden="true" />}
-                                title="4. 素材组收费"
-                                description="按组一次性扣除平台积分：真人在发起认证时冻结、认证成功后扣除，失败、过期或取消自动退回；虚拟在创建成功后扣除。平台积分功能关闭时不收费，删除素材组不退款。"
-                                status={<AdminStatusBadge label={draftBillingEnabled ? "收费" : "免费"} tone={draftBillingEnabled ? "info" : "neutral"} />}
-                            >
-                                <div className="admin-ark-policy-control">
-                                    <div className="admin-ark-policy-copy">
-                                        <strong>建组收费</strong>
-                                        <p>只对用户自建素材组生效；管理员创建的平台素材组不收费。</p>
-                                    </div>
-                                    <div className="admin-ark-policy-switch">
-                                        <span>{draftBillingEnabled ? "收费" : "免费"}</span>
-                                        <Form.Item name="billingEnabled" valuePropName="checked" noStyle>
-                                            <Switch aria-label="开启素材组收费，保存修改后生效" />
-                                        </Form.Item>
-                                    </div>
-                                </div>
-                                {draftBillingEnabled ? (
-                                    <div className="admin-ark-form-grid">
-                                        <Form.Item name="realGroupPrice" label="真人素材组（积分 / 组）" rules={[{ required: true, type: "number", min: 0, max: 1_000_000, message: "请填写 0–1000000" }]}>
-                                            <InputNumber min={0} max={1_000_000} precision={2} className="w-full" />
-                                        </Form.Item>
-                                        <Form.Item name="virtualGroupPrice" label="虚拟素材组（积分 / 组）" rules={[{ required: true, type: "number", min: 0, max: 1_000_000, message: "请填写 0–1000000" }]}>
-                                            <InputNumber min={0} max={1_000_000} precision={2} className="w-full" />
-                                        </Form.Item>
-                                    </div>
-                                ) : null}
-                            </SettingsSectionCard>
-                        </div>
                     </>
                 ) : null}
             </Form>
@@ -529,9 +489,6 @@ function toFormValues(setting: AdminArkPrivateAssetSetting): ArkPrivateAssetForm
         virtualEnabled: setting.virtualEnabled,
         realGroupLimit: setting.realGroupLimit,
         virtualGroupLimit: setting.virtualGroupLimit,
-        billingEnabled: setting.billingEnabled,
-        realGroupPrice: setting.realGroupPriceMicrocredits / MICRO_PER_CREDIT,
-        virtualGroupPrice: setting.virtualGroupPriceMicrocredits / MICRO_PER_CREDIT,
         realReviewRequired: setting.realReviewRequired,
         virtualReviewRequired: setting.virtualReviewRequired,
         realAuthorizationDays: setting.realAuthorizationDays,
@@ -556,9 +513,6 @@ function normalizeArkPrivateAssetPayload(values: Partial<ArkPrivateAssetForm>): 
         virtualEnabled: Boolean(values.virtualEnabled),
         realGroupLimit: wholeNumber(values.realGroupLimit, 0),
         virtualGroupLimit: wholeNumber(values.virtualGroupLimit, 0),
-        billingEnabled: Boolean(values.billingEnabled),
-        realGroupPriceMicrocredits: Math.max(0, Math.round(Number(values.realGroupPrice || 0) * MICRO_PER_CREDIT)),
-        virtualGroupPriceMicrocredits: Math.max(0, Math.round(Number(values.virtualGroupPrice || 0) * MICRO_PER_CREDIT)),
         realReviewRequired: Boolean(values.realReviewRequired),
         virtualReviewRequired: Boolean(values.virtualReviewRequired),
         realAuthorizationDays: wholeNumber(values.realAuthorizationDays, 0),
@@ -577,9 +531,6 @@ const COMPARED_FIELDS = [
     "virtualEnabled",
     "realGroupLimit",
     "virtualGroupLimit",
-    "billingEnabled",
-    "realGroupPriceMicrocredits",
-    "virtualGroupPriceMicrocredits",
     "realReviewRequired",
     "virtualReviewRequired",
     "realAuthorizationDays",
@@ -636,11 +587,8 @@ function isAdminArkPrivateAssetSetting(value: unknown): value is AdminArkPrivate
         typeof setting.enabled === "boolean" &&
         typeof setting.realEnabled === "boolean" &&
         typeof setting.virtualEnabled === "boolean" &&
-        typeof setting.billingEnabled === "boolean" &&
         typeof setting.realGroupLimit === "number" &&
         typeof setting.virtualGroupLimit === "number" &&
-        typeof setting.realGroupPriceMicrocredits === "number" &&
-        typeof setting.virtualGroupPriceMicrocredits === "number" &&
         typeof setting.realAuthorizationDays === "number" &&
         typeof setting.site === "string" &&
         typeof setting.region === "string" &&

@@ -24,16 +24,8 @@ const (
 	arkPortraitSessionDone    = "verified"
 )
 
-// CreateArkPortraitSessionWithReservation 在同一事务中冻结素材组费用并登记认证会话；余额不足时两者都不写入。
-func (r *Repository) CreateArkPortraitSessionWithReservation(session *model.ArkPortraitSession, order *model.BillingOrder) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		if order != nil {
-			if err := reserveBillingOrder(tx, order); err != nil {
-				return err
-			}
-		}
-		return tx.Create(session).Error
-	})
+func (r *Repository) CreateArkPortraitSession(session *model.ArkPortraitSession) error {
+	return r.db.Create(session).Error
 }
 
 func (r *Repository) SetArkPortraitSessionToken(id string, cipher string) error {
@@ -82,9 +74,8 @@ func (r *Repository) ExpiredPendingArkPortraitSessions(now time.Time, limit int)
 	return sessions, err
 }
 
-// FinishArkPortraitSession 只结束仍为 pending 的会话，并在同一事务里退回冻结的素材组费用；
-// 回调、轮询、取消与过期清理并发时只有一方生效，返回值表示本次调用是否生效。
-func (r *Repository) FinishArkPortraitSession(id, status, resultCode, message, refundNote string) (bool, error) {
+// FinishArkPortraitSession 在回调、轮询、取消与过期清理并发时只完成一次。
+func (r *Repository) FinishArkPortraitSession(id, status, resultCode, message string) (bool, error) {
 	finished := false
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		var session model.ArkPortraitSession
@@ -104,17 +95,14 @@ func (r *Repository) FinishArkPortraitSession(id, status, resultCode, message, r
 			return nil
 		}
 		finished = true
-		if session.BillingOrderID == "" {
-			return nil
-		}
-		return refundArkGroupOrder(tx, session.BillingOrderID, refundNote)
+		return nil
 	})
 	return finished, err
 }
 
-// CompleteArkPortraitSession 把认证成功的会话登记为素材组并结算冻结费用，三者在同一事务里完成。
+// CompleteArkPortraitSession 在同一事务中登记素材组与完成认证会话。
 // 会话已由并发调用完成时返回已登记的素材组；已失败、过期或取消时返回 ErrArkPortraitSessionClosed。
-func (r *Repository) CompleteArkPortraitSession(sessionID string, group *model.ArkPortraitGroup, settleNote string) (*model.ArkPortraitGroup, error) {
+func (r *Repository) CompleteArkPortraitSession(sessionID string, group *model.ArkPortraitGroup) (*model.ArkPortraitGroup, error) {
 	var registered *model.ArkPortraitGroup
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		var session model.ArkPortraitSession
@@ -142,29 +130,13 @@ func (r *Repository) CompleteArkPortraitSession(sessionID string, group *model.A
 		}).Error; err != nil {
 			return err
 		}
-		if session.BillingOrderID == "" {
-			return nil
-		}
-		return settleArkGroupOrder(tx, session.BillingOrderID, settleNote)
+		return nil
 	})
 	return registered, err
 }
 
-// CreateArkPortraitGroupWithCharge 登记已在方舟创建的素材组，并结算创建前冻结的费用。
-func (r *Repository) CreateArkPortraitGroupWithCharge(group *model.ArkPortraitGroup, settleNote string) (*model.ArkPortraitGroup, error) {
-	var registered *model.ArkPortraitGroup
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		created, err := createArkPortraitGroup(tx, group)
-		if err != nil {
-			return err
-		}
-		registered = created
-		if group.BillingOrderID == "" {
-			return nil
-		}
-		return settleArkGroupOrder(tx, group.BillingOrderID, settleNote)
-	})
-	return registered, err
+func (r *Repository) CreateArkPortraitGroup(group *model.ArkPortraitGroup) (*model.ArkPortraitGroup, error) {
+	return createArkPortraitGroup(r.db, group)
 }
 
 // createArkPortraitGroup 以 (ProjectName, GroupID) 去重；同一账号重复登记返回已有记录，其他账号已登记时拒绝。
@@ -187,132 +159,6 @@ func createArkPortraitGroup(tx *gorm.DB, group *model.ArkPortraitGroup) (*model.
 		return nil, ErrArkPortraitGroupTaken
 	}
 	return &existing, nil
-}
-
-// RefundArkGroupBillingOrder 退回未完成的素材组费用；订单已结算或已退回时不重复处理。
-func (r *Repository) RefundArkGroupBillingOrder(orderID string, note string) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		return refundArkGroupOrder(tx, orderID, note)
-	})
-}
-
-// StaleArkGroupBillingOrders 返回长时间仍处于冻结状态、且没有待认证会话引用的素材组订单
-// （例如创建虚拟组时进程中断）。真人认证会话由过期清理负责退回，不在这里重复处理。
-func (r *Repository) StaleArkGroupBillingOrders(before time.Time, limit int) ([]model.BillingOrder, error) {
-	var orders []model.BillingOrder
-	pending := r.db.Model(&model.ArkPortraitSession{}).Select("billing_order_id").Where("status = ? AND billing_order_id <> ''", arkPortraitSessionPending)
-	err := r.db.Where("scene = ? AND status = ? AND created_at < ? AND id NOT IN (?)", model.BillingSceneArkAssetGroup, model.BillingStatusReserved, before, pending).
-		Order("created_at asc").Limit(limit).Find(&orders).Error
-	return orders, err
-}
-
-func settleArkGroupOrder(tx *gorm.DB, orderID string, note string) error {
-	var order model.BillingOrder
-	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&order, "id = ?", orderID).Error; err != nil {
-		return err
-	}
-	if order.Status == model.BillingStatusSettled {
-		return nil
-	}
-	if order.Scene != model.BillingSceneArkAssetGroup || (order.Status != model.BillingStatusReserved && order.Status != model.BillingStatusRunning) {
-		return ErrBillingStateConflict
-	}
-	updated := tx.Model(&model.CreditAccount{}).
-		Where("user_id = ? AND reserved_microcredits >= ?", order.UserID, order.AmountMicrocredits).
-		Updates(map[string]any{
-			"reserved_microcredits": gorm.Expr("reserved_microcredits - ?", order.AmountMicrocredits),
-			"version":               gorm.Expr("version + 1"),
-			"updated_at":            time.Now(),
-		})
-	if updated.Error != nil {
-		return updated.Error
-	}
-	if updated.RowsAffected != 1 {
-		return errors.New("reserved credit balance is inconsistent")
-	}
-	var account model.CreditAccount
-	if err := tx.First(&account, "user_id = ?", order.UserID).Error; err != nil {
-		return err
-	}
-	now := time.Now()
-	if err := tx.Model(&model.BillingOrder{}).Where("id = ?", order.ID).Updates(map[string]any{
-		"status": model.BillingStatusSettled, "actual_amount_microcredits": order.AmountMicrocredits, "settled_at": &now, "updated_at": now,
-	}).Error; err != nil {
-		return err
-	}
-	return tx.Create(&model.CreditLedgerEntry{
-		ID:                         newRepositoryID(),
-		UserID:                     order.UserID,
-		Type:                       model.CreditLedgerConsume,
-		AmountMicrocredits:         -order.AmountMicrocredits,
-		ReservedDeltaMicrocredits:  -order.AmountMicrocredits,
-		AvailableAfterMicrocredits: account.AvailableMicrocredits,
-		ReservedAfterMicrocredits:  account.ReservedMicrocredits,
-		BillingOrderID:             order.ID,
-		Model:                      order.Model,
-		Scene:                      order.Scene,
-		Note:                       truncateArkNote(note),
-	}).Error
-}
-
-func refundArkGroupOrder(tx *gorm.DB, orderID string, note string) error {
-	var order model.BillingOrder
-	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&order, "id = ?", orderID).Error; err != nil {
-		return err
-	}
-	if order.Status == model.BillingStatusRefunded || order.Status == model.BillingStatusSettled {
-		return nil
-	}
-	if order.Scene != model.BillingSceneArkAssetGroup {
-		return ErrBillingStateConflict
-	}
-	updated := tx.Model(&model.CreditAccount{}).
-		Where("user_id = ? AND reserved_microcredits >= ?", order.UserID, order.AmountMicrocredits).
-		Updates(map[string]any{
-			"available_microcredits": gorm.Expr("available_microcredits + ?", order.AmountMicrocredits),
-			"reserved_microcredits":  gorm.Expr("reserved_microcredits - ?", order.AmountMicrocredits),
-			"version":                gorm.Expr("version + 1"),
-			"updated_at":             time.Now(),
-		})
-	if updated.Error != nil {
-		return updated.Error
-	}
-	if updated.RowsAffected != 1 {
-		return errors.New("reserved credit balance is inconsistent")
-	}
-	var account model.CreditAccount
-	if err := tx.First(&account, "user_id = ?", order.UserID).Error; err != nil {
-		return err
-	}
-	now := time.Now()
-	note = truncateArkNote(note)
-	if err := tx.Model(&model.BillingOrder{}).Where("id = ?", order.ID).Updates(map[string]any{
-		"status": model.BillingStatusRefunded, "error": note, "refunded_amount_microcredits": order.AmountMicrocredits, "refunded_at": &now, "updated_at": now,
-	}).Error; err != nil {
-		return err
-	}
-	return tx.Create(&model.CreditLedgerEntry{
-		ID:                         newRepositoryID(),
-		UserID:                     order.UserID,
-		Type:                       model.CreditLedgerRefund,
-		AmountMicrocredits:         order.AmountMicrocredits,
-		AvailableDeltaMicrocredits: order.AmountMicrocredits,
-		ReservedDeltaMicrocredits:  -order.AmountMicrocredits,
-		AvailableAfterMicrocredits: account.AvailableMicrocredits,
-		ReservedAfterMicrocredits:  account.ReservedMicrocredits,
-		BillingOrderID:             order.ID,
-		Model:                      order.Model,
-		Scene:                      order.Scene,
-		Note:                       note,
-	}).Error
-}
-
-func truncateArkNote(note string) string {
-	runes := []rune(strings.TrimSpace(note))
-	if len(runes) > 200 {
-		return string(runes[:200])
-	}
-	return string(runes)
 }
 
 // ArkPortraitUserGroups 返回用户自建的素材组。

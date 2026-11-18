@@ -75,10 +75,6 @@ export type AdminArkPrivateAssetSetting = {
     virtualEnabled: boolean;
     realGroupLimit: number;
     virtualGroupLimit: number;
-    /** 按组一次性收费；平台积分功能关闭时不生效。 */
-    billingEnabled: boolean;
-    realGroupPriceMicrocredits: number;
-    virtualGroupPriceMicrocredits: number;
     realReviewRequired: boolean;
     virtualReviewRequired: boolean;
     realAuthorizationDays: number;

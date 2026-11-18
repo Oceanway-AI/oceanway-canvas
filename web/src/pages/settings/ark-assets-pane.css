@@ -363,12 +363,6 @@
     font-size: var(--fs-caption);
     font-weight: 500;
 }
-.ark-fee-note {
-    margin: 0;
-    color: var(--user-ink-muted);
-    font-size: var(--fs-caption);
-    line-height: 1.6;
-}
 .ark-composer-actions {
     display: flex;
     flex-wrap: wrap;
@@ -407,9 +401,6 @@
     font-size: var(--fs-title);
     font-weight: 600;
     line-height: 1.4;
-}
-.ark-session-reserved {
-    color: var(--status-warning);
 }
 
 /* 素材组详情 */

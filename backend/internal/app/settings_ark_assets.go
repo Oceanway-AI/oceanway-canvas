@@ -25,73 +25,62 @@ const (
 	defaultArkRealAuthorizationDays = 365
 	maxArkGroupLimit                = 200
 	maxArkAuthorizationDays         = 3650
-	// 单组费用上限 100 万积分，防止误把微积分当积分录入后产生异常扣费。
-	maxArkGroupPriceMicrocredits = 1_000_000 * CreditScale
 )
 
 type ArkPrivateAssetSettingRequest struct {
 	Enabled bool `json:"enabled"`
 	// RealEnabled / VirtualEnabled 分别开放用户自助创建真人、虚拟素材组；与可信素材自动同步（Enabled）相互独立。
-	RealEnabled                   bool   `json:"realEnabled"`
-	VirtualEnabled                bool   `json:"virtualEnabled"`
-	RealGroupLimit                int    `json:"realGroupLimit"`
-	VirtualGroupLimit             int    `json:"virtualGroupLimit"`
-	BillingEnabled                bool   `json:"billingEnabled"`
-	RealGroupPriceMicrocredits    int64  `json:"realGroupPriceMicrocredits"`
-	VirtualGroupPriceMicrocredits int64  `json:"virtualGroupPriceMicrocredits"`
-	RealReviewRequired            bool   `json:"realReviewRequired"`
-	VirtualReviewRequired         bool   `json:"virtualReviewRequired"`
-	RealAuthorizationDays         int    `json:"realAuthorizationDays"`
-	Site                          string `json:"site"`
-	CallbackBaseURL               string `json:"callbackBaseUrl"`
-	Region                        string `json:"region"`
-	ProjectName                   string `json:"projectName"`
-	AccessKeyID                   string `json:"accessKeyId"`
-	AccessKeySecret               string `json:"accessKeySecret"`
+	RealEnabled           bool   `json:"realEnabled"`
+	VirtualEnabled        bool   `json:"virtualEnabled"`
+	RealGroupLimit        int    `json:"realGroupLimit"`
+	VirtualGroupLimit     int    `json:"virtualGroupLimit"`
+	RealReviewRequired    bool   `json:"realReviewRequired"`
+	VirtualReviewRequired bool   `json:"virtualReviewRequired"`
+	RealAuthorizationDays int    `json:"realAuthorizationDays"`
+	Site                  string `json:"site"`
+	CallbackBaseURL       string `json:"callbackBaseUrl"`
+	Region                string `json:"region"`
+	ProjectName           string `json:"projectName"`
+	AccessKeyID           string `json:"accessKeyId"`
+	AccessKeySecret       string `json:"accessKeySecret"`
 }
 
 type PublicArkPrivateAssetSetting struct {
-	Enabled                       bool      `json:"enabled"`
-	RealEnabled                   bool      `json:"realEnabled"`
-	VirtualEnabled                bool      `json:"virtualEnabled"`
-	RealGroupLimit                int       `json:"realGroupLimit"`
-	VirtualGroupLimit             int       `json:"virtualGroupLimit"`
-	BillingEnabled                bool      `json:"billingEnabled"`
-	RealGroupPriceMicrocredits    int64     `json:"realGroupPriceMicrocredits"`
-	VirtualGroupPriceMicrocredits int64     `json:"virtualGroupPriceMicrocredits"`
-	RealReviewRequired            bool      `json:"realReviewRequired"`
-	VirtualReviewRequired         bool      `json:"virtualReviewRequired"`
-	RealAuthorizationDays         int       `json:"realAuthorizationDays"`
-	Site                          string    `json:"site"`
-	CallbackBaseURL               string    `json:"callbackBaseUrl"`
-	Region                        string    `json:"region"`
-	ProjectName                   string    `json:"projectName"`
-	AccessKeyID                   string    `json:"accessKeyId"`
-	HasAccessKeySecret            bool      `json:"hasAccessKeySecret"`
-	UpdatedBy                     string    `json:"updatedBy"`
-	CreatedAt                     time.Time `json:"createdAt"`
-	UpdatedAt                     time.Time `json:"updatedAt"`
+	Enabled               bool      `json:"enabled"`
+	RealEnabled           bool      `json:"realEnabled"`
+	VirtualEnabled        bool      `json:"virtualEnabled"`
+	RealGroupLimit        int       `json:"realGroupLimit"`
+	VirtualGroupLimit     int       `json:"virtualGroupLimit"`
+	RealReviewRequired    bool      `json:"realReviewRequired"`
+	VirtualReviewRequired bool      `json:"virtualReviewRequired"`
+	RealAuthorizationDays int       `json:"realAuthorizationDays"`
+	Site                  string    `json:"site"`
+	CallbackBaseURL       string    `json:"callbackBaseUrl"`
+	Region                string    `json:"region"`
+	ProjectName           string    `json:"projectName"`
+	AccessKeyID           string    `json:"accessKeyId"`
+	HasAccessKeySecret    bool      `json:"hasAccessKeySecret"`
+	UpdatedBy             string    `json:"updatedBy"`
+	CreatedAt             time.Time `json:"createdAt"`
+	UpdatedAt             time.Time `json:"updatedAt"`
 }
 
 type arkPrivateAssetSettingValue struct {
-	Enabled                       bool   `json:"enabled"`
-	RealEnabled                   bool   `json:"realEnabled"`
-	VirtualEnabled                bool   `json:"virtualEnabled"`
-	RealGroupLimit                int    `json:"realGroupLimit"`
-	VirtualGroupLimit             int    `json:"virtualGroupLimit"`
-	BillingEnabled                bool   `json:"billingEnabled"`
-	RealGroupPriceMicrocredits    int64  `json:"realGroupPriceMicrocredits"`
-	VirtualGroupPriceMicrocredits int64  `json:"virtualGroupPriceMicrocredits"`
-	RealReviewRequired            bool   `json:"realReviewRequired"`
-	VirtualReviewRequired         bool   `json:"virtualReviewRequired"`
-	RealAuthorizationDays         int    `json:"realAuthorizationDays"`
-	Site                          string `json:"site"`
-	CallbackBaseURL               string `json:"callbackBaseUrl"`
-	Region                        string `json:"region"`
-	ProjectName                   string `json:"projectName"`
-	AccessKeyID                   string `json:"accessKeyId"`
-	AccessKeySecret               string `json:"accessKeySecret"`
-	DefaultGroupID                string `json:"defaultGroupId"`
+	Enabled               bool   `json:"enabled"`
+	RealEnabled           bool   `json:"realEnabled"`
+	VirtualEnabled        bool   `json:"virtualEnabled"`
+	RealGroupLimit        int    `json:"realGroupLimit"`
+	VirtualGroupLimit     int    `json:"virtualGroupLimit"`
+	RealReviewRequired    bool   `json:"realReviewRequired"`
+	VirtualReviewRequired bool   `json:"virtualReviewRequired"`
+	RealAuthorizationDays int    `json:"realAuthorizationDays"`
+	Site                  string `json:"site"`
+	CallbackBaseURL       string `json:"callbackBaseUrl"`
+	Region                string `json:"region"`
+	ProjectName           string `json:"projectName"`
+	AccessKeyID           string `json:"accessKeyId"`
+	AccessKeySecret       string `json:"accessKeySecret"`
+	DefaultGroupID        string `json:"defaultGroupId"`
 }
 
 // credentialsReady 表示站点、项目与 IAM 凭据完整，可以调用方舟控制面。
@@ -104,19 +93,6 @@ func (value arkPrivateAssetSettingValue) groupLimit(kind string) int {
 		return value.VirtualGroupLimit
 	}
 	return value.RealGroupLimit
-}
-
-func (value arkPrivateAssetSettingValue) groupPrice(kind string) int64 {
-	if !value.BillingEnabled {
-		return 0
-	}
-	if kind == arkGroupKindVirtual {
-		return value.VirtualGroupPriceMicrocredits
-	}
-	if kind == arkGroupKindReal {
-		return value.RealGroupPriceMicrocredits
-	}
-	return 0
 }
 
 func (value arkPrivateAssetSettingValue) reviewRequired(kind string) bool {
@@ -170,7 +146,6 @@ func (s *Service) UpdateArkPrivateAssetSetting(actor *model.User, req ArkPrivate
 	}
 	if err := s.appendAdminAudit(actor, "ark_private_assets.update", "system_setting", arkPrivateAssetSettingKey, "更新方舟素材库配置", map[string]any{
 		"enabled": next.Enabled, "realEnabled": next.RealEnabled, "virtualEnabled": next.VirtualEnabled,
-		"billingEnabled": next.BillingEnabled, "realGroupPriceMicrocredits": next.RealGroupPriceMicrocredits, "virtualGroupPriceMicrocredits": next.VirtualGroupPriceMicrocredits,
 		"realGroupLimit": next.RealGroupLimit, "virtualGroupLimit": next.VirtualGroupLimit,
 		"realReviewRequired": next.RealReviewRequired, "virtualReviewRequired": next.VirtualReviewRequired, "realAuthorizationDays": next.RealAuthorizationDays,
 		"site": next.Site, "region": next.Region, "projectName": next.ProjectName,
@@ -227,23 +202,20 @@ func (s *Service) saveArkPrivateAssetSetting(setting *model.SystemSetting, value
 
 func arkPrivateAssetSettingFromRequest(req ArkPrivateAssetSettingRequest, current arkPrivateAssetSettingValue) (arkPrivateAssetSettingValue, error) {
 	next := normalizeArkPrivateAssetSetting(arkPrivateAssetSettingValue{
-		Enabled:                       req.Enabled,
-		RealEnabled:                   req.RealEnabled,
-		VirtualEnabled:                req.VirtualEnabled,
-		RealGroupLimit:                req.RealGroupLimit,
-		VirtualGroupLimit:             req.VirtualGroupLimit,
-		BillingEnabled:                req.BillingEnabled,
-		RealGroupPriceMicrocredits:    req.RealGroupPriceMicrocredits,
-		VirtualGroupPriceMicrocredits: req.VirtualGroupPriceMicrocredits,
-		RealReviewRequired:            req.RealReviewRequired,
-		VirtualReviewRequired:         req.VirtualReviewRequired,
-		RealAuthorizationDays:         req.RealAuthorizationDays,
-		Site:                          req.Site,
-		CallbackBaseURL:               req.CallbackBaseURL,
-		Region:                        req.Region,
-		ProjectName:                   req.ProjectName,
-		AccessKeyID:                   req.AccessKeyID,
-		AccessKeySecret:               req.AccessKeySecret,
+		Enabled:               req.Enabled,
+		RealEnabled:           req.RealEnabled,
+		VirtualEnabled:        req.VirtualEnabled,
+		RealGroupLimit:        req.RealGroupLimit,
+		VirtualGroupLimit:     req.VirtualGroupLimit,
+		RealReviewRequired:    req.RealReviewRequired,
+		VirtualReviewRequired: req.VirtualReviewRequired,
+		RealAuthorizationDays: req.RealAuthorizationDays,
+		Site:                  req.Site,
+		CallbackBaseURL:       req.CallbackBaseURL,
+		Region:                req.Region,
+		ProjectName:           req.ProjectName,
+		AccessKeyID:           req.AccessKeyID,
+		AccessKeySecret:       req.AccessKeySecret,
 	})
 	if next.AccessKeySecret == "" && next.AccessKeyID == current.AccessKeyID {
 		next.AccessKeySecret = current.AccessKeySecret
@@ -276,11 +248,6 @@ func arkPrivateAssetSettingFromRequest(req ArkPrivateAssetSettingRequest, curren
 	if next.Region != "" {
 		if _, err := arkPrivateAssetControlPlaneURL(next.Site, next.Region); err != nil {
 			return next, BadAuthRequest(err.Error())
-		}
-	}
-	for _, price := range []int64{req.RealGroupPriceMicrocredits, req.VirtualGroupPriceMicrocredits} {
-		if price < 0 || price > maxArkGroupPriceMicrocredits {
-			return next, BadAuthRequest("素材组费用需在 0 到 1000000 积分之间")
 		}
 	}
 	if !next.Enabled && !next.RealEnabled && !next.VirtualEnabled {
@@ -336,23 +303,20 @@ func defaultArkPrivateAssetSetting() arkPrivateAssetSettingValue {
 
 func publicArkPrivateAssetSetting(setting *model.SystemSetting, value arkPrivateAssetSettingValue) PublicArkPrivateAssetSetting {
 	result := PublicArkPrivateAssetSetting{
-		Enabled:                       value.Enabled,
-		RealEnabled:                   value.RealEnabled,
-		VirtualEnabled:                value.VirtualEnabled,
-		RealGroupLimit:                value.RealGroupLimit,
-		VirtualGroupLimit:             value.VirtualGroupLimit,
-		BillingEnabled:                value.BillingEnabled,
-		RealGroupPriceMicrocredits:    value.RealGroupPriceMicrocredits,
-		VirtualGroupPriceMicrocredits: value.VirtualGroupPriceMicrocredits,
-		RealReviewRequired:            value.RealReviewRequired,
-		VirtualReviewRequired:         value.VirtualReviewRequired,
-		RealAuthorizationDays:         value.RealAuthorizationDays,
-		Site:                          value.Site,
-		CallbackBaseURL:               value.CallbackBaseURL,
-		Region:                        value.Region,
-		ProjectName:                   value.ProjectName,
-		AccessKeyID:                   value.AccessKeyID,
-		HasAccessKeySecret:            value.AccessKeySecret != "",
+		Enabled:               value.Enabled,
+		RealEnabled:           value.RealEnabled,
+		VirtualEnabled:        value.VirtualEnabled,
+		RealGroupLimit:        value.RealGroupLimit,
+		VirtualGroupLimit:     value.VirtualGroupLimit,
+		RealReviewRequired:    value.RealReviewRequired,
+		VirtualReviewRequired: value.VirtualReviewRequired,
+		RealAuthorizationDays: value.RealAuthorizationDays,
+		Site:                  value.Site,
+		CallbackBaseURL:       value.CallbackBaseURL,
+		Region:                value.Region,
+		ProjectName:           value.ProjectName,
+		AccessKeyID:           value.AccessKeyID,
+		HasAccessKeySecret:    value.AccessKeySecret != "",
 	}
 	if setting != nil {
 		result.UpdatedBy = setting.UpdatedBy

@@ -63,7 +63,6 @@ export type ArkPortraitSession = {
     /** 认证成功后为方舟素材组 ID（group-…）。 */
     groupId?: string;
     error?: string;
-    reservedMicrocredits: number;
     expiresAt: string;
 };
 
@@ -72,10 +71,6 @@ export type ArkAssetConfig = {
     virtualEnabled: boolean;
     realGroupLimit: number;
     virtualGroupLimit: number;
-    /** 已叠加平台积分开关的实际收费状态。 */
-    billingEnabled: boolean;
-    realGroupPriceMicrocredits: number;
-    virtualGroupPriceMicrocredits: number;
     realReviewRequired: boolean;
     virtualReviewRequired: boolean;
     realAuthorizationDays: number;

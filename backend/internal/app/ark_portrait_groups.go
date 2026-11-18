@@ -12,7 +12,6 @@ import (
 
 	"yingce/backend/internal/assets"
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/repository"
 )
 
 // ArkGroupInput 是创建或修改素材组时的名称与说明。
@@ -32,7 +31,7 @@ func normalizeArkGroupInput(input ArkGroupInput) (ArkGroupInput, error) {
 	return input, nil
 }
 
-// CreateArkVirtualGroup 为用户创建虚拟人像素材组：先冻结费用，方舟建组成功后结算，失败自动退回。
+// CreateArkVirtualGroup 创建并登记用户的虚拟人像素材组。
 func (s *Service) CreateArkVirtualGroup(ctx context.Context, actor *model.User, input ArkGroupInput) (*ArkPortraitGroupView, error) {
 	if actor == nil {
 		return nil, Unauthorized("请先登录")
@@ -55,40 +54,18 @@ func (s *Service) CreateArkVirtualGroup(ctx context.Context, actor *model.User, 
 	if count >= int64(setting.VirtualGroupLimit) {
 		return nil, BadAuthRequest(fmt.Sprintf("每个账号最多创建 %d 个虚拟素材组", setting.VirtualGroupLimit))
 	}
-	price, err := s.arkGroupCharge(setting, arkGroupKindVirtual)
-	if err != nil {
-		return nil, err
-	}
 	group := &model.ArkPortraitGroup{
 		ID: newID(), UserID: actor.ID, Kind: arkGroupKindVirtual, Scope: arkGroupScopeUser, Name: input.Name, Description: input.Description,
 		Site: setting.Site, Region: setting.Region, ProjectName: setting.ProjectName, Source: arkGroupSourceCreated,
 	}
-	if price > 0 {
-		order := arkGroupBillingOrder(actor.ID, "group:"+group.ID, arkGroupKindVirtual, price)
-		if err := s.repo.ReserveBillingOrder(order); err != nil {
-			if errors.Is(err, repository.ErrInsufficientCredits) {
-				return nil, insufficientArkCredits(price)
-			}
-			return nil, err
-		}
-		group.BillingOrderID = order.ID
-	}
-	refund := func(note string, cause error) (*ArkPortraitGroupView, error) {
-		if group.BillingOrderID != "" {
-			if err := s.repo.RefundArkGroupBillingOrder(group.BillingOrderID, note); err != nil {
-				return nil, errors.Join(cause, err)
-			}
-		}
-		return nil, cause
-	}
 	groupID, err := s.createArkAssetGroupUpstream(ctx, setting, input)
 	if err != nil {
-		return refund("创建虚拟素材组失败，冻结积分已退回", err)
+		return nil, err
 	}
 	group.GroupID = groupID
-	registered, err := s.repo.CreateArkPortraitGroupWithCharge(group, arkGroupSettleNote(arkGroupKindVirtual, input.Name))
+	registered, err := s.repo.CreateArkPortraitGroup(group)
 	if err != nil {
-		return refund("登记虚拟素材组失败，冻结积分已退回", err)
+		return nil, err
 	}
 	view := arkPortraitGroupView(*registered, setting, time.Now())
 	view.Owned = true

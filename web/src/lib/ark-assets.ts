@@ -1,17 +1,9 @@
-// 方舟素材库的纯函数：类型、状态与费用的派生规则，供设置页、素材库与画布共用。
+// 方舟素材库的纯函数：类型与状态的派生规则，供设置页、素材库与画布共用。
 
 import type { ArkAssetConfig, ArkAssetStatus, ArkGroupKind, ArkPortraitGroup, ArkPortraitOverview } from "@/services/api/ark-portraits";
 import type { ArkCertification, Asset } from "@/stores/use-asset-store";
 
 export const ARK_GROUP_KINDS: readonly ArkGroupKind[] = ["real", "virtual", "ip"];
-
-/** 用户自建素材组的单组费用（积分功能关闭或未开启收费时为 0）。 */
-export function arkGroupPrice(config: ArkAssetConfig | undefined, kind: ArkGroupKind) {
-    if (!config?.billingEnabled) return 0;
-    if (kind === "real") return config.realGroupPriceMicrocredits;
-    if (kind === "virtual") return config.virtualGroupPriceMicrocredits;
-    return 0;
-}
 
 export function arkGroupLimit(config: ArkAssetConfig | undefined, kind: ArkGroupKind) {
     if (!config) return 0;

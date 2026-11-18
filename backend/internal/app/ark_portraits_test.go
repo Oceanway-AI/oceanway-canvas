@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
@@ -20,7 +21,28 @@ import (
 	"gorm.io/gorm"
 
 	"yingce/backend/internal/model"
+	"yingce/backend/internal/platformintegration"
 )
+
+func TestArkPortraitPlatformAdmission(t *testing.T) {
+	s := &Service{studioPlatform: &platformintegration.Gateway{}}
+	actor := &model.User{ID: "101", PlatformAuthenticated: true}
+	for _, create := range []func() error{
+		func() error {
+			_, err := s.CreateArkVirtualGroup(context.Background(), actor, ArkGroupInput{Name: "虚拟形象"})
+			return err
+		},
+		func() error {
+			_, err := s.CreateArkPortraitSession(context.Background(), actor, "演员", "zh")
+			return err
+		},
+	} {
+		var appErr *AppError
+		if err := create(); !errors.As(err, &appErr) || appErr.Status != 501 {
+			t.Fatalf("unsupported creation reached legacy credentials: %v", err)
+		}
+	}
+}
 
 type fakeArkPortraitControlPlane struct {
 	mu          sync.Mutex
@@ -120,6 +142,9 @@ func arkPortraitTestService(t *testing.T, mutate ...func(*arkPrivateAssetSetting
 	t.Setenv("CANVAS_ALLOW_PRIVATE_UPSTREAMS", "true")
 	t.Setenv("CANVAS_PUBLIC_BASE_URL", "https://canvas.example.test")
 	s, db, _, _ := creationTestService(t)
+	if err := db.Migrator().DropTable(&model.CreditLedgerEntry{}, &model.BillingOrder{}, &model.CreditAccount{}); err != nil {
+		t.Fatal(err)
+	}
 	fake := &fakeArkPortraitControlPlane{assetStatus: "Processing"}
 	server := httptest.NewServer(fake.handler(t))
 	t.Cleanup(server.Close)
@@ -158,43 +183,23 @@ func arkPortraitTestService(t *testing.T, mutate ...func(*arkPrivateAssetSetting
 	return s, db, fake
 }
 
-func arkTestBalance(t *testing.T, db *gorm.DB, userID string) model.CreditAccount {
-	t.Helper()
-	var account model.CreditAccount
-	if err := db.First(&account, "user_id = ?", userID).Error; err != nil {
-		t.Fatal(err)
-	}
-	return account
-}
-
 func arkTestReference(id string) *canvasGenerationInput {
 	return &canvasGenerationInput{Mode: "video", ReferenceImages: []providerMedia{{URL: "asset://" + id}}}
 }
 
-func TestArkRealGroupChargesOnVerificationReviewsUploadsAndCertifiesLibrary(t *testing.T) {
-	s, db, fake := arkPortraitTestService(t, func(value *arkPrivateAssetSettingValue) {
-		value.BillingEnabled, value.RealGroupPriceMicrocredits = true, 5*CreditScale
-	})
+func TestArkRealGroupVerificationReviewsUploadsAndCertifiesLibrary(t *testing.T) {
+	s, db, fake := arkPortraitTestService(t)
 	ctx := context.Background()
 	user := &model.User{ID: "user"}
 	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
-	if err := db.Model(&model.CreditAccount{}).Where("user_id = ?", "user").Update("available_microcredits", 8*CreditScale).Error; err != nil {
-		t.Fatal(err)
-	}
 
 	session, err := s.CreateArkPortraitSession(ctx, user, "演员甲", "en-US")
 	if err != nil {
 		t.Fatal(err)
 	}
 	link, _ := url.Parse(session.H5Link)
-	if session.Status != arkPortraitSessionPending || session.ReservedMicrocredits != 5*CreditScale || link.Query().Get("lng") != "en" || link.Query().Get("pl") != "abc" {
+	if session.Status != arkPortraitSessionPending || link.Query().Get("lng") != "en" || link.Query().Get("pl") != "abc" {
 		t.Fatalf("session = %#v", session)
-	}
-	if account := arkTestBalance(t, db, "user"); account.AvailableMicrocredits != 3*CreditScale || account.ReservedMicrocredits != 5*CreditScale {
-		t.Fatalf("reserved account = %#v", account)
-	}
-	if _, err := s.CreateArkPortraitSession(ctx, user, "演员乙", "zh"); err == nil || !strings.Contains(err.Error(), "积分不足") {
-		t.Fatalf("second session with insufficient credits = %v", err)
 	}
 
 	state := fake.state(t)
@@ -206,13 +211,6 @@ func TestArkRealGroupChargesOnVerificationReviewsUploadsAndCertifiesLibrary(t *t
 	}
 	if got := s.HandleArkPortraitCallback(ctx, state, url.Values{"resultCode": {"10000"}}); got != "/ark-portrait/result?status=verified" {
 		t.Fatalf("replayed callback redirect = %q", got)
-	}
-	if account := arkTestBalance(t, db, "user"); account.AvailableMicrocredits != 3*CreditScale || account.ReservedMicrocredits != 0 {
-		t.Fatalf("settled account = %#v", account)
-	}
-	var consume model.CreditLedgerEntry
-	if err := db.Where("user_id = ? AND type = ?", "user", model.CreditLedgerConsume).First(&consume).Error; err != nil || consume.Scene != model.BillingSceneArkAssetGroup || consume.Note != "真人人像 · 演员甲" || consume.AmountMicrocredits != -5*CreditScale {
-		t.Fatalf("consume entry = %#v, %v", consume, err)
 	}
 
 	overview, err := s.ArkPortraitOverview(ctx, user)
@@ -307,15 +305,10 @@ func TestArkRealGroupChargesOnVerificationReviewsUploadsAndCertifiesLibrary(t *t
 	}
 }
 
-func TestArkPortraitSessionFailureExpiryAndCancelRefund(t *testing.T) {
-	s, db, fake := arkPortraitTestService(t, func(value *arkPrivateAssetSettingValue) {
-		value.BillingEnabled, value.RealGroupPriceMicrocredits = true, CreditScale
-	})
+func TestArkPortraitSessionFailureExpiryAndCancel(t *testing.T) {
+	s, db, fake := arkPortraitTestService(t)
 	ctx := context.Background()
 	user := &model.User{ID: "user"}
-	if err := db.Model(&model.CreditAccount{}).Where("user_id = ?", "user").Update("available_microcredits", 3*CreditScale).Error; err != nil {
-		t.Fatal(err)
-	}
 
 	failed, err := s.CreateArkPortraitSession(ctx, user, "演员乙", "zh-CN")
 	if err != nil {
@@ -354,13 +347,6 @@ func TestArkPortraitSessionFailureExpiryAndCancelRefund(t *testing.T) {
 	if view, err := s.ArkPortraitSessionStatus(user, expiring.ID); err != nil || view.Status != arkPortraitSessionExpired {
 		t.Fatalf("expired session = %#v, %v", view, err)
 	}
-	if account := arkTestBalance(t, db, "user"); account.AvailableMicrocredits != 3*CreditScale || account.ReservedMicrocredits != 0 {
-		t.Fatalf("all failed sessions must be refunded: %#v", account)
-	}
-	var refunds int64
-	if err := db.Model(&model.CreditLedgerEntry{}).Where("user_id = ? AND type = ? AND scene = ?", "user", model.CreditLedgerRefund, model.BillingSceneArkAssetGroup).Count(&refunds).Error; err != nil || refunds != 3 {
-		t.Fatalf("refund entries = %d, %v", refunds, err)
-	}
 
 	pending, err := s.CreateArkPortraitSession(ctx, user, "演员戊", "zh")
 	if err != nil {
@@ -374,27 +360,18 @@ func TestArkPortraitSessionFailureExpiryAndCancelRefund(t *testing.T) {
 	}
 }
 
-func TestArkVirtualGroupRefundsWhenCreationFailsAndRespectsLimit(t *testing.T) {
+func TestArkVirtualGroupCreationRespectsLimit(t *testing.T) {
 	s, db, fake := arkPortraitTestService(t, func(value *arkPrivateAssetSettingValue) {
-		value.BillingEnabled, value.VirtualGroupPriceMicrocredits, value.VirtualGroupLimit, value.VirtualReviewRequired = true, 2*CreditScale, 1, false
+		value.VirtualGroupLimit, value.VirtualReviewRequired = 1, false
 	})
 	ctx := context.Background()
 	user := &model.User{ID: "user"}
-	if _, err := s.CreateArkVirtualGroup(ctx, user, ArkGroupInput{Name: "二次元少女"}); err == nil || !strings.Contains(err.Error(), "积分不足") {
-		t.Fatalf("virtual group without credits = %v", err)
-	}
-	if err := db.Model(&model.CreditAccount{}).Where("user_id = ?", "user").Update("available_microcredits", 5*CreditScale).Error; err != nil {
-		t.Fatal(err)
-	}
 	group, err := s.CreateArkVirtualGroup(ctx, user, ArkGroupInput{Name: "二次元少女", Description: "主角立绘"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if group.Kind != arkGroupKindVirtual || group.Source != arkGroupSourceCreated || group.ExpiresAt != nil || group.ExpiryStatus != "none" {
 		t.Fatalf("virtual group = %#v", group)
-	}
-	if account := arkTestBalance(t, db, "user"); account.AvailableMicrocredits != 3*CreditScale || account.ReservedMicrocredits != 0 {
-		t.Fatalf("virtual group charge = %#v", account)
 	}
 	if _, err := s.CreateArkVirtualGroup(ctx, user, ArkGroupInput{Name: "第二组"}); err == nil || !strings.Contains(err.Error(), "最多创建 1 个") {
 		t.Fatalf("virtual group limit = %v", err)

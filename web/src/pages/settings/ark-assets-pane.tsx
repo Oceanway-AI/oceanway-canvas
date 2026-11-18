@@ -8,10 +8,9 @@ import { WorkspaceErrorState, WorkspaceState } from "@/components/layout/workspa
 import { Select } from "@/components/ui/base/select";
 import { SegmentedControl } from "@/components/ui/base/segmented-control";
 import { StatusBadge } from "@/components/ui/base/badges";
-import { formatCredits } from "@/constant/credits";
 import { currentLocale } from "@/i18n";
 import { useArkLibraryReconcile } from "@/hooks/use-ark-library-reconcile";
-import { ARK_GROUP_KINDS, arkGroupLimit, arkGroupPrice, arkGroupQuotaLeft, arkKindEnabled, arkLibraryProgressMap, arkReviewRequired, formatArkDate, formatArkTime } from "@/lib/ark-assets";
+import { ARK_GROUP_KINDS, arkGroupLimit, arkGroupQuotaLeft, arkKindEnabled, arkLibraryProgressMap, arkReviewRequired, formatArkDate, formatArkTime } from "@/lib/ark-assets";
 import { cn } from "@/lib/utils";
 import { arkPortraitOverviewQueryKey, getArkPortraitOverview, type ArkGroupKind, type ArkPortraitGroup, type ArkPortraitSession } from "@/services/api/ark-portraits";
 
@@ -111,7 +110,6 @@ export function ArkAssetsPane() {
     }
 
     const config = overview.config;
-    const price = arkGroupPrice(config, kind);
     const quotaLeft = arkGroupQuotaLeft(overview, kind);
     const kindEnabled = arkKindEnabled(config, kind);
     const pendingReview = kindGroups.reduce((sum, group) => sum + (group.owned ? group.assets.filter((asset) => asset.status === "pending_review").length : 0), 0);
@@ -166,7 +164,6 @@ export function ArkAssetsPane() {
                         tone={kindEnabled ? "success" : "neutral"}
                         label={kindEnabled ? t("library.ark.summary.usage", { used: arkGroupLimit(config, kind) - quotaLeft, limit: arkGroupLimit(config, kind) }) : t("library.ark.create.disabled")}
                     />
-                    <StatusBadge size="sm" tone="neutral" label={price > 0 ? t("library.ark.summary.fee", { price: formatCredits(price) }) : t("library.ark.summary.free")} />
                     <StatusBadge size="sm" tone="neutral" label={arkReviewRequired(config, kind) ? t("library.ark.summary.review") : t("library.ark.summary.noReview")} />
                     {pendingReview ? <StatusBadge size="sm" tone="warning" label={t("library.ark.summary.pendingReview", { count: pendingReview })} /> : null}
                     {processing ? <StatusBadge size="sm" tone="loading" label={t("library.ark.summary.processing", { count: processing })} /> : null}
@@ -257,9 +254,9 @@ export function ArkAssetsPane() {
 
                 <section className="ark-pane-main">
                     {composer?.kind === "real" ? (
-                        <ArkRealGroupComposer key={composer.resume?.id || "new"} config={config} resume={composer.resume} onCancel={() => setComposer(null)} onSessionsChanged={() => void refresh()} onVerified={(groupId) => void afterCreated(groupId)} />
+                        <ArkRealGroupComposer key={composer.resume?.id || "new"} resume={composer.resume} onCancel={() => setComposer(null)} onSessionsChanged={() => void refresh()} onVerified={(groupId) => void afterCreated(groupId)} />
                     ) : composer?.kind === "virtual" ? (
-                        <ArkVirtualGroupComposer config={config} onCancel={() => setComposer(null)} onCreated={(groupId) => void afterCreated(groupId)} />
+                        <ArkVirtualGroupComposer onCancel={() => setComposer(null)} onCreated={(groupId) => void afterCreated(groupId)} />
                     ) : selected ? (
                         <ArkGroupDetail key={selected.id} group={selected} config={config} progress={progress} onChanged={refresh} onDeleted={() => setSelectedId("")} />
                     ) : (
