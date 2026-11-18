@@ -13,7 +13,7 @@ test("模型行只保留选中高亮，价格使用独立的彩色标签", async
     expect(styles).toContain('.canvas-model-picker-brand[aria-pressed="true"]');
     expect(styles).toContain('.canvas-model-picker-option[aria-selected="true"]');
     expect(styles).toContain(".canvas-model-picker-option:focus-visible");
-    const price = styles.match(/\.model-picker-price \{([^}]+)\}/)?.[1] || "";
+    const price = styles.match(/^\.model-picker-price \{([^}]+)\}/m)?.[1] || "";
     expect(price).toContain("color: var(--model-price-ink)");
     expect(price).toContain("font-weight: 600");
     expect(price).not.toContain("background:");
