@@ -46,7 +46,7 @@ for (const workspaceMode of ["simple", "professional"] as const) {
             displayName: "Saved video",
             capability: "video",
             available: true,
-            priceTiers: [],
+
             pricingMode: "platform",
             priceLabel: "",
             platform: { model_name: modelName, model_type: "video", state: "summary", price: { status: "available", version: "p1" }, price_version: "p1", capability_revision: "c1", connection_revision: 1 },
@@ -144,10 +144,10 @@ for (const mode of ["image", "video"] as const) {
                             apiFormat: "openai" as const,
                             scope: "system" as const,
                             models: modes,
-                            modelCosts: modes.map((kind) => ({
+                            modelDetails: modes.map((kind) => ({
                                 model: kind,
                                 capability: kind,
-                                unitPriceMicrocredits: 0,
+
                                 platform: { model_name: kind, model_type: kind, price: { status: "available", version: "p1" } },
                                 capabilityConfig: { version: 1 as const, [kind]: defaultModelCapabilityConfig()[kind] },
                             })),

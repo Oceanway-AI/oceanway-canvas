@@ -51,17 +51,15 @@ func stageModelFixture(t *testing.T) (*Service, *gorm.DB, *model.User) {
 	t.Setenv("AI_MODE", "disabled")
 	svc, db, _, _ := creationTestService(t)
 	admin := &model.User{ID: "admin", Username: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
-	if err := db.Create(admin).Error; err != nil {
-		t.Fatal(err)
-	}
+
 	if err := db.Create(&model.ModelChannel{ID: "stage-channel", Scope: model.ChannelScopeSystem, Enabled: true, Name: "分阶段渠道"}).Error; err != nil {
 		t.Fatal(err)
 	}
 	for _, key := range []string{"vision-a", "planner-b", "fallback-f"} {
 		profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceChatCompletion), key)
 		profile.Text.References.MaxImages = 4
-		item := model.ChannelModel{ID: key, ChannelID: "stage-channel", ModelKey: key, DisplayName: key, Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, profile), BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true}
-		tier := model.ChannelModelPriceTier{ID: key + "-tier", ChannelModelID: key, SelectorKey: "{}", SelectorJSON: "{}", BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true}
+		item := model.ChannelModel{ID: key, ChannelID: "stage-channel", ModelKey: key, DisplayName: key, Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, profile), Enabled: true}
+		tier := model.ChannelModelVariant{ID: key + "-tier", ChannelModelID: key, SelectorKey: "{}", SelectorJSON: "{}", Enabled: true}
 		for _, record := range []any{&item, &tier} {
 			if err := db.Create(record).Error; err != nil {
 				t.Fatal(err)

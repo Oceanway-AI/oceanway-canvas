@@ -31,10 +31,10 @@ export function producedModelLabel(config: Pick<AiConfig, "channels">, stored: s
     if (decoded) {
         const channel = config.channels.find((item) => item.id === decoded.channelId);
         if (!channel) return modelId;
-        return channel.modelCosts?.find((item) => item.model === modelId)?.displayName?.trim() || modelId;
+        return channel.modelDetails?.find((item) => item.model === modelId)?.displayName?.trim() || modelId;
     }
     for (const item of config.channels) {
-        const named = item.modelCosts?.find((entry) => entry.model === modelId || entry.logicalModelId === modelId)?.displayName?.trim();
+        const named = item.modelDetails?.find((entry) => entry.model === modelId || entry.logicalModelId === modelId)?.displayName?.trim();
         if (named) return named;
     }
     return modelId;

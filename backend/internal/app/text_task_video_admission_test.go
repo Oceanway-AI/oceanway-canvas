@@ -39,8 +39,8 @@ func TestValidateTaskCapabilityRejectsVideosUntilTextVideoUnderstandingEnabled(t
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceChatCompletion), "qwen-video")
 	profile.Text.References.MaxImages = 9
 	profile.Text.References.MaxVideos = 2
-	videoSvc, _, videoChannel, videoModel := createSystemChannelSelectionFixture(t, "text", model.ChannelInterfaceChatCompletion, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("text-video-tier", `{}`, "provider-text", "fixed_request"),
+	videoSvc, _, videoChannel, videoModel := createSystemChannelSelectionFixture(t, "text", model.ChannelInterfaceChatCompletion, profile, []model.ChannelModelVariant{
+		newSelectionVariant("text-video-tier", `{}`, "provider-text", "fixed_request"),
 	})
 	if err := videoSvc.ValidateTaskCapability(textTaskWithVideos(videoChannel.ID, videoModel.ModelKey, 2)); err != nil {
 		t.Fatalf("video-capable text model must accept up to its limit: %v", err)

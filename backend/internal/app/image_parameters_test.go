@@ -133,8 +133,8 @@ func TestImageParametersAdmissionPricingAndProviderUseSameValues(t *testing.T) {
 		t.Fatal(err)
 	}
 	raw, _ := json.Marshal(profile)
-	cm := model.ChannelModel{Capability: "image", Protocol: "example", CapabilityConfigJSON: string(raw), PriceTiers: []model.ChannelModelPriceTier{newSelectionPriceTier("large", `{"imageResolution":"large"}`, "model", "fixed_request")}}
-	if tier := channelModelPriceTierForIntent(cm, intent); tier == nil || tier.ID != "large" {
+	cm := model.ChannelModel{Capability: "image", Protocol: "example", CapabilityConfigJSON: string(raw), Variants: []model.ChannelModelVariant{newSelectionVariant("large", `{"imageResolution":"large"}`, "model", "fixed_request")}}
+	if tier := channelModelVariantForIntent(cm, intent); tier == nil || tier.ID != "large" {
 		t.Fatal("typed intent failed price matching")
 	}
 	request := protocolRequestFromInput(canvasGenerationInput{Mode: "image", Config: providerConfig{Model: "model", InterfaceType: "example", ImageParameters: intent.Options}, Metadata: map[string]any{"providerOptions": map[string]any{"example": map[string]any{"amount": 999}}}})
@@ -171,8 +171,8 @@ func TestImageParametersLegacyChannelUsesLiveContractForRouteAndBilling(t *testi
 	profile := DefaultModelCapabilityConfigForModel("gemini-image", "opaque-model")
 	profile.Image.Quality = ImageQualityConfig{Supported: true, Values: []string{"2k"}, Default: "2k"}
 	profile.Image.Resolution = ImageResolutionConfig{}
-	svc, db, _, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGeminiImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("resolution", `{"imageResolution":"2k"}`, "opaque-model", "fixed_request"),
+	svc, db, _, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGeminiImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("resolution", `{"imageResolution":"2k"}`, "opaque-model", "fixed_request"),
 	})
 	if err := db.AutoMigrate(&model.SystemSetting{}); err != nil {
 		t.Fatal(err)
@@ -190,7 +190,7 @@ func TestImageParametersLegacyChannelUsesLiveContractForRouteAndBilling(t *testi
 	}
 	svc.routeCatalogTTL = time.Hour
 	svc.routeCatalog = &routeCatalogSnapshot{LoadedAt: time.Now(), Models: map[string]cachedLogicalModel{
-		"logical": {Model: model.LogicalModel{ID: "logical", Capability: "image", PricePolicy: "channel"}, ProductSpec: spec, Defaults: imageParameterDefaults(spec.ImageParameters), Routes: []cachedLogicalRoute{
+		"logical": {Model: model.LogicalModel{ID: "logical", Capability: "image"}, ProductSpec: spec, Defaults: imageParameterDefaults(spec.ImageParameters), Routes: []cachedLogicalRoute{
 			{Route: model.LogicalModelRoute{ID: "route", Enabled: true, Weight: 1}, CapabilitySpec: spec, ChannelModel: *stored},
 		}},
 	}}

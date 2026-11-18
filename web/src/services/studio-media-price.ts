@@ -15,7 +15,7 @@ type PriceDisplay = { key: string; label: string };
 export function studioMediaPriceRequest(config: AiConfig, mode: string, prompt: string, references: EstimateReference[], owner: string, projectId?: string): CreateTaskInput | null {
     if (!owner || !prompt.trim() || (mode !== "image" && mode !== "video")) return null;
     const variantId = studioMediaGenerationVariant(config);
-    const selected = resolveModelChannel(config, config.model).modelCosts?.find((item) => item.model === modelOptionName(config.model))?.platform;
+    const selected = resolveModelChannel(config, config.model).modelDetails?.find((item) => item.model === modelOptionName(config.model))?.platform;
     if (!variantId || !selected?.price.version) return null;
     const refs = { image: [] as EstimateReference[], video: [] as EstimateReference[], audio: [] as EstimateReference[] };
     for (const ref of references) {

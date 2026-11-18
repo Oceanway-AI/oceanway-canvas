@@ -121,9 +121,7 @@ func newDramaTestService(t *testing.T) (*Service, *fakeDramaBackend) {
 	if _, err := svc.dramaVideoProfile(fakeDramaModels.Video); err != nil {
 		t.Fatalf("seed video contract: %v", err)
 	}
-	if err := db.Create(&model.User{ID: "usr-drama", Email: "drama@example.com", Username: "drama"}).Error; err != nil {
-		t.Fatalf("seed user: %v", err)
-	}
+
 	return svc, fake
 }
 

@@ -39,8 +39,10 @@ func TestCloudAgentDramaReadsReportSourceAndFreshness(t *testing.T) {
 	if err != nil || readAt.Before(before) || result["source"] != "drama_db" || result["note"] != cloudAgentDramaContextNote {
 		t.Fatalf("drama context freshness = readAt %v source %v note %v (%v)", result["readAt"], result["source"], result["note"], err)
 	}
-	if _, ok := result["drama"].(map[string]any)["heldCredits"]; !ok {
-		t.Fatalf("drama context must expose held credits: %+v", result["drama"])
+	for _, field := range []string{"heldCredits", "spentCredits", "budgetCredits"} {
+		if _, ok := result["drama"].(map[string]any)[field]; ok {
+			t.Fatalf("drama context exposed retired local financial field %s", field)
+		}
 	}
 	episodes := result["episodes"].([]map[string]any)
 	if episodes[0]["revision"] != summary.Episodes[0].Revision || stringValue(episodes[0]["updatedAt"]) == "" {

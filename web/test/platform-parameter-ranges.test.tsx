@@ -41,7 +41,7 @@ test("published duration ranges align to multiples and preserve fractional defau
 
 test("native video settings render the published range instead of a different slider grid", () => {
     const profile = video({ selection: "range", min: 3, max: 9, step: 2, multipleOf: 2, default: 4 } as VideoCapabilityConfig["duration"]);
-    const channel = createModelChannel({ id: "oceanway-platform", models: ["range-video"], modelCosts: [{ model: "range-video", protocol: "newapi", platform: {}, capabilityConfig: { version: 1, video: profile } }] });
+    const channel = createModelChannel({ id: "oceanway-platform", models: ["range-video"], modelDetails: [{ model: "range-video", protocol: "newapi", platform: {}, capabilityConfig: { version: 1, video: profile } }] });
     const config = { ...defaultConfig, channels: [channel], model: encodeChannelModel(channel.id, "range-video"), videoSeconds: "6" };
     const html = renderToStaticMarkup(<VideoSettingsPanel config={config} theme={canvasThemes.dark} onConfigChange={() => {}} />);
     const slider = html.match(/<input[^>]+type="range"[^>]*>/)?.[0];
@@ -58,7 +58,7 @@ test("Platform Seedance controls use published choices rather than model-name de
     profile.defaultRatio = "1:1";
     profile.defaultResolution = "480p";
     const name = "doubao-seedance-2-0-mini-260615";
-    const channel = createModelChannel({ id: "oceanway-platform", models: [name], modelCosts: [{ model: name, protocol: "volcengine-ark-video", platform: {}, capabilityConfig: { version: 1, video: profile } }] });
+    const channel = createModelChannel({ id: "oceanway-platform", models: [name], modelDetails: [{ model: name, protocol: "volcengine-ark-video", platform: {}, capabilityConfig: { version: 1, video: profile } }] });
     const config = { ...defaultConfig, channels: [channel], model: encodeChannelModel(channel.id, name), videoSeconds: "8", size: "1:1", vquality: "480p" };
     const html = renderToStaticMarkup(<VideoSettingsPanel config={config} theme={canvasThemes.dark} onConfigChange={() => {}} />);
     expect(html).not.toContain("1080P");

@@ -16,14 +16,14 @@ const config = {
             name: "系统渠道",
             scope: "system",
             models: ["gpt-image-1"],
-            modelCosts: [{ model: "gpt-image-1", displayName: "图像 Pro", logicalModelId: "logical-image" }],
+            modelDetails: [{ model: "gpt-image-1", displayName: "图像 Pro", logicalModelId: "logical-image" }],
         },
         {
             id: "user-1",
             name: "我的渠道",
             scope: "user",
             models: ["flux-dev"],
-            modelCosts: [{ model: "flux-dev" }],
+            modelDetails: [{ model: "flux-dev" }],
         },
     ],
 } as AiConfig;

@@ -65,17 +65,17 @@ func TestCloudAgentReferenceOnlyVideoModelIsListedAndResolved(t *testing.T) {
 	config := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceVolcengineArkVideo), "reference-only")
 	config.Video.Operations = []string{"text_to_video", "reference_to_video"}
 	config.Video.DefaultOperation = "text_to_video"
-	if err := db.Create(&model.ChannelModel{ID: "reference-only", ChannelID: "channel", ModelKey: "reference-only", Capability: "video", Protocol: model.ChannelInterfaceVolcengineArkVideo, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, config), BillingMode: "per_second", PriceConfigured: true, Enabled: true}).Error; err != nil {
+	if err := db.Create(&model.ChannelModel{ID: "reference-only", ChannelID: "channel", ModelKey: "reference-only", Capability: "video", Protocol: model.ChannelInterfaceVolcengineArkVideo, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, config), Enabled: true}).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Create(&model.ChannelModelPriceTier{ID: "reference-only-tier", ChannelModelID: "reference-only", SelectorKey: "{}", SelectorJSON: "{}", BillingMode: "per_second", UnitPriceMicrocredits: 1, PriceConfigured: true, Enabled: true}).Error; err != nil {
+	if err := db.Create(&model.ChannelModelVariant{ID: "reference-only-tier", ChannelModelID: "reference-only", SelectorKey: "{}", SelectorJSON: "{}", Enabled: true}).Error; err != nil {
 		t.Fatal(err)
 	}
 	intent, err := s.cloudAgentModelIntent("user", "agent-canvas", `{"mode":"video","referenceNodeIds":["hero","cat"]}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	catalog, err := s.cloudAgentModelList(creativeTestUserID(s), intent)
+	catalog, err := s.cloudAgentModelList(creativeTestUserIDValue, intent)
 	if err != nil {
 		t.Fatal(err)
 	}

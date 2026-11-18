@@ -161,7 +161,7 @@ func TestEcommerceWorkbenchAnalysisModelsAreFixedByAdministrator(t *testing.T) {
 	for _, key := range []string{"planner-test", "vision-test"} {
 		profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceChatCompletion), key)
 		profile.Text.References.MaxImages = 4
-		item := model.ChannelModel{ID: "cm-" + key, ChannelID: "channel", ModelKey: key, Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, profile), BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true}
+		item := model.ChannelModel{ID: "cm-" + key, ChannelID: "channel", ModelKey: key, Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, profile), Enabled: true}
 		if err := db.Create(&item).Error; err != nil {
 			t.Fatal(err)
 		}
@@ -245,7 +245,7 @@ func TestEcommerceWorkbenchLiveDirectionsUseProductImagesAndCache(t *testing.T) 
 	}
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceChatCompletion), "fixture")
 	profile.Text.References.MaxImages = 1
-	if err := svc.repo.SaveChannelModel(&model.ChannelModel{ID: "bridge-model", ChannelID: channel.ID, ModelKey: "fixture", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, profile), Enabled: true, PriceConfigured: true}); err != nil {
+	if err := svc.repo.SaveChannelModel(&model.ChannelModel{ID: "bridge-model", ChannelID: channel.ID, ModelKey: "fixture", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, profile), Enabled: true}); err != nil {
 		t.Fatal(err)
 	}
 	if err := svc.repo.SaveSystemSetting(&model.SystemSetting{Key: ecommerceAgentSettingKey, ValueJSON: `{"channelModelId":"bridge-model","channelId":"bridge-channel","modelKey":"fixture"}`}); err != nil {

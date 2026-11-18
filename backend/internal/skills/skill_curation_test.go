@@ -27,9 +27,7 @@ func newCurationTest(t *testing.T) (*Service, *gorm.DB, *model.User) {
 		t.Fatal(err)
 	}
 	actor := &model.User{ID: "101", PlatformAuthenticated: true, PlatformSessionID: "test", Status: model.UserStatusActive, Username: "curator", StudioPermissions: []model.StudioPermission{model.StudioCurateSkills}}
-	if err := db.Create(actor).Error; err != nil {
-		t.Fatal(err)
-	}
+
 	return svc, db, actor
 }
 

@@ -77,7 +77,7 @@ test("host forwards authoritative group health instead of choosing the first var
                 capability: "image",
                 icon: "",
                 available: true,
-                priceTiers: [],
+
                 pricingMode: "platform",
                 priceLabel: "",
                 platform: { model_name: name, model_type: "image", model_series: "Series", logical_model: "Image", price: { status: "available", version: "p", rates: {} }, presentation: { health: { ...health, success_rate: 0 }, tags: ["特性"] } },
@@ -94,7 +94,7 @@ test("host forwards authoritative group health instead of choosing the first var
         channels: normalized.channels.map((c) => ({
             ...c,
             platformGroups: [{ ...group, series_info: { name: "Series", icon: "Gemini.Color" } }],
-            modelCosts: c.modelCosts?.map((cost) => ({ ...cost, platform: { ...cost.platform!, display_icon: cost.model === "exact-a" ? "OpenAI" : "" } })),
+            modelDetails: c.modelDetails?.map((cost) => ({ ...cost, platform: { ...cost.platform!, display_icon: cost.model === "exact-a" ? "OpenAI" : "" } })),
         })),
     };
     const members = ["oceanway-platform::exact-a", "oceanway-platform::exact-b"];
@@ -115,7 +115,7 @@ test("host forwards authoritative group health instead of choosing the first var
     const absent = groupModelsForPicker({ ...defaultConfig, channels: channels.map((channel) => ({ ...channel, platformGroups: undefined })) }, ["oceanway-platform::exact-a"]);
     expect(absent[0].platformOwned).toBe(true);
     expect(absent[0].platform).toBeUndefined();
-    const incomplete = channels.map((channel) => ({ ...channel, platformGroups: undefined, modelCosts: channel.modelCosts?.map((cost) => ({ ...cost, platform: { ...cost.platform!, model_series: undefined } })) }));
+    const incomplete = channels.map((channel) => ({ ...channel, platformGroups: undefined, modelDetails: channel.modelDetails?.map((cost) => ({ ...cost, platform: { ...cost.platform!, model_series: undefined } })) }));
     const missingSeries = groupModelsForPicker(
         { ...defaultConfig, channels: incomplete },
         models.map((model) => `oceanway-platform::${model.modelKey}`),

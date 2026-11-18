@@ -12,7 +12,7 @@ import (
 
 func TestEcommerceUpgradeShipsKnowledgeSkillsAndIndustryWithoutModels(t *testing.T) {
 	svc, db := knowledgeTestService(t)
-	for _, record := range []any{&model.ChannelModelPriceTier{}, &model.ChannelModel{}, &model.ModelChannel{}} {
+	for _, record := range []any{&model.ChannelModelVariant{}, &model.ChannelModel{}, &model.ModelChannel{}} {
 		if err := db.Unscoped().Where("1 = 1").Delete(record).Error; err != nil {
 			t.Fatal(err)
 		}

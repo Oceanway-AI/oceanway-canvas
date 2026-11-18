@@ -552,9 +552,7 @@ func newAppearanceTestService(t *testing.T) (*Service, *gorm.DB, string, *model.
 		t.Fatal(err)
 	}
 	admin := &model.User{ID: "appearance-admin", Username: "appearance-admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
-	if err := db.Create(admin).Error; err != nil {
-		t.Fatal(err)
-	}
+
 	dataDir := t.TempDir()
 	return New(repository.New(db), dataDir), db, dataDir, admin
 }

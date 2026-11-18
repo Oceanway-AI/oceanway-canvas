@@ -241,7 +241,7 @@ func (s *Service) switchTaskToNextRoute(task *model.Task, attempts []model.Route
 		return nil, BadAuthRequest("当前模型暂时无法满足这组输入和参数")
 	}
 	selected := weightedRoute(eligible)
-	routed := &RoutedModel{LogicalModel: *logicalModel, Revision: *revision, Route: selected.Route, ChannelModel: selected.ChannelModel, CapabilitySpec: selected.CapabilitySpec, PriceTier: channelModelPriceTierForIntent(selected.ChannelModel, intent, selected.CapabilitySpec), Defaults: defaults, Intent: intent}
+	routed := &RoutedModel{LogicalModel: *logicalModel, Revision: *revision, Route: selected.Route, ChannelModel: selected.ChannelModel, CapabilitySpec: selected.CapabilitySpec, Variant: channelModelVariantForIntent(selected.ChannelModel, intent, selected.CapabilitySpec), Defaults: defaults, Intent: intent}
 	nextInput := applyRoutedProviderSelection(input, routed)
 	if err := s.ValidateTaskCapability(nextInput); err != nil {
 		return nil, err

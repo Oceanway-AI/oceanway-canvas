@@ -69,48 +69,25 @@ type PublicChannelCatalog struct {
 
 // PublicChannelModel 公开的渠道模型信息（脱敏）
 type PublicChannelModel struct {
-	Platform          json.RawMessage               `json:"platform,omitempty"`
-	UnavailableReason string                        `json:"unavailableReason,omitempty"`
-	ID                string                        `json:"id"`
-	ModelKey          string                        `json:"modelKey"`
-	ChannelLabel      string                        `json:"channelLabel"`
-	Tags              []model.ChannelModelTag       `json:"tags"`
-	Description       string                        `json:"description"`
-	DisplayName       string                        `json:"displayName"`
-	SortOrder         int                           `json:"sortOrder"`
-	Icon              string                        `json:"icon"`
-	Capability        string                        `json:"capability"`
-	Protocol          model.ChannelInterfaceType    `json:"protocol"`
-	TextWire          string                        `json:"textWire,omitempty"`
-	CapabilityConfig  map[string]any                `json:"capabilityConfig,omitempty"`
-	DefaultOptions    map[string]any                `json:"defaultOptions,omitempty"`
-	PriceTiers        []PublicChannelModelPriceTier `json:"priceTiers"`
-	PricingMode       string                        `json:"pricingMode"`
-	DisplayPrice      *int64                        `json:"displayPrice,omitempty"`
-	PriceLabel        string                        `json:"priceLabel"`
-	Available         bool                          `json:"available"`
-	Availability      *PublicModelAvailability      `json:"availability,omitempty"`
-	// ReferenceVideoBilling 仅视频模型可能为 true：挂参考视频的请求按带参考视频价格另计费。
-	ReferenceVideoBilling bool `json:"referenceVideoBilling"`
-}
-
-// PublicChannelModelPriceTier 公开的渠道模型价格档（脱敏）
-type PublicChannelModelPriceTier struct {
-	ID                               string            `json:"id"`
-	Selector                         map[string]string `json:"selector,omitempty"`
-	Resolution                       string            `json:"resolution"`
-	VideoSeconds                     int               `json:"videoSeconds"`
-	BillingMode                      string            `json:"billingMode"`
-	UnitPriceMicrocredits            int64             `json:"unitPriceMicrocredits"`
-	InputTokenPriceMicrocredits      int64             `json:"inputTokenPriceMicrocredits"`
-	OutputTokenPriceMicrocredits     int64             `json:"outputTokenPriceMicrocredits"`
-	CachedTokenPriceMicrocredits     int64             `json:"cachedTokenPriceMicrocredits"`
-	CacheWriteTokenPriceMicrocredits int64             `json:"cacheWriteTokenPriceMicrocredits"`
-	// TokenPriceRules 是启用中的分时与上下文规则（东八区），单价与基础价同样已换算为当前分组实扣微积分。
-	TokenPriceRules []model.TokenPriceRule `json:"tokenPriceRules,omitempty"`
-	// 带参考视频的价格只在模型开启参考视频计费时发布，否则为 0。
-	ReferenceVideoUnitPriceMicrocredits        int64 `json:"referenceVideoUnitPriceMicrocredits"`
-	ReferenceVideoOutputTokenPriceMicrocredits int64 `json:"referenceVideoOutputTokenPriceMicrocredits"`
+	Platform          json.RawMessage            `json:"platform,omitempty"`
+	UnavailableReason string                     `json:"unavailableReason,omitempty"`
+	ID                string                     `json:"id"`
+	ModelKey          string                     `json:"modelKey"`
+	ChannelLabel      string                     `json:"channelLabel"`
+	Tags              []model.ChannelModelTag    `json:"tags"`
+	Description       string                     `json:"description"`
+	DisplayName       string                     `json:"displayName"`
+	SortOrder         int                        `json:"sortOrder"`
+	Icon              string                     `json:"icon"`
+	Capability        string                     `json:"capability"`
+	Protocol          model.ChannelInterfaceType `json:"protocol"`
+	TextWire          string                     `json:"textWire,omitempty"`
+	CapabilityConfig  map[string]any             `json:"capabilityConfig,omitempty"`
+	DefaultOptions    map[string]any             `json:"defaultOptions,omitempty"`
+	PricingMode       string                     `json:"pricingMode"`
+	PriceLabel        string                     `json:"priceLabel"`
+	Available         bool                       `json:"available"`
+	Availability      *PublicModelAvailability   `json:"availability,omitempty"`
 }
 
 // ModelCatalog 的创作端目录始终来自系统渠道模型，不反查逻辑模型或路由。
@@ -243,44 +220,10 @@ func (s *Service) sanitizeChannelModel(cm *model.ChannelModel) (PublicChannelMod
 		TextWire:         s.textModelWire(cm.Capability, cm.Protocol),
 		CapabilityConfig: capabilityConfig,
 		DefaultOptions:   defaultOptions,
-		PriceTiers:       []PublicChannelModelPriceTier{},
 		PricingMode:      "platform",
 		PriceLabel:       "以平台报价为准",
 		Available:        cm.Enabled,
 	}, nil
-}
-
-// computeChannelModelPriceDisplay 从已过滤的公开价格档生成展示信息。
-// 无有效档位时明确标记未配置；多档位不猜测用户最终规格。
-func computeChannelModelPriceDisplay(cm *model.ChannelModel, priceTiers []PublicChannelModelPriceTier) (string, *int64, string) {
-	if len(priceTiers) == 0 {
-		return "provider", nil, "未配置"
-	}
-
-	if len(priceTiers) == 1 {
-		tier := priceTiers[0]
-		price := getChannelTierDisplayPrice(tier)
-		if price > 0 {
-			return "provider", &price, ""
-		}
-	}
-
-	// 多个价格档，显示"按渠道规格计费"
-	return "provider", nil, "按渠道规格计费"
-}
-
-// getChannelTierDisplayPrice 获取渠道价格档的展示价格
-func getChannelTierDisplayPrice(tier PublicChannelModelPriceTier) int64 {
-	if tier.BillingMode == "fixed_request" || tier.BillingMode == "per_second" {
-		return tier.UnitPriceMicrocredits
-	}
-	if tier.OutputTokenPriceMicrocredits > 0 {
-		return tier.OutputTokenPriceMicrocredits
-	}
-	if tier.InputTokenPriceMicrocredits > 0 {
-		return tier.InputTokenPriceMicrocredits
-	}
-	return 0
 }
 
 // channelModelMatchesIntent 使用与任务 admission 相同的服务端能力合同过滤目录。

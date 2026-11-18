@@ -8,7 +8,6 @@ const PAGE_TITLE_KEYS: Record<string, string> = {
     plugins: "nav.pageTitles.plugins",
     settings: "nav.pageTitles.settings",
     ecommerce: "nav.sidebar.ecommerce",
-    referral: "shell.account.referral",
 };
 const TOOLBOX_TITLE_KEYS: Record<string, string> = {
     image: "nav.pageTitles.toolboxImage",

@@ -122,7 +122,7 @@ describe("planBatchConnections", () => {
                     apiKey: "test-key",
                     apiFormat: "openai" as const,
                     models: ["grok-imagine-image"],
-                    modelCosts: [{ model: "grok-imagine-image", capability: "image" as const, billingMode: "fixed_request" as const, unitPriceMicrocredits: 1, protocol: "grok-image" as const }],
+                    modelDetails: [{ model: "grok-imagine-image", capability: "image" as const, protocol: "grok-image" as const }],
                 },
             ],
             models: ["grok::grok-imagine-image"],

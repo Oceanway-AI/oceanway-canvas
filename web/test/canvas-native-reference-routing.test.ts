@@ -45,11 +45,11 @@ const published = (modelKey: string) =>
         capability: "video",
         protocol: "volcengine-ark-video",
         available: true,
-        priceTiers: [],
+
         platform: { model_type: "video", price: { version: "test-price" }, media_generation_profile: { gateway_protocol: "modelark.video", default_variant: "text", variants: [videoVariant(false), videoVariant(true), omni] } },
     }) as unknown as PublicChannelModel;
 const channels = systemChannelModelChannels([{ id: "oceanway-platform", name: "Studio", displayName: "Studio", models: [published("other"), published("selected")] }]);
-channels[0].modelCosts![1].logicalModelId = "saved-logical";
+channels[0].modelDetails![1].logicalModelId = "saved-logical";
 const config = { ...defaultConfig, model: "oceanway-platform::other", videoModel: "oceanway-platform::other", channels };
 const empty = { textCount: 1, imageCount: 0, videoCount: 0, audioCount: 0, characterCount: 0 };
 function makeNode(id: string, type: CanvasNodeType, metadata: CanvasNodeData["metadata"]): CanvasNodeData {

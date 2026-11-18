@@ -36,13 +36,12 @@ describe("image to previs Agent prompt", () => {
                     id: "plain",
                     scope: "system",
                     models: ["plain-text"],
-                    modelCosts: [
+                    modelDetails: [
                         {
                             model: "plain-text",
                             capability: "text",
                             protocol: "chat-completion",
-                            billingMode: "fixed_request",
-                            unitPriceMicrocredits: 1,
+
                             capabilityConfig: { version: 1, text: { contextWindowTokens: 128000, maxOutputTokens: 16384, references: { promptMaxChars: 32000, maxImages: 0, maxImageBytes: 0, maxVideos: 0, maxVideoBytes: 0 } } },
                         },
                     ],
@@ -51,13 +50,12 @@ describe("image to previs Agent prompt", () => {
                     id: "vision",
                     scope: "system",
                     models: ["vision-text"],
-                    modelCosts: [
+                    modelDetails: [
                         {
                             model: "vision-text",
                             capability: "text",
                             protocol: "chat-completion",
-                            billingMode: "fixed_request",
-                            unitPriceMicrocredits: 1,
+
                             capabilityConfig: { version: 1, text: { contextWindowTokens: 128000, maxOutputTokens: 16384, references: { promptMaxChars: 32000, maxImages: 3, maxImageBytes: 30 * 1024 * 1024, maxVideos: 0, maxVideoBytes: 0 } } },
                         },
                     ],
@@ -77,13 +75,12 @@ describe("image to previs Agent prompt", () => {
                     id: "custom",
                     scope: "user",
                     models: ["custom-vision"],
-                    modelCosts: [
+                    modelDetails: [
                         {
                             model: "custom-vision",
                             capability: "text",
                             protocol: "chat-completion",
-                            billingMode: "fixed_request",
-                            unitPriceMicrocredits: 1,
+
                             capabilityConfig: { version: 1, text: { contextWindowTokens: 128000, maxOutputTokens: 16384, references: { promptMaxChars: 32000, maxImages: 3, maxImageBytes: 30 * 1024 * 1024, maxVideos: 0, maxVideoBytes: 0 } } },
                         },
                     ],
@@ -92,13 +89,12 @@ describe("image to previs Agent prompt", () => {
                     id: "managed",
                     scope: "system",
                     models: ["managed-vision"],
-                    modelCosts: [
+                    modelDetails: [
                         {
                             model: "managed-vision",
                             capability: "text",
                             protocol: "chat-completion",
-                            billingMode: "fixed_request",
-                            unitPriceMicrocredits: 1,
+
                             capabilityConfig: { version: 1, text: { contextWindowTokens: 128000, maxOutputTokens: 16384, references: { promptMaxChars: 32000, maxImages: 3, maxImageBytes: 30 * 1024 * 1024, maxVideos: 0, maxVideoBytes: 0 } } },
                         },
                     ],

@@ -1,7 +1,7 @@
-// 渠道模型与价格档的持久化。
+// 渠道模型与规格档的持久化。
 //
 // 修改渠道下的模型前先锁定渠道行（lockSystemChannelForModelMutation），避免并发编辑
-// 产生重复价格档或遗漏名称同步。
+// 产生重复规格档或遗漏名称同步。
 
 package repository
 
@@ -29,7 +29,7 @@ func (r *Repository) ChannelModels(channelID string, includeDisabled bool) ([]mo
 	for index := range items {
 		pointers[index] = &items[index]
 	}
-	return items, r.attachChannelModelPriceTiers(pointers)
+	return items, r.attachChannelModelVariants(pointers)
 }
 
 func (r *Repository) ChannelModelReferences(channelIDs []string) ([]model.ChannelModel, error) {
@@ -46,7 +46,7 @@ func (r *Repository) ChannelModelReferences(channelIDs []string) ([]model.Channe
 	return items, nil
 }
 
-func (r *Repository) CreateDuplicatedSystemChannel(channel *model.ModelChannel, channelModels []model.ChannelModel, priceTiers []model.ChannelModelPriceTier) error {
+func (r *Repository) CreateDuplicatedSystemChannel(channel *model.ModelChannel, channelModels []model.ChannelModel, variants []model.ChannelModelVariant) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(channel).Error; err != nil {
 			return err
@@ -56,8 +56,8 @@ func (r *Repository) CreateDuplicatedSystemChannel(channel *model.ModelChannel, 
 				return err
 			}
 		}
-		if len(priceTiers) > 0 {
-			if err := tx.Create(&priceTiers).Error; err != nil {
+		if len(variants) > 0 {
+			if err := tx.Create(&variants).Error; err != nil {
 				return err
 			}
 		}
@@ -70,13 +70,13 @@ func (r *Repository) ChannelModelByID(channelID string, id string) (*model.Chann
 	if err := r.db.First(&item, "id = ? AND channel_id = ?", id, channelID).Error; err != nil {
 		return nil, err
 	}
-	if err := r.attachChannelModelPriceTiers([]*model.ChannelModel{&item}); err != nil {
+	if err := r.attachChannelModelVariants([]*model.ChannelModel{&item}); err != nil {
 		return nil, err
 	}
 	return &item, nil
 }
 
-// SetChannelModelEnabled 只更新启停与更新时间，不触碰价格档和价格版本。
+// SetChannelModelEnabled 只更新启停与更新时间，保留规格档。
 func (r *Repository) SetChannelModelEnabled(channelID string, id string, enabled bool) error {
 	result := r.db.Model(&model.ChannelModel{}).Where("id = ? AND channel_id = ?", id, channelID).Updates(map[string]any{"enabled": enabled, "updated_at": time.Now()})
 	if result.Error != nil {
@@ -92,7 +92,7 @@ func (r *Repository) ChannelModelByKey(channelID string, modelKey string) (*mode
 	if err := r.db.First(&item, "channel_id = ? AND model_key = ? AND enabled = ?", channelID, modelKey, true).Error; err != nil {
 		return nil, err
 	}
-	if err := r.attachChannelModelPriceTiers([]*model.ChannelModel{&item}); err != nil {
+	if err := r.attachChannelModelVariants([]*model.ChannelModel{&item}); err != nil {
 		return nil, err
 	}
 	return &item, nil
@@ -103,7 +103,7 @@ func (r *Repository) ChannelModelByKeyIncludingDisabled(channelID string, modelK
 	if err := r.db.First(&item, "channel_id = ? AND model_key = ?", channelID, modelKey).Error; err != nil {
 		return nil, err
 	}
-	if err := r.attachChannelModelPriceTiers([]*model.ChannelModel{&item}); err != nil {
+	if err := r.attachChannelModelVariants([]*model.ChannelModel{&item}); err != nil {
 		return nil, err
 	}
 	return &item, nil
@@ -113,26 +113,25 @@ func (r *Repository) SaveChannelModel(item *model.ChannelModel) error {
 	return r.db.Save(item).Error
 }
 
-// SaveChannelModelWithPriceTiers 原子保存系统模型与其活动价格档。移除价格档采用软删除，
-// 让已结算订单的 PriceTierID 仍能回溯到原始配置版本。
-func (r *Repository) SaveChannelModelWithPriceTiers(item *model.ChannelModel, tiers []model.ChannelModelPriceTier) error {
+// SaveChannelModelWithVariants 原子保存系统模型与其活动规格档。移除规格档采用软删除，
+// 保留历史任务使用的上游 SKU 配置。
+func (r *Repository) SaveChannelModelWithVariants(item *model.ChannelModel, tiers []model.ChannelModelVariant) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		var existing []model.ChannelModelPriceTier
+		var existing []model.ChannelModelVariant
 		if err := tx.Where("channel_model_id = ?", item.ID).Find(&existing).Error; err != nil {
 			return err
 		}
-		existingByKey := make(map[string]model.ChannelModelPriceTier, len(existing))
+		existingByKey := make(map[string]model.ChannelModelVariant, len(existing))
 		for _, tier := range existing {
-			existingByKey[channelModelPriceTierKey(tier)] = tier
+			existingByKey[channelModelVariantKey(tier)] = tier
 		}
 		selected := make(map[string]bool, len(tiers))
 		for index := range tiers {
 			tier := &tiers[index]
 			tier.ChannelModelID = item.ID
-			key := channelModelPriceTierKey(*tier)
+			key := channelModelVariantKey(*tier)
 			if existingTier, exists := existingByKey[key]; exists {
 				tier.ID = existingTier.ID
-				tier.PriceVersion = existingTier.PriceVersion + 1
 				if err := tx.Save(tier).Error; err != nil {
 					return err
 				}
@@ -156,7 +155,7 @@ func (r *Repository) SaveChannelModelWithPriceTiers(item *model.ChannelModel, ti
 	})
 }
 
-func channelModelPriceTierKey(tier model.ChannelModelPriceTier) string {
+func channelModelVariantKey(tier model.ChannelModelVariant) string {
 	if strings.TrimSpace(tier.SelectorKey) != "" {
 		return tier.SelectorKey
 	}
@@ -170,7 +169,7 @@ func channelModelPriceTierKey(tier model.ChannelModelPriceTier) string {
 	return key
 }
 
-func (r *Repository) attachChannelModelPriceTiers(items []*model.ChannelModel) error {
+func (r *Repository) attachChannelModelVariants(items []*model.ChannelModel) error {
 	if len(items) == 0 {
 		return nil
 	}
@@ -178,8 +177,8 @@ func (r *Repository) attachChannelModelPriceTiers(items []*model.ChannelModel) e
 	for _, item := range items {
 		ids = append(ids, item.ID)
 	}
-	var tiers []model.ChannelModelPriceTier
-	if r.db.Migrator().HasTable(&model.ChannelModelPriceTier{}) {
+	var tiers []model.ChannelModelVariant
+	if r.db.Migrator().HasTable(&model.ChannelModelVariant{}) {
 		if err := r.db.Where("channel_model_id IN ?", ids).Order("selector_key asc, created_at asc").Find(&tiers).Error; err != nil {
 			return err
 		}
@@ -187,41 +186,31 @@ func (r *Repository) attachChannelModelPriceTiers(items []*model.ChannelModel) e
 	for index := range tiers {
 		tiers[index].Selector = model.DecodeSKUSelector(tiers[index].SelectorJSON)
 	}
-	tiersByModelID := make(map[string][]model.ChannelModelPriceTier, len(items))
+	tiersByModelID := make(map[string][]model.ChannelModelVariant, len(items))
 	for _, tier := range tiers {
 		tiersByModelID[tier.ChannelModelID] = append(tiersByModelID[tier.ChannelModelID], tier)
 	}
 	for _, item := range items {
-		item.PriceTiers = tiersByModelID[item.ID]
-		// 兼容尚未执行价格档回填的旧数据库；正式迁移会将同一数据持久化为默认档。
-		if len(item.PriceTiers) == 0 && item.PriceConfigured {
-			item.PriceTiers = []model.ChannelModelPriceTier{{
-				ChannelModelID: item.ID, SelectorKey: "{}", SelectorJSON: "{}", Resolution: "*",
-				ProviderModelKey: item.ProviderModelKey, BillingMode: item.BillingMode,
-				UnitPriceMicrocredits: item.UnitPriceMicrocredits, InputTokenPriceMicrocredits: item.InputTokenPriceMicrocredits,
-				OutputTokenPriceMicrocredits: item.OutputTokenPriceMicrocredits, CachedTokenPriceMicrocredits: item.CachedTokenPriceMicrocredits,
-				CacheWriteTokenPriceMicrocredits: item.CacheWriteTokenPriceMicrocredits,
-				PriceConfigured:                  item.PriceConfigured, Enabled: item.Enabled, PriceVersion: item.PriceVersion,
-			}}
-		}
+		item.Variants = tiersByModelID[item.ID]
+
 	}
 	return nil
 }
 
-// PopulateChannelModelPriceTiers 将价格档附着到已经查询出的渠道模型，供路由关系图批量加载使用。
-func (r *Repository) PopulateChannelModelPriceTiers(items []model.ChannelModel) error {
+// PopulateChannelModelVariants 将规格档附着到已经查询出的渠道模型，供路由关系图批量加载使用。
+func (r *Repository) PopulateChannelModelVariants(items []model.ChannelModel) error {
 	pointers := make([]*model.ChannelModel, len(items))
 	for index := range items {
 		pointers[index] = &items[index]
 	}
-	return r.attachChannelModelPriceTiers(pointers)
+	return r.attachChannelModelVariants(pointers)
 }
 
-func (r *Repository) PopulateChannelModelPriceTier(item *model.ChannelModel) error {
+func (r *Repository) PopulateChannelModelVariant(item *model.ChannelModel) error {
 	if item == nil {
 		return nil
 	}
-	return r.attachChannelModelPriceTiers([]*model.ChannelModel{item})
+	return r.attachChannelModelVariants([]*model.ChannelModel{item})
 }
 
 func (r *Repository) DeleteChannelModel(channelID string, id string, now time.Time) error {
@@ -277,7 +266,7 @@ func (r *Repository) DeleteChannelModels(channelID string, ids []string, now tim
 		}
 		result := tx.Model(&model.ChannelModel{}).
 			Where("id IN ? AND channel_id = ?", ids, channelID).
-			Updates(map[string]any{"enabled": false, "price_version": gorm.Expr("price_version + 1"), "updated_at": now})
+			Updates(map[string]any{"enabled": false, "updated_at": now})
 		if result.Error != nil {
 			return result.Error
 		}

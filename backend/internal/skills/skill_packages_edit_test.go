@@ -25,7 +25,7 @@ func newSkillEditTestService(t *testing.T) (*Service, *gorm.DB) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := db.AutoMigrate(&model.Skill{}, &model.SkillVersion{}, &model.SkillFile{}, &model.UserSkillState{}, &model.User{}); err != nil {
+	if err := db.AutoMigrate(&model.Skill{}, &model.SkillVersion{}, &model.SkillFile{}, &model.UserSkillState{}); err != nil {
 		t.Fatal(err)
 	}
 	return New(repository.New(db), t.TempDir(), nil), db

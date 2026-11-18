@@ -159,7 +159,7 @@ func cloudAgentResolvedMediaHash(task *model.Task) (string, error) {
 			public[key] = value
 		}
 	}
-	for _, key := range []string{"channelId", "channelModelKey", "providerModelKey", "priceTierId", "model", "apiFormat", "interfaceType", "capabilityConfig", "size", "imageResolution", "quality", "transparentBackground", "count", "videoSeconds", "vquality", "videoGenerateAudio", "videoWatermark", "audioVoice", "audioFormat", "audioSpeed", "audioInstructions"} {
+	for _, key := range []string{"channelId", "channelModelKey", "providerModelKey", "variantId", "model", "apiFormat", "interfaceType", "capabilityConfig", "size", "imageResolution", "quality", "transparentBackground", "count", "videoSeconds", "vquality", "videoGenerateAudio", "videoWatermark", "audioVoice", "audioFormat", "audioSpeed", "audioInstructions"} {
 		if value, exists := config[key]; exists {
 			public[key] = value
 		}

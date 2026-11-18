@@ -29,12 +29,10 @@ func mockEcommerceAgentService(t *testing.T) (*Service, *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = db.AutoMigrate(&model.SystemSetting{}, &model.ModelChannel{}, &model.ChannelModel{}, &model.Resource{}, &model.EcommerceProject{}, &model.EcommerceAgentAnalysis{}, &model.EcommerceAgentRun{}, &model.EcommerceAgentPage{}, &model.EcommerceAgentCanvasVersion{}, &model.User{}, &model.EcommerceKnowledgeSource{}, &model.EcommerceKnowledgeEntry{}); err != nil {
+	if err = db.AutoMigrate(&model.SystemSetting{}, &model.ModelChannel{}, &model.ChannelModel{}, &model.Resource{}, &model.EcommerceProject{}, &model.EcommerceAgentAnalysis{}, &model.EcommerceAgentRun{}, &model.EcommerceAgentPage{}, &model.EcommerceAgentCanvasVersion{}, &model.EcommerceKnowledgeSource{}, &model.EcommerceKnowledgeEntry{}); err != nil {
 		t.Fatal(err)
 	}
-	if err = db.Create(&model.User{ID: "owner", Username: "owner"}).Error; err != nil {
-		t.Fatal(err)
-	}
+
 	if err := db.Create(&model.SystemSetting{Key: featureAvailabilitySettingKey, ValueJSON: `{"ecommerceEnabled":true,"imageWorkbenchEnabled":true}`}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +51,7 @@ func TestEcommerceAgentVisionFailureFallsBackWithoutCaching(t *testing.T) {
 	}))
 	defer upstream.Close()
 	channel := model.ModelChannel{ID: "vision-fallback-channel", Scope: model.ChannelScopeSystem, Enabled: true, Name: "Vision fallback", BaseURL: upstream.URL + "/v1", APIKey: "fixture-key", APIFormat: "openai"}
-	selected := model.ChannelModel{ID: "vision-fallback-model", ChannelID: channel.ID, ModelKey: "vision-fixture", ProviderModelKey: "vision-fixture", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, Enabled: true, PriceConfigured: true}
+	selected := model.ChannelModel{ID: "vision-fallback-model", ChannelID: channel.ID, ModelKey: "vision-fixture", ProviderModelKey: "vision-fixture", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, Enabled: true}
 	profile := DefaultModelCapabilityConfigForModel(string(selected.Protocol), selected.ModelKey)
 	profile.Text.References.MaxImages = 1
 	selected.CapabilityConfigJSON = mustEncodeModelCapabilityConfig(t, profile)
@@ -109,7 +107,7 @@ func TestEcommerceAgentLiveTextUsesAdminChannelWithoutEnvKey(t *testing.T) {
 	}))
 	defer upstream.Close()
 	channel := model.ModelChannel{ID: "agent-text-channel", Scope: model.ChannelScopeSystem, Enabled: true, Name: "Agent text", BaseURL: upstream.URL + "/v1", APIKey: "fixture-key", APIFormat: "openai"}
-	selected := model.ChannelModel{ID: "agent-text-model", ChannelID: channel.ID, ModelKey: "gpt-4o-mini", ProviderModelKey: "gpt-4o-mini", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, Enabled: true, PriceConfigured: true}
+	selected := model.ChannelModel{ID: "agent-text-model", ChannelID: channel.ID, ModelKey: "gpt-4o-mini", ProviderModelKey: "gpt-4o-mini", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, Enabled: true}
 	profile := DefaultModelCapabilityConfigForModel(string(selected.Protocol), selected.ModelKey)
 	profile.Text.References.MaxImages = 1
 	selected.CapabilityConfigJSON = mustEncodeModelCapabilityConfig(t, profile)
@@ -145,7 +143,7 @@ func TestEcommerceAgentLiveImageUsesConfiguredChannelModel(t *testing.T) {
 	t.Setenv("AI_MODE", "live")
 	t.Setenv("ECOMMERCE_PROMOTION_CHANNEL_ID", "image-channel")
 	channel := model.ModelChannel{ID: "image-channel", Scope: model.ChannelScopeSystem, Enabled: true, Name: "Image fixture", BaseURL: "https://example.com/v1", APIKey: "fixture-key", APIFormat: "openai"}
-	selected := model.ChannelModel{ID: "image-model", ChannelID: channel.ID, ModelKey: "gpt-image-2", ProviderModelKey: "gpt-image-2", Capability: "image", Protocol: model.ChannelInterfaceOpenAIImage, Enabled: true, PriceConfigured: true}
+	selected := model.ChannelModel{ID: "image-model", ChannelID: channel.ID, ModelKey: "gpt-image-2", ProviderModelKey: "gpt-image-2", Capability: "image", Protocol: model.ChannelInterfaceOpenAIImage, Enabled: true}
 	profile := DefaultModelCapabilityConfigForModel(string(selected.Protocol), selected.ModelKey)
 	encodedProfile, err := json.Marshal(profile)
 	if err != nil {

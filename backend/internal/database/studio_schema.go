@@ -25,6 +25,7 @@ var retiredStudioCommercialColumns = map[string][]string{
 	"ecommerce_agent_runs": {"billing_order_id", "unit_microcredits"},
 	"drama_productions":    {"budget_microcredits", "spent_microcredits"},
 	"drama_jobs":           {"cost_microcredits"},
+	"creation_submissions": {"price_signature"},
 }
 
 func StudioModels() []any {
@@ -156,6 +157,11 @@ func MigrateStudioSchema(db *gorm.DB) error {
 					}
 				}
 				if status.Current < 100 {
+					if tx.Migrator().HasColumn("creation_submissions", "price_signature") {
+						if err := tx.Migrator().RenameColumn("creation_submissions", "price_signature", "configuration_signature"); err != nil {
+							return err
+						}
+					}
 					for table, columns := range retiredStudioCommercialColumns {
 						for _, column := range columns {
 							if tx.Migrator().HasColumn(table, column) {

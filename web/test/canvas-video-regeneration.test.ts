@@ -21,13 +21,12 @@ function supportedVideoConfig(overrides: { model?: string; maxVideos?: number; m
         interfaceType: "newapi-channel-2",
         models: [model],
         scope: "user",
-        modelCosts: [
+        modelDetails: [
             {
                 model,
                 capability: "video",
                 protocol: "newapi-channel-2",
-                billingMode: "per_second",
-                unitPriceMicrocredits: 1,
+
                 capabilityConfig: capability,
             },
         ],

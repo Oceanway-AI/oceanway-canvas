@@ -17,11 +17,11 @@ test("commerce planning only offers text channels configured for every reference
     const vision = (maxImages: number) => ({ text: { ...text, references: { ...text.references, maxImages, maxImageBytes: 30 * 1024 * 1024 } } });
     const config = {
         channels: [
-            { id: "text", models: ["deepseek"], modelCosts: [{ model: "deepseek" }] },
+            { id: "text", models: ["deepseek"], modelDetails: [{ model: "deepseek" }] },
             {
                 id: "vision",
                 models: ["one", "four"],
-                modelCosts: [
+                modelDetails: [
                     { model: "one", capabilityConfig: vision(1) },
                     { model: "four", capabilityConfig: vision(4) },
                 ],

@@ -83,14 +83,14 @@ export function doubaoAudioInputError(input: ModelInputSummary) {
 
 function audioProtocol(config: AiConfig, model: string) {
     const channel = resolveModelChannel(config, model);
-    const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
+    const cost = channel.modelDetails?.find((item) => item.model === modelOptionName(model));
     return cost?.protocol || channel.interfaceType;
 }
 
 export function isDirectSystemModel(config: AiConfig, value: string) {
     if (!value) return false;
     const channel = resolveModelChannel(config, value);
-    const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(value));
+    const cost = channel.modelDetails?.find((item) => item.model === modelOptionName(value));
     return channel.scope === "system" && channel.id !== PUBLIC_MODEL_CATALOG_ID && !cost?.logicalModelId;
 }
 
@@ -111,7 +111,7 @@ export function groupModelsByDisplayName(config: AiConfig, models: string[]): Di
 export function configuredModelDisplayName(config: AiConfig, value: string) {
     const model = modelOptionName(value);
     const channel = resolveModelChannel(config, value);
-    return channel.modelCosts?.find((item) => item.model === model)?.displayName?.trim() || model;
+    return channel.modelDetails?.find((item) => item.model === model)?.displayName?.trim() || model;
 }
 
 export function modelCompatibilityError(config: AiConfig, model: string, requirements?: ModelRequirements) {
@@ -120,7 +120,7 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
     const input = requirements?.input;
     const visualInputCount = input ? input.imageCount + input.characterCount : 0;
     const channel = resolveModelChannel(config, model);
-    const logicalCost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
+    const logicalCost = channel.modelDetails?.find((item) => item.model === modelOptionName(model));
     if (logicalCost?.platform?.state === "summary") {
         const summary = logicalCost.platform;
         if (summary.model_type !== capability) return "模型与创作类型不匹配";
@@ -226,7 +226,7 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
 
 export function modelPromptLengthError(config: AiConfig, model: string, capability: ModelCapability, prompt: string) {
     const channel = resolveModelChannel(config, model);
-    const configuredProfile = channel.modelCosts?.find((item) => item.model === modelOptionName(model))?.capabilityConfig;
+    const configuredProfile = channel.modelDetails?.find((item) => item.model === modelOptionName(model))?.capabilityConfig;
     if (!configuredProfile) return "";
     const profile = modelCapabilityConfigFor(config, model);
     const maxChars = capability === "text" ? profile.text?.references.promptMaxChars : capability === "image" ? profile.image?.references.promptMaxChars : capability === "video" ? profile.video?.references.promptMaxChars : undefined;
@@ -275,7 +275,7 @@ export function modelRequestOptions(config: AiConfig, capability: ModelCapabilit
     }
 }
 
-function logicalModelCompatibilityError(spec: NonNullable<NonNullable<AiConfig["channels"][number]["modelCosts"]>[number]["logicalCapabilitySpec"]>, requirements: ModelRequirements, visualInputCount: number) {
+function logicalModelCompatibilityError(spec: NonNullable<NonNullable<AiConfig["channels"][number]["modelDetails"]>[number]["logicalCapabilitySpec"]>, requirements: ModelRequirements, visualInputCount: number) {
     if (requirements.capability && spec.capability !== requirements.capability) return "不支持当前生成类型";
     const input = requirements.input;
     const counts: Record<string, number> = {
@@ -350,12 +350,7 @@ export function compatibleModelInGroup(config: AiConfig, models: string[], requi
     const compatible = models.filter((model) => !modelCompatibilityError(config, model, requirements));
     if (!compatible.length) return "";
     if (compatible.length === 1) return compatible[0];
-    const priceOf = (model: string) => {
-        const channel = resolveModelChannel(config, model);
-        const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
-        return cost && !cost.platform && Number.isFinite(cost.unitPriceMicrocredits) ? cost.unitPriceMicrocredits : Number.POSITIVE_INFINITY;
-    };
-    return compatible.sort((left, right) => priceOf(left) - priceOf(right) || (left === preferred ? -1 : right === preferred ? 1 : 0))[0];
+    return preferred && compatible.includes(preferred) ? preferred : compatible[0];
 }
 
 export function resolveCompatibleModel(config: AiConfig, selected: string, requirements?: ModelRequirements) {
@@ -429,7 +424,7 @@ export function resolveModelGenerationDefaults(
     if (platformModelDetailPending(config, model)) return { ...fallback, ...explicit };
     if (nativeMediaProfile(config, model)) return { ...nativeMediaDefaults(config, model, explicit), imageParameters: "{}", count: "1" };
     const channel = resolveModelChannel(config, model);
-    const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
+    const cost = channel.modelDetails?.find((item) => item.model === modelOptionName(model));
     const isManagedModel = Boolean(cost?.logicalModelId || cost?.logicalCapabilitySpec);
     // A channel model capability profile is an explicit per-model contract too.
     // The persisted global values are legacy defaults and must not override a

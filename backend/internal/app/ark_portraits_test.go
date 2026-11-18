@@ -170,11 +170,10 @@ func arkPortraitTestService(t *testing.T, mutate ...func(*arkPrivateAssetSetting
 		t.Fatal(err)
 	}
 	for _, row := range []any{
-		&model.User{ID: "other", Username: "other", Status: model.UserStatusActive},
-		&model.User{ID: "admin", Username: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}},
-		&model.Resource{ID: "portrait-res", UserID: "user", Kind: "image", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "portrait.png", MimeType: "image/png", Size: int64(len(picture)), Width: 400, Height: 500},
-		&model.Resource{ID: "other-res", UserID: "other", Kind: "image", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "portrait.png", MimeType: "image/png", Size: int64(len(picture)), Width: 400, Height: 500},
-		&model.Resource{ID: "admin-res", UserID: "admin", Kind: "image", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "portrait.png", MimeType: "image/png", Size: int64(len(picture)), Width: 400, Height: 500},
+
+		&model.Resource{ID: "portrait-res", UserID: "101", Kind: "image", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "portrait.png", MimeType: "image/png", Size: int64(len(picture)), Width: 400, Height: 500},
+		&model.Resource{ID: "other-res", UserID: "102", Kind: "image", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "portrait.png", MimeType: "image/png", Size: int64(len(picture)), Width: 400, Height: 500},
+		&model.Resource{ID: "admin-res", UserID: "103", Kind: "image", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "portrait.png", MimeType: "image/png", Size: int64(len(picture)), Width: 400, Height: 500},
 	} {
 		if err := db.Create(row).Error; err != nil {
 			t.Fatal(err)
@@ -190,8 +189,8 @@ func arkTestReference(id string) *canvasGenerationInput {
 func TestArkRealGroupVerificationReviewsUploadsAndCertifiesLibrary(t *testing.T) {
 	s, db, fake := arkPortraitTestService(t)
 	ctx := context.Background()
-	user := &model.User{ID: "user"}
-	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
+	user := &model.User{ID: "101"}
+	admin := &model.User{ID: "103", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	session, err := s.CreateArkPortraitSession(ctx, user, "演员甲", "en-US")
 	if err != nil {
@@ -224,11 +223,11 @@ func TestArkRealGroupVerificationReviewsUploadsAndCertifiesLibrary(t *testing.T)
 	if group.GroupID != "group-20261104-abcde" || group.Kind != arkGroupKindReal || !group.Owned || !group.Available || group.ExpiresAt == nil || group.ExpiryStatus != "valid" {
 		t.Fatalf("group = %#v", group)
 	}
-	if other, err := s.ArkPortraitOverview(ctx, &model.User{ID: "other"}); err != nil || len(other.Groups) != 0 {
+	if other, err := s.ArkPortraitOverview(ctx, &model.User{ID: "102"}); err != nil || len(other.Groups) != 0 {
 		t.Fatalf("other user sees groups: %#v, %v", other, err)
 	}
 
-	if _, err := s.CreateArkPortraitAsset(ctx, &model.User{ID: "other"}, group.ID, ArkAssetUploadInput{ResourceID: "other-res"}); err == nil {
+	if _, err := s.CreateArkPortraitAsset(ctx, &model.User{ID: "102"}, group.ID, ArkAssetUploadInput{ResourceID: "other-res"}); err == nil {
 		t.Fatal("other user must not upload into someone else's group")
 	}
 	if _, err := s.CreateArkPortraitAsset(ctx, user, group.ID, ArkAssetUploadInput{ResourceID: "other-res"}); err == nil {
@@ -239,7 +238,7 @@ func TestArkRealGroupVerificationReviewsUploadsAndCertifiesLibrary(t *testing.T)
 		"data": map[string]any{"dataUrl": "/api/resources/portrait-res/file", "storageKey": "resource:portrait-res", "width": 400, "height": 500, "bytes": 10, "mimeType": "image/png"},
 	}
 	payload, _ := json.Marshal(library)
-	if err := db.Create(&model.Asset{ID: "library-1", UserID: "user", Kind: "image", Category: model.AssetCategoryCharacter, Status: model.AssetVersionStatusConfirmed, Title: "正面照", PayloadJSON: string(payload)}).Error; err != nil {
+	if err := db.Create(&model.Asset{ID: "library-1", UserID: "101", Kind: "image", Category: model.AssetCategoryCharacter, Status: model.AssetVersionStatusConfirmed, Title: "正面照", PayloadJSON: string(payload)}).Error; err != nil {
 		t.Fatal(err)
 	}
 	asset, err := s.CreateArkPortraitAsset(ctx, user, group.ID, ArkAssetUploadInput{ResourceID: "portrait-res", Name: "正面照", LibraryAssetID: "library-1"})
@@ -275,23 +274,23 @@ func TestArkRealGroupVerificationReviewsUploadsAndCertifiesLibrary(t *testing.T)
 		t.Fatalf("library asset = %#v, %v", certified, err)
 	}
 
-	if err := s.validateArkPortraitReferences("user", arkTestReference(stored.ArkAssetID)); err != nil {
+	if err := s.validateArkPortraitReferences("101", arkTestReference(stored.ArkAssetID)); err != nil {
 		t.Fatalf("owner reference rejected: %v", err)
 	}
-	if err := s.validateArkPortraitReferences("other", arkTestReference(stored.ArkAssetID)); err == nil {
+	if err := s.validateArkPortraitReferences("102", arkTestReference(stored.ArkAssetID)); err == nil {
 		t.Fatal("other user must not reference someone else's portrait asset")
 	}
-	if err := s.validateArkPortraitReferences("other", arkTestReference("asset-public-avatar")); err != nil {
+	if err := s.validateArkPortraitReferences("102", arkTestReference("asset-public-avatar")); err != nil {
 		t.Fatalf("unregistered asset IDs stay usable: %v", err)
 	}
 	if err := db.Model(&model.ArkPortraitGroup{}).Where("id = ?", group.ID).Update("expires_at", time.Now().Add(-time.Hour)).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := s.validateArkPortraitReferences("user", arkTestReference(stored.ArkAssetID)); err == nil || !strings.Contains(err.Error(), "过期") {
+	if err := s.validateArkPortraitReferences("101", arkTestReference(stored.ArkAssetID)); err == nil || !strings.Contains(err.Error(), "过期") {
 		t.Fatalf("expired real group reference = %v", err)
 	}
 
-	if err := s.DeleteArkPortraitAsset(ctx, &model.User{ID: "other"}, asset.ID); err == nil {
+	if err := s.DeleteArkPortraitAsset(ctx, &model.User{ID: "102"}, asset.ID); err == nil {
 		t.Fatal("other user must not delete the asset")
 	}
 	if err := s.DeleteArkGroup(ctx, user, group.ID); err != nil {
@@ -308,7 +307,7 @@ func TestArkRealGroupVerificationReviewsUploadsAndCertifiesLibrary(t *testing.T)
 func TestArkPortraitSessionFailureExpiryAndCancel(t *testing.T) {
 	s, db, fake := arkPortraitTestService(t)
 	ctx := context.Background()
-	user := &model.User{ID: "user"}
+	user := &model.User{ID: "101"}
 
 	failed, err := s.CreateArkPortraitSession(ctx, user, "演员乙", "zh-CN")
 	if err != nil {
@@ -329,7 +328,7 @@ func TestArkPortraitSessionFailureExpiryAndCancel(t *testing.T) {
 	if link, _ := url.Parse(cancelled.H5Link); link.Query().Get("lng") != "zh-Hant" {
 		t.Fatalf("h5 link = %q", cancelled.H5Link)
 	}
-	if _, err := s.CancelArkPortraitSession(&model.User{ID: "other"}, cancelled.ID); err == nil {
+	if _, err := s.CancelArkPortraitSession(&model.User{ID: "102"}, cancelled.ID); err == nil {
 		t.Fatal("other user must not cancel the session")
 	}
 	if view, err := s.CancelArkPortraitSession(user, cancelled.ID); err != nil || view.Status != arkPortraitSessionCancelled {
@@ -365,7 +364,7 @@ func TestArkVirtualGroupCreationRespectsLimit(t *testing.T) {
 		value.VirtualGroupLimit, value.VirtualReviewRequired = 1, false
 	})
 	ctx := context.Background()
-	user := &model.User{ID: "user"}
+	user := &model.User{ID: "101"}
 	group, err := s.CreateArkVirtualGroup(ctx, user, ArkGroupInput{Name: "二次元少女", Description: "主角立绘"})
 	if err != nil {
 		t.Fatal(err)
@@ -386,7 +385,7 @@ func TestArkVirtualGroupCreationRespectsLimit(t *testing.T) {
 		t.Fatalf("refreshed asset = %#v, %v", refreshed, err)
 	}
 	var created model.Asset
-	if err := db.First(&created, "id = ? AND user_id = ?", arkOwnLibraryAssetID(asset.ID), "user").Error; err != nil || created.Category != model.AssetCategoryArk || !strings.Contains(created.PayloadJSON, `"kind":"virtual"`) {
+	if err := db.First(&created, "id = ? AND user_id = ?", arkOwnLibraryAssetID(asset.ID), "101").Error; err != nil || created.Category != model.AssetCategoryArk || !strings.Contains(created.PayloadJSON, `"kind":"virtual"`) {
 		t.Fatalf("auto library asset = %#v, %v", created, err)
 	}
 }
@@ -394,20 +393,20 @@ func TestArkVirtualGroupCreationRespectsLimit(t *testing.T) {
 func TestArkPlatformGroupGrantsControlVisibilityAndReferences(t *testing.T) {
 	s, _, fake := arkPortraitTestService(t)
 	ctx := context.Background()
-	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
-	user := &model.User{ID: "user"}
-	other := &model.User{ID: "other"}
+	admin := &model.User{ID: "103", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
+	user := &model.User{ID: "101"}
+	other := &model.User{ID: "102"}
 	if _, err := s.AdminCreateArkGroup(ctx, user, AdminArkGroupCreateRequest{Kind: arkGroupKindIP, Name: "影策猫"}); err == nil {
 		t.Fatal("platform groups are admin only")
 	}
 	if _, err := s.AdminCreateArkGroup(ctx, admin, AdminArkGroupCreateRequest{Kind: arkGroupKindReal, Name: "签约演员"}); err == nil {
 		t.Fatal("real platform groups need H5 verification or an existing group id")
 	}
-	group, err := s.AdminCreateArkGroup(ctx, admin, AdminArkGroupCreateRequest{Kind: arkGroupKindIP, Name: "影策猫", GrantUserIDs: []string{"user"}})
+	group, err := s.AdminCreateArkGroup(ctx, admin, AdminArkGroupCreateRequest{Kind: arkGroupKindIP, Name: "影策猫", GrantUserIDs: []string{"101"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if group.Scope != arkGroupScopePlatform || len(group.GrantUsers) != 1 || group.GrantUsers[0].ID != "user" {
+	if group.Scope != arkGroupScopePlatform || len(group.GrantUsers) != 1 || group.GrantUsers[0].ID != "101" {
 		t.Fatalf("platform group = %#v", group)
 	}
 	asset, err := s.AdminCreateArkPortraitAsset(ctx, admin, group.ID, ArkAssetUploadInput{ResourceID: "admin-res", Name: "主形象"})
@@ -425,20 +424,20 @@ func TestArkPlatformGroupGrantsControlVisibilityAndReferences(t *testing.T) {
 		t.Fatalf("ungranted user sees platform group: %#v, %v", hidden, err)
 	}
 	arkAssetID := overview.Groups[0].Assets[0].ArkAssetID
-	if err := s.validateArkPortraitReferences("user", arkTestReference(arkAssetID)); err != nil {
+	if err := s.validateArkPortraitReferences("101", arkTestReference(arkAssetID)); err != nil {
 		t.Fatalf("granted user reference rejected: %v", err)
 	}
-	if err := s.validateArkPortraitReferences("other", arkTestReference(arkAssetID)); err == nil {
+	if err := s.validateArkPortraitReferences("102", arkTestReference(arkAssetID)); err == nil {
 		t.Fatal("ungranted user must not reference the platform asset")
 	}
 	if _, err := s.AddArkPortraitAssetToLibrary(other, asset.ID); err == nil {
 		t.Fatal("ungranted user must not add the platform asset")
 	}
 	libraryID, err := s.AddArkPortraitAssetToLibrary(user, asset.ID)
-	if err != nil || libraryID != arkSharedLibraryAssetID(asset.ID, "user") {
+	if err != nil || libraryID != arkSharedLibraryAssetID(asset.ID, "101") {
 		t.Fatalf("add to library = %q, %v", libraryID, err)
 	}
-	copied, err := s.repo.AssetForUser("user", libraryID)
+	copied, err := s.repo.AssetForUser("101", libraryID)
 	if err != nil || copied.Category != model.AssetCategoryArk || strings.Contains(copied.PayloadJSON, "admin-res") {
 		t.Fatalf("library copy must reference the user's own resource: %#v, %v", copied, err)
 	}
@@ -450,24 +449,24 @@ func TestArkPlatformGroupGrantsControlVisibilityAndReferences(t *testing.T) {
 	if _, err := s.AdminUpdateArkGroup(admin, group.ID, AdminArkGroupUpdateRequest{GrantAll: &grantAll, GrantUserIDs: &[]string{}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.validateArkPortraitReferences("other", arkTestReference(arkAssetID)); err != nil {
+	if err := s.validateArkPortraitReferences("102", arkTestReference(arkAssetID)); err != nil {
 		t.Fatalf("grant-all reference rejected: %v", err)
 	}
 	if err := s.AdminDeleteArkGroup(ctx, admin, group.ID); err != nil {
 		t.Fatal(err)
 	}
-	if copied, err = s.repo.AssetForUser("user", libraryID); err != nil || copied.Category == model.AssetCategoryArk {
+	if copied, err = s.repo.AssetForUser("101", libraryID); err != nil || copied.Category == model.AssetCategoryArk {
 		t.Fatalf("deleting the platform group must uncertify library copies: %#v, %v", copied, err)
 	}
 }
 
 func TestArkPortraitDisabledOverview(t *testing.T) {
 	s, _, _, _ := creationTestService(t)
-	overview, err := s.ArkPortraitOverview(context.Background(), &model.User{ID: "user"})
+	overview, err := s.ArkPortraitOverview(context.Background(), &model.User{ID: "101"})
 	if err != nil || overview.Enabled || overview.Groups == nil {
 		t.Fatalf("overview = %#v, %v", overview, err)
 	}
-	if _, err := s.CreateArkPortraitSession(context.Background(), &model.User{ID: "user"}, "演员", "zh"); err == nil {
+	if _, err := s.CreateArkPortraitSession(context.Background(), &model.User{ID: "101"}, "演员", "zh"); err == nil {
 		t.Fatal("unconfigured portrait library must reject new sessions")
 	}
 }

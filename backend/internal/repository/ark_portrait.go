@@ -312,8 +312,7 @@ func (r *Repository) AdminArkPortraitGroups(filter AdminArkPortraitGroupFilter) 
 	query = arkPortraitExpiryFilter(query, filter.Expiry, filter.Now)
 	if keyword := strings.ToLower(strings.TrimSpace(filter.Keyword)); keyword != "" {
 		pattern := "%" + keyword + "%"
-		users := r.db.Model(&model.User{}).Select("id").Where("lower(username) LIKE ? OR lower(display_name) LIKE ? OR lower(email) LIKE ?", pattern, pattern, pattern)
-		query = query.Where("lower(ark_portrait_groups.name) LIKE ? OR lower(ark_portrait_groups.group_id) LIKE ? OR ark_portrait_groups.user_id IN (?)", pattern, pattern, users)
+		query = query.Where("lower(ark_portrait_groups.name) LIKE ? OR lower(ark_portrait_groups.group_id) LIKE ? OR lower(ark_portrait_groups.user_id) LIKE ?", pattern, pattern, pattern)
 	}
 	var total int64
 	if err := query.Count(&total).Error; err != nil {

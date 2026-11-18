@@ -72,11 +72,11 @@ for (const mode of ["text", "image", "video"] as const) {
                               apiFormat: "openai" as const,
                               scope: "system" as const,
                               models: ["published"],
-                              modelCosts: [
+                              modelDetails: [
                                   {
                                       model: "published",
                                       capability: mode,
-                                      unitPriceMicrocredits: 0,
+
                                       platform: { model_name: "published", model_type: mode, price: { status: "available", version: "p1", rates: { fixed: "0.1" } } },
                                       capabilityConfig: { version: 1 as const, [mode]: profile },
                                   },
@@ -158,12 +158,12 @@ for (const logical of [true, false]) {
             apiFormat: "openai" as const,
             scope: "system" as const,
             models,
-            modelCosts: models.map((model, index) => ({
+            modelDetails: models.map((model, index) => ({
                 model,
                 displayName: "同名视频模型",
                 logicalModelId: logical ? model : undefined,
                 capability: "video" as const,
-                unitPriceMicrocredits: 0,
+
                 platform: { model_name: model, model_type: "video", price: { status: "available", version: "p1", rates: { fixed: "0.1" } } },
                 capabilityConfig: { version: 1 as const, video: { ...baseProfile, operations: [index ? "reference_to_video" : "text_to_video"], references: index ? references : { maxImages: 0, maxVideos: 0, maxAudios: 0 } } },
             })),
@@ -199,7 +199,7 @@ for (const logical of [true, false]) {
             } else {
                 expect(libraryButton).toBeNull();
             }
-            await act(async () => useConfigStore.setState({ config: { ...config, channels: [{ ...channel, models: [models[0]], modelCosts: [channel.modelCosts[0]] }], videoModels: [config.videoModel] } }));
+            await act(async () => useConfigStore.setState({ config: { ...config, channels: [{ ...channel, models: [models[0]], modelDetails: [channel.modelDetails[0]] }], videoModels: [config.videoModel] } }));
             expect(host.querySelector('button[aria-label="添加更多参考内容"]')).toBeNull();
             expect(host.querySelector(".creation-home")).not.toBeNull();
         } finally {
@@ -232,7 +232,7 @@ test.each([
                     protocol: "volcengine-ark-video",
                     capability: "video",
                     available: true,
-                    priceTiers: [],
+
                     platform: {
                         model_name: name,
                         model_type: "video",

@@ -344,7 +344,7 @@ func applyRoutedProviderSelection(input map[string]any, routed *RoutedModel) map
 	nextConfig := make(map[string]any, len(config)+2)
 	for key, value := range config {
 		switch key {
-		case "channelId", "channelModelKey", "priceTierId", "providerModelKey", "apiFormat", "interfaceType", "baseUrl", "apiKey", "secretKey", "headers", "model", "capabilityConfig":
+		case "channelId", "channelModelKey", "variantId", "providerModelKey", "apiFormat", "interfaceType", "baseUrl", "apiKey", "secretKey", "headers", "model", "capabilityConfig":
 			continue
 		default:
 			nextConfig[key] = value
@@ -376,9 +376,9 @@ func applyRoutedProviderSelection(input map[string]any, routed *RoutedModel) map
 	// 原样发给只认 WIDTHxHEIGHT 的上游（OpenAI Images 直接拒绝）。
 	nextConfig["interfaceType"] = string(routed.ChannelModel.Protocol)
 	providerModelKey := routed.ChannelModel.ProviderModelKey
-	if routed.PriceTier != nil {
-		nextConfig["priceTierId"] = routed.PriceTier.ID
-		providerModelKey = firstNonEmpty(routed.PriceTier.ProviderModelKey, providerModelKey)
+	if routed.Variant != nil {
+		nextConfig["variantId"] = routed.Variant.ID
+		providerModelKey = firstNonEmpty(routed.Variant.ProviderModelKey, providerModelKey)
 	}
 	nextConfig["providerModelKey"] = firstNonEmpty(providerModelKey, routed.ChannelModel.ModelKey)
 	if routed.Intent.Capability == "image" && routed.CapabilitySpec.ImageParameters != nil {
@@ -551,7 +551,7 @@ func (s *Service) resolveSystemChannelModelSelection(input map[string]any, taskT
 	nextConfig := make(map[string]any, len(config)+6)
 	for key, value := range config {
 		switch key {
-		case "channelId", "channelModelKey", "priceTierId", "providerModelKey", "apiFormat", "interfaceType", "baseUrl", "apiKey", "secretKey", "headers", "model", "capabilityConfig":
+		case "channelId", "channelModelKey", "variantId", "providerModelKey", "apiFormat", "interfaceType", "baseUrl", "apiKey", "secretKey", "headers", "model", "capabilityConfig":
 			continue
 		default:
 			nextConfig[key] = value
@@ -684,18 +684,18 @@ func (s *Service) resolveSystemChannelModelSelection(input map[string]any, taskT
 	if capabilitySpec != nil {
 		pricingSpecs = append(pricingSpecs, *capabilitySpec)
 	}
-	priceTier := channelModelPriceTierForIntent(*channelModel, pricingIntent, pricingSpecs...)
-	if priceTier == nil {
-		priceTier = channelModelPriceTierForIntent(*channelModel, intent, pricingSpecs...)
+	variant := channelModelVariantForIntent(*channelModel, pricingIntent, pricingSpecs...)
+	if variant == nil {
+		variant = channelModelVariantForIntent(*channelModel, intent, pricingSpecs...)
 	}
 
 	nextConfig["channelId"] = channel.ID
 	nextConfig["model"] = channelModel.ModelKey
 	nextConfig["channelModelKey"] = channelModel.ModelKey
 	nextConfig["providerModelKey"] = firstNonEmpty(channelModel.ProviderModelKey, channelModel.ModelKey)
-	if priceTier != nil {
-		nextConfig["priceTierId"] = priceTier.ID
-		nextConfig["providerModelKey"] = firstNonEmpty(priceTier.ProviderModelKey, stringValue(nextConfig["providerModelKey"]))
+	if variant != nil {
+		nextConfig["variantId"] = variant.ID
+		nextConfig["providerModelKey"] = firstNonEmpty(variant.ProviderModelKey, stringValue(nextConfig["providerModelKey"]))
 	}
 	nextConfig["interfaceType"] = string(channelModel.Protocol)
 	nextConfig["apiFormat"] = channelAPIFormatForProtocol(channel.APIFormat, channelModel.Protocol)

@@ -14,8 +14,6 @@ var (
 	ChannelAPIURL                           = app.ChannelAPIURL
 	ChannelAPIURLForProtocol                = app.ChannelAPIURLForProtocol
 	ChannelSlotFailureDetails               = app.ChannelSlotFailureDetails
-	ComputePriceConfigured                  = app.ComputePriceConfigured
-	ComputeTierPriceConfigured              = app.ComputeTierPriceConfigured
 	CustomRelayHTTPClient                   = app.CustomRelayHTTPClient
 	DecodeCapabilitySpec                    = app.DecodeCapabilitySpec
 	DecodeModelCapabilityConfig             = app.DecodeModelCapabilityConfig
@@ -28,14 +26,12 @@ var (
 	Forbidden                               = app.Forbidden
 	FormatModelError                        = app.FormatModelError
 	GetModelErrorCode                       = app.GetModelErrorCode
-	HasValidPrice                           = app.HasValidPrice
 	InvalidModelSelection                   = app.InvalidModelSelection
 	IsModelError                            = app.IsModelError
 	IsProjectNotFound                       = app.IsProjectNotFound
 	MatchCapability                         = app.MatchCapability
 	ModelCapabilityNotSupported             = app.ModelCapabilityNotSupported
 	ModelCatalogMismatch                    = app.ModelCatalogMismatch
-	ModelPriceNotConfigured                 = app.ModelPriceNotConfigured
 	ModelRequestIntentFromTaskInput         = app.ModelRequestIntentFromTaskInput
 	ModelRouteUnavailable                   = app.ModelRouteUnavailable
 	NewStudio                               = app.NewStudio
@@ -59,12 +55,9 @@ var (
 	SystemProxyChatCompletionPath           = app.SystemProxyChatCompletionPath
 	Unauthorized                            = app.Unauthorized
 	ValidateCapabilitySpec                  = app.ValidateCapabilitySpec
-	ValidateChannelModelPrice               = app.ValidateChannelModelPrice
 	ValidateCustomRelayURL                  = app.ValidateCustomRelayURL
 	ValidateProxyURL                        = app.ValidateProxyURL
-	ValidateLogicalModelPrice               = app.ValidateLogicalModelPrice
 	ValidateOutboundHost                    = app.ValidateOutboundHost
 	ValidateOutboundURL                     = app.ValidateOutboundURL
-	ValidatePriceTierPrice                  = app.ValidatePriceTierPrice
 	WrapAppError                            = app.WrapAppError
 )

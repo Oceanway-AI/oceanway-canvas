@@ -8,7 +8,7 @@ const config = (protocol: string) =>
         audioModel: "models/index-tts",
         apiKey: "",
         baseUrl: "",
-        channels: [{ models: ["index-tts"], modelCosts: [], interfaceType: protocol, baseUrl: "", apiKey: "" }],
+        channels: [{ models: ["index-tts"], modelDetails: [], interfaceType: protocol, baseUrl: "", apiKey: "" }],
     }) as any;
 
 describe("audio speed normalization", () => {

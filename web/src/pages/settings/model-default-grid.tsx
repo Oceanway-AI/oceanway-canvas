@@ -48,7 +48,7 @@ export function ModelDefaultGrid({ config, onChange }: { config: AiConfig; onCha
                                 {models.map((model) => {
                                     const channel = resolveModelChannel(config, model);
                                     const selected = config[group.modelKey] === model;
-                                    const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
+                                    const cost = channel.modelDetails?.find((item) => item.model === modelOptionName(model));
                                     const directSystemModel = isDirectSystemModel(config, model);
                                     const modelName = directSystemModel ? modelChannelLabel(config, model) : configuredModelDisplayName(config, model);
                                     const groupName = directSystemModel ? cost?.displayName?.trim() || t("account.settings.models.uncategorized") : "";

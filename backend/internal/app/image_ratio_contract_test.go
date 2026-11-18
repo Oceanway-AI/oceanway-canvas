@@ -37,8 +37,8 @@ func TestGeminiDeclaredUltrawideRatioSurvivesAdmissionAndProvider(t *testing.T) 
 							t.Fatal("missing ultrawide fixture preset")
 						}
 					}
-					svc, _, channel, cm := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGeminiImage, profile, []model.ChannelModelPriceTier{
-						newSelectionPriceTier("tier", `{"imageResolution":"`+tier+`"}`, "gemini-nano-banana-2.1", "fixed_request"),
+					svc, _, channel, cm := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGeminiImage, profile, []model.ChannelModelVariant{
+						newSelectionVariant("tier", `{"imageResolution":"`+tier+`"}`, "gemini-nano-banana-2.1", "fixed_request"),
 					})
 					media := []providerMedia{}
 					for index := 0; index < references; index++ {

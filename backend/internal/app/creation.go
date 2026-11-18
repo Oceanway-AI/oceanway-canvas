@@ -327,7 +327,7 @@ func (s *Service) prepareCreationTask(userID string, req CreateTaskRequest) (*mo
 	}
 	// System selectors are the only authority; discard frontend sentinel credentials.
 	safeConfig := map[string]any{}
-	for _, key := range []string{"channelId", "channelModelKey", "model", "priceTierId", "apiFormat", "interfaceType", "size", "quality", "transparentBackground", "count", "videoSeconds", "vquality", "videoGenerateAudio", "videoWatermark", "videoArkPrivateAssetUpload", "systemPrompt"} {
+	for _, key := range []string{"channelId", "channelModelKey", "model", "variantId", "apiFormat", "interfaceType", "size", "quality", "transparentBackground", "count", "videoSeconds", "vquality", "videoGenerateAudio", "videoWatermark", "videoArkPrivateAssetUpload", "systemPrompt"} {
 		if value, ok := config[key]; ok {
 			safeConfig[key] = value
 		}
@@ -586,7 +586,7 @@ func (s *Service) PrepareCreationSubmission(userID, id string, req CreationReque
 				return nil
 			}
 		}
-		if e = s.validateCreationStorage(repo, userID, false, int64(len(item.RequestJSON)+len(item.QuoteJSON)+len(item.PriceSignature))); e != nil {
+		if e = s.validateCreationStorage(repo, userID, false, int64(len(item.RequestJSON)+len(item.QuoteJSON)+len(item.ConfigurationSignature))); e != nil {
 			return e
 		}
 		return repo.SaveCreationSubmission(&item)
@@ -616,7 +616,7 @@ func (s *Service) buildCreationSubmission(userID string, run *model.CreationRun,
 	quote := creationQuoteFor(task, signature, expires)
 	quoteJSON, _ := json.Marshal(quote)
 	requestJSON, _ := json.Marshal(normalized)
-	item := model.CreationSubmission{ID: newID(), UserID: userID, RunID: run.ID, ItemKey: itemKey, ProposalVersion: proposalVersion, ProposalHash: run.ApprovedProposalHash, RequestJSON: string(requestJSON), RequestHash: creationHash(normalized), QuoteJSON: string(quoteJSON), PriceSignature: signature, ExpiresAt: expires}
+	item := model.CreationSubmission{ID: newID(), UserID: userID, RunID: run.ID, ItemKey: itemKey, ProposalVersion: proposalVersion, ProposalHash: run.ApprovedProposalHash, RequestJSON: string(requestJSON), RequestHash: creationHash(normalized), QuoteJSON: string(quoteJSON), ConfigurationSignature: signature, ExpiresAt: expires}
 	return item, normalized, nil
 }
 
@@ -696,7 +696,7 @@ func (s *Service) RefreshCreationSubmission(userID, id string, req CreationReque
 		if fresh.ProposalVersion > 0 && fresh.ProposalHash != current.ApprovedProposalHash {
 			return repository.ErrCreationConflict
 		}
-		if e = s.validateCreationStorage(repo, userID, false, int64(len(item.RequestJSON)+len(item.QuoteJSON)+len(item.PriceSignature))); e != nil {
+		if e = s.validateCreationStorage(repo, userID, false, int64(len(item.RequestJSON)+len(item.QuoteJSON)+len(item.ConfigurationSignature))); e != nil {
 			return e
 		}
 		now := time.Now()

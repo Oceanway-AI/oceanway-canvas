@@ -44,43 +44,24 @@ type AdminChannelPage struct {
 }
 
 type PublicModelChannel struct {
-	MediaTransport   *ReferenceMediaTransport  `json:"mediaTransport,omitempty"`
-	ID               string                    `json:"id"`
-	UserID           string                    `json:"userId"`
-	Scope            model.ChannelScope        `json:"scope"`
-	Enabled          bool                      `json:"enabled"`
-	Name             string                    `json:"name"`
-	SortOrder        int                       `json:"sortOrder"`
-	BaseURL          string                    `json:"baseUrl"`
-	APIKey           string                    `json:"apiKey"`
-	APIFormat        string                    `json:"apiFormat"`
-	ConcurrencyLimit int                       `json:"concurrencyLimit"`
-	ProxyURL         string                    `json:"proxyUrl"`
-	Models           []string                  `json:"models"`
-	ModelCosts       []PublicChannelModelPrice `json:"modelCosts"`
-	Headers          []OutboundHeader          `json:"headers,omitempty"`
-	HasAPIKey        bool                      `json:"hasApiKey"`
-	HasSecretKey     bool                      `json:"hasSecretKey"`
-	CreatedAt        time.Time                 `json:"createdAt"`
-	UpdatedAt        time.Time                 `json:"updatedAt"`
-}
-
-type PublicChannelModelPrice struct {
-	Model                            string                     `json:"model"`
-	DisplayName                      string                     `json:"displayName"`
-	ChannelLabel                     string                     `json:"channelLabel"`
-	Tags                             []model.ChannelModelTag    `json:"tags"`
-	Description                      string                     `json:"description"`
-	Icon                             string                     `json:"icon"`
-	Capability                       string                     `json:"capability"`
-	Protocol                         model.ChannelInterfaceType `json:"protocol"`
-	BillingMode                      string                     `json:"billingMode"`
-	UnitPriceMicrocredits            int64                      `json:"unitPriceMicrocredits"`
-	InputTokenPriceMicrocredits      int64                      `json:"inputTokenPriceMicrocredits"`
-	OutputTokenPriceMicrocredits     int64                      `json:"outputTokenPriceMicrocredits"`
-	CachedTokenPriceMicrocredits     int64                      `json:"cachedTokenPriceMicrocredits"`
-	CacheWriteTokenPriceMicrocredits int64                      `json:"cacheWriteTokenPriceMicrocredits"`
-	CapabilityConfig                 *ModelCapabilityConfig     `json:"capabilityConfig,omitempty"`
+	MediaTransport   *ReferenceMediaTransport `json:"mediaTransport,omitempty"`
+	ID               string                   `json:"id"`
+	UserID           string                   `json:"userId"`
+	Scope            model.ChannelScope       `json:"scope"`
+	Enabled          bool                     `json:"enabled"`
+	Name             string                   `json:"name"`
+	SortOrder        int                      `json:"sortOrder"`
+	BaseURL          string                   `json:"baseUrl"`
+	APIKey           string                   `json:"apiKey"`
+	APIFormat        string                   `json:"apiFormat"`
+	ConcurrencyLimit int                      `json:"concurrencyLimit"`
+	ProxyURL         string                   `json:"proxyUrl"`
+	Models           []string                 `json:"models"`
+	Headers          []OutboundHeader         `json:"headers,omitempty"`
+	HasAPIKey        bool                     `json:"hasApiKey"`
+	HasSecretKey     bool                     `json:"hasSecretKey"`
+	CreatedAt        time.Time                `json:"createdAt"`
+	UpdatedAt        time.Time                `json:"updatedAt"`
 }
 
 func channelFromRequest(req ChannelRequest, channel model.ModelChannel) (model.ModelChannel, error) {
@@ -176,21 +157,12 @@ func mergeChannelRequest(req ChannelRequest, channel model.ModelChannel) Channel
 
 func publicChannel(channel model.ModelChannel, admin bool, channelModels []model.ChannelModel) PublicModelChannel {
 	models := make([]string, 0, len(channelModels))
-	modelCosts := make([]PublicChannelModelPrice, 0, len(channelModels))
 	for _, item := range channelModels {
 		if !item.Enabled {
 			continue
 		}
 		models = append(models, item.ModelKey)
-		if item.Enabled && item.PriceConfigured {
-			capabilityConfig, decodeErr := DecodeModelCapabilityConfig(item.CapabilityConfigJSON)
-			if decodeErr == nil && capabilityConfig != nil {
-				if normalized, normalizeErr := NormalizeModelCapabilityConfigForModel(item.Capability, string(item.Protocol), firstNonEmpty(item.ProviderModelKey, item.ModelKey), capabilityConfig); normalizeErr == nil {
-					capabilityConfig = normalized
-				}
-			}
-			modelCosts = append(modelCosts, PublicChannelModelPrice{Model: item.ModelKey, DisplayName: item.DisplayName, ChannelLabel: item.ChannelLabel, Tags: item.Tags, Description: item.Description, Icon: item.Icon, Capability: item.Capability, Protocol: item.Protocol, BillingMode: item.BillingMode, UnitPriceMicrocredits: item.UnitPriceMicrocredits, InputTokenPriceMicrocredits: item.InputTokenPriceMicrocredits, OutputTokenPriceMicrocredits: item.OutputTokenPriceMicrocredits, CachedTokenPriceMicrocredits: item.CachedTokenPriceMicrocredits, CacheWriteTokenPriceMicrocredits: item.CacheWriteTokenPriceMicrocredits, CapabilityConfig: capabilityConfig})
-		}
+
 	}
 	if len(models) == 0 {
 		_ = json.Unmarshal([]byte(channel.ModelsJSON), &models)
@@ -226,7 +198,6 @@ func publicChannel(channel model.ModelChannel, admin bool, channelModels []model
 		ConcurrencyLimit: channel.ConcurrencyLimit,
 		ProxyURL:         proxyURL,
 		Models:           models,
-		ModelCosts:       modelCosts,
 		Headers:          headers,
 		HasAPIKey:        strings.TrimSpace(channel.APIKey) != "",
 		HasSecretKey:     strings.TrimSpace(channel.SecretKey) != "",

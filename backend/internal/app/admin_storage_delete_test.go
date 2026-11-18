@@ -166,9 +166,7 @@ func newAdminStorageDeleteTestService(t *testing.T) (*Service, *gorm.DB, string,
 		t.Fatal(err)
 	}
 	admin := &model.User{ID: "admin", Username: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
-	if err := db.Create(admin).Error; err != nil {
-		t.Fatal(err)
-	}
+
 	dataDir := t.TempDir()
 	svc := New(repository.New(db), dataDir)
 	startDeletionTestWorkers(t, svc)

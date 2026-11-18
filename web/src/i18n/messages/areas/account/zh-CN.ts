@@ -1,4 +1,4 @@
-/** 钱包与支付、账户外壳组件、设置子面板、反馈、欢迎页的界面文案（源语言）。键结构是其他语言文件的约束。 */
+/** 账户外壳组件、设置子面板、反馈、欢迎页的界面文案（源语言）。键结构是其他语言文件的约束。 */
 export const zhCN = {
     layout: {
         banner: {
@@ -25,9 +25,7 @@ export const zhCN = {
             label: "站点版权与备案信息",
             icpLink: "{{number}}，前往工业和信息化部备案管理系统查询",
         },
-        identity: {
-            linuxdoUser: "Linux.do 用户",
-        },
+
         clientInit: {
             defaultChannel: "默认渠道",
             apiKeyIgnored: "出于安全考虑，链接中的 API Key 已忽略，请在配置中手动填写",
@@ -50,17 +48,7 @@ export const zhCN = {
             titleWithState: "{{summary}}。包含素材文件和 Agent 会话附件。{{state}}",
             label: "账号容量，{{summary}}",
         },
-        checkin: {
-            summary: "{{title}}，今日可领 {{amount}} 积分",
-            success: "签到成功，积分已到账",
-            failed: "领取失败",
-            claimToday: "立即领取今日 {{amount}} 积分",
-            offerBefore: "今日",
-            offerAfter: "积分",
-            claimAmount: "立即领取 {{amount}} 积分",
-            claiming: "领取中",
-            claim: "立即领取",
-        },
+
         footerMenu: {
             loggedOut: "已退出登录",
             logoutFailed: "退出失败",
@@ -123,34 +111,7 @@ export const zhCN = {
             buy: "购买空间",
         },
     },
-    payment: {
-        qrAlt: "支付二维码",
-        grantedStorage: "支付已确认，存储空间已扩容",
-        grantedCredits: "支付已确认，积分已经到账",
-        closedStorage: "订单已关闭，未产生扩容",
-        closedCredits: "订单已关闭，未产生积分充值",
-        createFailed: "创建支付订单失败",
-        loadFailed: "读取支付结果失败",
-        notConfirmed: "渠道尚未确认支付，请稍后再试",
-        queryFailed: "查询支付结果失败",
-        orderClosed: "未支付订单已关闭",
-        closeFailed: "关闭订单失败",
-        refreshFailed: "刷新支付入口失败",
-        storageDone: "扩容完成",
-        topupDone: "充值完成",
-        scanTitle: "扫码支付",
-        confirmTitle: "确认支付结果",
-        charge: "实付 {{amount}}",
-        chargeWithRate: "实付 {{amount}}（1 USD = {{rate}} CNY）",
-        scanHint: "请使用支付应用扫码完成支付",
-        createCheckoutFailed: "支付入口创建失败，请重新生成支付入口。",
-        remaining: "订单剩余 {{time}}，将自动确认支付结果",
-        closeOrder: "关闭订单",
-        paid: "我已完成支付",
-        later: "稍后处理",
-        regenerate: "重新生成支付入口",
-        done: "完成",
-    },
+
     feedback: {
         button: "反馈",
         buttonLabel: "意见与问题反馈",

@@ -62,7 +62,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         source: "platform",
         catalogRevision: "catalog-v1",
         hasMore: false,
-        channels: [{ id: "platform", name: "Platform", displayName: "Platform", models: [{ id: name, modelKey: name, displayName: name, capability: "text", available: true, priceTiers: [], pricingMode: "platform", priceLabel: "", icon: "" }] }],
+        channels: [{ id: "platform", name: "Platform", displayName: "Platform", models: [{ id: name, modelKey: name, displayName: name, capability: "text", available: true, pricingMode: "platform", priceLabel: "", icon: "" }] }],
     });
     const multipleModels = (...names: string[]) => ({ ...catalog(names[0]), channels: [{ ...catalog(names[0]).channels[0], models: names.map((name) => catalog(name).channels[0].models[0]) }] });
     const chooseModel = (value: string) => {
@@ -199,7 +199,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         await Promise.all([ensurePlatformModelDetail("platform::video-model"), ensurePlatformModelDetail("platform::video-model")]);
         await ensurePlatformModelDetail("platform::video-model");
         expect(details).toBe(1);
-        expect(useConfigStore.getState().config.channels[0].modelCosts?.[0].platform?.state).toBe("detail");
+        expect(useConfigStore.getState().config.channels[0].modelDetails?.[0].platform?.state).toBe("detail");
         expect(scopedLocalStorage.getItem(CONFIG_STORE_KEY)).not.toContain("exact-detail");
     });
 
@@ -236,7 +236,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
                 });
                 expect(host.textContent).not.toContain("正在加载模型参数");
                 expect(host.querySelector('[role="alert"]')?.textContent).toBeUndefined();
-                expect(useConfigStore.getState().config.channels[0].modelCosts?.[0].platform?.state).toBe("detail");
+                expect(useConfigStore.getState().config.channels[0].modelDetails?.[0].platform?.state).toBe("detail");
                 await act(async () => root.render(createElement(Picker)));
                 expect(reads).toBe(round);
             }
@@ -261,7 +261,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         const model = fixture(name, "detail").channels[0].models[0];
         loadDetail = async () => ({ model: { ...model, platform: { ...model.platform, ...change } } });
         await expect(ensurePlatformModelDetail(`platform::${name}`)).rejects.toThrow("模型详情版本不一致");
-        expect(useConfigStore.getState().config.channels[0].modelCosts?.[0].platform?.state).toBe("summary");
+        expect(useConfigStore.getState().config.channels[0].modelDetails?.[0].platform?.state).toBe("summary");
     });
 
     test("the picker rechecks availability after detail arrives before changing selection", async () => {
@@ -272,7 +272,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         const selected: string[] = [];
         function Picker() {
             const config = useConfigStore((state) => state.config);
-            const loaded = config.channels[0]?.modelCosts?.[0].platform?.state === "detail";
+            const loaded = config.channels[0]?.modelDetails?.[0].platform?.state === "detail";
             return createElement(ModelPicker, {
                 config,
                 capability: "video",
@@ -347,7 +347,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         try {
             await expect(refreshSystemChannels()).resolves.toBeUndefined();
             expect(useModelCatalogStore.getState().status).toBe("ready");
-            expect(useConfigStore.getState().config.channels[0].modelCosts?.[0].platform?.media_generation_profile).toEqual(largeProfile);
+            expect(useConfigStore.getState().config.channels[0].modelDetails?.[0].platform?.media_generation_profile).toEqual(largeProfile);
             chooseModel("platform::large-model");
             useConfigStore.getState().updateConfig("quality", "high");
             const stored = JSON.parse(scopedLocalStorage.getItem(CONFIG_STORE_KEY)!);

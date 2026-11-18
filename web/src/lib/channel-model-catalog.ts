@@ -24,7 +24,7 @@ export type ChannelModelCatalogItem = {
     maxImages?: number;
 };
 
-type ChannelModelCost = NonNullable<ModelChannel["modelCosts"]>[number];
+type ChannelModelDetail = NonNullable<ModelChannel["modelDetails"]>[number];
 
 export function sanitizeChannelModelCatalogItem(value: unknown): ChannelModelCatalogItem | null {
     if (!value || typeof value !== "object") return null;
@@ -61,9 +61,9 @@ export function sanitizeChannelModelCatalogItem(value: unknown): ChannelModelCat
     });
 }
 
-export function mergeFetchedChannelModelCosts(channel: ModelChannel, catalog: ChannelModelCatalogItem[]): ChannelModelCost[] {
-    const existingByModel = new Map((channel.modelCosts || []).map((cost) => [cost.model, cost]));
-    const next: ChannelModelCost[] = [];
+export function mergeFetchedChannelModelDetails(channel: ModelChannel, catalog: ChannelModelCatalogItem[]): ChannelModelDetail[] {
+    const existingByModel = new Map((channel.modelDetails || []).map((cost) => [cost.model, cost]));
+    const next: ChannelModelDetail[] = [];
     for (const item of catalog) {
         const existing = existingByModel.get(item.id);
         const inferredProtocol = protocolForModelCatalog(item.supportedEndpointTypes);
@@ -97,18 +97,17 @@ export function mergeFetchedChannelModelCosts(channel: ModelChannel, catalog: Ch
             ...(item.displayName ? { displayName: item.displayName } : {}),
             capability,
             protocol,
-            billingMode: "fixed_request",
-            unitPriceMicrocredits: 0,
+
             ...(capabilityConfig ? { capabilityConfig } : {}),
         });
     }
     return next;
 }
 
-function protocolTemplateForNewCatalogModel(capability: ChannelModelCost["capability"] | undefined, channelProtocol: ModelProtocol | undefined): ModelProtocol | undefined {
+function protocolTemplateForNewCatalogModel(capability: ChannelModelDetail["capability"] | undefined, channelProtocol: ModelProtocol | undefined): ModelProtocol | undefined {
     if (!capability) return channelProtocol;
     if (modelProtocolCapability(channelProtocol) === capability) return channelProtocol;
-    const templates: Record<ChannelModelCost["capability"], ModelProtocol> = { text: "chat-completion", image: "openai-image", video: "newapi", audio: "openai-audio" };
+    const templates: Record<ChannelModelDetail["capability"], ModelProtocol> = { text: "chat-completion", image: "openai-image", video: "newapi", audio: "openai-audio" };
     return templates[capability];
 }
 

@@ -22,7 +22,7 @@ function fixture(fields = parameters) {
     const channel = createModelChannel({
         id: "test",
         models: ["opaque-model"],
-        modelCosts: [{ model: "opaque-model", capability: "image", protocol: "opaque-plugin", logicalModelId: "logical", logicalCapabilitySpec: spec, capabilityConfig: { version: 1, image }, billingMode: "fixed_request", unitPriceMicrocredits: 1 }],
+        modelDetails: [{ model: "opaque-model", capability: "image", protocol: "opaque-plugin", logicalModelId: "logical", logicalCapabilitySpec: spec, capabilityConfig: { version: 1, image } }],
     });
     const model = encodeChannelModel(channel.id, "opaque-model");
     return { image, spec, config: { ...defaultConfig, channels: [channel], model, imageModel: model, imageResolution: "large", imageParameters: JSON.stringify({ creativeAmount: 0, rawMode: false, oldParameter: 999 }) } };

@@ -42,7 +42,7 @@ export function modelOptionName(value: string) {
 export function modelDisplayName(config: AiConfig, value: string) {
     const model = modelOptionName(value);
     const channel = resolveModelChannel(config, value);
-    const displayName = channel.modelCosts?.find((item) => item.model === model)?.displayName?.trim();
+    const displayName = channel.modelDetails?.find((item) => item.model === model)?.displayName?.trim();
     if (displayName) return displayName;
     return channel.scope === "system" ? "系统模型" : model;
 }
@@ -50,7 +50,7 @@ export function modelDisplayName(config: AiConfig, value: string) {
 export function modelIcon(config: AiConfig, value: string) {
     const model = modelOptionName(value);
     const channel = resolveModelChannel(config, value);
-    const cost = channel.modelCosts?.find((item) => item.model === model);
+    const cost = channel.modelDetails?.find((item) => item.model === model);
     const platform = cost?.platform;
     if (!platform) return cost?.icon || "";
     const group = channel.platformGroups?.find((entry) => entry.model_names.includes(model));
@@ -73,28 +73,8 @@ export function modelOptionsFromChannels(channels: ModelChannel[]) {
             channel.models
                 .map(normalizeRawModelName)
                 .filter(Boolean)
-                .filter((model) => channel.scope !== "system" || hasSystemModelPrice(channel, model))
                 .map((model) => encodeChannelModel(channel.id, model)),
         ),
-    );
-}
-
-export function hasSystemModelPrice(channel: ModelChannel, model: string) {
-    if (channel.scope !== "system") return true;
-    // 价格字段已由后端按“非负数”校验；0 表示免费模型，不能在目录重建时被过滤。
-    const configured = (value: number | undefined) => typeof value === "number" && Number.isFinite(value) && value >= 0;
-    return (
-        channel.modelCosts?.some((item) => {
-            if (item.model !== model) return false;
-            const tiers = item.logicalPriceTiers || [];
-            if (tiers.length) {
-                return tiers.some((tier) => (tier.billingMode === "token" ? [tier.inputTokenPriceMicrocredits, tier.outputTokenPriceMicrocredits, tier.cachedTokenPriceMicrocredits].every(configured) : configured(tier.unitPriceMicrocredits)));
-            }
-            if (item.billingMode === "token") {
-                return [item.inputTokenPriceMicrocredits, item.outputTokenPriceMicrocredits, item.cachedTokenPriceMicrocredits].every(configured);
-            }
-            return configured(item.unitPriceMicrocredits);
-        }) === true
     );
 }
 

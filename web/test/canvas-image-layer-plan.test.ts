@@ -14,10 +14,10 @@ const image = defaultModelCapabilityConfig("km-kemei-seedream", "doubao-seedream
 const channel = createModelChannel({
     id: "models",
     models: ["visual", "blind", "editor"],
-    modelCosts: [
-        { model: "visual", capability: "text", billingMode: "token", unitPriceMicrocredits: 1, capabilityConfig: vision },
-        { model: "blind", capability: "text", billingMode: "token", unitPriceMicrocredits: 1, capabilityConfig: blind },
-        { model: "editor", capability: "image", billingMode: "fixed_request", unitPriceMicrocredits: 1, capabilityConfig: image },
+    modelDetails: [
+        { model: "visual", capability: "text", capabilityConfig: vision },
+        { model: "blind", capability: "text", capabilityConfig: blind },
+        { model: "editor", capability: "image", capabilityConfig: image },
     ],
 });
 const config = { ...defaultConfig, channels: [channel] };
@@ -200,7 +200,7 @@ describe("通用图层规划", () => {
         expect(supportsExperimentalLayerExtraction(config, "models::editor")).toBe(true);
         expect(supportsExperimentalLayerExtraction(config, "models::visual")).toBe(false);
         const noReferences = { ...image, image: { ...image.image!, references: { ...image.image!.references, maxImages: 0 } } };
-        const altered = { ...config, channels: [{ ...channel, modelCosts: channel.modelCosts!.map((cost) => (cost.model === "editor" ? { ...cost, capabilityConfig: noReferences } : cost)) }] };
+        const altered = { ...config, channels: [{ ...channel, modelDetails: channel.modelDetails!.map((cost) => (cost.model === "editor" ? { ...cost, capabilityConfig: noReferences } : cost)) }] };
         expect(supportsExperimentalLayerExtraction(altered, "models::editor")).toBe(false);
     });
     test("规划层数和题材来自模型真实结果，允许二层和多层", () => {
@@ -310,20 +310,20 @@ describe("通用图层规划", () => {
     });
     test("输出比例优先匹配源图配置合同，不把任意原像素尺寸发送给模型", () => {
         const profile = { ...image, image: { ...image.image!, size: { parameter: "size" as const, values: ["1:1", "16:9", "auto"], default: "1:1", allowCustom: false } } };
-        const outputConfig = { ...config, channels: [{ ...channel, modelCosts: channel.modelCosts!.map((cost) => (cost.model === "editor" ? { ...cost, capabilityConfig: profile } : cost)) }] };
+        const outputConfig = { ...config, channels: [{ ...channel, modelDetails: channel.modelDetails!.map((cost) => (cost.model === "editor" ? { ...cost, capabilityConfig: profile } : cost)) }] };
         expect(imageLayerOutputSize(outputConfig, "models::editor", { width: 731, height: 412 })).toBe("16:9");
         expect(imageLayerOutputSize(outputConfig, "models::editor", { width: 997, height: 700 })).toBe("auto");
         const fixed = {
             ...outputConfig,
             channels: [
-                { ...outputConfig.channels[0], modelCosts: outputConfig.channels[0].modelCosts!.map((cost) => ({ ...cost, capabilityConfig: { ...profile, image: { ...profile.image, size: { ...profile.image.size, values: ["1:1", "16:9"] } } } })) },
+                { ...outputConfig.channels[0], modelDetails: outputConfig.channels[0].modelDetails!.map((cost) => ({ ...cost, capabilityConfig: { ...profile, image: { ...profile.image, size: { ...profile.image.size, values: ["1:1", "16:9"] } } } })) },
             ],
         };
         expect(imageLayerOutputSize(fixed, "models::editor", { width: 997, height: 700 })).toBe("");
         expect(imageLayerOutputSize(outputConfig, "models::editor")).toBe("");
         const custom = {
             ...outputConfig,
-            channels: [{ ...outputConfig.channels[0], modelCosts: outputConfig.channels[0].modelCosts!.map((cost) => ({ ...cost, capabilityConfig: { ...profile, image: { ...profile.image, size: { ...profile.image.size, allowCustom: true } } } })) }],
+            channels: [{ ...outputConfig.channels[0], modelDetails: outputConfig.channels[0].modelDetails!.map((cost) => ({ ...cost, capabilityConfig: { ...profile, image: { ...profile.image, size: { ...profile.image.size, allowCustom: true } } } })) }],
         };
         expect(imageLayerOutputSize(custom, "models::editor", { width: 731, height: 412 })).toBe("731:412");
         expect(imageLayerOutputSize(custom, "models::editor", { width: 600, height: 900 })).toBe("600:900");

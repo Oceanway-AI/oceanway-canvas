@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -143,11 +144,9 @@ func (s *Service) AdminArkGroup(actor *model.User, id string) (*ArkPortraitGroup
 // adminArkGroupViews 附带所有者、各状态素材数与授权用户；withAssets 时返回全部素材及上传者。
 func (s *Service) adminArkGroupViews(groups []model.ArkPortraitGroup, setting arkPrivateAssetSettingValue, now time.Time, withAssets bool) ([]ArkPortraitGroupView, error) {
 	groupIDs := make([]string, 0, len(groups))
-	userIDs := make([]string, 0, len(groups))
 	platformIDs := make([]string, 0, len(groups))
 	for _, group := range groups {
 		groupIDs = append(groupIDs, group.ID)
-		userIDs = append(userIDs, group.UserID)
 		if group.Scope == arkGroupScopePlatform {
 			platformIDs = append(platformIDs, group.ID)
 		}
@@ -165,16 +164,6 @@ func (s *Service) adminArkGroupViews(groups []model.ArkPortraitGroup, setting ar
 		if members, err = s.repo.ArkPortraitAssetsForGroups(groupIDs, nil); err != nil {
 			return nil, err
 		}
-		for _, member := range members {
-			userIDs = append(userIDs, member.UserID)
-		}
-	}
-	for _, ids := range grants {
-		userIDs = append(userIDs, ids...)
-	}
-	users, err := s.repo.UsersByIDs(uniqueStrings(userIDs))
-	if err != nil {
-		return nil, err
 	}
 	assetsByGroup := map[string][]ArkPortraitAssetView{}
 	if withAssets {
@@ -183,20 +172,20 @@ func (s *Service) adminArkGroupViews(groups []model.ArkPortraitGroup, setting ar
 			return nil, err
 		}
 		for index, view := range views {
-			view.Uploader = arkUserSummary(users, members[index].UserID)
+			view.Uploader = arkUserSummary(members[index].UserID)
 			assetsByGroup[view.GroupID] = append(assetsByGroup[view.GroupID], view)
 		}
 	}
 	items := make([]ArkPortraitGroupView, 0, len(groups))
 	for _, group := range groups {
 		view := arkPortraitGroupView(group, setting, now)
-		view.Owner = arkUserSummary(users, group.UserID)
+		view.Owner = arkUserSummary(group.UserID)
 		view.AssetCounts = counts[group.ID]
 		if view.AssetCounts == nil {
 			view.AssetCounts = map[string]int64{}
 		}
 		for _, userID := range grants[group.ID] {
-			if summary := arkUserSummary(users, userID); summary != nil {
+			if summary := arkUserSummary(userID); summary != nil {
 				view.GrantUsers = append(view.GrantUsers, *summary)
 			}
 		}
@@ -208,15 +197,11 @@ func (s *Service) adminArkGroupViews(groups []model.ArkPortraitGroup, setting ar
 	return items, nil
 }
 
-func arkUserSummary(users map[string]model.User, id string) *ArkUserSummary {
-	user, ok := users[id]
-	if !ok {
-		if id == "" {
-			return nil
-		}
-		return &ArkUserSummary{ID: id}
+func arkUserSummary(id string) *ArkUserSummary {
+	if id == "" {
+		return nil
 	}
-	return &ArkUserSummary{ID: user.ID, Username: user.Username, DisplayName: user.DisplayName}
+	return &ArkUserSummary{ID: id}
 }
 
 func uniqueStrings(values []string) []string {
@@ -461,16 +446,10 @@ func (s *Service) AdminArkReviewQueue(actor *model.User, status string, page int
 		return nil, err
 	}
 	groupIDs := make([]string, 0, len(items))
-	userIDs := make([]string, 0, len(items))
 	for _, item := range items {
 		groupIDs = append(groupIDs, item.GroupID)
-		userIDs = append(userIDs, item.UserID)
 	}
 	groups, err := s.repo.ArkPortraitGroupsByIDs(uniqueStrings(groupIDs))
-	if err != nil {
-		return nil, err
-	}
-	users, err := s.repo.UsersByIDs(uniqueStrings(userIDs))
 	if err != nil {
 		return nil, err
 	}
@@ -479,7 +458,7 @@ func (s *Service) AdminArkReviewQueue(actor *model.User, status string, page int
 		return nil, err
 	}
 	for index := range views {
-		views[index].Uploader = arkUserSummary(users, items[index].UserID)
+		views[index].Uploader = arkUserSummary(items[index].UserID)
 		if group, ok := groups[items[index].GroupID]; ok {
 			views[index].Group = &ArkPortraitGroupRef{ID: group.ID, Name: group.Name, Kind: group.Kind, Scope: group.Scope}
 		}
@@ -608,18 +587,17 @@ func (s *Service) adminArkGroup(id string) (*model.ArkPortraitGroup, error) {
 	return group, err
 }
 
-// validArkGrantUsers 去重并确认授权用户都存在。
+// validArkGrantUsers 校验稳定 Platform 主体 ID；访问时仍校验当前认证主体。
 func (s *Service) validArkGrantUsers(ids []string) ([]string, error) {
 	ids = uniqueStrings(ids)
 	if len(ids) > maxArkGrantUsers {
 		return nil, BadAuthRequest("单个素材组最多逐个授权 500 位用户，更多用户请选择「全部用户」")
 	}
-	users, err := s.repo.UsersByIDs(ids)
-	if err != nil {
-		return nil, err
-	}
-	if len(users) != len(ids) {
-		return nil, BadAuthRequest("授权用户中有不存在的账号，请刷新后重新选择")
+	for _, id := range ids {
+		value, err := strconv.ParseInt(id, 10, 64)
+		if err != nil || value <= 0 || strconv.FormatInt(value, 10) != id {
+			return nil, BadAuthRequest("授权用户必须使用有效的 Platform 用户 ID")
+		}
 	}
 	return ids, nil
 }

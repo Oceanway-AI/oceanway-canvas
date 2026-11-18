@@ -12,7 +12,6 @@ import { type CanvasTheme } from "@/lib/canvas-theme";
 import { buildImageResolutionOptions, formatImageResolutionSize } from "@/lib/image-resolution-tiers";
 import { modelCapabilityConfigFor, normalizeImageValue, type ImageCapabilityConfig } from "@/lib/model-capabilities";
 import { mergedImageCapabilityConfig } from "@/lib/model-selection";
-import { imagePriceSelector, normalizeImagePriceSelector } from "@/lib/image-pricing";
 import { modelOptionName, resolveModelChannel, type AiConfig } from "@/stores/use-config-store";
 import { imageQualityLabel } from "@/lib/image-quality";
 
@@ -50,8 +49,6 @@ type ImageSettingsPanelProps = {
     className?: string;
     maxCount?: number;
     quickCount?: number;
-    /** 局部编辑等场景需要先允许选择参数，由后端负责最终计费校验。 */
-    bypassPriceGuard?: boolean;
 };
 
 export function ImageSettingsPanel({
@@ -66,7 +63,6 @@ export function ImageSettingsPanel({
     className = "w-[304px] space-y-3 rounded-2xl px-1 py-0.5",
     maxCount = 15,
     quickCount = 3,
-    bypassPriceGuard = false,
 }: ImageSettingsPanelProps) {
     if (platformModelDetailPending(config)) return <div role="status">等待模型参数加载</div>;
     if (nativeMediaProfile(config))
@@ -85,7 +81,6 @@ export function ImageSettingsPanel({
     const count = Math.max(1, Math.min(effectiveMaxCount, Number(normalized.count)));
     const activeSize = normalized.size;
     const activeQualityOptions = profile.quality.values.map((value) => ({ value, label: imageQualityLabel(value) }));
-    const priceTiers = imageModelPriceTiers(config);
     if (profile.parameters)
         return (
             <ImageSettingsTheme theme={theme}>
@@ -140,13 +135,7 @@ export function ImageSettingsPanel({
                         <SettingTitle color={theme.node.muted}>{isGrokResolutionQuality(profile) ? "分辨率" : "质量"}</SettingTitle>
                         <div className={`grid gap-2 ${activeQualityOptions.length <= 2 ? "grid-cols-2" : "grid-cols-4"}`}>
                             {activeQualityOptions.map((item) => (
-                                <OptionPill
-                                    key={item.value}
-                                    selected={quality === item.value}
-                                    disabled={!bypassPriceGuard && !hasPriceTierForImageSelection(priceTiers, item.value, activeSize)}
-                                    theme={theme}
-                                    onClick={() => onConfigChange("quality", item.value)}
-                                >
+                                <OptionPill key={item.value} selected={quality === item.value} theme={theme} onClick={() => onConfigChange("quality", item.value)}>
                                     {item.label}
                                 </OptionPill>
                             ))}
@@ -195,21 +184,6 @@ function isGrokResolutionQuality(profile: ImageCapabilityConfig) {
 export function imageSizeLabel(size: string) {
     const resolutionLabel = formatImageResolutionSize(size, buildImageResolutionOptions([size]));
     return resolutionLabel !== size ? resolutionLabel : aspectOptions.find((item) => (item.size || item.value) === size || item.value === size)?.label || size;
-}
-
-function imageModelPriceTiers(config: AiConfig) {
-    const channel = resolveModelChannel(config, config.model || config.imageModel);
-    const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(config.model || config.imageModel));
-    return cost?.logicalPriceTiers || [];
-}
-
-function hasPriceTierForImageSelection(tiers: ReturnType<typeof imageModelPriceTiers>, quality: string, size: string) {
-    if (!tiers.length) return true;
-    const requested = imagePriceSelector(quality, size);
-    return tiers.some((tier) => {
-        const selector = normalizeImagePriceSelector(tier.selector || {});
-        return Object.entries(selector).every(([key, value]) => value === "*" || requested[key] === value);
-    });
 }
 
 function OptionPill({ selected, disabled = false, theme, onClick, children }: { selected: boolean; disabled?: boolean; theme: CanvasTheme; onClick: () => void; children: ReactNode }) {

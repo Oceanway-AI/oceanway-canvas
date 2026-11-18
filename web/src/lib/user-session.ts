@@ -282,7 +282,7 @@ async function loadPlatformCatalog(generation: number, userId: string): Promise<
 export function ensurePlatformModelDetail(modelOption: string): Promise<void> {
     const config = useConfigStore.getState().config;
     const channel = resolveModelChannel(config, modelOption);
-    const model = channel.modelCosts?.find((item) => item.model === modelOptionName(modelOption))?.platform;
+    const model = channel.modelDetails?.find((item) => item.model === modelOptionName(modelOption))?.platform;
     if (!model || model.state !== "summary") return Promise.resolve();
     const generation = sessionGeneration;
     const epoch = catalogEpoch;
@@ -336,29 +336,7 @@ export function systemChannelModelChannels(channels: PublicChannelCatalog[]): Mo
             enabled: true,
             models: availableModels.map((m) => m.modelKey),
             modelAliases: {},
-            modelCosts: availableModels.map((model) => {
-                // 标量价格仅用于旧配置兼容；创作端按完整 SKU 档位展示和匹配价格。
-                const firstTier = model.priceTiers?.[0];
-                const unitPrice = firstTier?.unitPriceMicrocredits || 0;
-                const inputPrice = firstTier?.inputTokenPriceMicrocredits || 0;
-                const outputPrice = firstTier?.outputTokenPriceMicrocredits || 0;
-                const cachedPrice = firstTier?.cachedTokenPriceMicrocredits || 0;
-                const billingMode = firstTier?.billingMode || "fixed_request";
-                const logicalPriceTiers = (model.priceTiers || []).map((tier) => ({
-                    selector: tier.selector || {},
-                    resolution: tier.resolution || "*",
-                    videoSeconds: tier.videoSeconds || 0,
-                    billingMode: tier.billingMode as "fixed_request" | "per_second" | "token",
-                    unitPriceMicrocredits: tier.unitPriceMicrocredits || 0,
-                    inputTokenPriceMicrocredits: tier.inputTokenPriceMicrocredits || 0,
-                    outputTokenPriceMicrocredits: tier.outputTokenPriceMicrocredits || 0,
-                    cachedTokenPriceMicrocredits: tier.cachedTokenPriceMicrocredits || 0,
-                    cacheWriteTokenPriceMicrocredits: tier.cacheWriteTokenPriceMicrocredits || 0,
-                    ...(tier.tokenPriceRules?.length ? { tokenPriceRules: tier.tokenPriceRules } : {}),
-                    referenceVideoUnitPriceMicrocredits: tier.referenceVideoUnitPriceMicrocredits || 0,
-                    referenceVideoOutputTokenPriceMicrocredits: tier.referenceVideoOutputTokenPriceMicrocredits || 0,
-                }));
-
+            modelDetails: availableModels.map((model) => {
                 return {
                     platform: model.platform,
                     model: model.modelKey,
@@ -370,22 +348,15 @@ export function systemChannelModelChannels(channels: PublicChannelCatalog[]): Mo
                     capability: model.capability as ModelCapability,
                     protocol: model.protocol as any,
                     textWire: isTextWire(model.textWire) ? model.textWire : undefined,
-                    pricePolicy: "channel" as const,
-                    billingMode: billingMode as any,
-                    unitPriceMicrocredits: unitPrice,
-                    inputTokenPriceMicrocredits: inputPrice,
-                    outputTokenPriceMicrocredits: outputPrice,
-                    cachedTokenPriceMicrocredits: cachedPrice,
-                    cacheWriteTokenPriceMicrocredits: firstTier?.cacheWriteTokenPriceMicrocredits || 0,
+
                     capabilityConfig: (model.capabilityConfig as ModelCapabilityConfig | undefined) || defaultModelCapabilityConfig(),
                     defaultOptions: model.defaultOptions,
                     channelModelId: model.id,
                     channelId: channel.id,
                     modelKey: model.modelKey,
-                    logicalPriceTiers,
+
                     availability: model.availability,
                     available: model.available,
-                    referenceVideoBilling: model.capability === "video" && model.referenceVideoBilling === true,
                 };
             }),
         };

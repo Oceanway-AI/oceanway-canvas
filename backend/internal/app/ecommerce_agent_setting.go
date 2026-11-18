@@ -121,7 +121,7 @@ func (s *Service) ecommerceStageModelRef(role EcommerceOrchestrationRole) (Ecomm
 			continue
 		}
 		item, err := s.repo.ChannelModel(choice.ChannelModelID)
-		if err != nil || !item.Enabled || item.DeletedAt.Valid || item.Capability != "text" || !item.PriceConfigured {
+		if err != nil || !item.Enabled || item.DeletedAt.Valid || item.Capability != "text" {
 			continue
 		}
 		channels, err := s.repo.SystemChannelsByIDs([]string{item.ChannelID}, false)

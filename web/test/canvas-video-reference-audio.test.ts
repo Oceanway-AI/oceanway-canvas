@@ -14,7 +14,7 @@ function videoConfig(protocol: string, model: string, maxAudios?: number): AiCon
         apiKey: "synthetic-test-key",
         apiFormat: "openai",
         models: [model],
-        modelCosts: [{ model, capability: "video", protocol, billingMode: "fixed_request", unitPriceMicrocredits: 0, capabilityConfig }],
+        modelDetails: [{ model, capability: "video", protocol, capabilityConfig }],
     });
     return { ...defaultConfig, channels: [channel], model: `video::${model}`, videoModel: `video::${model}` };
 }

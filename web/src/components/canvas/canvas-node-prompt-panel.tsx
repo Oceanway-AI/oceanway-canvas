@@ -706,7 +706,7 @@ export function CanvasNodePromptPanel({
             prompt={prompt}
             generationMode={mode === "image" || mode === "video" ? mode : "image"}
             targetModel={modelOptionName(config.model) || config.model}
-            targetProtocol={priceChannel.modelCosts?.find((item) => item.model === modelOptionName(config.model))?.protocol || priceChannel.interfaceType}
+            targetProtocol={priceChannel.modelDetails?.find((item) => item.model === modelOptionName(config.model))?.protocol || priceChannel.interfaceType}
             config={globalConfig}
             optimizerModel={globalConfig.textModel}
             references={activeReferences}

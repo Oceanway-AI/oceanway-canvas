@@ -633,7 +633,7 @@ export function CreationComposer(props: ComposerProps) {
                 prompt={props.prompt}
                 generationMode={props.mode === "video" ? "video" : "image"}
                 targetModel={modelOptionName(props.model) || props.model}
-                targetProtocol={priceChannel.modelCosts?.find((item) => item.model === modelOptionName(props.model))?.protocol || priceChannel.interfaceType}
+                targetProtocol={priceChannel.modelDetails?.find((item) => item.model === modelOptionName(props.model))?.protocol || priceChannel.interfaceType}
                 config={props.config}
                 optimizerModel={props.config.textModel}
                 references={optimizerReferences}

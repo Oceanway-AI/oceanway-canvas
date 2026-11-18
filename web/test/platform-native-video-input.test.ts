@@ -20,7 +20,7 @@ const model = {
     protocol: "volcengine-ark-video",
     capability: "video",
     available: true,
-    priceTiers: [],
+
     platform,
     capabilityConfig: {
         version: 1,
@@ -44,7 +44,7 @@ test.each([
     const selected = `oceanway-platform::${platform.model_name}`;
     const config = creationVideoConfig({ ...defaultConfig, channels }, selected, { ratio: "16:9", seconds: "4", videoQuality: "720" });
     const request = await prepareBackendGenerationTask({ mode: "video", prompt: "A quiet ocean", config, clientOperationId: "native-video-command" });
-    expect(channels[0].modelCosts![0].platform?.price).toEqual(platform.price);
+    expect(channels[0].modelDetails![0].platform?.price).toEqual(platform.price);
     expect(request.platform?.expectedPriceVersion).toBe("new-token-price");
     expect(request.input?.config).toMatchObject({ model: platform.model_name, vquality: "720p", videoSeconds: "4", size: "16:9" });
     expect(request.input?.config).not.toHaveProperty("tokens");

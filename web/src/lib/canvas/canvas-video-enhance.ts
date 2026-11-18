@@ -1,5 +1,4 @@
 import { DEFAULT_VIDEO_PROCESSING_MAX_SOURCE_SECONDS, modelCapabilityConfigFor, type VideoProcessingConfig } from "@/lib/model-capabilities";
-import type { ModelQuoteRequest } from "@/services/api/logical-models";
 import { decodeChannelModel, modelOptionName, modelOptionsFromChannels, resolveModelChannel, resolveModelRequestConfig, type AiConfig } from "@/stores/use-config-store";
 import type { CanvasNodeData } from "@/types/canvas";
 import type { ReferenceVideo } from "@/types/media";
@@ -24,7 +23,7 @@ export function listVideoEnhanceModels(config: AiConfig): string[] {
         const decoded = decodeChannelModel(model);
         const channel = decoded ? config.channels.find((item) => item.id === decoded.channelId) : undefined;
         if (!channel || channel.scope !== "system") return false;
-        const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
+        const cost = channel.modelDetails?.find((item) => item.model === modelOptionName(model));
         return cost?.capability === "video" && Boolean(cost.capabilityConfig?.video?.processing);
     });
 }
@@ -117,18 +116,3 @@ export function videoEnhanceTaskInput(options: { config: AiConfig; params: Video
 }
 
 /** 报价按源时长预扣口径；实际结算以输出时长为准。 */
-export function videoEnhanceQuoteRequest(config: AiConfig, params: VideoEnhanceParams, sourceDurationMs?: number): ModelQuoteRequest | undefined {
-    const channel = resolveModelChannel(config, params.model);
-    if (channel.scope !== "system" || !params.model) return undefined;
-    const seconds = Math.max(1, Math.ceil((sourceDurationMs || 1000) / 1000));
-    return {
-        channelId: channel.id,
-        modelKey: modelOptionName(params.model),
-        intent: {
-            capability: "video",
-            operation: VIDEO_ENHANCE_OPERATION,
-            inputs: { video: 1 },
-            options: { vquality: params.resolution, videoSeconds: seconds, fpsBand: videoEnhanceFpsBand(params.fps) },
-        },
-    };
-}

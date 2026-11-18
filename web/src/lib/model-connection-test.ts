@@ -8,22 +8,21 @@ export async function testChannelModelConnection(channel: ModelChannel, model: s
     if (!channel.baseUrl.trim()) throw new Error("请先填写 Base URL");
     if (!channel.apiKey.trim()) throw new Error("请先填写 API Key");
     const selectedModel = encodeChannelModel(channel.id, model);
-    const modelCost = channel.modelCosts?.find((item) => item.model === model);
+    const modelCost = channel.modelDetails?.find((item) => item.model === model);
     const testProtocol = channel.apiFormat === "gemini" && !modelCost?.protocol ? undefined : protocol;
     const testChannel: ModelChannel = {
         ...channel,
         models: channel.models.includes(model) ? channel.models : [...channel.models, model],
-        modelCosts: [
+        modelDetails: [
             {
                 model,
                 displayName: modelCost?.displayName,
                 capability,
                 protocol: testProtocol,
-                billingMode: modelCost?.billingMode || "fixed_request",
-                unitPriceMicrocredits: modelCost?.unitPriceMicrocredits || 0,
+
                 capabilityConfig: modelCost?.capabilityConfig,
             },
-            ...(channel.modelCosts || []).filter((item) => item.model !== model),
+            ...(channel.modelDetails || []).filter((item) => item.model !== model),
         ],
     };
     const config = {

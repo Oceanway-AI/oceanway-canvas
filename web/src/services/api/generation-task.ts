@@ -298,7 +298,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
     const videoOperation = generationOperation(options);
     const workflow = resolveGenerationWorkflowExecution(config, mode);
     const logicalModelId = workflow ? "" : logicalModelIDForConfig(config);
-    const platform = resolveModelChannel(config, config.model).modelCosts?.find((item) => item.model === modelOptionName(config.model))?.platform;
+    const platform = resolveModelChannel(config, config.model).modelDetails?.find((item) => item.model === modelOptionName(config.model))?.platform;
     if (platform?.state === "summary" && (mode === "image" || mode === "video")) throw new Error("模型参数尚未加载，请在模型选择器中加载后生成");
     const variantId = studioMediaGenerationVariant(config);
     const frameRoles = !workflow && mode === "video" ? publishedFrameRoles(nativeMediaVariant(config)) : [];
@@ -354,7 +354,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
 function generationMetadata(config: AiConfig, metadata?: Record<string, unknown>) {
     const channel = resolveModelChannel(config, config.model);
     const model = modelOptionName(config.model);
-    const modelCost = channel.modelCosts?.find((item) => item.model === model);
+    const modelCost = channel.modelDetails?.find((item) => item.model === model);
     if (modelCost?.capability === "image" && modelCost.capabilityConfig?.image?.parameters) {
         const { providerOptions: _providerOptions, ...rest } = metadata || {};
         return rest;
@@ -450,7 +450,7 @@ function logicalCapabilityOptions(config: AiConfig, mode: BackendGenerationMode)
         if (values) return values;
     }
     const channel = resolveModelChannel(config, config.model);
-    const spec = channel.modelCosts?.find((item) => item.model === modelOptionName(config.model))?.logicalCapabilitySpec;
+    const spec = channel.modelDetails?.find((item) => item.model === modelOptionName(config.model))?.logicalCapabilitySpec;
     const candidates: Record<string, unknown> =
         mode === "image"
             ? { size: config.size, quality: omittedImageQuality(config.quality), transparentBackground: config.transparentBackground === "true", count: Number(config.count) }

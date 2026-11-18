@@ -79,7 +79,7 @@ const model = {
     capability: "video",
     protocol: "volcengine-ark-video",
     available: true,
-    priceTiers: [],
+
     platform: {
         price: { version: "fixture" },
         model_type: "video",

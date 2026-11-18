@@ -19,7 +19,7 @@ function systemTextConfig(protocol: string, textWire?: "chat-completion" | "resp
         apiFormat: "openai",
         scope: "system",
         models: ["chat-model"],
-        modelCosts: [{ model: "chat-model", capability: "text", protocol, ...(textWire ? { textWire } : {}), billingMode: "token", unitPriceMicrocredits: 0 }],
+        modelDetails: [{ model: "chat-model", capability: "text", protocol, ...(textWire ? { textWire } : {}) }],
     });
     return { ...defaultConfig, channels: [channel], model: "system-text::chat-model", textModel: "system-text::chat-model" };
 }

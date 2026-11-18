@@ -20,8 +20,8 @@ func textVisionFixtureWithDB(t *testing.T, maxImages int) (*Service, *gorm.DB, m
 	t.Helper()
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceChatCompletion), "text-model")
 	profile.Text.References.MaxImages = maxImages
-	return createSystemChannelSelectionFixture(t, "text", model.ChannelInterfaceChatCompletion, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("text-tier", `{}`, "provider-text", "fixed_request"),
+	return createSystemChannelSelectionFixture(t, "text", model.ChannelInterfaceChatCompletion, profile, []model.ChannelModelVariant{
+		newSelectionVariant("text-tier", `{}`, "provider-text", "fixed_request"),
 	})
 }
 
@@ -84,9 +84,9 @@ func TestCreateTextTaskWithImagesOnNonVisionModelDoesNotReserveCredits(t *testin
 	}
 	channel := model.ModelChannel{ID: newID(), Scope: model.ChannelScopeSystem, Enabled: true, Name: "System Channel", APIFormat: "legacy"}
 	channelModel := model.ChannelModel{ID: newID(), ChannelID: channel.ID, ModelKey: "text-model", ProviderModelKey: "provider-text", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, Enabled: true, CapabilityConfigJSON: string(capabilityJSON)}
-	tier := newSelectionPriceTier("text-tier", `{}`, "provider-text", "fixed_request")
+	tier := newSelectionVariant("text-tier", `{}`, "provider-text", "fixed_request")
 	tier.ChannelModelID = channelModel.ID
-	for _, item := range []any{&channel, &channelModel, &tier, &model.User{ID: "user-text-vision", Email: "vision@example.com", Username: "vision"}} {
+	for _, item := range []any{&channel, &channelModel, &tier} {
 		if err := db.Create(item).Error; err != nil {
 			t.Fatal(err)
 		}

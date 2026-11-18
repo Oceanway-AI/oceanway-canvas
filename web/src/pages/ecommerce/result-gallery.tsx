@@ -1,19 +1,16 @@
 import { appURL } from "@/lib/app-path";
 import { Button, Input, Popconfirm, Popover, Select } from "antd";
 import { ArrowDownToLine, Crop, Images, Languages, Layers3, Maximize2, Paintbrush2, RotateCcw, RotateCw, Scissors, Sparkles, Trash2, Type, X } from "lucide-react";
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { ModelPicker } from "@/components/model-picker";
-import { RollingCreditAmount } from "@/components/rolling-credit-text";
 import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
-import { systemModelQuoteRequest } from "@/lib/model-pricing";
-import { quoteModel } from "@/services/api/logical-models";
 import { parseBackendGenerationResult } from "@/services/api/generation-task";
 import { resolveResourceVariantUrl, resourceIdFromStorageKey } from "@/services/api/resources";
 import type { GenerationTask } from "@/services/api/task-center";
 import type { EcommerceDraft, EcommercePlan, EcommercePlanImage } from "@/services/api/ecommerce";
 import type { AiConfig } from "@/stores/use-config-store";
 import { imageSizeLabel, imageTypes, labelOf } from "./catalog";
-import { commerceGenerationRatio, commerceImageReferences } from "./workflow";
+import { commerceImageReferences } from "./workflow";
 import type { EcommerceExportItem } from "./export";
 import { writeCommerceImageTransfer } from "./image-transfer";
 import { commerceCanvasAspect } from "./canvas-layout";
@@ -61,35 +58,11 @@ export function SingleImageEditor({
             : [image.prompt, image.copy?.trim() && !commerceCopyHasDirections(image.copy) ? `成品文案与位置：\n${image.copy}\n文字完整放在画幅内，按本提示词指定位置排版，不遮挡商品。` : ""].filter(Boolean).join("\n\n"),
     }));
     const [request, setRequest] = useState("");
-    const [cost, setCost] = useState<number>();
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
     const lock = useRef(false);
     const profile = modelCapabilityConfigFor(config, edited.imageModel).image;
     const refs = commerceImageReferences(draft, edited, 0, false);
-    // Quote the size the image is generated at (自动 resolves to the platform recommendation).
-    const quotedRatio = commerceGenerationRatio(config, draft, edited);
-    useEffect(() => {
-        const controller = new AbortController();
-        setCost(undefined);
-        setError("");
-        const request = systemModelQuoteRequest(config, edited.imageModel, "image", {
-            capability: "image",
-            input: { textCount: 1, imageCount: refs.length, referenceImageCount: refs.length, videoCount: 0, audioCount: 0, characterCount: 0 },
-            imageSize: quotedRatio,
-            options: { size: quotedRatio, imageResolution: edited.resolution, count: 1 },
-        });
-        if (request)
-            void quoteModel(request, controller.signal)
-                .then((value) => {
-                    if (!controller.signal.aborted) setCost(value.quote.amountMicrocredits / 1_000_000);
-                })
-                .catch((cause) => {
-                    if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "报价失败");
-                });
-        else setError("当前模型无法使用这些参数，请重新选择");
-        return () => controller.abort();
-    }, [config, edited.imageModel, quotedRatio, edited.resolution, refs.length]);
     return (
         <section className="ecommerce-image-editor" aria-label="单张图片 AI 编辑">
             <header>
@@ -137,16 +110,12 @@ export function SingleImageEditor({
             </div>
             {error ? <p role="alert">{error}</p> : null}
             <footer>
-                <span>
-                    1 张 · {cost == null ? "正在计算积分" : "预计 "}
-                    <RollingCreditAmount value={cost ?? null} />
-                    {cost == null ? null : " 积分"}
-                </span>
+                <span>1 张</span>
                 <Button
                     type="primary"
                     icon={<Sparkles size={15} />}
                     loading={busy}
-                    disabled={cost == null || !request.trim()}
+                    disabled={!request.trim()}
                     onClick={async () => {
                         if (lock.current) return;
                         lock.current = true;
@@ -382,7 +351,6 @@ export function EcommerceResultGallery({
                                             <button type="button" key={label} disabled title={`${label}功能将在 API 接入后开放`}>
                                                 <Icon size={15} strokeWidth={1.8} />
                                                 <span>{label}</span>
-                                                <small>99 积分</small>
                                             </button>
                                         ))}
                                         <div className="commerce-selected-tools-divider" />

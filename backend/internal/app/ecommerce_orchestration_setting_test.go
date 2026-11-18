@@ -27,9 +27,7 @@ func TestOrchestrationCatalogRejectsMissingVisionAndPrivateModel(t *testing.T) {
 func TestOrchestrationSettingSaveIsAdminOnlyAndRequiresImageModels(t *testing.T) {
 	svc, db, _, _ := creationTestService(t)
 	admin := &model.User{ID: "admin", Username: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
-	if err := db.Create(admin).Error; err != nil {
-		t.Fatal(err)
-	}
+
 	ordinary := &model.User{ID: "user"}
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceChatCompletion), "text-test")
 	profile.Text.References.MaxImages = 1
@@ -68,8 +66,8 @@ func TestOrchestrationSettingSaveIsAdminOnlyAndRequiresImageModels(t *testing.T)
 	textProfile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceChatCompletion), "text-only")
 	textProfile.Text.References.MaxImages = 0
 	for _, record := range []any{
-		&model.ChannelModel{ID: "cm-text", ChannelID: "channel", ModelKey: "text-only", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, textProfile), BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true},
-		&model.ChannelModelPriceTier{ID: "tier-text", ChannelModelID: "cm-text", SelectorKey: "{}", SelectorJSON: "{}", BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true},
+		&model.ChannelModel{ID: "cm-text", ChannelID: "channel", ModelKey: "text-only", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, textProfile), Enabled: true},
+		&model.ChannelModelVariant{ID: "tier-text", ChannelModelID: "cm-text", SelectorKey: "{}", SelectorJSON: "{}", Enabled: true},
 	} {
 		if err := db.Create(record).Error; err != nil {
 			t.Fatal(err)

@@ -25,7 +25,7 @@ type prefixedIDDefinition struct {
 var prefixedIDDefinitions = []prefixedIDDefinition{
 	{prefix: "CHANNEL", model: &model.ModelChannel{}},
 	{prefix: "MODEL", model: &model.ChannelModel{}},
-	{prefix: "PTIER", model: &model.ChannelModelPriceTier{}},
+	{prefix: "PTIER", model: &model.ChannelModelVariant{}},
 	{prefix: "ATTEMPT", model: &model.RouteAttempt{}},
 	{prefix: "LMODEL", model: &model.LogicalModel{}},
 	{prefix: "REVISION", model: &model.LogicalModelRevision{}},

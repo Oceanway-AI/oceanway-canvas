@@ -162,7 +162,7 @@ export function resolveGenerationSelection(config: AiConfig, selection: ModelSel
     }
     for (const channel of config.channels) {
         if (channel.enabled === false) continue;
-        const model = channel.modelCosts?.find((item) => item.logicalModelId === selection.logicalModelId && channel.models.includes(item.model));
+        const model = channel.modelDetails?.find((item) => item.logicalModelId === selection.logicalModelId && channel.models.includes(item.model));
         if (model) return encodeChannelModel(channel.id, model.model);
     }
     return "";
@@ -171,7 +171,7 @@ export function resolveGenerationSelection(config: AiConfig, selection: ModelSel
 export function selectionForConfig(config: AiConfig): ModelSelection | undefined {
     const selected = decodeChannelModel(config.model);
     if (!selected) return undefined;
-    const logicalModelId = config.channels.find((channel) => channel.id === selected.channelId)?.modelCosts?.find((item) => item.model === selected.model)?.logicalModelId;
+    const logicalModelId = config.channels.find((channel) => channel.id === selected.channelId)?.modelDetails?.find((item) => item.model === selected.model)?.logicalModelId;
     return logicalModelId ? { kind: "logical", logicalModelId } : { kind: "channel", channelId: selected.channelId, modelKey: selected.model };
 }
 

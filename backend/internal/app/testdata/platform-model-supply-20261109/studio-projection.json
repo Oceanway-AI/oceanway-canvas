@@ -371,11 +371,9 @@
       "format": "png",
       "size": "1024x1024"
     },
-    "priceTiers": [],
     "pricingMode": "platform",
     "priceLabel": "以平台报价为准",
-    "available": true,
-    "referenceVideoBilling": false
+    "available": true
   },
   {
     "platform": {
@@ -825,10 +823,8 @@
       "resolution": "720p",
       "seed": 0
     },
-    "priceTiers": [],
     "pricingMode": "platform",
     "priceLabel": "以平台报价为准",
-    "available": true,
-    "referenceVideoBilling": false
+    "available": true
   }
 ]

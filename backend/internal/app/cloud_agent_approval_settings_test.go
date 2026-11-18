@@ -159,8 +159,8 @@ func TestCloudAgentImageApprovalEditsAreValidatedAndIdempotent(t *testing.T) {
 	capability := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceGrokImage), "grok-image")
 	for _, key := range []string{"grok-image", "grok-image-alternative"} {
 		for _, row := range []any{
-			&model.ChannelModel{ID: key, ChannelID: "channel", ModelKey: key, DisplayName: key, Capability: "image", Protocol: model.ChannelInterfaceGrokImage, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, capability), BillingMode: "fixed_request", PriceConfigured: true, Enabled: true},
-			&model.ChannelModelPriceTier{ID: key + "-tier", ChannelModelID: key, SelectorKey: "{}", SelectorJSON: "{}", BillingMode: "fixed_request", UnitPriceMicrocredits: 1, PriceConfigured: true, Enabled: true},
+			&model.ChannelModel{ID: key, ChannelID: "channel", ModelKey: key, DisplayName: key, Capability: "image", Protocol: model.ChannelInterfaceGrokImage, CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, capability), Enabled: true},
+			&model.ChannelModelVariant{ID: key + "-tier", ChannelModelID: key, SelectorKey: "{}", SelectorJSON: "{}", Enabled: true},
 		} {
 			if err := db.Create(row).Error; err != nil {
 				t.Fatal(err)

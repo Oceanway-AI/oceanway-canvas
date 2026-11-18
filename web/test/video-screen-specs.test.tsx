@@ -42,7 +42,7 @@ test("selected presets and default remain active after saving and reloading", ()
 
 test("creation and canvas use configured choices and replace stale cached selections", () => {
     const profile = updateWorkflowVideoScreenSpec(initial(), workflow, { resolutions: ["480p横", "768p(1:1)"], defaultResolution: "768p(1:1)" });
-    const config = { channels: [{ id: "autodl", models: [workflow.id], modelCosts: [{ model: workflow.id, protocol: "autodl-comfyui", capabilityConfig: { version: 1, video: profile } }] }] };
+    const config = { channels: [{ id: "autodl", models: [workflow.id], modelDetails: [{ model: workflow.id, protocol: "autodl-comfyui", capabilityConfig: { version: 1, video: profile } }] }] };
     const selected = modelCapabilityConfigFor(config, `autodl::${workflow.id}`).video!;
     expect(normalizeVideoValue(selected, { seconds: "6", ratio: "16:9", resolution: "768p竖" })).toEqual({ seconds: "6", ratio: "", resolution: "768p(1:1)" });
     expect(normalizeVideoValue(selected, { resolution: "480p横" }).resolution).toBe("480p横");

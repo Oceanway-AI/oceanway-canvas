@@ -8,7 +8,7 @@ import { modelProtocolCapability, normalizeModelProtocol, type ModelProtocol, ty
 import { normalizeVideoDuration, normalizeVideoResolution } from "@/lib/video-generation-options";
 import { type ModelCapabilityConfig } from "@/lib/model-capabilities";
 import { useUserStore } from "@/stores/use-user-store";
-import type { CapabilitySpec, PublicChannelModelAvailability, PublicLogicalModelPriceTier } from "@/services/api/logical-models";
+import type { CapabilitySpec, PublicChannelModelAvailability } from "@/services/api/logical-models";
 import { type WorkflowFieldMapping, normalizeRunningHubCapability, normalizeRunningHubWorkflowKind, normalizeSavedWorkflowFields, mergeWorkflowFieldMappings, normalizeWorkflowFieldMappings } from "./config-workflow-fields";
 import {
     decodeChannelModel,
@@ -18,7 +18,6 @@ import {
     CHANNEL_MODEL_SEPARATOR,
     uniqueModelOptions,
     encodeChannelModel,
-    hasSystemModelPrice,
     isChannelModelValue,
     modelDisplayName,
     modelIcon,
@@ -28,7 +27,7 @@ import { normalizeRawModelName } from "./config-model-options";
 
 export { CHANNEL_MODEL_SEPARATOR, normalizeRawModelName, uniqueModelOptions } from "./config-model-options";
 export { mergeWorkflowFieldMappings, normalizeRunningHubCapability, normalizeRunningHubWorkflowKind, normalizeWorkflowFieldMappings, type WorkflowFieldMapping } from "./config-workflow-fields";
-export { decodeChannelModel, encodeChannelModel, hasSystemModelPrice, isChannelModelValue, modelDisplayName, modelIcon, modelOptionLabel, modelOptionName, modelOptionsFromChannels, normalizeModelOptionValue } from "./config-model-options";
+export { decodeChannelModel, encodeChannelModel, isChannelModelValue, modelDisplayName, modelIcon, modelOptionLabel, modelOptionName, modelOptionsFromChannels, normalizeModelOptionValue } from "./config-model-options";
 
 export type ApiCallFormat = "openai" | "gemini" | "claude";
 export type ChannelInterfaceType = ModelProtocol;
@@ -93,7 +92,7 @@ export type ModelChannel = {
     // 仅管理端：渠道由哪个目录服务商一键接入，空表示自定义渠道。
     catalogProviderId?: string;
     platformGroups?: import("@/lib/platform-models").PlatformModelGroup[];
-    modelCosts?: Array<{
+    modelDetails?: Array<{
         platform?: import("@/lib/platform-models").PlatformModel;
         model: string;
         displayName?: string;
@@ -105,23 +104,17 @@ export type ModelChannel = {
         protocol?: ModelProtocol;
         /** 仅系统渠道：模型目录按插件 create 路径识别的文本请求格式。 */
         textWire?: TextWire;
-        pricePolicy?: "channel" | "unified";
-        billingMode: "fixed_request" | "per_second" | "token";
-        unitPriceMicrocredits: number;
-        inputTokenPriceMicrocredits?: number;
-        outputTokenPriceMicrocredits?: number;
-        cachedTokenPriceMicrocredits?: number;
-        cacheWriteTokenPriceMicrocredits?: number;
+
         capabilityConfig?: ModelCapabilityConfig;
         logicalModelId?: string;
         logicalCapabilitySpec?: CapabilitySpec;
         logicalCapabilityProfiles?: CapabilitySpec[];
-        logicalPriceTiers?: PublicLogicalModelPriceTier[];
+
         defaultOptions?: Record<string, unknown>;
         availability?: PublicChannelModelAvailability;
         available?: boolean;
         /** 仅视频模型：挂参考视频的请求是否另计费；用户侧据此标注“参考视频另计费 / 不计费”。 */
-        referenceVideoBilling?: boolean;
+
         /** 系统目录里的渠道模型行 ID 与路由键：后台按行 ID 保存配置，前台据此找回对应的可选模型。 */
         channelModelId?: string;
         channelId?: string;
@@ -330,7 +323,7 @@ export function filterModelsByCapability(models: string[], capability?: ModelCap
         const decoded = decodeChannelModel(model);
         const channel = decoded ? channels?.find((item) => item.id === decoded.channelId) : undefined;
         const modelName = decoded?.model || modelOptionName(model);
-        const costEntry = channel?.modelCosts?.find((item) => item.model === modelName);
+        const costEntry = channel?.modelDetails?.find((item) => item.model === modelName);
         // 视频处理模型（画质增强等）只出现在画布处理工具里，不进入普通生成下拉。
         if (costEntry?.capabilityConfig?.video?.processing) return false;
         // 协议层优先级最高：协议决定 API 端点，明确属于其他能力时直接排除，
@@ -591,7 +584,7 @@ export function createModelChannel(channel?: Partial<ModelChannel>): ModelChanne
         hasApiKey: channel?.hasApiKey,
         hasSecretKey: channel?.hasSecretKey,
         platformGroups: channel?.platformGroups,
-        modelCosts: channel?.modelCosts?.map((item) => ({ ...item, protocol: normalizeModelProtocol(item.protocol) })),
+        modelDetails: channel?.modelDetails?.map((item) => ({ ...item, protocol: normalizeModelProtocol(item.protocol) })),
     };
 }
 
@@ -604,7 +597,7 @@ export function resolveModelChannel(config: AiConfig, value: string) {
 
 export function logicalModelIDForConfig(config: AiConfig) {
     const channel = resolveModelChannel(config, config.model);
-    return channel.modelCosts?.find((item) => item.model === modelOptionName(config.model))?.logicalModelId || "";
+    return channel.modelDetails?.find((item) => item.model === modelOptionName(config.model))?.logicalModelId || "";
 }
 
 export function channelConnectionSignature(channel: ModelChannel) {
@@ -614,7 +607,7 @@ export function channelConnectionSignature(channel: ModelChannel) {
 export function resolveModelRequestConfig(config: AiConfig, value: string) {
     const channel = resolveModelChannel(config, value);
     const model = modelOptionName(value || config.model);
-    const modelCost = channel.modelCosts?.find((item) => item.model === model);
+    const modelCost = channel.modelDetails?.find((item) => item.model === model);
     const modelProtocol = modelCost?.protocol;
     const interfaceType = modelProtocol || channel.interfaceType;
     return {

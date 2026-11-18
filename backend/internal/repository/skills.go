@@ -181,9 +181,8 @@ func (r *Repository) AdminSkills(filter AdminSkillListFilter) ([]model.Skill, in
 	}
 	if filter.Keyword != "" {
 		pattern := "%" + strings.ToLower(filter.Keyword) + "%"
-		query = query.Joins("LEFT JOIN users skill_owners ON skill_owners.id = skills.owner_id").
-			Where("skills.id = ? OR lower(skills.name) LIKE ? OR lower(skills.description) LIKE ? OR lower(skills.author_name) LIKE ? OR lower(skill_owners.display_name) LIKE ? OR lower(skill_owners.username) LIKE ? OR lower(skills.source_url) LIKE ?",
-				filter.Keyword, pattern, pattern, pattern, pattern, pattern, pattern)
+		query = query.Where("skills.id = ? OR lower(skills.name) LIKE ? OR lower(skills.description) LIKE ? OR lower(skills.author_name) LIKE ? OR lower(skills.owner_id) LIKE ? OR lower(skills.source_url) LIKE ?",
+			filter.Keyword, pattern, pattern, pattern, pattern, pattern)
 	}
 	var total int64
 	if err := query.Count(&total).Error; err != nil {

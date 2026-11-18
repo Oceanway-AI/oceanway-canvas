@@ -18,7 +18,7 @@ export { isDirectSystemModel } from "@/lib/model-selection";
 
 export function modelPickerKeywords(config: AiConfig, item: DisplayModelGroup): string[] {
     return item.models.flatMap((value) => {
-        const cost = resolveModelChannel(config, value).modelCosts?.find((entry) => entry.model === modelOptionName(value));
+        const cost = resolveModelChannel(config, value).modelDetails?.find((entry) => entry.model === modelOptionName(value));
         const presentation = cost?.platform?.presentation;
         const media = cost?.platform?.model_type === "image" || cost?.platform?.model_type === "video";
         const tags = presentation?.tags ?? cost?.platform?.content?.tags ?? cost?.tags?.map((tag) => tag.text) ?? [];
@@ -39,7 +39,7 @@ export function filterModelPickerGroups(config: AiConfig, groups: ModelPickerGro
 
 export function modelChannelLabel(config: AiConfig, value: string) {
     const channel = resolveModelChannel(config, value);
-    const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(value));
+    const cost = channel.modelDetails?.find((item) => item.model === modelOptionName(value));
     if (cost?.platform) {
         const { content, model_name: callID } = cost.platform;
         const name = content?.display_name?.trim();
@@ -57,7 +57,7 @@ export function groupModelsForPicker(config: AiConfig, options: string[]): Model
         const models = options.filter((value) => resolveModelChannel(config, value).id === channel.id);
         const directModels = models.filter((value) => isDirectSystemModel(config, value));
         for (const value of directModels) {
-            const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(value));
+            const cost = channel.modelDetails?.find((item) => item.model === modelOptionName(value));
             if (cost?.platform) {
                 const item = cost.platform;
                 const suppliedGroup = channel.platformGroups?.find((group) => group.model_names.includes(item.model_name));

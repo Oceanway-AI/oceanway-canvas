@@ -77,14 +77,11 @@ func TestSanitizeChannelModelRejectsCorruptCapabilityConfig(t *testing.T) {
 func TestSanitizeChannelModelAvailabilityUsesCapabilityAndEnabledState(t *testing.T) {
 	svc := &Service{}
 	channelModel := &model.ChannelModel{
-		ID:                    "image-model",
-		ModelKey:              "image-model",
-		Capability:            "image",
-		Protocol:              model.ChannelInterfaceOpenAIImage,
-		CapabilityConfigJSON:  mustEncodeModelCapabilityConfig(t, DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceOpenAIImage), "image-model")),
-		PriceConfigured:       true,
-		BillingMode:           "fixed_request",
-		UnitPriceMicrocredits: 10,
+		ID:                   "image-model",
+		ModelKey:             "image-model",
+		Capability:           "image",
+		Protocol:             model.ChannelInterfaceOpenAIImage,
+		CapabilityConfigJSON: mustEncodeModelCapabilityConfig(t, DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceOpenAIImage), "image-model")),
 	}
 
 	public, err := svc.sanitizeChannelModel(channelModel)
@@ -95,16 +92,16 @@ func TestSanitizeChannelModelAvailabilityUsesCapabilityAndEnabledState(t *testin
 		t.Fatal("disabled model published as available")
 	}
 
-	channelModel.PriceTiers = []model.ChannelModelPriceTier{{
-		ID: "tier-1", BillingMode: "fixed_request", UnitPriceMicrocredits: 10,
-		Enabled: true, PriceConfigured: true,
+	channelModel.Variants = []model.ChannelModelVariant{{
+		ID:      "tier-1",
+		Enabled: true,
 	}}
 	channelModel.Enabled = true
 	public, err = svc.sanitizeChannelModel(channelModel)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !public.Available || len(public.PriceTiers) != 0 || public.PricingMode != "platform" || public.DisplayPrice != nil {
+	if !public.Available || public.PricingMode != "platform" {
 		t.Fatalf("local price leaked into capability catalog: %#v", public)
 	}
 }

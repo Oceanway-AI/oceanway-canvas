@@ -24,9 +24,7 @@ func knowledgeTestService(t *testing.T) (*Service, *gorm.DB) {
 		t.Fatal(err)
 	}
 	svc, db, _, _ := creationTestServiceOnDatabase(t, db)
-	if err := db.Create(&model.User{ID: "admin", Username: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}).Error; err != nil {
-		t.Fatal(err)
-	}
+
 	return svc, db
 }
 

@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test";
 import { groupModelsForPicker, modelChannelLabel } from "../src/lib/model-picker-groups";
 import { groupModelsByDisplayName, modelCompatibilityError, modelGroupReferenceLimits, resolveCompatibleModel } from "../src/lib/model-selection";
-import { modelQuoteRequest, priceTiersForCurrentSelection, priceTierSummaryLabel } from "../src/lib/model-pricing";
 import { systemChannelModelChannels } from "../src/lib/user-session";
 import type { PublicChannelCatalog, PublicChannelModel } from "../src/services/api/logical-models";
 import { defaultConfig, normalizeConfigSnapshot, resolveModelRequestConfig, selectableModelsByCapability } from "../src/stores/use-config-store";
@@ -23,7 +22,6 @@ function model(label = "", price = 300000, modelKey = "seedance-2.0", displayNam
         pricingMode: "provider",
         priceLabel: "",
         capabilityConfig: defaultModelCapabilityConfig("seedance", "seedance-2.0"),
-        priceTiers: [{ id: "tier", selector: {}, resolution: "*", videoSeconds: 0, billingMode: "per_second", unitPriceMicrocredits: price, inputTokenPriceMicrocredits: 0, outputTokenPriceMicrocredits: 0, cachedTokenPriceMicrocredits: 0 }],
     };
 }
 
@@ -67,11 +65,11 @@ test("Platform groups text by series and media by logical identity through the h
     expect(groups[1].models[1]).toEqual({ key: "oceanway-platform::image-b", label: "Variant", models: ["oceanway-platform::image-b"] });
 });
 
-test("same model display name groups all channels and preserves their prices", () => {
+test("same model display name groups all channels and preserves their identities", () => {
     const config = fixture();
     const groups = groupModelsForPicker(config, selectableModelsByCapability(config, "video"));
     expect(groups).toHaveLength(1);
-    expect(config.channels.map((channel) => channel.modelCosts![0].description)).toEqual(["", "优惠渠道-993的使用说明", "特惠渠道-730的使用说明"]);
+    expect(config.channels.map((channel) => channel.modelDetails![0].description)).toEqual(["", "优惠渠道-993的使用说明", "特惠渠道-730的使用说明"]);
     expect(groups.map((group) => [group.label, group.kind, group.models.map((item) => [item.label, item.models])])).toEqual([
         [
             "Seedance 2.0",
@@ -83,7 +81,6 @@ test("same model display name groups all channels and preserves their prices", (
             ],
         ],
     ]);
-    expect(config.channels.map((channel) => priceTierSummaryLabel(priceTiersForCurrentSelection(channel.modelCosts![0].logicalPriceTiers!, "video", config)))).toEqual(["0.3 积分/秒", "0.3 积分/秒", "0.2 积分/秒"]);
 });
 
 test("grouping uses display name even when model keys differ, without merging channel options", () => {
@@ -105,17 +102,16 @@ test("catalog projection keeps promotional tags scoped to each channel model", (
         { id: "b", name: "B", displayName: "B", models: [{ ...model("B", 200_000), tags: [{ text: "官方1折", color: "gold" }] }] },
     ]);
     const config = normalizeConfigSnapshot({ config: { ...defaultConfig, channels } }).config;
-    expect(config.channels[0].modelCosts![0].tags).toEqual([{ text: "限时特价", color: "purple" }]);
-    expect(config.channels[1].modelCosts![0].tags).toEqual([{ text: "官方1折", color: "gold" }]);
+    expect(config.channels[0].modelDetails![0].tags).toEqual([{ text: "限时特价", color: "purple" }]);
+    expect(config.channels[1].modelDetails![0].tags).toEqual([{ text: "官方1折", color: "gold" }]);
 });
 
-test("selection and quote keep the chosen channel even when another channel is cheaper", () => {
+test("selection keeps the chosen channel identity", () => {
     const config = fixture();
     const value = "b::seedance-2.0";
     expect(resolveCompatibleModel(config, value, { capability: "video" })).toBe(value);
     expect(resolveModelRequestConfig(config, value)).toMatchObject({ channelId: "b", model: "seedance-2.0" });
-    expect(modelQuoteRequest(config, value, "video")).toMatchObject({ channelId: "b", modelKey: "seedance-2.0" });
-    config.channels[1].modelCosts![0].channelLabel = "新展示名";
+    config.channels[1].modelDetails![0].channelLabel = "新展示名";
     expect(modelChannelLabel(config, value)).toBe("新展示名");
     expect(resolveModelRequestConfig(config, value)).toMatchObject({ channelId: "b", model: "seedance-2.0" });
 });
@@ -125,7 +121,7 @@ function sameChannelVariants() {
     return normalizeConfigSnapshot({ config: { ...defaultConfig, channels, model: "comfy::h3-multi", videoModel: "comfy::h3-multi" } }).config;
 }
 
-test("same-channel system variants retain explicit model identity through selection, generation and quote", () => {
+test("same-channel system variants retain explicit model identity through selection and generation", () => {
     const config = sameChannelVariants();
     const options = selectableModelsByCapability(config, "video");
     expect(groupModelsForPicker(config, options)[0].models).toHaveLength(2);
@@ -147,14 +143,13 @@ test("same-channel system variants retain explicit model identity through select
         );
         expect(generation.model).toBe(value);
         expect(resolveModelRequestConfig(generation, generation.model)).toMatchObject({ channelId: "comfy", model: value.split("::")[1] });
-        expect(modelQuoteRequest(config, value, "video")).toMatchObject({ channelId: "comfy", modelKey: value.split("::")[1] });
     }
 });
 
 test("same-channel system variants do not borrow capabilities or reroute incompatible selections", () => {
     const config = sameChannelVariants();
-    config.channels[0].modelCosts![0].capabilityConfig!.video!.references.maxImages = 0;
-    config.channels[0].modelCosts![1].capabilityConfig!.video!.references.maxImages = 2;
+    config.channels[0].modelDetails![0].capabilityConfig!.video!.references.maxImages = 0;
+    config.channels[0].modelDetails![1].capabilityConfig!.video!.references.maxImages = 2;
     const requirements = { capability: "video" as const, input: { textCount: 1, imageCount: 1, videoCount: 0, audioCount: 0, characterCount: 0 } };
     expect(modelGroupReferenceLimits(config, "comfy::h3-fast", "video")?.maxImages).toBe(0);
     expect(modelCompatibilityError(config, "comfy::h3-fast", requirements)).not.toBe("");
@@ -180,8 +175,8 @@ test("different display names in one channel create distinct first-level groups"
 
 test("group metadata is stable across channel reorder and current selection", () => {
     const config = fixture();
-    config.channels[1].modelCosts![0].displayName = "不同展示名";
-    config.channels[1].modelCosts![0].icon = "Jimeng";
+    config.channels[1].modelDetails![0].displayName = "不同展示名";
+    config.channels[1].modelDetails![0].icon = "Jimeng";
     const options = selectableModelsByCapability(config, "video");
     const first = groupModelsForPicker(config, options).find((group) => group.label === "不同展示名")!;
     const reordered = groupModelsForPicker({ ...config, channels: [...config.channels].reverse(), model: "c::seedance-2.0" }, options).find((group) => group.label === "不同展示名")!;
@@ -191,9 +186,9 @@ test("group metadata is stable across channel reorder and current selection", ()
 
 test("each channel keeps its own capability restrictions", () => {
     const config = fixture();
-    config.channels[0].modelCosts![0].capabilityConfig!.video!.references.maxImages = 0;
-    config.channels[1].modelCosts![0].capabilityConfig!.video!.references.maxImages = 2;
-    config.channels[1].modelCosts![0].capabilityConfig!.video!.operations = ["image_to_video"];
+    config.channels[0].modelDetails![0].capabilityConfig!.video!.references.maxImages = 0;
+    config.channels[1].modelDetails![0].capabilityConfig!.video!.references.maxImages = 2;
+    config.channels[1].modelDetails![0].capabilityConfig!.video!.operations = ["image_to_video"];
     const requirements = { capability: "video" as const, input: { textCount: 1, imageCount: 1, videoCount: 0, audioCount: 0, characterCount: 0 } };
     expect(modelCompatibilityError(config, "a::seedance-2.0", requirements)).not.toBe("");
     expect(modelCompatibilityError(config, "b::seedance-2.0", requirements)).toBe("");
@@ -203,7 +198,7 @@ test("each channel keeps its own capability restrictions", () => {
 test("managed logical models and personal channels never become system product routes", () => {
     const config = fixture();
     config.channels[1].id = "managed";
-    config.channels[1].modelCosts![0].logicalModelId = "logical-test";
+    config.channels[1].modelDetails![0].logicalModelId = "logical-test";
     config.channels[2].scope = "user";
     const groups = groupModelsForPicker(config, ["a::seedance-2.0", "managed::seedance-2.0", "c::seedance-2.0"]);
     expect(groups.map((item) => item.kind)).toEqual(["product", "channel", "channel"]);

@@ -83,11 +83,11 @@ export function nativeMediaVariantOptions(variants: NativeMediaVariant[]) {
 }
 
 function publishedMediaProfile(config: AiConfig, model: string) {
-    return resolveModelChannel(config, model).modelCosts?.find((item) => item.model === modelOptionName(model))?.platform?.media_generation_profile;
+    return resolveModelChannel(config, model).modelDetails?.find((item) => item.model === modelOptionName(model))?.platform?.media_generation_profile;
 }
 
 export function platformModelDetailPending(config: AiConfig, model = config.model) {
-    return resolveModelChannel(config, model).modelCosts?.find((item) => item.model === modelOptionName(model))?.platform?.state === "summary";
+    return resolveModelChannel(config, model).modelDetails?.find((item) => item.model === modelOptionName(model))?.platform?.state === "summary";
 }
 
 export function studioMediaGenerationVariant(config: AiConfig, model = config.model) {

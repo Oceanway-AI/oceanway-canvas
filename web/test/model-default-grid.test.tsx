@@ -3,10 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ModelDefaultGrid } from "../src/pages/settings/model-default-grid";
 import { createModelChannel, defaultConfig, modelOptionsFromChannels, type AiConfig, type ModelCapability, type ModelChannel } from "../src/stores/use-config-store";
 
-type ModelCost = NonNullable<ModelChannel["modelCosts"]>[number];
+type ModelCost = NonNullable<ModelChannel["modelDetails"]>[number];
 
 function cost(model: string, capability: ModelCapability, displayName?: string, channelLabel?: string): ModelCost {
-    return { model, capability, displayName, channelLabel, billingMode: "fixed_request", unitPriceMicrocredits: 100_000 };
+    return { model, capability, displayName, channelLabel };
 }
 
 function fixture(channels: ModelChannel[], defaults: Partial<AiConfig> = {}): AiConfig {
@@ -18,11 +18,11 @@ function cards(config: AiConfig) {
 }
 
 test("default cards show picker second-level model names alongside their product groups", () => {
-    const modelCosts = [cost("text-sku", "text", "GPT", "GPT-4o"), cost("image-sku", "image", "大香蕉", "大香蕉 Pro"), cost("video-sku", "video", "Seedance", "Seedance 2.0 Fast"), cost("audio-sku", "audio", "语音", "语音 HD")];
-    const config = fixture([createModelChannel({ id: "platform", scope: "system", models: modelCosts.map((item) => item.model), modelCosts })], { textModel: "platform::text-sku" });
+    const modelDetails = [cost("text-sku", "text", "GPT", "GPT-4o"), cost("image-sku", "image", "大香蕉", "大香蕉 Pro"), cost("video-sku", "video", "Seedance", "Seedance 2.0 Fast"), cost("audio-sku", "audio", "语音", "语音 HD")];
+    const config = fixture([createModelChannel({ id: "platform", scope: "system", models: modelDetails.map((item) => item.model), modelDetails })], { textModel: "platform::text-sku" });
     const options = cards(config);
     expect(options).toHaveLength(4);
-    for (const item of modelCosts) {
+    for (const item of modelDetails) {
         const card = options.find((option) => option.includes(`title="${item.channelLabel}"`))!;
         expect(card).toContain(`>${item.channelLabel}</span>`);
         expect(card).toContain(`>${item.displayName}</span>`);
@@ -33,8 +33,8 @@ test("default cards show picker second-level model names alongside their product
 });
 
 test("system variants in the same product retain distinct second-level labels and selection", () => {
-    const modelCosts = [cost("h3-fast", "video", "MiniMax H3", "高速版"), cost("h3-multi", "video", "MiniMax H3", "多图一致性")];
-    const config = fixture([createModelChannel({ id: "platform", scope: "system", models: modelCosts.map((item) => item.model), modelCosts })], { videoModel: "platform::h3-multi" });
+    const modelDetails = [cost("h3-fast", "video", "MiniMax H3", "高速版"), cost("h3-multi", "video", "MiniMax H3", "多图一致性")];
+    const config = fixture([createModelChannel({ id: "platform", scope: "system", models: modelDetails.map((item) => item.model), modelDetails })], { videoModel: "platform::h3-multi" });
     const options = cards(config);
     expect(options).toHaveLength(2);
     expect(options[0]).toContain('title="高速版"');
@@ -45,7 +45,7 @@ test("system variants in the same product retain distinct second-level labels an
 });
 
 test("personal channels preserve configured model names and distinguish matching names by channel", () => {
-    const channels = ["个人渠道 A", "个人渠道 B"].map((name, index) => createModelChannel({ id: `personal-${index}`, name, scope: "user", models: ["text-sku"], modelCosts: [cost("text-sku", "text", "GPT-4o", "渠道备注")] }));
+    const channels = ["个人渠道 A", "个人渠道 B"].map((name, index) => createModelChannel({ id: `personal-${index}`, name, scope: "user", models: ["text-sku"], modelDetails: [cost("text-sku", "text", "GPT-4o", "渠道备注")] }));
     const options = cards(fixture(channels, { textModel: "personal-1::text-sku" }));
     expect(options).toHaveLength(2);
     for (const [index, option] of options.entries()) {
@@ -57,15 +57,15 @@ test("personal channels preserve configured model names and distinguish matching
 });
 
 test("managed logical models use their configured model label rather than a route label", () => {
-    const modelCosts = [{ ...cost("logical-text", "text", "GPT-4.1", "自动路由"), logicalModelId: "logical-1" }];
-    const options = cards(fixture([createModelChannel({ id: "managed", scope: "system", models: ["logical-text"], modelCosts })]));
+    const modelDetails = [{ ...cost("logical-text", "text", "GPT-4.1", "自动路由"), logicalModelId: "logical-1" }];
+    const options = cards(fixture([createModelChannel({ id: "managed", scope: "system", models: ["logical-text"], modelDetails })]));
     expect(options[0]).toContain('title="GPT-4.1"');
     expect(options[0]).not.toContain("自动路由");
     expect(options[0]).not.toContain("logical-text");
 });
 
 test("missing labels fall back to recognizable model names without channel encoding", () => {
-    const platform = createModelChannel({ id: "platform", scope: "system", models: ["unknown-text"], modelCosts: [cost("unknown-text", "text", " ", " ")] });
+    const platform = createModelChannel({ id: "platform", scope: "system", models: ["unknown-text"], modelDetails: [cost("unknown-text", "text", " ", " ")] });
     const personal = createModelChannel({ id: "personal", name: "个人渠道", scope: "user", models: ["custom-text"] });
     const options = cards(fixture([platform, personal]));
     expect(options[0]).toContain('title="unknown-text"');

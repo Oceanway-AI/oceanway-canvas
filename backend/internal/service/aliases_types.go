@@ -86,7 +86,7 @@ type (
 	ChannelModelCatalogItem                = app.ChannelModelCatalogItem
 	ChannelModelCatalogOption              = app.ChannelModelCatalogOption
 	ChannelModelCatalogOptions             = app.ChannelModelCatalogOptions
-	ChannelModelPriceTierRequest           = app.ChannelModelPriceTierRequest
+	ChannelModelVariantRequest             = app.ChannelModelVariantRequest
 	ChannelModelRequest                    = app.ChannelModelRequest
 	ChannelModelsRequest                   = app.ChannelModelsRequest
 	ChannelRequest                         = app.ChannelRequest
@@ -191,13 +191,10 @@ type (
 	PublicCanvasShare                      = app.PublicCanvasShare
 	PublicChannelCatalog                   = app.PublicChannelCatalog
 	PublicChannelModel                     = app.PublicChannelModel
-	PublicChannelModelPrice                = app.PublicChannelModelPrice
-	PublicChannelModelPriceTier            = app.PublicChannelModelPriceTier
 	PublicDrawingEngineSetting             = app.PublicDrawingEngineSetting
 	PublicFeatureAvailability              = app.PublicFeatureAvailability
 	PublicLibTVSetting                     = app.PublicLibTVSetting
 	PublicLogicalModel                     = app.PublicLogicalModel
-	PublicLogicalModelPriceTier            = app.PublicLogicalModelPriceTier
 	PublicModelAvailability                = app.PublicModelAvailability
 	PublicModelAvailabilityDataState       = app.PublicModelAvailabilityDataState
 	PublicModelAvailabilityDay             = app.PublicModelAvailabilityDay

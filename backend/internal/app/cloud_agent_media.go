@@ -32,7 +32,7 @@ func (s *Service) cloudAgentModelList(userID string, intent *ModelRequestIntent)
 			if !cloudAgentVideoCatalogMatches(intent, m.CapabilitySpec.Operations, "") {
 				continue
 			}
-			items = append(items, map[string]any{"name": m.Name, "capability": m.Capability, "selection": map[string]any{"logicalModelId": m.ID}, "priceLabel": m.PriceLabel, "priceTiers": m.PriceTiers, "options": m.CapabilitySpec, "profiles": m.CapabilityProfiles, "defaults": m.DefaultOptions})
+			items = append(items, map[string]any{"name": m.Name, "capability": m.Capability, "selection": map[string]any{"logicalModelId": m.ID}, "priceLabel": m.PriceLabel, "options": m.CapabilitySpec, "profiles": m.CapabilityProfiles, "defaults": m.DefaultOptions})
 		}
 	}
 	for _, channel := range catalog.Channels {
@@ -44,7 +44,7 @@ func (s *Service) cloudAgentModelList(userID string, intent *ModelRequestIntent)
 						continue
 					}
 				}
-				items = append(items, map[string]any{"name": m.DisplayName, "capability": m.Capability, "selection": map[string]any{"channelId": channel.ID, "channelModelKey": m.ModelKey}, "priceLabel": m.PriceLabel, "priceTiers": m.PriceTiers, "options": m.CapabilityConfig, "defaults": m.DefaultOptions})
+				items = append(items, map[string]any{"name": m.DisplayName, "capability": m.Capability, "selection": map[string]any{"channelId": channel.ID, "channelModelKey": m.ModelKey}, "priceLabel": m.PriceLabel, "options": m.CapabilityConfig, "defaults": m.DefaultOptions})
 			}
 		}
 	}

@@ -26,7 +26,7 @@ func TestFeatureAvailabilityDefaultsToDisableFrontendModels(t *testing.T) {
 	if !setting.WelcomeEnabled {
 		t.Fatal("welcome should be enabled by default")
 	}
-	if setting.Configured || !setting.ShortDramaEnabled || !setting.TaskCenterEnabled || !setting.CreditsEnabled || !setting.CustomChannelsEnabled || setting.FrontendModelsEnabled || !setting.PluginCenterEnabled || !setting.SystemPluginsVisibleToUsers || !setting.InspirationSourcesVisible {
+	if setting.Configured || !setting.ShortDramaEnabled || !setting.TaskCenterEnabled || !setting.CustomChannelsEnabled || setting.FrontendModelsEnabled || !setting.PluginCenterEnabled || !setting.SystemPluginsVisibleToUsers || !setting.InspirationSourcesVisible {
 		t.Fatalf("FeatureAvailability() = %#v", setting)
 	}
 }
@@ -75,13 +75,13 @@ func TestWelcomeAvailabilityCanBeDisabledAndReenabled(t *testing.T) {
 func TestUpdateFeatureAvailabilityPersistsAndAudits(t *testing.T) {
 	svc, db := newFeatureAvailabilityTestService(t)
 	actor := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
-	want := FeatureAvailability{ShortDramaEnabled: false, TaskCenterEnabled: true, CreditsEnabled: false, CustomChannelsEnabled: true, PluginCenterEnabled: false, SystemPluginsVisibleToUsers: false}
+	want := FeatureAvailability{ShortDramaEnabled: false, TaskCenterEnabled: true, CustomChannelsEnabled: true, PluginCenterEnabled: false, SystemPluginsVisibleToUsers: false}
 
 	setting, err := svc.UpdateFeatureAvailability(actor, want)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !setting.Configured || setting.ShortDramaEnabled || !setting.TaskCenterEnabled || setting.CreditsEnabled || !setting.CustomChannelsEnabled || setting.PluginCenterEnabled || setting.SystemPluginsVisibleToUsers || setting.InspirationSourcesVisible {
+	if !setting.Configured || setting.ShortDramaEnabled || !setting.TaskCenterEnabled || !setting.CustomChannelsEnabled || setting.PluginCenterEnabled || setting.SystemPluginsVisibleToUsers || setting.InspirationSourcesVisible {
 		t.Fatalf("UpdateFeatureAvailability() = %#v", setting)
 	}
 	if enabled, err := svc.FeatureEnabled(FeaturePluginCenter); err != nil || enabled {
@@ -108,8 +108,7 @@ func TestPluginsForUserKeepsOfficialApplicationsAndHidesManagedPlugins(t *testin
 	svc, _ := newFeatureAvailabilityTestService(t)
 	admin := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if _, err := svc.UpdateFeatureAvailability(admin, FeatureAvailability{
-		ShortDramaEnabled: true, TaskCenterEnabled: true, CreditsEnabled: true,
-		CustomChannelsEnabled: true, PluginCenterEnabled: true, SystemPluginsVisibleToUsers: false,
+		ShortDramaEnabled: true, TaskCenterEnabled: true, CustomChannelsEnabled: true, PluginCenterEnabled: true, SystemPluginsVisibleToUsers: false,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +137,7 @@ func TestPluginsForUserKeepsOfficialApplicationsAndHidesManagedPlugins(t *testin
 func TestCustomChannelTaskInputRequiresFeature(t *testing.T) {
 	svc, _ := newFeatureAvailabilityTestService(t)
 	actor := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
-	if _, err := svc.UpdateFeatureAvailability(actor, FeatureAvailability{ShortDramaEnabled: true, TaskCenterEnabled: true, CreditsEnabled: true, CustomChannelsEnabled: false}); err != nil {
+	if _, err := svc.UpdateFeatureAvailability(actor, FeatureAvailability{ShortDramaEnabled: true, TaskCenterEnabled: true, CustomChannelsEnabled: false}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -168,7 +167,7 @@ func TestCustomChannelTaskInputRequiresFeature(t *testing.T) {
 func TestCreateTaskDoesNotClassifyCustomChannelAsMissingSystemModel(t *testing.T) {
 	svc, _ := newFeatureAvailabilityTestService(t)
 	actor := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
-	if _, err := svc.UpdateFeatureAvailability(actor, FeatureAvailability{ShortDramaEnabled: true, TaskCenterEnabled: true, CreditsEnabled: true, CustomChannelsEnabled: false, FrontendModelsEnabled: true}); err != nil {
+	if _, err := svc.UpdateFeatureAvailability(actor, FeatureAvailability{ShortDramaEnabled: true, TaskCenterEnabled: true, CustomChannelsEnabled: false, FrontendModelsEnabled: true}); err != nil {
 		t.Fatal(err)
 	}
 

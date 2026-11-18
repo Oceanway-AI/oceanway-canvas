@@ -12,7 +12,7 @@ function model(id: string, vision: number | undefined = 1): PublicChannelModel {
         available: true,
         priceLabel: "1 积分",
         pricingMode: "token",
-        priceTiers: [{ id: `price-${id}`, resolution: "*", videoSeconds: 0, billingMode: "token", unitPriceMicrocredits: 0, inputTokenPriceMicrocredits: 1, outputTokenPriceMicrocredits: 1, cachedTokenPriceMicrocredits: 0 }],
+
         capabilityConfig: vision === undefined ? {} : { text: { references: { maxImages: vision } } },
     };
 }

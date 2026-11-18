@@ -26,7 +26,6 @@ const (
 	CodeTooManyRequests                = app.CodeTooManyRequests
 	CodeUnauthorized                   = app.CodeUnauthorized
 	CodeUnavailable                    = app.CodeUnavailable
-	CreditScale                        = app.CreditScale
 	CustomRelayHeadersHeader           = app.CustomRelayHeadersHeader
 	DefaultOutboundUserAgent           = app.DefaultOutboundUserAgent
 	DrawingEngineExcalidraw            = app.DrawingEngineExcalidraw
@@ -34,10 +33,8 @@ const (
 	ErrCodeInvalidModelSelection       = app.ErrCodeInvalidModelSelection
 	ErrCodeModelCapabilityNotSupported = app.ErrCodeModelCapabilityNotSupported
 	ErrCodeModelCatalogMismatch        = app.ErrCodeModelCatalogMismatch
-	ErrCodeModelPriceNotConfigured     = app.ErrCodeModelPriceNotConfigured
 	ErrCodeModelRouteUnavailable       = app.ErrCodeModelRouteUnavailable
 	ErrCodeProviderRequestFailed       = app.ErrCodeProviderRequestFailed
-	FeatureCredits                     = app.FeatureCredits
 	FeatureCustomChannels              = app.FeatureCustomChannels
 	FeatureFrontendModels              = app.FeatureFrontendModels
 	FeatureImageWorkbench              = app.FeatureImageWorkbench

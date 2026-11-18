@@ -3,15 +3,7 @@ import type { Asset } from "@/stores/use-asset-store";
 export const PLUGIN_API_VERSION = "yingce.plugin/v1" as const;
 export const PLUGIN_API_VERSION_V2 = "yingce.plugin/v2" as const;
 
-export type EditorSlotKind =
-    | "timeline-panel"
-    | "preview-renderer"
-    | "inspector"
-    | "asset-ingest"
-    | "subtitle-tool"
-    | "transcription-provider"
-    | "export-renderer"
-    | "ai-assistant";
+export type EditorSlotKind = "timeline-panel" | "preview-renderer" | "inspector" | "asset-ingest" | "subtitle-tool" | "transcription-provider" | "export-renderer" | "ai-assistant";
 
 export type EditorSlotContribution = {
     slot: EditorSlotKind;
@@ -129,22 +121,7 @@ export type PluginContributions = {
     agents?: string[];
     importExport?: string[];
 };
-export type PluginPermission =
-    | "canvas.read"
-    | "canvas.write"
-    | "asset.read"
-    | "asset.search"
-    | "asset.import"
-    | "asset.upload"
-    | "generation.run"
-    | "ai.text"
-    | "media.read"
-    | "usage.read"
-    | "payment.create"
-    | "payment.query"
-    | "payment.close"
-    | "payment.reconcile"
-    | "external.open";
+export type PluginPermission = "canvas.read" | "canvas.write" | "asset.read" | "asset.search" | "asset.import" | "asset.upload" | "generation.run" | "ai.text" | "media.read" | "usage.read" | "external.open";
 
 export type PluginManifest = {
     apiVersion: typeof PLUGIN_API_VERSION;

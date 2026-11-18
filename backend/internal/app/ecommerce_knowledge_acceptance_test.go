@@ -326,8 +326,8 @@ func TestEcommerceSelectedDirectionFlowsToPlanningAndImageTask(t *testing.T) {
 	for _, item := range []any{
 		&model.SystemSetting{Key: featureAvailabilitySettingKey, ValueJSON: `{"ecommerceEnabled":true,"imageWorkbenchEnabled":true,"creditsEnabled":false}`},
 		&model.ModelChannel{ID: "image-channel", Scope: model.ChannelScopeSystem, Enabled: true, Name: "图片测试", APIFormat: "openai", BaseURL: imageUpstream.URL + "/v1", APIKey: "fixture-key"},
-		&model.ChannelModel{ID: "image-model", ChannelID: "image-channel", ModelKey: "gpt-image-2", ProviderModelKey: "gpt-image-2", Capability: "image", Protocol: model.ChannelInterfaceOpenAIImage, CapabilityConfigJSON: imageProfile, BillingMode: "fixed_request", UnitPriceMicrocredits: 200, PriceConfigured: true, Enabled: true},
-		&model.ChannelModelPriceTier{ID: "image-tier", ChannelModelID: "image-model", SelectorKey: "{}", SelectorJSON: "{}", BillingMode: "fixed_request", UnitPriceMicrocredits: 200, PriceConfigured: true, Enabled: true},
+		&model.ChannelModel{ID: "image-model", ChannelID: "image-channel", ModelKey: "gpt-image-2", ProviderModelKey: "gpt-image-2", Capability: "image", Protocol: model.ChannelInterfaceOpenAIImage, CapabilityConfigJSON: imageProfile, Enabled: true},
+		&model.ChannelModelVariant{ID: "image-tier", ChannelModelID: "image-model", SelectorKey: "{}", SelectorJSON: "{}", Enabled: true},
 	} {
 		if err := db.Create(item).Error; err != nil {
 			t.Fatal(err)

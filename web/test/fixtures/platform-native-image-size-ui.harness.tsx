@@ -71,7 +71,7 @@ function configFor(variant: NativeMediaVariant, capability: "image" | "video" = 
         displayName: "Fixture",
         capability,
         available: true,
-        priceTiers: [],
+
         platform: { model_type: capability, media_generation_profile: { gateway_protocol: variant.gateway_protocol, native_request_variant: variant.native_request_variant, default_variant: variant.id, variants: [variant] } },
     } as unknown as PublicChannelModel;
     const channels = systemChannelModelChannels([{ id: "oceanway-platform", name: "OceanWay", displayName: "OceanWay", models: [model] }]);

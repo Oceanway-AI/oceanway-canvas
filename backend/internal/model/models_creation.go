@@ -25,20 +25,20 @@ type CreationRun struct {
 }
 
 type CreationSubmission struct {
-	ID              string     `json:"id" gorm:"primaryKey;size:36"`
-	UserID          string     `json:"-" gorm:"size:36;index"`
-	RunID           string     `json:"runId" gorm:"size:36;uniqueIndex:idx_creation_item,priority:1"`
-	ItemKey         string     `json:"itemKey" gorm:"size:160;uniqueIndex:idx_creation_item,priority:2"`
-	ProposalVersion int64      `json:"-"`
-	ProposalHash    string     `json:"-" gorm:"size:64"`
-	RequestJSON     string     `json:"-" gorm:"type:text"`
-	RequestHash     string     `json:"requestHash" gorm:"size:64"`
-	QuoteJSON       string     `json:"-" gorm:"type:text"`
-	PriceSignature  string     `json:"-" gorm:"type:text"`
-	ExpiresAt       time.Time  `json:"-"`
-	ApprovedAt      *time.Time `json:"approvedAt,omitempty"`
-	RevokedAt       *time.Time `json:"revokedAt,omitempty"`
-	TaskID          *string    `json:"taskId,omitempty" gorm:"size:36;uniqueIndex"`
-	CreatedAt       time.Time  `json:"-"`
-	UpdatedAt       time.Time  `json:"-"`
+	ID                     string     `json:"id" gorm:"primaryKey;size:36"`
+	UserID                 string     `json:"-" gorm:"size:36;index"`
+	RunID                  string     `json:"runId" gorm:"size:36;uniqueIndex:idx_creation_item,priority:1"`
+	ItemKey                string     `json:"itemKey" gorm:"size:160;uniqueIndex:idx_creation_item,priority:2"`
+	ProposalVersion        int64      `json:"-"`
+	ProposalHash           string     `json:"-" gorm:"size:64"`
+	RequestJSON            string     `json:"-" gorm:"type:text"`
+	RequestHash            string     `json:"requestHash" gorm:"size:64"`
+	QuoteJSON              string     `json:"-" gorm:"type:text"`
+	ConfigurationSignature string     `json:"-" gorm:"type:text"`
+	ExpiresAt              time.Time  `json:"-"`
+	ApprovedAt             *time.Time `json:"approvedAt,omitempty"`
+	RevokedAt              *time.Time `json:"revokedAt,omitempty"`
+	TaskID                 *string    `json:"taskId,omitempty" gorm:"size:36;uniqueIndex"`
+	CreatedAt              time.Time  `json:"-"`
+	UpdatedAt              time.Time  `json:"-"`
 }

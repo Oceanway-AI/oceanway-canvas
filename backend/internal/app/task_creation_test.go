@@ -59,10 +59,10 @@ func TestResolveTaskModelSelectionAllowsExplicitSystemChannelWhenFrontendModelsE
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&model.ModelChannel{}, &model.ChannelModel{}, &model.ChannelModelPriceTier{}); err != nil {
+	if err := db.AutoMigrate(&model.ModelChannel{}, &model.ChannelModel{}, &model.ChannelModelVariant{}); err != nil {
 		t.Fatal(err)
 	}
-	ensureTestUsers(t, db)
+
 	channel := model.ModelChannel{ID: "channel-1", Scope: model.ChannelScopeSystem, Enabled: true, Name: "Agnes"}
 	capabilityJSON, err := json.Marshal(DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceNewAPIVideo), "agnes-video-2.5"))
 	if err != nil {
@@ -70,12 +70,12 @@ func TestResolveTaskModelSelectionAllowsExplicitSystemChannelWhenFrontendModelsE
 	}
 	channelModel := model.ChannelModel{
 		ID: "channel-model-1", ChannelID: channel.ID, ModelKey: "agnes-video-2.5", Capability: "video",
-		Protocol: model.ChannelInterfaceNewAPIVideo, BillingMode: "per_second", PriceConfigured: true, Enabled: true,
+		Protocol: model.ChannelInterfaceNewAPIVideo, Enabled: true,
 		CapabilityConfigJSON: string(capabilityJSON),
 	}
-	priceTier := model.ChannelModelPriceTier{
+	variant := model.ChannelModelVariant{
 		ID: "tier-1", ChannelModelID: channelModel.ID, SelectorKey: `{}`, SelectorJSON: `{}`,
-		BillingMode: "per_second", UnitPriceMicrocredits: 1, PriceConfigured: true, Enabled: true,
+		Enabled: true,
 	}
 	if err := db.Create(&channel).Error; err != nil {
 		t.Fatal(err)
@@ -83,7 +83,7 @@ func TestResolveTaskModelSelectionAllowsExplicitSystemChannelWhenFrontendModelsE
 	if err := db.Create(&channelModel).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Create(&priceTier).Error; err != nil {
+	if err := db.Create(&variant).Error; err != nil {
 		t.Fatal(err)
 	}
 	input, err := normalizeTaskInput(map[string]any{
@@ -95,7 +95,7 @@ func TestResolveTaskModelSelectionAllowsExplicitSystemChannelWhenFrontendModelsE
 	}
 
 	selectionSvc := &Service{repo: repository.New(db)}
-	routed, resolvedInput, err := selectionSvc.resolveTaskModelSelection(creativeTestUserID(selectionSvc), input, "", "canvas_video", "", true)
+	routed, resolvedInput, err := selectionSvc.resolveTaskModelSelection(creativeTestUserIDValue, input, "", "canvas_video", "", true)
 	if err != nil {
 		t.Fatalf("resolveTaskModelSelection() error = %v", err)
 	}
@@ -136,9 +136,9 @@ func TestResolveTaskModelSelectionStillRequiresLogicalModelWithoutExplicitSystem
 
 func TestResolveSystemChannelModelSelectionRebuildsAuthoritativeExecutionSpec(t *testing.T) {
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceGrokImage), "grok-image")
-	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGrokImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("tier-1k", `{"operation":"text_to_image","imageResolution":"1k"}`, "provider-image-1k", "fixed_request"),
-		newSelectionPriceTier("tier-2k", `{"operation":"text_to_image","imageResolution":"2k"}`, "provider-image-2k", "fixed_request"),
+	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGrokImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("tier-1k", `{"operation":"text_to_image","imageResolution":"1k"}`, "provider-image-1k", "fixed_request"),
+		newSelectionVariant("tier-2k", `{"operation":"text_to_image","imageResolution":"2k"}`, "provider-image-2k", "fixed_request"),
 	})
 
 	input := map[string]any{
@@ -147,7 +147,7 @@ func TestResolveSystemChannelModelSelectionRebuildsAuthoritativeExecutionSpec(t 
 			"channelId":        channel.ID,
 			"model":            channelModel.ModelKey,
 			"quality":          "2k",
-			"priceTierId":      "client-tier",
+			"variantId":        "client-tier",
 			"providerModelKey": "client-provider-model",
 			"interfaceType":    "runninghub-workflow-image",
 			"apiFormat":        "client-format",
@@ -174,8 +174,8 @@ func TestResolveSystemChannelModelSelectionRebuildsAuthoritativeExecutionSpec(t 
 	if got := config["imageResolution"]; got != "1k" {
 		t.Fatalf("imageResolution = %#v, want capabilityOptions value 1k", got)
 	}
-	if got := config["priceTierId"]; got != "tier-1k" {
-		t.Fatalf("priceTierId = %#v, want server-selected tier-1k", got)
+	if got := config["variantId"]; got != "tier-1k" {
+		t.Fatalf("variantId = %#v, want server-selected tier-1k", got)
 	}
 	if got := config["providerModelKey"]; got != "provider-image-1k" {
 		t.Fatalf("providerModelKey = %#v, want server-selected provider-image-1k", got)
@@ -196,8 +196,8 @@ func TestResolveSystemChannelModelSelectionPricesImageResolutionAndQualityIndepe
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceOpenAIImage), "gpt-image-2")
 	profile.Image.Resolution = ImageResolutionConfig{Supported: true, Values: []string{"1k", "2k"}, Default: "1k"}
 	profile.Image.Quality = ImageQualityConfig{Supported: true, Values: []string{"high", "max"}, Default: "high"}
-	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceOpenAIImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("2k-max", `{"operation":"text_to_image","imageResolution":"2k","quality":"max"}`, "provider-2k-max", "fixed_request"),
+	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceOpenAIImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("2k-max", `{"operation":"text_to_image","imageResolution":"2k","quality":"max"}`, "provider-2k-max", "fixed_request"),
 	})
 
 	resolved, err := svc.resolveSystemChannelModelSelection(map[string]any{
@@ -208,7 +208,7 @@ func TestResolveSystemChannelModelSelectionPricesImageResolutionAndQualityIndepe
 		t.Fatalf("resolveSystemChannelModelSelection() error = %v", err)
 	}
 	config := resolved["config"].(map[string]any)
-	if config["priceTierId"] != "2k-max" || config["imageResolution"] != "2k" || config["quality"] != "max" {
+	if config["variantId"] != "2k-max" || config["imageResolution"] != "2k" || config["quality"] != "max" {
 		t.Fatalf("resolved request = %#v, want exact 2k-max tier and independent options", config)
 	}
 	options := resolved["capabilityOptions"].(map[string]any)
@@ -221,8 +221,8 @@ func TestResolveSystemChannelModelSelectionImportsLegacyGrokResolutionWithCanoni
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceGrokImage), "grok-image")
 	profile.Image.Resolution = ImageResolutionConfig{}
 	profile.Image.Quality = ImageQualityConfig{Supported: true, Values: []string{"1k", "2k"}, Default: "2k"}
-	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGrokImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("legacy-2k", `{"imageResolution":"2k"}`, "provider-2k", "fixed_request"),
+	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGrokImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("legacy-2k", `{"imageResolution":"2k"}`, "provider-2k", "fixed_request"),
 	})
 
 	resolved, err := svc.resolveSystemChannelModelSelection(map[string]any{
@@ -233,7 +233,7 @@ func TestResolveSystemChannelModelSelectionImportsLegacyGrokResolutionWithCanoni
 		t.Fatalf("legacy request was rejected: %v", err)
 	}
 	config := resolved["config"].(map[string]any)
-	if config["imageResolution"] != "2k" || config["quality"] != nil || config["priceTierId"] != "legacy-2k" || config["providerModelKey"] != "provider-2k" {
+	if config["imageResolution"] != "2k" || config["quality"] != nil || config["variantId"] != "legacy-2k" || config["providerModelKey"] != "provider-2k" {
 		t.Fatalf("legacy request did not preserve its execution and pricing semantics: %#v", config)
 	}
 	if channelModel.CapabilityConfigJSON == "" || !strings.Contains(channelModel.CapabilityConfigJSON, `"quality":{"supported":true`) {
@@ -243,9 +243,9 @@ func TestResolveSystemChannelModelSelectionImportsLegacyGrokResolutionWithCanoni
 
 func TestResolveSystemChannelModelSelectionMatchesMiniMax768PTier(t *testing.T) {
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceMiniMaxVideo), "MiniMax-H3")
-	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "video", model.ChannelInterfaceMiniMaxVideo, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("tier-768p", `{"vquality":"768p"}`, "MiniMax-H3", "per_second"),
-		newSelectionPriceTier("tier-2k", `{"vquality":"1440p"}`, "MiniMax-H3", "per_second"),
+	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "video", model.ChannelInterfaceMiniMaxVideo, profile, []model.ChannelModelVariant{
+		newSelectionVariant("tier-768p", `{"vquality":"768p"}`, "MiniMax-H3", "per_second"),
+		newSelectionVariant("tier-2k", `{"vquality":"1440p"}`, "MiniMax-H3", "per_second"),
 	})
 
 	resolved, err := svc.resolveSystemChannelModelSelection(map[string]any{
@@ -262,8 +262,8 @@ func TestResolveSystemChannelModelSelectionMatchesMiniMax768PTier(t *testing.T) 
 		t.Fatalf("resolveSystemChannelModelSelection() error = %v", err)
 	}
 	config := resolved["config"].(map[string]any)
-	if config["priceTierId"] != "tier-768p" {
-		t.Fatalf("priceTierId = %#v, want tier-768p", config["priceTierId"])
+	if config["variantId"] != "tier-768p" {
+		t.Fatalf("variantId = %#v, want tier-768p", config["variantId"])
 	}
 	if config["vquality"] != "768" {
 		t.Fatalf("execution vquality = %#v, want original provider-facing value 768", config["vquality"])
@@ -272,8 +272,8 @@ func TestResolveSystemChannelModelSelectionMatchesMiniMax768PTier(t *testing.T) 
 
 func TestResolveSystemChannelModelSelectionAppliesServerDefaults(t *testing.T) {
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceGrokImage), "grok-image")
-	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGrokImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("tier-default", `{"operation":"text_to_image","imageResolution":"2k"}`, "provider-image-default", "fixed_request"),
+	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGrokImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("tier-default", `{"operation":"text_to_image","imageResolution":"2k"}`, "provider-image-default", "fixed_request"),
 	})
 
 	resolved, err := svc.resolveSystemChannelModelSelection(map[string]any{
@@ -295,7 +295,7 @@ func TestResolveSystemChannelModelSelectionAppliesServerDefaults(t *testing.T) {
 	if err := json.Unmarshal(encoded, &executable); err != nil {
 		t.Fatalf("server defaults cannot be decoded by provider: %v", err)
 	}
-	if config["priceTierId"] != "tier-default" || config["providerModelKey"] != "provider-image-default" {
+	if config["variantId"] != "tier-default" || config["providerModelKey"] != "provider-image-default" {
 		t.Fatalf("server price selection was not persisted: %#v", config)
 	}
 }
@@ -303,8 +303,8 @@ func TestResolveSystemChannelModelSelectionAppliesServerDefaults(t *testing.T) {
 func TestResolveSystemChannelModelSelectionIgnoresStaleQualityWhenQualityIsUnsupported(t *testing.T) {
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceGeminiImage), "nano-banana-pro")
 	profile.Image.Quality = ImageQualityConfig{Supported: false, Default: "auto"}
-	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGeminiImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("tier-any", `{}`, "provider-image", "fixed_request"),
+	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGeminiImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("tier-any", `{}`, "provider-image", "fixed_request"),
 	})
 
 	resolved, err := svc.resolveSystemChannelModelSelection(map[string]any{
@@ -332,8 +332,8 @@ func TestResolveSystemChannelModelSelectionIgnoresStaleQualityWhenQualityIsUnsup
 
 func TestResolveSystemChannelModelSelectionRejectsUnsupportedRequest(t *testing.T) {
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceGrokImage), "grok-image")
-	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGrokImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("tier-any", `{}`, "provider-image", "fixed_request"),
+	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGrokImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("tier-any", `{}`, "provider-image", "fixed_request"),
 	})
 
 	tests := []struct {
@@ -364,8 +364,8 @@ func TestResolveSystemChannelModelSelectionRejectsUnsupportedRequest(t *testing.
 	}
 
 	videoProfile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceNewAPIVideo), "video-model")
-	videoSvc, _, videoChannel, videoModel := createSystemChannelSelectionFixture(t, "video", model.ChannelInterfaceNewAPIVideo, videoProfile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("video-tier", `{}`, "provider-video", "per_second"),
+	videoSvc, _, videoChannel, videoModel := createSystemChannelSelectionFixture(t, "video", model.ChannelInterfaceNewAPIVideo, videoProfile, []model.ChannelModelVariant{
+		newSelectionVariant("video-tier", `{}`, "provider-video", "per_second"),
 	})
 	if _, err := videoSvc.resolveSystemChannelModelSelection(map[string]any{
 		"mode":   "video",
@@ -377,8 +377,8 @@ func TestResolveSystemChannelModelSelectionRejectsUnsupportedRequest(t *testing.
 
 func TestResolveSystemChannelModelSelectionRejectsCorruptCapabilityConfig(t *testing.T) {
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceGrokImage), "grok-image")
-	svc, db, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGrokImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("tier-any", `{}`, "provider-image", "fixed_request"),
+	svc, db, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGrokImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("tier-any", `{}`, "provider-image", "fixed_request"),
 	})
 	if err := db.Model(&model.ChannelModel{}).Where("id = ?", channelModel.ID).Update("capability_config_json", "{").Error; err != nil {
 		t.Fatal(err)
@@ -391,7 +391,7 @@ func TestResolveSystemChannelModelSelectionRejectsCorruptCapabilityConfig(t *tes
 	}
 }
 
-func createSystemChannelSelectionFixture(t *testing.T, capability string, protocol model.ChannelInterfaceType, profile *ModelCapabilityConfig, tiers []model.ChannelModelPriceTier) (*Service, *gorm.DB, model.ModelChannel, model.ChannelModel) {
+func createSystemChannelSelectionFixture(t *testing.T, capability string, protocol model.ChannelInterfaceType, profile *ModelCapabilityConfig, tiers []model.ChannelModelVariant) (*Service, *gorm.DB, model.ModelChannel, model.ChannelModel) {
 	t.Helper()
 	svc, db := newChannelModelTestService(t)
 	channel := model.ModelChannel{ID: newID(), Scope: model.ChannelScopeSystem, Enabled: true, Name: "System Channel", APIFormat: "legacy"}
@@ -418,10 +418,10 @@ func createSystemChannelSelectionFixture(t *testing.T, capability string, protoc
 	return svc, db, channel, channelModel
 }
 
-func newSelectionPriceTier(id string, selector string, providerModelKey string, billingMode string) model.ChannelModelPriceTier {
-	return model.ChannelModelPriceTier{
+func newSelectionVariant(id string, selector string, providerModelKey string, billingMode string) model.ChannelModelVariant {
+	return model.ChannelModelVariant{
 		ID: id, SelectorKey: selector, SelectorJSON: selector, ProviderModelKey: providerModelKey,
-		BillingMode: billingMode, UnitPriceMicrocredits: 10, PriceConfigured: true, Enabled: true,
+		Enabled: true,
 	}
 }
 
@@ -439,10 +439,10 @@ func TestImageResolutionPricingOnSystemChannel(t *testing.T) {
 			{Tier: "4k", Ratio: "16:9", Size: "3840x2160", Width: 3840, Height: 2160},
 		},
 	}
-	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGeminiImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("tier-1k", `{"imageResolution":"1k"}`, "provider-1k", "fixed_request"),
-		newSelectionPriceTier("tier-2k", `{"imageResolution":"2k"}`, "provider-2k", "fixed_request"),
-		newSelectionPriceTier("tier-4k", `{"imageResolution":"4k"}`, "provider-4k", "fixed_request"),
+	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceGeminiImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("tier-1k", `{"imageResolution":"1k"}`, "provider-1k", "fixed_request"),
+		newSelectionVariant("tier-2k", `{"imageResolution":"2k"}`, "provider-2k", "fixed_request"),
+		newSelectionVariant("tier-4k", `{"imageResolution":"4k"}`, "provider-4k", "fixed_request"),
 	})
 
 	for _, tc := range []struct {
@@ -471,8 +471,8 @@ func TestImageResolutionPricingOnSystemChannel(t *testing.T) {
 				t.Fatalf("resolve error: %v", err)
 			}
 			cfg := resolved["config"].(map[string]any)
-			if cfg["priceTierId"] != tc.wantTier {
-				t.Fatalf("priceTierId = %#v, want %s", cfg["priceTierId"], tc.wantTier)
+			if cfg["variantId"] != tc.wantTier {
+				t.Fatalf("variantId = %#v, want %s", cfg["variantId"], tc.wantTier)
 			}
 		})
 	}
@@ -496,8 +496,8 @@ func TestParameterizedOpenAIAspectPresetSystemChannelPersistsPixelExecutionSize(
 	if err := projectImageParameters(profile.Image); err != nil {
 		t.Fatal(err)
 	}
-	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceOpenAIImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("tier-1k", `{"size":"1824x1024"}`, "provider-1k", "fixed_request"),
+	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceOpenAIImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("tier-1k", `{"size":"1824x1024"}`, "provider-1k", "fixed_request"),
 	})
 	input := map[string]any{
 		"mode": "image",
@@ -545,10 +545,10 @@ func TestParameterizedOpenAIPixelSizeSelectionAcceptsDeclaredSizeAndResolution(t
 	if err := projectImageParameters(profile.Image); err != nil {
 		t.Fatal(err)
 	}
-	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceOpenAIImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("tier-1k", `{"imageResolution":"1k"}`, "provider-1k", "fixed_request"),
-		newSelectionPriceTier("tier-2k", `{"imageResolution":"2k"}`, "provider-2k", "fixed_request"),
-		newSelectionPriceTier("tier-4k", `{"imageResolution":"4k"}`, "provider-4k", "fixed_request"),
+	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceOpenAIImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("tier-1k", `{"imageResolution":"1k"}`, "provider-1k", "fixed_request"),
+		newSelectionVariant("tier-2k", `{"imageResolution":"2k"}`, "provider-2k", "fixed_request"),
+		newSelectionVariant("tier-4k", `{"imageResolution":"4k"}`, "provider-4k", "fixed_request"),
 	})
 	input := map[string]any{
 		"mode": "image",
@@ -564,7 +564,7 @@ func TestParameterizedOpenAIPixelSizeSelectionAcceptsDeclaredSizeAndResolution(t
 	}
 	config := resolved["config"].(map[string]any)
 	parameters := config["imageParameters"].(map[string]any)
-	if parameters["size"] != "1824x1024" || parameters["imageResolution"] != "1k" || config["priceTierId"] != "tier-1k" {
+	if parameters["size"] != "1824x1024" || parameters["imageResolution"] != "1k" || config["variantId"] != "tier-1k" {
 		t.Fatalf("resolved parameters = %#v, config = %#v", parameters, config)
 	}
 }
@@ -584,9 +584,9 @@ func TestOpenAIAspectPresetSystemChannelPersistsPixelExecutionSize(t *testing.T)
 	}
 	profile.Image.Resolution = ImageResolutionConfig{Supported: true, Values: []string{"2k", "4k"}, Default: "2k"}
 	profile.Image.Quality = ImageQualityConfig{Supported: false}
-	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceOpenAIImage, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("tier-2k", `{"imageResolution":"2k"}`, "provider-2k", "fixed_request"),
-		newSelectionPriceTier("tier-4k", `{"imageResolution":"4k"}`, "provider-4k", "fixed_request"),
+	svc, _, channel, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceOpenAIImage, profile, []model.ChannelModelVariant{
+		newSelectionVariant("tier-2k", `{"imageResolution":"2k"}`, "provider-2k", "fixed_request"),
+		newSelectionVariant("tier-4k", `{"imageResolution":"4k"}`, "provider-4k", "fixed_request"),
 	})
 	input := map[string]any{
 		"mode": "image",
@@ -605,8 +605,8 @@ func TestOpenAIAspectPresetSystemChannelPersistsPixelExecutionSize(t *testing.T)
 		t.Fatalf("ValidateTaskCapability() error = %v", err)
 	}
 	cfg := resolved["config"].(map[string]any)
-	if cfg["priceTierId"] != "tier-2k" {
-		t.Fatalf("priceTierId = %#v, want tier-2k", cfg["priceTierId"])
+	if cfg["variantId"] != "tier-2k" {
+		t.Fatalf("variantId = %#v, want tier-2k", cfg["variantId"])
 	}
 	if cfg["size"] != "1536x2752" {
 		t.Fatalf("config.size = %#v, want 1536x2752", cfg["size"])
@@ -629,9 +629,9 @@ func TestRoutedLogicalImageTaskWithoutClientInterfaceTypePersistsPixelSize(t *te
 	}
 	profile.Image.Quality = ImageQualityConfig{Supported: true, Values: []string{"2k"}, Default: "2k"}
 	svc, _, _, channelModel := createSystemChannelSelectionFixture(t, "image", model.ChannelInterfaceOpenAIImage, profile, nil)
-	tier := newSelectionPriceTier("tier-2k", `{"quality":"2k"}`, "provider-2k", "fixed_request")
+	tier := newSelectionVariant("tier-2k", `{"quality":"2k"}`, "provider-2k", "fixed_request")
 	tier.ChannelModelID = channelModel.ID
-	routed := &RoutedModel{ChannelModel: channelModel, PriceTier: &tier}
+	routed := &RoutedModel{ChannelModel: channelModel, Variant: &tier}
 
 	input := map[string]any{
 		"mode":   "image",

@@ -161,7 +161,7 @@ func TestQueryAPICallLogsSearchesFailureFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&model.User{}, &model.ModelChannel{}, &model.ApiCallLog{}); err != nil {
+	if err := db.AutoMigrate(&model.ModelChannel{}, &model.ApiCallLog{}); err != nil {
 		t.Fatal(err)
 	}
 	now := time.Now()

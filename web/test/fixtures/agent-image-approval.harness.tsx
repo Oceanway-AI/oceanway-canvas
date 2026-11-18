@@ -50,15 +50,13 @@ const channel = createModelChannel({
     scope: "system",
     interfaceType: "openai-image",
     models,
-    modelCosts: models.map((model) => ({
+    modelDetails: models.map((model) => ({
         model,
         channelModelId: `image-system-${model}`,
         displayName: "GPT-Image-YC",
         capability: "image",
         protocol: "openai-image",
         capabilityConfig: { version: 1, image: profile },
-        billingMode: "fixed_request",
-        unitPriceMicrocredits: 10_000_000,
     })),
 });
 const config = normalizeConfigSnapshot({ config: { ...defaultConfig, channels: [channel] } }).config;

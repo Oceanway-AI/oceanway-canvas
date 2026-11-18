@@ -58,8 +58,6 @@ const { emptyEcommerceDraft } = await import("../../src/services/api/ecommerce")
 const { http } = await import("../../src/services/api/request");
 const taskApi = await import("../../src/services/api/task-center");
 const generationApi = await import("../../src/services/api/generation-task");
-const pricing = await import("../../src/lib/model-pricing");
-const quotes = await import("../../src/services/api/logical-models");
 const capabilities = await import("../../src/lib/model-capabilities");
 const imageLoader = await import("../../src/services/canvas-image-loader");
 const configStore = await import("../../src/stores/use-config-store");
@@ -219,11 +217,8 @@ beforeEach(async () => {
     profile.image!.resolution.values = ["1k"];
     profile.image!.resolution.default = "1k";
     spyOn(capabilities, "modelCapabilityConfigFor").mockReturnValue(profile);
-    spyOn(pricing, "modelQuoteRequest").mockReturnValue({ channelId: "test", modelKey: "vision" } as ReturnType<typeof pricing.modelQuoteRequest>);
-    spyOn(pricing, "systemModelQuoteRequest").mockReturnValue({ channelId: "test", modelKey: "vision" } as ReturnType<typeof pricing.systemModelQuoteRequest>);
     // 页面改用 App 上下文的 message（跟随主题并去重）；这里仍把它接到被监听的 message 上收集提示。
     spyOn(App, "useApp").mockImplementation(() => ({ message, modal, notification }) as unknown as ReturnType<typeof App.useApp>);
-    spyOn(quotes, "quoteModel").mockResolvedValue({ quote: { amountMicrocredits: 1_000_000 } } as Awaited<ReturnType<typeof quotes.quoteModel>>);
     // Keep the real page and router lifecycle; avoid unrelated model/skill catalog network and animation effects.
     spyOn(modelPicker, "ModelPicker").mockImplementation(() => <span>模型选择</span>);
     spyOn(skillPicker, "EcommerceSkillPicker").mockImplementation(() => <span>技能选择</span>);
@@ -586,13 +581,11 @@ describe("真实电商页面生命周期", () => {
         const editor = host.querySelector<HTMLTextAreaElement>('[aria-label="电商创作输入"]')!;
         const button = host.querySelector(".commerce-output-card footer button");
         expect(button).not.toBeNull();
-        const quoteCount = (quotes.quoteModel as unknown as { mock: { calls: unknown[] } }).mock.calls.length;
         for (const text of ["继", "继续", "继续生成"])
             await act(async () => {
                 Object.getOwnPropertyDescriptor(dom.HTMLTextAreaElement.prototype, "value")!.set!.call(editor, text);
                 editor.dispatchEvent(new Event("input", { bubbles: true }));
             });
-        expect((quotes.quoteModel as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(quoteCount);
         expect(host.querySelector(".commerce-output-card footer button")).toBe(button);
         await act(async () => {
             Object.getOwnPropertyDescriptor(dom.HTMLTextAreaElement.prototype, "value")!.set!.call(editor, "继续生成九张详情页，最后一张介绍产品");
@@ -849,7 +842,7 @@ describe("真实电商页面生命周期", () => {
         expect(paidSubmissions).toHaveLength(0);
     });
 
-    test("生成前展示服务端报价确认，取消不会创建付费任务", async () => {
+    test("生成前展示配置确认，取消不会创建任务", async () => {
         draft = { ...draft, references: [], instruction: "为测试商品设计白底图" };
         await sessions.writeEcommerceWorkspace(scope, { sessionId: crypto.randomUUID(), draft, plan: null, project: null, creationMode: "ai", autoGenerate: false });
         await render();
@@ -860,7 +853,7 @@ describe("真实电商页面生命周期", () => {
             host.querySelector<HTMLButtonElement>(".ecs-submit")!.click();
         });
         expect(document.body.textContent).toContain("确认生成配置");
-        expect(document.body.textContent).toContain("预估消耗");
+        expect(document.body.textContent).toContain("尺寸 / 比例");
         expect(paidSubmissions).toHaveLength(0);
         const cancel = Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find((button) => button.textContent?.replace(/\s/g, "") === "取消");
         expect(cancel).toBeDefined();
@@ -1092,11 +1085,10 @@ describe("真实电商页面生命周期", () => {
                     name: "",
                     scope: "system",
                     models: ["vision", "admin-vision", "admin-planner"],
-                    modelCosts: ["vision", "admin-vision", "admin-planner"].map((model) => ({
+                    modelDetails: ["vision", "admin-vision", "admin-planner"].map((model) => ({
                         model,
                         capability: "text" as const,
-                        billingMode: "fixed_request" as const,
-                        unitPriceMicrocredits: 1000,
+
                         channelModelId: model === "admin-vision" ? "vision" : model === "admin-planner" ? "planner" : "plain",
                         channelId: "test",
                         modelKey: model,
@@ -1148,11 +1140,10 @@ describe("真实电商页面生命周期", () => {
                     name: "",
                     scope: "system",
                     models: ["vision", "admin-vision", "admin-planner"],
-                    modelCosts: ["vision", "admin-vision", "admin-planner"].map((model) => ({
+                    modelDetails: ["vision", "admin-vision", "admin-planner"].map((model) => ({
                         model,
                         capability: "text" as const,
-                        billingMode: "fixed_request" as const,
-                        unitPriceMicrocredits: 1000,
+
                         channelModelId: model === "admin-vision" ? "vision" : model === "admin-planner" ? "planner" : "plain",
                         channelId: "test",
                         modelKey: model,

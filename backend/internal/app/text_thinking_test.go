@@ -461,8 +461,8 @@ func TestSystemTextThinkingSurvivesAdmissionAndProviderResolution(t *testing.T) 
 		References: TextReferenceConfig{PromptMaxChars: 32000},
 		Thinking:   mustThinkingPreset(t, "deepseek", protocolcontract.TextWireChatCompletion),
 	}}
-	svc, db, channel, channelModel := createSystemChannelSelectionFixture(t, "text", model.ChannelInterfaceChatCompletion, profile, []model.ChannelModelPriceTier{
-		newSelectionPriceTier("text-tier", `{}`, "provider-text", "fixed_request"),
+	svc, db, channel, channelModel := createSystemChannelSelectionFixture(t, "text", model.ChannelInterfaceChatCompletion, profile, []model.ChannelModelVariant{
+		newSelectionVariant("text-tier", `{}`, "provider-text", "fixed_request"),
 	})
 	// A public literal address needs neither DNS nor an upstream connection.
 	if err := db.Model(&channel).Update("base_url", "https://8.8.8.8/v1").Error; err != nil {

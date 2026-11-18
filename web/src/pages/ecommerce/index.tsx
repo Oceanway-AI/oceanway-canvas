@@ -8,23 +8,19 @@ import { SegmentedControl } from "@/components/ui/base/segmented-control/segment
 import { AntTooltip } from "@/components/ui/base/tooltip/ant-tooltip";
 import { AppModal } from "@/components/ui/product/app-modal/app-modal";
 import { promptHasPhrase, togglePromptPhrase } from "@/lib/prompt-phrases";
-import { CreditStar } from "@/components/ui/credit-star";
-import { RollingCreditAmount } from "@/components/rolling-credit-text";
 import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type DragEvent as ReactDragEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { ApiError } from "@/services/api/request";
 import { archiveCommercePlan, commerceCanvasImages, continueCommercePlan, updateCommerceCanvasImage } from "./continuation";
 import { CommerceSubmittedRequest, restoreSubmittedCommerceRequest } from "./submitted-request";
-import { commerceFollowupDraft, commerceQuoteSignature } from "./conversation-context";
+import { commerceFollowupDraft } from "./conversation-context";
 import { CreativeOptionsPanel } from "./creative-options-panel";
 import { ReferenceModePanel, ReferenceScreenSummary } from "./reference-mode-panel";
 
 import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
 import { ModelPicker } from "@/components/model-picker";
-import { systemModelQuoteRequest } from "@/lib/model-pricing";
 import { cancelGenerationTask, createGenerationTask, listGenerationTasks, queryGenerationTask, recoverGenerationTaskMedia, retryGenerationTask, subscribeGenerationTasks, type GenerationTask } from "@/services/api/task-center";
 import { parseBackendGenerationResult, prepareBackendGenerationTask } from "@/services/api/generation-task";
-import { quoteModel } from "@/services/api/logical-models";
 import { resourceStorageKey, resolveResourceVariantUrl, resourceIdFromStorageKey } from "@/services/api/resources";
 import { startEcommerceDownload } from "./export";
 import { commerceFlowNextStep, resolveCommerceFlow } from "./flow";
@@ -332,7 +328,6 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
     const [planningTask, setPlanningTask] = useState<GenerationTask>();
     const [planningSaveError, setPlanningSaveError] = useState(false);
     const planningPending = Boolean(draft.planningTaskId && !plan?.images.length);
-    const [quote, setQuote] = useState<{ agent: number | null; vision: number | null; image: number | null; imageTotal: number | null } | null>(null);
     const planningRecovered = useRef("");
     const planningSettling = useRef("");
     const autoStartRef = useRef(false);
@@ -809,61 +804,6 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
         };
     }, [draft.directionsTaskId, draft.creativeDirectionId, session, restoring]);
 
-    useEffect(() => {
-        if (!draft.imageModel) {
-            setQuote(null);
-            return;
-        }
-        setQuote(null);
-        const controller = new AbortController();
-        const usingPlan = plan?.inputSignature === commerceInputSignature(draft);
-        const plannedImages =
-            usingPlan && plan?.images.length
-                ? plan.images
-                : draft.imageType === "sku"
-                  ? draft.skus.flatMap((sku) => Array.from({ length: sku.count }, () => ({ imageModel: draft.imageModel, ratio: draft.ratio, resolution: draft.resolution, skuId: sku.id })))
-                  : draft.imageType === "marketing"
-                    ? marketingPlanSlots(draft).map((item) => ({ imageModel: draft.imageModel, ratio: item.ratio, resolution: draft.resolution }))
-                    : [{ imageModel: draft.imageModel, ratio: draft.ratio, resolution: draft.resolution }];
-        const imageRequests = plannedImages.map((image) => {
-            const referenceCount =
-                draft.referenceMode === "detail"
-                    ? commerceRequiredImageReferenceCount(draft)
-                    : activeCommerceReferences(draft).filter((ref) => ref.role !== "sku" || ref.resourceId === draft.skus.find((sku) => sku.id === ("skuId" in image ? image.skuId : undefined))?.resourceId).length || 1;
-            // Quote the size the image is generated at (自动 resolves to the platform recommendation).
-            const ratio = commerceGenerationRatio(config, draft, { imageModel: image.imageModel, ratio: image.ratio, imageType: "imageType" in image && typeof image.imageType === "string" ? image.imageType : undefined });
-            return systemModelQuoteRequest(config, image.imageModel, "image", {
-                capability: "image",
-                input: { textCount: 1, imageCount: referenceCount, referenceImageCount: referenceCount, videoCount: 0, audioCount: 0, characterCount: 0 },
-                imageSize: ratio,
-                options: { size: ratio, imageResolution: image.resolution, count: 1 },
-            });
-        });
-        const agentImageCount = commercePlanningReferenceCount(draft);
-        const textQuote = (model: string) =>
-            systemModelQuoteRequest(config, model, "text", {
-                capability: "text",
-                input: { textCount: 1, imageCount: agentImageCount, referenceImageCount: agentImageCount, videoCount: 0, audioCount: 0, characterCount: 0 },
-            });
-        const agentRequest = textQuote(planningModel);
-        const separateVision = Boolean(directionsModel) && directionsModel !== planningModel;
-        const visionRequest = separateVision ? textQuote(directionsModel) : null;
-        void Promise.all([
-            Promise.allSettled(imageRequests.map((request) => (request ? quoteModel(request, controller.signal) : Promise.reject(new Error("图片模型无法报价"))))),
-            creationMode === "ai" && agentRequest ? quoteModel(agentRequest, controller.signal).catch(() => null) : Promise.resolve(null),
-            creationMode === "ai" && visionRequest ? quoteModel(visionRequest, controller.signal).catch(() => null) : Promise.resolve(null),
-        ]).then(([images, agent, vision]) => {
-            if (controller.signal.aborted) return;
-            const costs = images.map((result) => (result.status === "fulfilled" ? result.value.quote.amountMicrocredits / 1_000_000 : null));
-            const imageTotal = costs.length && costs.every((cost): cost is number => cost !== null) ? costs.reduce((sum, cost) => sum + cost, 0) * (usingPlan || draft.imageType === "sku" || draft.imageType === "marketing" ? 1 : requestedCount) : null;
-            const agentCost = agent ? agent.quote.amountMicrocredits / 1_000_000 : null;
-            // One recognition call plus one planning call, each priced on its own model.
-            const visionCost = !directionsModel ? null : separateVision ? (vision ? vision.quote.amountMicrocredits / 1_000_000 : null) : agentCost;
-            setQuote({ image: costs.length === 1 ? costs[0] : imageTotal === null ? null : imageTotal / costs.length, imageTotal, agent: agentCost, vision: visionCost });
-        });
-        return () => controller.abort();
-    }, [config, creationMode, planningModel, directionsModel, commerceQuoteSignature(draft, plan, requestedCount)]);
-
     function composerFingerprint(source: EcommerceDraft) {
         const input = JSON.stringify([source.instruction, source.references.filter((ref) => ref.role !== "model").map((ref) => ref.resourceId), (source.layoutReferences || []).map((ref) => ref.resourceId)]);
         let hash = 2166136261;
@@ -1021,8 +961,8 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
             message.error("图片模型无法接收当前商品参考图，请更换模型");
             return;
         }
-        if (!ratioChoices.includes(draft.ratio) || !resolutionChoices.includes(draft.resolution) || quote?.agent == null || quote.vision == null || quote.imageTotal == null) {
-            message.error("请等待当前图片参数和模型的服务端报价");
+        if (!ratioChoices.includes(draft.ratio) || !resolutionChoices.includes(draft.resolution)) {
+            message.error("所选比例或分辨率不被图片模型支持");
             return;
         }
         const owner = session;
@@ -1204,18 +1144,6 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
             message.error("所选比例或分辨率不被图片模型支持");
             return;
         }
-        if (!quote) {
-            message.error("当前配置尚未完成服务端报价，请稍后重试");
-            return;
-        }
-        if (quote.agent == null) {
-            message.error("后台指定的视觉策划模型暂时无法报价，请稍后重试或联系管理员");
-            return;
-        }
-        if (quote.imageTotal == null) {
-            message.error("图片模型暂时无法报价，请稍后重试或更换图片模型");
-            return;
-        }
         const owner = session;
         if (owner !== session) planningDraft = { ...planningDraft, directionsTaskId: undefined };
         if (!owner.beginSubmission()) return;
@@ -1321,10 +1249,6 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
             for (const image of selectedPlan.images) assertCommerceImageReferenceCapacity(commerceRequiredImageReferenceCount(selectedDraft), modelCapabilityConfigFor(config, image.imageModel).image?.references.maxImages || 0);
         } catch (cause) {
             message.error(errorText(cause));
-            return;
-        }
-        if (quote?.imageTotal == null) {
-            message.error("当前图片方案尚未完成服务端报价，请稍后重试");
             return;
         }
         if (!alreadySubmitting && !owner.beginSubmission()) return;
@@ -1790,8 +1714,6 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
           }
         : null;
     const pendingScreenCount = draft.referenceMode === "detail" && (!plan || plan.inputSignature !== commerceInputSignature(draft));
-    const agentEstimate = (quote?.agent || 0) + (quote?.vision || 0);
-    const estimate = pendingScreenCount || !quote || quote.imageTotal === null || (creationMode === "ai" && (quote.agent === null || quote.vision === null)) ? null : (creationMode === "direct" ? 0 : agentEstimate) + quote.imageTotal;
     const startDirect = async () => {
         if (draft.imageType === "detail") {
             message.info("详情页必须先由 Agent 完成性能、场景与逐张文案策划");
@@ -1824,7 +1746,6 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
             const source = ensureModelDraft({ ...draft, count: requestedCount });
             const next = continueCommercePlan(directCommercePlan(source), plan, owner.project ? projectDraft(owner.project) : undefined);
             assertCommerceImageReferenceCapacity(commerceRequiredImageReferenceCount(source), imageProfile?.references.maxImages || 0);
-            if (quote?.imageTotal == null) throw new Error("请等待图片服务端报价后再生成");
             await save(source, next, owner);
             if (isCurrent(owner)) {
                 setDraft(source);
@@ -1867,10 +1788,6 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
             setFlyPanel(null);
             if (creationMode === "ai" && adminModelIssue) {
                 message.error(adminModelIssue);
-                return;
-            }
-            if (estimate === null && (creationMode === "direct" || quote?.agent == null)) {
-                message.error("当前配置尚未完成服务端报价，请稍后重试");
                 return;
             }
             if (localStorage.getItem(`ecommerce-confirm-skip:${scope}`) === "1") {
@@ -2531,20 +2448,6 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
                         </p>
                     ) : null}
                     <footer className="ecs-footer">
-                        <div className="ecs-estimate" aria-live="polite">
-                            {estimate === null ? (
-                                <strong className="is-pending">待报价</strong>
-                            ) : (
-                                <strong title={`预估消耗 ${new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 }).format(estimate)} 积分`}>
-                                    <CreditStar />
-                                    <RollingCreditAmount value={estimate} maximumFractionDigits={3} />
-                                    <span>积分</span>
-                                </strong>
-                            )}
-                            <span>
-                                {displayCount} 张 · {creationMode === "direct" ? "按设置直接出图" : "先推荐视觉方向，选定后自动出图"}
-                            </span>
-                        </div>
                         {creationMode === "direct" ? null : (
                             <AntTooltip title="不推荐视觉方向，直接写出整套图片方案，审阅后再出图">
                                 <Button className="ecommerce-plan-button" disabled={!ecommerceEnabled || adminBlocked || busy || restoring || uploading || planningPending || confirmingGeneration} onClick={() => void requestGenerationConfirmation("plan")}>
@@ -2629,12 +2532,8 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
                     <span>下次不再弹出确认窗</span>
                 </label>
                 <div className="commerce-confirm-footer">
-                    <span>
-                        预估消耗 <strong>{estimate === null ? new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 }).format(agentEstimate) : new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 3 }).format(estimate)}</strong> 积分
-                        {estimate === null ? "起 · 图片费用按识别屏数另行报价" : ""}
-                    </span>
                     <Button onClick={() => setConfirmOpen(false)}>取消</Button>
-                    <Button type="primary" onClick={() => beginConfirmedGeneration()} disabled={estimate === null && (creationMode === "direct" || quote?.agent == null)}>
+                    <Button type="primary" onClick={() => beginConfirmedGeneration()}>
                         {creationMode === "direct" ? "确认并出图" : confirmAction === "plan" ? "确认并策划" : "确认并开始"}
                     </Button>
                 </div>

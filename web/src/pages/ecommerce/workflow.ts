@@ -1,8 +1,6 @@
 import { modelCapabilityConfigFor, normalizeImageValue, type ImageCapabilityConfig } from "@/lib/model-capabilities";
-import { systemModelQuoteRequest } from "@/lib/model-pricing";
 import { createGenerationTask, queryGenerationTask, type GenerationTask } from "@/services/api/task-center";
 import { parseBackendGenerationResult, prepareBackendGenerationTask } from "@/services/api/generation-task";
-import { quoteModel } from "@/services/api/logical-models";
 import { resourceStorageKey } from "@/services/api/resources";
 import { createWorkbenchTask } from "@/services/api/workbench";
 import { createEcommerceProject, getEcommerceSkillPrompt, normalizeEcommerceReferenceGroups, saveEcommerceProject, type EcommerceDraft, type EcommercePlan, type EcommerceProject } from "@/services/api/ecommerce";
@@ -281,28 +279,6 @@ export function assertCommerceImageReferenceCapacity(referenceCount: number, mod
 export function commerceGenerationRatio(config: Config, draft: Pick<EcommerceDraft, "platform" | "imageType"> & Partial<Pick<EcommerceDraft, "typeOptions">>, image: { imageModel: string; ratio: string; imageType?: string }) {
     const sizes = modelCapabilityConfigFor(config, image.imageModel).image?.size.values || [];
     return resolveAutoImageSize(image.ratio, sizes, draft.platform, draft.imageType === "set" ? "set" : image.imageType || draft.imageType, draft.typeOptions?.purpose);
-}
-
-export async function quoteCommerce(config: Config, draft: EcommerceDraft, count: number, clone = false, planning = true) {
-    const imageRefs = commerceRequiredImageReferenceCount(draft, clone);
-    const ratio = commerceGenerationRatio(config, draft, draft);
-    const imageRequest = systemModelQuoteRequest(config, draft.imageModel, "image", {
-        capability: "image",
-        input: { textCount: 1, imageCount: imageRefs, referenceImageCount: imageRefs, videoCount: 0, audioCount: 0, characterCount: 0 },
-        imageSize: ratio,
-        options: { size: ratio, imageResolution: draft.resolution, count: 1 },
-    });
-    const maxAgentRefs = modelCapabilityConfigFor(config, draft.agentModel).text?.references.maxImages || 0;
-    const agentRefs = commercePlanningReferenceCount(draft);
-    if (planning && agentRefs > maxAgentRefs) throw new Error(`后台指定的策划模型最多读取 ${maxAgentRefs} 张图片，请减少参考图或联系管理员更换模型`);
-    const agentRequest = systemModelQuoteRequest(config, draft.agentModel, "text", {
-        capability: "text",
-        input: { textCount: 1, imageCount: agentRefs, referenceImageCount: agentRefs, videoCount: 0, audioCount: 0, characterCount: 0 },
-    });
-    if (!imageRequest || (planning && !agentRequest)) throw new Error("当前模型无法报价，请更换模型");
-    const [image, agent] = await Promise.all([quoteModel(imageRequest), planning && agentRequest ? quoteModel(agentRequest) : Promise.resolve(null)]);
-    const agentCost = agent?.quote.amountMicrocredits || 0;
-    return { image: image.quote.amountMicrocredits / 1_000_000, agent: agentCost / 1_000_000, total: (image.quote.amountMicrocredits * count + agentCost) / 1_000_000 };
 }
 
 export async function submitCommercePlan(config: Config, draft: EcommerceDraft, existing?: EcommerceProject | null) {

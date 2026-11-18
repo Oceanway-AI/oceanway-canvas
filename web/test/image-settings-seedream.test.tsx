@@ -22,7 +22,7 @@ function seedreamConfig(model: string): AiConfig {
                 apiFormat: "openai",
                 concurrencyLimit: 0,
                 models: [model],
-                modelCosts: [{ model, protocol: "km-kemei-seedream", capability: "image", priceConfigured: true }],
+                modelDetails: [{ model, protocol: "km-kemei-seedream", capability: "image", priceConfigured: true }],
                 hasApiKey: true,
                 hasSecretKey: false,
                 createdAt: "",

@@ -22,8 +22,8 @@ func TestCreateWorkbenchVideoTaskUsesReferenceModeAndPrice(t *testing.T) {
 	for _, record := range []any{
 		&model.SystemSetting{Key: featureAvailabilitySettingKey, ValueJSON: `{"videoWorkbenchEnabled":true}`},
 		&model.ChannelModel{ID: "video-model", ChannelID: "channel", ModelKey: "MiniMax-H3", Capability: "video", Protocol: model.ChannelInterfaceMiniMaxVideo, Enabled: true, CapabilityConfigJSON: string(capabilityJSON)},
-		&model.ChannelModelPriceTier{ID: "video-text-price", ChannelModelID: "video-model", SelectorKey: `{"operation":"text_to_video"}`, SelectorJSON: `{"operation":"text_to_video"}`, BillingMode: "fixed_request", UnitPriceMicrocredits: 10, PriceConfigured: true, Enabled: true},
-		&model.ChannelModelPriceTier{ID: "video-image-price", ChannelModelID: "video-model", SelectorKey: `{"operation":"image_to_video"}`, SelectorJSON: `{"operation":"image_to_video"}`, BillingMode: "fixed_request", UnitPriceMicrocredits: 20, PriceConfigured: true, Enabled: true},
+		&model.ChannelModelVariant{ID: "video-text-price", ChannelModelID: "video-model", SelectorKey: `{"operation":"text_to_video"}`, SelectorJSON: `{"operation":"text_to_video"}`, Enabled: true},
+		&model.ChannelModelVariant{ID: "video-image-price", ChannelModelID: "video-model", SelectorKey: `{"operation":"image_to_video"}`, SelectorJSON: `{"operation":"image_to_video"}`, Enabled: true},
 		&model.Resource{ID: "video-image", UserID: "user", Kind: "image", Status: model.ResourceStatusReady},
 	} {
 		if err := db.Create(record).Error; err != nil {
@@ -46,8 +46,8 @@ func TestCreateWorkbenchVideoTaskUsesReferenceModeAndPrice(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			config, err := s.resolveWorkbenchProviderConfig(creativeTestUserID(s), req.Kind, resolved.Operation, resolved.Model, resolved.LogicalModelID, resolved.ChannelID, resolved.Parameters, resolved.Input)
-			if err != nil || config["priceTierId"] != tc.price {
+			config, err := s.resolveWorkbenchProviderConfig(creativeTestUserIDValue, req.Kind, resolved.Operation, resolved.Model, resolved.LogicalModelID, resolved.ChannelID, resolved.Parameters, resolved.Input)
+			if err != nil || config["variantId"] != tc.price {
 				t.Fatalf("pre-admission config = %v, error = %v, want price %q", config, err, tc.price)
 			}
 			task, err := s.CreateWorkbenchTask("user", req, "", "")
@@ -112,7 +112,7 @@ func TestCreateWorkbenchVideoTaskUsesReferenceModeAndPrice(t *testing.T) {
 func TestResolveWorkbenchProviderConfigMapsWorkbenchParameters(t *testing.T) {
 	service := &Service{}
 
-	image, err := service.resolveWorkbenchProviderConfig(creativeTestUserID(service), WorkbenchKindImage, "image", "image-model", "logical-image", "", map[string]any{
+	image, err := service.resolveWorkbenchProviderConfig(creativeTestUserIDValue, WorkbenchKindImage, "image", "image-model", "logical-image", "", map[string]any{
 		"size": "1024x1024", "quality": "high", "imageResolution": "2k", "count": 2,
 	}, map[string]any{})
 	if err != nil {
@@ -124,7 +124,7 @@ func TestResolveWorkbenchProviderConfigMapsWorkbenchParameters(t *testing.T) {
 		}
 	}
 
-	video, err := service.resolveWorkbenchProviderConfig(creativeTestUserID(service), WorkbenchKindVideo, "text_to_video", "video-model", "logical-video", "", map[string]any{
+	video, err := service.resolveWorkbenchProviderConfig(creativeTestUserIDValue, WorkbenchKindVideo, "text_to_video", "video-model", "logical-video", "", map[string]any{
 		"seconds": 8, "ratio": "9:16", "resolution": "1080P", "generateAudio": true, "watermark": false,
 	}, map[string]any{})
 	if err != nil {

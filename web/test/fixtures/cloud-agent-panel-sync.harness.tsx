@@ -269,8 +269,7 @@ async function mount(initial: CloudAgentConversation, cloud: CloudAgentConversat
 }
 afterAll(() => dom.happyDOM.abort());
 function configureModels(ambiguous: boolean) {
-    const entry = (id: string, model: string, price: number) =>
-        createModelChannel({ id, scope: "system", models: [model], modelCosts: [{ model, channelModelId: `${id}-${model}`, capability: "text", billingMode: "fixed_request", unitPriceMicrocredits: price }] });
+    const entry = (id: string, model: string, price: number) => createModelChannel({ id, scope: "system", models: [model], modelDetails: [{ model, channelModelId: `${id}-${model}`, capability: "text" }] });
     const channels = [entry("paid-channel", "paid-model", 10_000_000), entry("local-test", "local-agent-test", 0), ...(ambiguous ? [entry("another-test", "local-agent-test", 0)] : [])];
     const config = normalizeConfigSnapshot({ config: { ...defaultConfig, channels, textModel: "paid-channel::paid-model", model: "paid-channel::paid-model" } }).config;
     useConfigStore.setState({ config });

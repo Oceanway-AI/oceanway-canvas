@@ -194,7 +194,7 @@ type RoutedModel struct {
 	Route          model.LogicalModelRoute
 	ChannelModel   model.ChannelModel
 	CapabilitySpec CapabilitySpec
-	PriceTier      *model.ChannelModelPriceTier
+	Variant        *model.ChannelModelVariant
 	Defaults       map[string]any
 	// Intent 是已归一的公开生成意图（比例口径），与线路执行编码分离。
 	Intent ModelRequestIntent

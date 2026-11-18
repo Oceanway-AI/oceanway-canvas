@@ -15,7 +15,9 @@ v99 移除 `resources` 和 `resource_deletion_jobs` 的 `endpoint`、`bucket`、
 
 v100 移除 `ecommerce_agent_runs` 的 `billing_order_id`、`unit_microcredits`，`drama_productions` 的 `budget_microcredits`、`spent_microcredits`，`drama_jobs` 的 `cost_microcredits`，`tasks` 的 `billing_order_id`、`authorized_charge_microcredits` 及 `api_call_logs` 的 `billing_order_id`。电商创作保留页结果、取消状态、画布版本和用户幂等键，短剧保留任务绑定、状态和历次执行记录，费用交由 Platform。旧结构制品不能直接连接 v100 数据库，回退需采用支持 v100 的制品或恢复对应备份。
 
-任务和调用日志已退出本地账单关联。`BillingOrder`、`CreditAccount`、`CreditLedgerEntry`、`UserGroup` 和 `UserGroupChannel` 的源码实体及测试迁移已删除，`User` 请求投影退出 `userGroup`。任务准入继续使用活动任务上限，换线路通过任务状态和原线路 ID 的条件更新维护一致性。Creation 审批重新核对模型、渠道、线路及功能配置，签名不读取旧积分策略与价格表。
+任务和调用日志已退出本地账单关联。`BillingOrder`、`CreditAccount`、`CreditLedgerEntry`、`UserGroup` 和 `UserGroupChannel` 的源码实体及测试迁移已删除，`User` 请求投影退出 `userGroup`。任务准入继续使用活动任务上限，换线路通过任务状态和原线路 ID 的条件更新维护一致性。Creation 审批重新核对模型、渠道、线路及功能配置，v100 将 `creation_submissions.price_signature` 原值保留并重命名为 `configuration_signature`。
+
+创作源码中的 `ChannelModelVariant` 保存参数组合与上游 SKU 映射，已移除旧价格、倍率、Token 价、价格版本和参考视频计费字段。此模型仅用于保留创作实现的隔离测试，正式 Studio schema 不创建渠道、逻辑模型或规格表，目录与报价由 Platform 提供。`testdb.DomainModels` 同时退出本地 User 和头像实体，技能搜索使用作者快照与主体 ID，调用日志搜索使用日志自身字段。
 
 方舟认证会话和素材组的保留创作模型已移除 `billing_order_id`，认证、审核与入库源码沿原流程维护。`ark_portrait_*` 属于 Studio 退出表，不在 v98—v100 正式库中创建，也不额外迁移这些旧表。Platform 模式下方舟建组入口返回暂不可用，接入平台授权后另行验收。
 
@@ -55,7 +57,7 @@ go run ./cmd/migrate-schema status
 
 v98 之前的旧结构和未登记业务数据无法通过普通 `up` 接入新基线。回退需使用与制品匹配的数据库备份。SQLite 运行驱动、本地备份/VACUUM 路径和 SQLite→PostgreSQL 搬迁程序已退出。
 
-任务资金回执保存在已有 `tasks.result_json`，`Task.PlatformBilling` 是 `gorm:"-"` 输出投影。任务读取不查询或创建本地账务表。旧渠道路由与账务代码仍有源码清理余项，进度按 WP-STUDIO-020 登记。
+任务资金回执保存在已有 `tasks.result_json`，`Task.PlatformBilling` 是 `gorm:"-"` 输出投影。任务读取不查询或创建本地账务表。本地账务、价格档与用户分组实现已退出，创作路由保留规格选择与原任务恢复。
 
 管理员／个人 OSS 设置、存储位置档案和补传任务模型已从源码与测试模型注册中移除。S3／COS／七牛专用适配及依赖随调用方退出。用户素材通过 Platform 上传、采用和授权访问，系统 Logo、Live2D 与 Agent 外观保留明确的本地文件路径。`.settings-key` 继续加密持久执行授权，服务重启必须沿用原密钥。运行策略中的存储传输超时、非可寻址缓冲和错误正文设置已退出，系统素材签名有效期继续保留。
 

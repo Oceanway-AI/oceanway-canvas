@@ -25,7 +25,7 @@ function imageConfig(configure: (image: ImageCapabilityConfig) => void = () => {
                 apiKey: "test-key",
                 apiFormat: "openai",
                 models: ["test-image"],
-                modelCosts: [{ model: "test-image", capability: "image", billingMode: "fixed_request", unitPriceMicrocredits: 1, capabilityConfig }],
+                modelDetails: [{ model: "test-image", capability: "image", capabilityConfig }],
             },
         ],
         models: [MODEL],

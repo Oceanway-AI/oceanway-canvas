@@ -16,7 +16,7 @@ export function matchCommerceAdminModel(config: AiConfig, textModels: string[], 
         textModels.find((value) => {
             const channel = resolveModelChannel(config, value);
             if (channel.scope !== "system") return false;
-            const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(value));
+            const cost = channel.modelDetails?.find((item) => item.model === modelOptionName(value));
             if (!cost) return false;
             if (ref.logicalModelId) return cost.logicalModelId === ref.logicalModelId;
             return cost.channelModelId === ref.channelModelId || (Boolean(ref.channelId && ref.modelKey) && channel.id === ref.channelId && cost.model === ref.modelKey);

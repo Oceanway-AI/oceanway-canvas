@@ -10,55 +10,33 @@ import (
 )
 
 type ChannelModelRequest struct {
-	ModelKey                         string                  `json:"modelKey"`
-	ProviderModelKey                 string                  `json:"providerModelKey"`
-	DisplayName                      string                  `json:"displayName"`
-	ChannelLabel                     string                  `json:"channelLabel"`
-	Tags                             []model.ChannelModelTag `json:"tags"`
-	Description                      string                  `json:"description"`
-	Icon                             string                  `json:"icon"`
-	Capability                       string                  `json:"capability"`
-	Protocol                         string                  `json:"protocol"`
-	BillingMode                      string                  `json:"billingMode"`
-	UnitPriceMicrocredits            int64                   `json:"unitPriceMicrocredits"`
-	InputTokenPriceMicrocredits      int64                   `json:"inputTokenPriceMicrocredits"`
-	OutputTokenPriceMicrocredits     int64                   `json:"outputTokenPriceMicrocredits"`
-	CachedTokenPriceMicrocredits     int64                   `json:"cachedTokenPriceMicrocredits"`
-	CacheWriteTokenPriceMicrocredits int64                   `json:"cacheWriteTokenPriceMicrocredits"`
-	PriceConfigured                  bool                    `json:"priceConfigured"`
-	// PriceCurrency 为空指针表示保留已有计价货币（新建时为积分）；取值 credits / USD / CNY。
-	PriceCurrency    *string                        `json:"priceCurrency"`
-	Enabled          *bool                          `json:"enabled"`
-	CapabilityConfig *ModelCapabilityConfig         `json:"capabilityConfig"`
-	PriceTiers       []ChannelModelPriceTierRequest `json:"priceTiers"`
-	// ReferenceVideoBilling 为空指针表示保留已有设置（新建时关闭）；仅视频模型可开启。
-	ReferenceVideoBilling *bool `json:"referenceVideoBilling"`
+	ModelKey         string                  `json:"modelKey"`
+	ProviderModelKey string                  `json:"providerModelKey"`
+	DisplayName      string                  `json:"displayName"`
+	ChannelLabel     string                  `json:"channelLabel"`
+	Tags             []model.ChannelModelTag `json:"tags"`
+	Description      string                  `json:"description"`
+	Icon             string                  `json:"icon"`
+	Capability       string                  `json:"capability"`
+	Protocol         string                  `json:"protocol"`
+
+	Enabled          *bool                        `json:"enabled"`
+	CapabilityConfig *ModelCapabilityConfig       `json:"capabilityConfig"`
+	Variants         []ChannelModelVariantRequest `json:"variants"`
 }
 
-// ChannelModelPriceTierRequest 是系统渠道内某个规格的上游 SKU 与结算价格。
+// ChannelModelVariantRequest 是系统渠道内某个规格的上游 SKU。
 // Resolution="*"、VideoSeconds=0 分别表示任意分辨率和任意时长。
-type ChannelModelPriceTierRequest struct {
-	CostPricing model.CreditCostPricing `json:"costPricing"`
+type ChannelModelVariantRequest struct {
+
 	// Selector 是 SKU 的规范匹配条件。支持 operation、quality、size、vquality、videoSeconds、imageCount、videoGenerateAudio；
-	// operation 可区分文生/图生/视频生，避免同一分辨率下错误复用价格。
-	Selector                         map[string]string `json:"selector"`
-	Resolution                       string            `json:"resolution"`
-	VideoSeconds                     int               `json:"videoSeconds"`
-	ProviderModelKey                 string            `json:"providerModelKey"`
-	BillingMode                      string            `json:"billingMode"`
-	UnitPriceMicrocredits            int64             `json:"unitPriceMicrocredits"`
-	InputTokenPriceMicrocredits      int64             `json:"inputTokenPriceMicrocredits"`
-	OutputTokenPriceMicrocredits     int64             `json:"outputTokenPriceMicrocredits"`
-	CachedTokenPriceMicrocredits     int64             `json:"cachedTokenPriceMicrocredits"`
-	CacheWriteTokenPriceMicrocredits int64             `json:"cacheWriteTokenPriceMicrocredits"`
-	// TokenPriceRules 只用于文本 Token 档：按东八区时段与真实输入 Token 区间覆盖基础单价。
-	TokenPriceRulesEnabled bool                   `json:"tokenPriceRulesEnabled"`
-	TokenPriceRules        []model.TokenPriceRule `json:"tokenPriceRules"`
-	// 带参考视频的价格，仅在模型开启参考视频计费时使用：按秒档用 Unit，Token 档用 OutputToken。
-	ReferenceVideoUnitPriceMicrocredits        int64 `json:"referenceVideoUnitPriceMicrocredits"`
-	ReferenceVideoOutputTokenPriceMicrocredits int64 `json:"referenceVideoOutputTokenPriceMicrocredits"`
-	PriceConfigured                            bool  `json:"priceConfigured"`
-	Enabled                                    *bool `json:"enabled"`
+	// operation 可区分文生/图生/视频生，避免同一分辨率下错误复用上游 SKU。
+	Selector         map[string]string `json:"selector"`
+	Resolution       string            `json:"resolution"`
+	VideoSeconds     int               `json:"videoSeconds"`
+	ProviderModelKey string            `json:"providerModelKey"`
+
+	Enabled *bool `json:"enabled"`
 }
 
 func (s *Service) EnsureSystemChannelModels() error {
@@ -158,7 +136,7 @@ func (s *Service) syncInitialChannelModels(channel *model.ModelChannel, names []
 		if idErr != nil {
 			return idErr
 		}
-		item := model.ChannelModel{ID: modelID, ChannelID: channel.ID, ModelKey: name, ProviderModelKey: name, DisplayName: "未分类", BillingMode: "fixed_request", Enabled: false, PriceConfigured: false, UnitPriceMicrocredits: 0, PriceVersion: 1}
+		item := model.ChannelModel{ID: modelID, ChannelID: channel.ID, ModelKey: name, ProviderModelKey: name, DisplayName: "未分类", Enabled: false}
 		if err := s.repo.SaveChannelModel(&item); err != nil {
 			return err
 		}
@@ -168,7 +146,6 @@ func (s *Service) syncInitialChannelModels(channel *model.ModelChannel, names []
 			changed := existing[index].Enabled
 			existing[index].Enabled = false
 			if changed {
-				existing[index].PriceVersion++
 				if err := s.repo.SaveChannelModel(&existing[index]); err != nil {
 					return err
 				}

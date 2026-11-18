@@ -285,7 +285,10 @@ func TestStudioReleaseSurfaceRejectsUnconnectedCapabilities(t *testing.T) {
 		t.Fatal("invalid features response")
 	}
 	features := envelope.Data.Features
-	for _, name := range []string{"shortDramaEnabled", "ecommerceEnabled", "ecommerceVideoEnabled", "imageWorkbenchEnabled", "videoWorkbenchEnabled", "pluginCenterEnabled", "systemPluginsVisibleToUsers", "inspirationSourcesVisible", "timelineTranscriptionEnabled", "creditsEnabled", "customChannelsEnabled"} {
+	if _, exists := features["creditsEnabled"]; exists {
+		t.Fatal("retired local credits feature exposed")
+	}
+	for _, name := range []string{"shortDramaEnabled", "ecommerceEnabled", "ecommerceVideoEnabled", "imageWorkbenchEnabled", "videoWorkbenchEnabled", "pluginCenterEnabled", "systemPluginsVisibleToUsers", "inspirationSourcesVisible", "timelineTranscriptionEnabled", "customChannelsEnabled"} {
 		if string(features[name]) != "false" {
 			t.Errorf("unconnected feature advertised: %s=%s", name, features[name])
 		}

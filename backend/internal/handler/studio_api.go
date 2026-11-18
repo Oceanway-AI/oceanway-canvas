@@ -198,7 +198,6 @@ func studioFeatures(svc *service.Service) (*service.PublicFeatureAvailability, e
 	if err != nil {
 		return nil, err
 	}
-	features.CreditsEnabled = false
 	features.CustomChannelsEnabled = false
 	features.FrontendModelsEnabled = false
 	features.WelcomeEnabled = false

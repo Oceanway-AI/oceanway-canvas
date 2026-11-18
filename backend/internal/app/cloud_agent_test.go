@@ -338,10 +338,10 @@ func TestCloudAgentAdmissionAndContinuation(t *testing.T) {
 	if _, err := s.CreateCloudAgentRun("other", req, ""); err == nil {
 		t.Fatal("foreign canvas accepted")
 	}
-	low := req
-	low.Budget.MaxCredits = 0.000001
-	if _, err := s.CreateCloudAgentRun("user", low, ""); err == nil {
-		t.Fatal("over-budget accepted")
+	invalid := req
+	invalid.Budget.MaxCredits = 0
+	if _, err := s.CreateCloudAgentRun("user", invalid, ""); err == nil {
+		t.Fatal("invalid budget accepted")
 	}
 	var count int64
 	db.Model(&model.Task{}).Count(&count)

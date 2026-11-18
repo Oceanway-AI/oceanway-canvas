@@ -62,7 +62,7 @@ func publicLogicalModel(cached cachedLogicalModel, available bool) PublicLogical
 		ID: item.ID, Code: item.Code, Name: item.Name, Icon: item.Icon,
 		Description: item.Description, Capability: item.Capability, SortOrder: item.SortOrder,
 		PricingMode: "platform", PriceLabel: "以平台报价为准",
-		PriceTiers: []PublicLogicalModelPriceTier{}, LegacyModelIDs: decodeLegacyModelIDs(item.LegacyModelIDsJSON),
+		LegacyModelIDs: decodeLegacyModelIDs(item.LegacyModelIDsJSON),
 		CapabilitySpec: productSpec, CapabilityProfiles: profiles,
 		DefaultOptions: cached.Defaults, Available: available,
 	}

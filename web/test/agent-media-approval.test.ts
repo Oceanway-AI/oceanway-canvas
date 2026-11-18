@@ -33,13 +33,13 @@ describe("image generation approval settings", () => {
         expect(agentApprovalMatchesSettings(args, { logicalModelId: "other", size: args.size, quality: args.quality })).toBe(false);
     });
     it("switches between logical and channel models without retaining the previous selector", () => {
-        const cost = { model: "gpt-image-2", capability: "image" as const, billingMode: "fixed_request" as const, unitPriceMicrocredits: 1, priceConfigured: true };
+        const cost = { model: "gpt-image-2", capability: "image" as const, priceConfigured: true };
         const config = {
             ...defaultConfig,
             channels: [
-                createModelChannel({ id: "platform", scope: "system", models: [cost.model], modelCosts: [cost] }),
-                createModelChannel({ id: "managed", scope: "system", models: [cost.model], modelCosts: [{ ...cost, logicalModelId: "logical-image" }] }),
-                createModelChannel({ id: "personal", scope: "custom", models: [cost.model], modelCosts: [cost] }),
+                createModelChannel({ id: "platform", scope: "system", models: [cost.model], modelDetails: [cost] }),
+                createModelChannel({ id: "managed", scope: "system", models: [cost.model], modelDetails: [{ ...cost, logicalModelId: "logical-image" }] }),
+                createModelChannel({ id: "personal", scope: "custom", models: [cost.model], modelDetails: [cost] }),
             ],
         };
         const logical = agentApprovalModelSelection(config, encodeChannelModel("managed", cost.model));

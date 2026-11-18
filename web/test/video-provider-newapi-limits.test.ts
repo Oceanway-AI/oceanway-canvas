@@ -19,7 +19,7 @@ function configForNewApiVideo(model: string, maxImages: number, maxVideos: numbe
         apiFormat: "openai",
         interfaceType: "newapi-channel-2",
         models: [model],
-        modelCosts: [{ model, capability: "video", protocol: "newapi-channel-2", billingMode: "per_second", unitPriceMicrocredits: 1, capabilityConfig }],
+        modelDetails: [{ model, capability: "video", protocol: "newapi-channel-2", capabilityConfig }],
     });
     return normalizeConfigSnapshot({
         config: {
@@ -97,9 +97,7 @@ describe("NewAPI Video Generations per-model reference limits", () => {
             url: `https://cdn.example.com/${index}.png`,
         }));
 
-        await expect(createVideoGenerationsTask(deps, requestConfig, aiConfig.model, "too many images", images, [], [])).rejects.toThrow(
-            "最多支持 40 张参考图、10 个参考视频和 10 个参考音频",
-        );
+        await expect(createVideoGenerationsTask(deps, requestConfig, aiConfig.model, "too many images", images, [], [])).rejects.toThrow("最多支持 40 张参考图、10 个参考视频和 10 个参考音频");
         expect(calls).toHaveLength(0);
     });
 });

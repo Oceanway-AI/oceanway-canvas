@@ -17,7 +17,7 @@ func newTestFeedbackService(t *testing.T) (*Service, *model.User, *model.User) {
 	if err != nil {
 		t.Fatalf("open postgres: %v", err)
 	}
-	if err := db.AutoMigrate(&model.User{}, &model.UserFeedback{}); err != nil {
+	if err := db.AutoMigrate(&model.UserFeedback{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 
@@ -26,13 +26,6 @@ func newTestFeedbackService(t *testing.T) (*Service, *model.User, *model.User) {
 
 	admin := &model.User{ID: "admin_1", Username: "admin", Status: "active", CreatedAt: time.Now(), PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	user := &model.User{ID: "user_1", Username: "testuser", Email: "test@example.com", Status: "active", CreatedAt: time.Now()}
-
-	if err := db.Create(admin).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Create(user).Error; err != nil {
-		t.Fatal(err)
-	}
 
 	return svc, admin, user
 }

@@ -1,3 +1,4 @@
+import { useStudioMediaPrice } from "@/services/studio-media-price";
 import { appURL } from "@/lib/app-path";
 import { App, Button } from "antd";
 import { Clapperboard, Image as ImageIcon, RotateCcw } from "lucide-react";
@@ -17,11 +18,9 @@ import { togglePromptPhrase } from "@/lib/prompt-phrases";
 import { imageQualityLabel } from "@/lib/image-quality";
 import { imageResolutionUsesQuality } from "@/lib/image-size-presets";
 import { modelCapabilityConfigFor, normalizeImageValue, normalizeVideoValue, videoDurationOptions } from "@/lib/model-capabilities";
-import { modelQuoteRequest, requestCreditCost } from "@/lib/model-pricing";
 import { creationVideoConfig } from "@/pages/create/creation-generation-config";
 import { resolveBrowserMediaDownloadHref, startBrowserDownload } from "@/services/browser-download";
 import { prepareBackendGenerationTask } from "@/services/api/generation-task";
-import { quoteModel } from "@/services/api/logical-models";
 import { resourceStorageKey, uploadResourceFile } from "@/services/api/resources";
 import { cancelGenerationTask, createGenerationTask, queryGenerationTask, retryGenerationTask, type GenerationTask } from "@/services/api/task-center";
 import { capabilitySupportedModes, createWorkbenchTask, listWorkbenchTasks, listWorkbenchTools, resolveWorkbenchResourceURL, type WorkbenchKind, type WorkbenchPromptPreset, type WorkbenchReferenceSlot, type WorkbenchTool } from "@/services/api/workbench";
@@ -154,7 +153,6 @@ export function WorkbenchPage({ kind }: { kind: WorkbenchKind }) {
     const updateConfig = useConfigStore((state) => state.updateConfig);
     const isAiConfigReady = useConfigStore((state) => state.isAiConfigReady);
     const features = useUserStore((state) => state.features);
-    const creditsEnabled = features.creditsEnabled;
     const activeTaskLimit = useUserStore((state) => state.runtimeLimits.activeTaskLimit);
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -212,7 +210,6 @@ export function WorkbenchPage({ kind }: { kind: WorkbenchKind }) {
     const [filter, setFilter] = useState<GalleryFilter>("all");
     const [query, setQuery] = useState("");
     const [mobileTab, setMobileTab] = useState<"compose" | "gallery">("compose");
-    const [estimate, setEstimate] = useState<{ credits: number | null; estimated: boolean; tone: "quote" | "local" | "usage" | "loading" | "unavailable" }>({ credits: null, estimated: false, tone: "unavailable" });
 
     const capability = kind;
     const configuredModel = kind === "image" ? config.imageModel || config.model : config.videoModel || config.model;
@@ -356,45 +353,8 @@ export function WorkbenchPage({ kind }: { kind: WorkbenchKind }) {
     );
     const pickerRequirements = useMemo(() => quoteRequirementsFor(plan[0] || 1), [plan, quoteRequirementsFor]);
 
-    useEffect(() => {
-        if (!creditsEnabled || !selectedModel) {
-            setEstimate({ credits: null, estimated: false, tone: "unavailable" });
-            return;
-        }
-        const priceChannel = resolveModelChannel(config, selectedModel);
-        const distinct = [...new Set(plan)];
-        const localFor = (outputs: number) =>
-            requestCreditCost({
-                channelMode: priceChannel.scope === "system" ? "remote" : "local",
-                modelCosts: priceChannel.modelCosts,
-                model: modelOptionName(selectedModel),
-                count: kind === "image" ? outputs : 1,
-                seconds: kind === "video" ? Number(seconds) || 1 : 1,
-                capability,
-                config: composerConfig,
-                requirements: quoteRequirementsFor(outputs),
-            });
-        const localAmounts = new Map(distinct.map((outputs) => [outputs, localFor(outputs)]));
-        const localTotal = plan.every((outputs) => localAmounts.get(outputs) !== null) ? plan.reduce((sum, outputs) => sum + (localAmounts.get(outputs) || 0), 0) : null;
-        const requests = distinct.map((outputs) => ({ outputs, request: modelQuoteRequest(kind === "image" ? { ...composerConfig, count: String(outputs) } : composerConfig, selectedModel, capability, quoteRequirementsFor(outputs)) }));
-        if (requests.some((item) => !item.request)) {
-            setEstimate({ credits: localTotal, estimated: false, tone: localTotal === null ? "usage" : "local" });
-            return;
-        }
-        const controller = new AbortController();
-        setEstimate(localTotal === null ? { credits: null, estimated: false, tone: "loading" } : { credits: localTotal, estimated: false, tone: "local" });
-        Promise.all(requests.map(async (item) => ({ outputs: item.outputs, quote: (await quoteModel(item.request!, controller.signal)).quote })))
-            .then((quotes) => {
-                const byOutputs = new Map(quotes.map((item) => [item.outputs, item.quote]));
-                const total = plan.reduce((sum, outputs) => sum + (byOutputs.get(outputs)?.amountMicrocredits || 0), 0) / 1_000_000;
-                setEstimate({ credits: total, estimated: quotes.some((item) => item.quote.estimated === true), tone: "quote" });
-            })
-            .catch(() => {
-                if (controller.signal.aborted) return;
-                setEstimate({ credits: localTotal, estimated: false, tone: localTotal === null ? "unavailable" : "local" });
-            });
-        return () => controller.abort();
-    }, [capability, composerConfig, config, creditsEnabled, kind, plan, quoteRequirementsFor, seconds, selectedModel]);
+    const taskEstimate = useStudioMediaPrice({ ...composerConfig, count: String(plan[0] || 1) }, capability, prompt, references);
+    const estimateLabel = taskEstimate && plan.length > 1 ? `首个任务 ${taskEstimate}` : taskEstimate;
 
     // ---------- 任务列表轮询 ----------
     const loadFailedRef = useRef(false);
@@ -1328,15 +1288,6 @@ export function WorkbenchPage({ kind }: { kind: WorkbenchKind }) {
 
     // ---------- 文案 ----------
     const unit = kind === "image" ? "张" : "条";
-    const estimateLabel = !creditsEnabled
-        ? ""
-        : estimate.credits !== null
-          ? `${estimate.estimated || estimate.tone !== "quote" ? "预估" : "预计"} ${estimate.credits.toLocaleString("zh-CN", { maximumFractionDigits: 6 })} 积分`
-          : estimate.tone === "loading"
-            ? "正在计算积分"
-            : estimate.tone === "usage"
-              ? "按实际用量结算"
-              : "报价暂不可用";
     const countHint =
         kind === "image"
             ? plan.length > 1

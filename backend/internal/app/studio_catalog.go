@@ -48,7 +48,7 @@ func studioCatalogPublicModel(item platformclient.Model, wire json.RawMessage) P
 	for _, tag := range content.Tags {
 		tags = append(tags, model.ChannelModelTag{Text: tag, Color: "blue"})
 	}
-	m := PublicChannelModel{ID: strconv.Itoa(item.ID), ModelKey: item.ModelName, DisplayName: firstNonEmpty(content.DisplayName, item.ModelName), ChannelLabel: item.DisplayVendor, Description: firstNonEmpty(content.Tagline, item.Description), Icon: item.DisplayIcon, Capability: item.ModelType, Tags: tags, PriceTiers: []PublicChannelModelPriceTier{}, PricingMode: "platform", PriceLabel: "以平台报价为准", Available: selectErr == nil, Platform: wire}
+	m := PublicChannelModel{ID: strconv.Itoa(item.ID), ModelKey: item.ModelName, DisplayName: firstNonEmpty(content.DisplayName, item.ModelName), ChannelLabel: item.DisplayVendor, Description: firstNonEmpty(content.Tagline, item.Description), Icon: item.DisplayIcon, Capability: item.ModelType, Tags: tags, PricingMode: "platform", PriceLabel: "以平台报价为准", Available: selectErr == nil, Platform: wire}
 	if selectErr != nil {
 		m.UnavailableReason = selectErr.Error()
 	} else {

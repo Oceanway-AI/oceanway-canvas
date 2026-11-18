@@ -13,7 +13,7 @@ import { dramaChoiceKey } from "@/lib/drama/model-choice";
 import { DramaModelPicker, useDramaModelCatalog } from "../drama-model-picker";
 import { useEffectiveConfig } from "@/stores/use-config-store";
 import { useUserStore } from "@/stores/use-user-store";
-import { dramaSegmentQuoteMissing, dramaSegmentVideoRequirements, dramaVideoOptionFor, SEGMENT_NO_QUOTE_HINT } from "./segment-quote";
+import { dramaSegmentUnsupported, dramaSegmentVideoRequirements, dramaVideoOptionFor, SEGMENT_UNSUPPORTED_HINT } from "./segment-quote";
 
 import { CAST_KIND_LABEL, mediaBusy, MediaThumb } from "../drama-shared";
 import { promptReady, secondsLabel, SegmentStatus, SegmentVideo, videoWaitLabel } from "./segment-parts";
@@ -253,11 +253,10 @@ function SegmentToolbar({
     const [choice, setChoice] = useState<DramaModelChoice>(baseline);
     const changed = dramaChoiceKey(choice) !== dramaChoiceKey(baseline);
     const config = useEffectiveConfig();
-    const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
     const catalogQuery = useDramaModelCatalog();
     const chosenOption = dramaVideoOptionFor(catalogQuery.data?.options.video, choice);
     const chosenAudioLimit = changed ? chosenOption?.maxAudios : segment.request.modelMaxAudios;
-    const quoteMissing = creditsEnabled && dramaSegmentQuoteMissing(config, choice, dramaSegmentVideoRequirements(segment.request, dramaVideoOptionFor(catalogQuery.data?.options.video, choice), changed, videoResolution));
+    const unsupportedSelection = dramaSegmentUnsupported(config, choice, dramaSegmentVideoRequirements(segment.request, dramaVideoOptionFor(catalogQuery.data?.options.video, choice), changed, videoResolution));
     const running = mediaBusy(segment.videoStatus);
     const writingNow = segment.promptStatus === "queued" || segment.promptStatus === "running";
     const sent = [segment.request.header, segment.videoPrompt.trim()].filter(Boolean).join("\n\n");
@@ -304,7 +303,7 @@ function SegmentToolbar({
                     type="primary"
                     size="small"
                     icon={running ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" /> : <Play className="size-3.5" />}
-                    disabled={busy || !promptReady(segment) || running || Boolean(segment.request.unknownReferences?.length) || quoteMissing}
+                    disabled={busy || !promptReady(segment) || running || Boolean(segment.request.unknownReferences?.length) || unsupportedSelection}
                     onClick={() => onGenerate(changed ? choice : undefined)}
                 >
                     {generateLabel}
@@ -312,7 +311,7 @@ function SegmentToolbar({
             </div>
             {!promptReady(segment) && !running ? <p className="drama-sdx-hint">提示词就绪后才能生成视频</p> : null}
             {changed && chosenAudioLimit !== undefined ? <p className="drama-sdx-hint">所选模型{chosenAudioLimit ? `最多支持 ${chosenAudioLimit} 个参考音色` : "不支持参考音色"}；参考面板的发送状态在模型应用后更新。</p> : null}
-            {quoteMissing && !running ? <p className="drama-sdx-hint is-error">{SEGMENT_NO_QUOTE_HINT}</p> : null}
+            {unsupportedSelection && !running ? <p className="drama-sdx-hint is-error">{SEGMENT_UNSUPPORTED_HINT}</p> : null}
             {segment.request.unknownReferences?.length ? <p className="drama-sdx-hint is-error">提示词里的 {segment.request.unknownReferences.join("、")} 不是本段的参考图，改正编号后才能生成视频</p> : null}
         </section>
     );

@@ -67,7 +67,7 @@ type providerConfig struct {
 	mediaTransport        ReferenceMediaTransport // resolved from administrator settings; never deserialized from task input
 	ChannelID             string                  `json:"channelId"`
 	ChannelModelKey       string                  `json:"channelModelKey,omitempty"`
-	PriceTierID           string                  `json:"priceTierId,omitempty"`
+	VariantID             string                  `json:"variantId,omitempty"`
 	ProviderModelKey      string                  `json:"providerModelKey,omitempty"`
 	APIFormat             string                  `json:"apiFormat"`
 	InterfaceType         string                  `json:"interfaceType"`
@@ -412,10 +412,10 @@ func (s *Service) resolveProviderConfig(config providerConfig) (providerConfig, 
 		}
 	}
 	providerModelKey := strings.TrimPrefix(strings.TrimSpace(config.ProviderModelKey), "models/")
-	if config.PriceTierID != "" {
+	if config.VariantID != "" {
 		matched := false
-		for _, tier := range channelModel.PriceTiers {
-			if tier.ID == config.PriceTierID && tier.Enabled && tier.PriceConfigured {
+		for _, tier := range channelModel.Variants {
+			if tier.ID == config.VariantID && tier.Enabled {
 				providerModelKey = firstNonEmpty(providerModelKey, tier.ProviderModelKey)
 				matched = true
 				break

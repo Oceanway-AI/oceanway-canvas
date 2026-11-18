@@ -58,7 +58,7 @@ func TestSaveLogicalModelBundleAllocatesMonotonicRevisionSequence(t *testing.T) 
 	}
 	repo := New(db)
 
-	item := &model.LogicalModel{ID: "LMODEL_1", Code: "demo", Name: "Demo", Capability: "text", Enabled: true, PricePolicy: "unified", BillingMode: "fixed_request", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	item := &model.LogicalModel{ID: "LMODEL_1", Code: "demo", Name: "Demo", Capability: "text", Enabled: true, CreatedAt: time.Now(), UpdatedAt: time.Now()}
 	first := &model.LogicalModelRevision{ID: "REVISION_1", LogicalModelID: item.ID, CapabilitySpecJSON: `{"version":1,"capability":"text"}`, DefaultOptionsJSON: `{}`, CreatedAt: time.Now()}
 	if err := repo.SaveLogicalModelBundle(item, first, nil, true); err != nil {
 		t.Fatal(err)
@@ -97,7 +97,7 @@ func TestArchiveLogicalModelPreservesPublishedHistory(t *testing.T) {
 	}
 	repo := New(db)
 
-	item := &model.LogicalModel{ID: "LMODEL_DELETE", Code: "delete-demo", Name: "Delete Demo", Capability: "text", Enabled: true, PricePolicy: "unified", BillingMode: "fixed_request", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	item := &model.LogicalModel{ID: "LMODEL_DELETE", Code: "delete-demo", Name: "Delete Demo", Capability: "text", Enabled: true, CreatedAt: time.Now(), UpdatedAt: time.Now()}
 	revision := &model.LogicalModelRevision{ID: "REVISION_DELETE", LogicalModelID: item.ID, CapabilitySpecJSON: `{"version":1,"capability":"text"}`, DefaultOptionsJSON: `{}`, CreatedAt: time.Now()}
 	routes := []model.LogicalModelRoute{{ID: "ROUTE_DELETE", ChannelModelID: "CMODEL_DELETE", Enabled: true, Weight: 1, CreatedAt: time.Now(), UpdatedAt: time.Now()}}
 	if err := repo.SaveLogicalModelBundle(item, revision, routes, true); err != nil {
@@ -127,7 +127,7 @@ func TestArchiveLogicalModelPreservesPublishedHistory(t *testing.T) {
 		}
 	}
 
-	replacement := &model.LogicalModel{ID: "LMODEL_REPLACEMENT", Code: item.Code, Name: "Replacement", Capability: "text", Enabled: true, PricePolicy: "unified", BillingMode: "fixed_request", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	replacement := &model.LogicalModel{ID: "LMODEL_REPLACEMENT", Code: item.Code, Name: "Replacement", Capability: "text", Enabled: true, CreatedAt: time.Now(), UpdatedAt: time.Now()}
 	replacementRevision := &model.LogicalModelRevision{ID: "REVISION_REPLACEMENT", LogicalModelID: replacement.ID, CapabilitySpecJSON: `{"version":1,"capability":"text"}`, DefaultOptionsJSON: `{}`, CreatedAt: time.Now()}
 	if err := repo.SaveLogicalModelBundle(replacement, replacementRevision, nil, true); err != nil {
 		t.Fatalf("reusing archived logical model code: %v", err)

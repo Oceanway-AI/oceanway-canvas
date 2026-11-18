@@ -1,16 +1,14 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { Check, ChevronDown, Coins } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { Popover } from "antd";
 import { seedanceDisplayPrice, videoPriceSettings } from "@oceanway/model-picker/video-unit-price";
 import { nativeMediaVariant, nativeParameterValues } from "@/lib/platform-native-media";
 import { ModelPickerPanel } from "@oceanway/model-picker";
 import { usePopoverAnchorAlign } from "@/hooks/use-popover-anchor-align";
 
-import { imageQualityLabel } from "@/lib/image-quality";
 import { spokenPlatformPrice, platformModelPriceLabel, platformPriceRangesLabel, platformPriceConditions, platformFeatureSummaries, platformHealthLabel, platformHealthTone, type PlatformModelHealth } from "@/lib/platform-models";
 import { canvasThemes, type CanvasTheme } from "@/lib/canvas-theme";
 import { modelCapabilityConfigFor, videoDurationOptions } from "@/lib/model-capabilities";
-import { formatPriceRange, modelQuoteDescription, normalizeTierResolution, priceTierSummaryLabel, priceTiersForCurrentSelection, referenceVideoBillingLabel, tokenPriceRuleDescription } from "@/lib/model-pricing";
 import { compatibleModelInGroup, configuredModelDisplayName, modelCompatibilityError, resolveCompatibleModel, type DisplayModelGroup, type ModelRequirements } from "@/lib/model-selection";
 import { groupModelsForPicker, modelPickerKeywords, modelPickerSeries, isDirectSystemModel, modelChannelLabel, type ModelPickerGroup } from "@/lib/model-picker-groups";
 import { cn } from "@/lib/utils";
@@ -22,7 +20,7 @@ import { ensurePlatformModelDetail, refreshSystemChannels } from "@/lib/user-ses
 import { ModelLogo } from "@/components/model-logo";
 import { ModelTags } from "@/components/model-tags";
 import { referenceCapabilityTag, type ModelTag } from "@/lib/model-tags";
-import type { LogicalModelQuote, PublicChannelModelAvailability } from "@/services/api/logical-models";
+import type { PublicChannelModelAvailability } from "@/services/api/logical-models";
 
 type ModelPickerProps = {
     config: AiConfig;
@@ -94,7 +92,7 @@ export function ModelPicker({
     const resolvedCurrent = isDirectSystemModel(config, storedCurrent) ? storedCurrent : resolveCompatibleModel(config, storedCurrent, selectionRequirements) || storedCurrent;
     // 旧画布可能保存过已下架或前端历史内置模型；它们不能重新进入当前可选目录。
     const current = options.includes(resolvedCurrent) ? resolvedCurrent : "";
-    const currentPlatformState = current ? resolveModelChannel(config, current).modelCosts?.find((item) => item.model === modelOptionName(current))?.platform?.state : undefined;
+    const currentPlatformState = current ? resolveModelChannel(config, current).modelDetails?.find((item) => item.model === modelOptionName(current))?.platform?.state : undefined;
     useEffect(() => {
         if (!current || currentPlatformState !== "summary") {
             setCurrentDetailLoading(false);
@@ -120,7 +118,7 @@ export function ModelPicker({
             setReadySelection(null);
             return;
         }
-        const selected = resolveModelChannel(config, readySelection.model).modelCosts?.find((item) => item.model === modelOptionName(readySelection.model));
+        const selected = resolveModelChannel(config, readySelection.model).modelDetails?.find((item) => item.model === modelOptionName(readySelection.model));
         if (selected?.platform?.state === "summary") return;
         setReadySelection(null);
         const reason = modelDisabledReason?.(readySelection.model) || modelCompatibilityError(config, readySelection.model, selectionRequirements);
@@ -163,7 +161,7 @@ export function ModelPicker({
             })),
         [config, optionGroups],
     );
-    const currentPrice = modelMenuPrice(config, current, capability, false, requirements);
+    const currentPrice = modelMenuPrice(config, current);
     const creationVariant = variant === "creation";
     const currentChannel = current ? resolveModelChannel(config, current) : undefined;
     const isCurrentCustomChannel = Boolean(current && currentChannel && currentChannel.scope !== "system");
@@ -387,7 +385,7 @@ export function ModelPicker({
                         </span>
                         <span className="min-w-0 flex-1 truncate">{current ? (creationVariant ? pickerModelDisplayName(config, current, showConfiguredModelName) : pickerModelOptionLabel(config, current, showConfiguredModelName)) : placeholder}</span>
                         {isCurrentCustomChannel ? <span className="shrink-0 rounded px-2 py-0.5 text-[var(--fs-label)] font-medium leading-none bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25">个人</span> : null}
-                        {showSelectedPrice ? <ModelPrice price={currentPrice} compact /> : null}
+                        {showSelectedPrice ? <ModelPrice price={currentPrice} /> : null}
                     </span>
                     <ChevronDown className={cn("canvas-model-picker-chevron", open && "is-open")} aria-hidden="true" />
                 </button>
@@ -454,7 +452,7 @@ export function ModelLabel({
 }) {
     const meta = modelMenuMeta(model, capability);
     const channel = resolveModelChannel(config, model);
-    const logicalCost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
+    const logicalCost = channel.modelDetails?.find((item) => item.model === modelOptionName(model));
     const platform = logicalCost?.platform;
     const presentation = platform?.presentation;
     const isPlatformMedia = platform?.model_type === "image" || platform?.model_type === "video";
@@ -492,7 +490,7 @@ export function ModelLabel({
                 <span className="canvas-model-picker-media-copy">
                     <span className="canvas-model-picker-media-heading">
                         <strong title={title}>{title}</strong>
-                        {showPrice && <ModelPrice price={{ kind: "estimate", platform: true, label: price, title: details || price }} />}
+                        {showPrice && <ModelPrice price={{ label: price, title: details || price }} />}
                         {platformStatus}
                     </span>
                     {title !== platform.model_name && <code title={platform.model_name}>{platform.model_name}</code>}
@@ -523,8 +521,6 @@ export function ModelLabel({
     const capabilityTag = referenceCapabilityTag(videoProfile?.references ?? textReferences);
     const modelTags = logicalCost?.platform ? presentation?.tags.map((text) => ({ text, color: "blue" as const })) || logicalCost.tags : capabilityTag ? [capabilityTag, ...(logicalCost?.tags || [])] : logicalCost?.tags;
     const features = platformFeatureSummaries(presentation?.features || []);
-    // 只给能挂参考视频的视频模型标注；不收参考视频的模型写“参考视频不计费”会误导。
-    const referenceLabel = channel.scope === "system" && (videoProfile?.references?.maxVideos ?? 0) > 0 ? referenceVideoBillingLabel(logicalCost) : "";
     const capabilitySummary = disabledReason || presentation?.summary || logicalCost?.description?.trim() || (isDirectSystemModel(config, model) ? "" : logicalSpec ? logicalCapabilitySummary(logicalSpec) : videoProfile ? videoSummary : meta.description);
     return (
         <span className="flex w-full min-w-0 items-center gap-2 overflow-hidden py-0">
@@ -542,8 +538,7 @@ export function ModelLabel({
                     {showPrice ? (
                         <span className="canvas-model-picker-option-price">
                             {/* 候选模型展示自身价目；当前参数的精确报价只在选中后的触发器显示。 */}
-                            <ModelPrice price={modelMenuPrice(config, model, capability, true, requirements)} />
-                            {referenceLabel ? <span className="canvas-model-picker-reference-billing">{referenceLabel}</span> : null}
+                            <ModelPrice price={modelMenuPrice(config, model)} />
                         </span>
                     ) : null}
                     {platformStatus ?? <ModelAvailabilityBadge availability={modelAvailability(config, model)} available={logicalCost?.available ?? true} showAvailability={channel.scope === "system" && Boolean(modelAvailability(config, model))} />}
@@ -593,7 +588,7 @@ export function ModelLabel({
     );
 }
 
-function logicalCapabilitySummary(spec: NonNullable<NonNullable<AiConfig["channels"][number]["modelCosts"]>[number]["logicalCapabilitySpec"]>) {
+function logicalCapabilitySummary(spec: NonNullable<NonNullable<AiConfig["channels"][number]["modelDetails"]>[number]["logicalCapabilitySpec"]>) {
     const operationLabels: Record<string, string> = {
         text_to_video: "文生视频",
         image_to_video: "图生视频",
@@ -653,32 +648,16 @@ function formatDurationSummary(profile: NonNullable<ReturnType<typeof modelCapab
     return `${profile.duration.min || values[0]}-${profile.duration.max || values[values.length - 1]}s`;
 }
 
-type ModelMenuPrice = { kind: "tiers"; label: string; compactLabel: string; title: string } | { kind: "estimate"; label?: string; title?: string; platform?: boolean } | { kind: "fixed"; value: number; unit: "次" | "秒" };
+type ModelMenuPrice = { label: string; title: string };
 
-function modelMenuPrice(config: AiConfig, model: string, capability?: ModelCapability, summary = false, requirements?: ModelRequirements): ModelMenuPrice | null | undefined {
-    if (!model) return undefined;
-    const channel = resolveModelChannel(config, model);
-    const cost = channel.modelCosts?.find((item) => item.model === modelOptionName(model));
-    if (!cost) return channel.scope === "system" ? null : undefined;
-    if (cost.platform) return { kind: "estimate", platform: true, label: platformModelPriceLabel(cost.platform), title: platformPriceConditions(cost.platform.presentation?.price_summary || []) || "按实际规格取得 Platform 报价" };
-    if (cost.pricePolicy === "channel") {
-        const tiers = cost.logicalPriceTiers || [];
-        if (!tiers.length) return null;
-        const matched = summary ? tiers : priceTiersForCurrentSelection(tiers, capability, config, requirements);
-        if (!summary && !matched.length) return { kind: "tiers", label: "当前规格无报价", compactLabel: "当前规格无报价", title: "请调整参数，或选择支持当前规格的渠道" };
-        return channelTierPriceSummary(matched.length ? matched : tiers, tiers, capability);
-    }
-    if (cost.billingMode === "token") {
-        const rate = cost.outputTokenPriceMicrocredits;
-        return capability === "video" && typeof rate === "number" && Number.isFinite(rate) && rate >= 0
-            ? { kind: "estimate", label: formatPriceRange([rate / 1_000_000], "积分/百万视频 Token"), title: "按视频 Token 单价预估，优先按有效上游用量结算；未返回用量时按视频公式结算" }
-            : { kind: "estimate" };
-    }
-    return { kind: "fixed", value: cost.unitPriceMicrocredits / 1_000_000, unit: cost.billingMode === "per_second" ? "秒" : "次" };
+function modelMenuPrice(config: AiConfig, model: string): ModelMenuPrice | undefined {
+    const published = resolveModelChannel(config, model).modelDetails?.find((item) => item.model === modelOptionName(model))?.platform;
+    if (!published) return undefined;
+    return { label: platformModelPriceLabel(published), title: platformPriceConditions(published.presentation?.price_summary || []) || "按实际规格取得 Platform 报价" };
 }
 
 function pickerModelDisplayName(config: AiConfig, model: string, showConfiguredModelName: boolean) {
-    const cost = resolveModelChannel(config, model).modelCosts?.find((entry) => entry.model === modelOptionName(model));
+    const cost = resolveModelChannel(config, model).modelDetails?.find((entry) => entry.model === modelOptionName(model));
     if (cost?.platform?.model_type === "video" || cost?.platform?.model_type === "image") return modelChannelLabel(config, model);
     const name = showConfiguredModelName ? configuredModelDisplayName(config, model) : modelDisplayName(config, model);
     const channelLabel = modelChannelLabel(config, model);
@@ -691,98 +670,27 @@ function pickerModelOptionLabel(config: AiConfig, model: string, showConfiguredM
     return channel.scope === "system" ? pickerModelDisplayName(config, model, showConfiguredModelName) : `${displayName}（${channel.name}）`;
 }
 
-function channelTierPriceSummary(
-    visibleTiers: NonNullable<NonNullable<AiConfig["channels"][number]["modelCosts"]>[number]["logicalPriceTiers"]>,
-    allTiers: NonNullable<NonNullable<AiConfig["channels"][number]["modelCosts"]>[number]["logicalPriceTiers"]>,
-    capability?: ModelCapability,
-): Extract<ModelMenuPrice, { kind: "tiers" }> {
-    const label = priceTierSummaryLabel(visibleTiers, capability);
-    const ruleNotes = allTiers.flatMap((tier) => tier.tokenPriceRules || []).map(tokenPriceRuleDescription);
-    return {
-        kind: "tiers",
-        label,
-        compactLabel: label,
-        title: `系统规格价格：${allTiers.map((tier) => `${tierSpecificationLabel(tier)} ${priceTierSummaryLabel([tier], capability)}`).join("；")}${allTiers.some((tier) => tier.billingMode === "token") ? (capability === "video" ? "；优先按有效上游用量结算，未返回用量时按视频公式结算" : "；Token 费用为预估，最终按成功任务的实际用量结算") : ""}${ruleNotes.length ? `。分时与上下文价格（上海时间，任务创建时锁定时段，按实际输入 Token 选档，未命中按上述基础价）：${ruleNotes.join("；")}` : ""}`,
-    };
-}
-
-function tierResolutionLabel(value: string) {
-    const normalized = normalizeTierResolution(value);
-    return normalized === "*" ? "全部分辨率" : normalized.toUpperCase();
-}
-
-function tierDurationLabel(seconds: number) {
-    return seconds > 0 ? `${seconds} 秒` : "全部时长";
-}
-
-function tierSpecificationLabel(tier: NonNullable<NonNullable<AiConfig["channels"][number]["modelCosts"]>[number]["logicalPriceTiers"]>[number]) {
-    const selector = tier.selector || {};
-    const operationLabels: Record<string, string> = { text_to_image: "文生图", image_to_image: "图生图", text_to_video: "文生视频", image_to_video: "图生视频", video_to_video: "视频生视频" };
-    const operation = selector.operation && selector.operation !== "*" ? operationLabels[selector.operation] || selector.operation : "";
-    const details = [
-        operation,
-        selector.quality && selector.quality !== "*" ? imageQualityLabel(selector.quality) : "",
-        selector.resolution && selector.resolution !== "*" ? imageQualityLabel(selector.resolution) : "",
-        selector.size && selector.size !== "*" ? selector.size : "",
-        tier.resolution !== "*" ? tierResolutionLabel(tier.resolution) : "",
-        tier.videoSeconds ? tierDurationLabel(tier.videoSeconds) : "",
-        selector.imageCount && selector.imageCount !== "*" ? `${selector.imageCount} 张参考图` : "",
-        selector.videoGenerateAudio === "true" ? "有声" : selector.videoGenerateAudio === "false" ? "无声" : "",
-    ].filter(Boolean);
-    return details.length ? details.join(" / ") : "默认规格";
-}
-
-function ModelPrice({ price, quote, compact = false }: { price: ModelMenuPrice | null | undefined; quote?: LogicalModelQuote; compact?: boolean }) {
-    if (quote) {
-        const amount = (quote.amountMicrocredits / 1_000_000).toLocaleString("zh-CN", { maximumFractionDigits: 6 });
-        const label = quote.estimated ? `预估:${amount}` : `${amount}`;
-        return (
-            <span className="model-picker-price inline-flex shrink-0 items-center gap-1 text-[var(--fs-tiny)] font-semibold tabular-nums" aria-label={modelQuoteDescription(quote)}>
-                <Coins className="model-picker-price-icon" aria-hidden="true" />
-                {compact ? label : `${label} 积分`}
-            </span>
-        );
-    }
-    if (price === undefined) return null;
-    if (price === null) return compact ? null : <span className="shrink-0 text-[var(--fs-tiny)] text-foreground/40">未配置</span>;
-    if (price.kind === "tiers") {
-        return (
-            <span className="model-picker-price inline-flex shrink-0 items-center gap-1 text-[var(--fs-tiny)] font-semibold tabular-nums">
-                <Coins className="model-picker-price-icon" aria-hidden="true" />
-                {compact ? price.compactLabel : price.label}
-            </span>
-        );
-    }
-    if (price.kind === "estimate") {
-        return (
-            <Popover content={<div className="platform-model-description">{price.title}</div>} trigger={["hover", "focus"]} arrow={false}>
-                <span
-                    className="model-picker-price inline-flex shrink-0 items-center text-[var(--fs-tiny)] font-semibold"
-                    tabIndex={price.title ? 0 : undefined}
-                    title={price.title}
-                    aria-label={spokenPlatformPrice([price.label || "按量预估", price.title].filter(Boolean).join("；"))}
-                    onClick={(event) => event.stopPropagation()}
-                >
-                    {!price.platform && <Coins className="model-picker-price-icon" aria-hidden="true" />}
-                    {price.label || "按量预估"}
-                </span>
-            </Popover>
-        );
-    }
+function ModelPrice({ price }: { price?: ModelMenuPrice }) {
+    if (!price) return null;
     return (
-        <span className="model-picker-price inline-flex shrink-0 items-center gap-1 text-[var(--fs-tiny)] font-semibold tabular-nums">
-            <Coins className="model-picker-price-icon" aria-hidden="true" />
-            {price.value.toLocaleString("zh-CN", { maximumFractionDigits: compact ? 3 : 6 })}
-            {compact ? "/" : " 积分/"}
-            {price.unit}
-        </span>
+        <Popover content={<div className="platform-model-description">{price.title}</div>} trigger={["hover", "focus"]} arrow={false}>
+            <span
+                className="model-picker-price inline-flex shrink-0 items-center text-[var(--fs-tiny)] font-semibold"
+                tabIndex={price.title ? 0 : undefined}
+                title={price.title}
+                aria-label={spokenPlatformPrice([price.label, price.title].filter(Boolean).join("；"))}
+                onClick={(event) => event.stopPropagation()}
+            >
+                {price.label}
+            </span>
+        </Popover>
     );
 }
 
 function modelAvailability(config: AiConfig, model: string): PublicChannelModelAvailability | undefined {
     if (!model) return undefined;
     const channel = resolveModelChannel(config, model);
-    return channel.modelCosts?.find((item) => item.model === modelOptionName(model))?.availability;
+    return channel.modelDetails?.find((item) => item.model === modelOptionName(model))?.availability;
 }
 
 function groupAvailability(config: AiConfig, group: ModelPickerGroup): PublicChannelModelAvailability | undefined {

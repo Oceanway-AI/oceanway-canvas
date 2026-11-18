@@ -71,7 +71,7 @@ function videoConfig() {
         apiKey: "test-key",
         interfaceType: "volcengine-ark-video",
         models: ["video-model"],
-        modelCosts: [{ model: "video-model", capability: "video", protocol: "volcengine-ark-video", billingMode: "fixed_request", unitPriceMicrocredits: 1 }],
+        modelDetails: [{ model: "video-model", capability: "video", protocol: "volcengine-ark-video" }],
     });
     const model = encodeChannelModel(channel.id, "video-model");
     return { ...defaultConfig, channels: [channel], model, videoModel: model };

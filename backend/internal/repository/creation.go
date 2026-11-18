@@ -19,7 +19,7 @@ func (r *Repository) CreationStorageUsage(userID string) (int64, int64, error) {
 	}
 	query := `SELECT (SELECT COUNT(*) FROM creation_runs WHERE user_id = ?) AS count,
 	(SELECT COALESCE(SUM(octet_length(COALESCE(state_json,''))+octet_length(COALESCE(approved_operations_json,''))+octet_length(COALESCE(approved_canvas_json,''))),0) FROM creation_runs WHERE user_id = ?)
-	+ (SELECT COALESCE(SUM(octet_length(COALESCE(request_json,''))+octet_length(COALESCE(quote_json,''))+octet_length(COALESCE(price_signature,''))),0) FROM creation_submissions WHERE user_id = ?) AS bytes`
+	+ (SELECT COALESCE(SUM(octet_length(COALESCE(request_json,''))+octet_length(COALESCE(quote_json,''))+octet_length(COALESCE(configuration_signature,''))),0) FROM creation_submissions WHERE user_id = ?) AS bytes`
 
 	err := r.db.Raw(query, userID, userID, userID).Scan(&usage).Error
 	return usage.Count, usage.Bytes, err

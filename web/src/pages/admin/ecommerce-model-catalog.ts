@@ -20,7 +20,7 @@ export function commerceStageModelConfig(catalog: ModelCatalogResponse): AiConfi
 export function commerceStageModelValue(config: AiConfig, channelModelId?: string) {
     if (!channelModelId) return "";
     for (const channel of config.channels) {
-        const cost = channel.modelCosts?.find((item) => item.channelModelId === channelModelId);
+        const cost = channel.modelDetails?.find((item) => item.channelModelId === channelModelId);
         if (cost) return encodeChannelModel(channel.id, cost.model);
     }
     return "";
@@ -29,7 +29,7 @@ export function commerceStageModelValue(config: AiConfig, channelModelId?: strin
 /** 下拉选择值 → 渠道模型行 ID。 */
 export function commerceStageChannelModelId(config: AiConfig, value: string) {
     if (!value) return "";
-    return resolveModelChannel(config, value).modelCosts?.find((item) => item.model === modelOptionName(value))?.channelModelId || "";
+    return resolveModelChannel(config, value).modelDetails?.find((item) => item.model === modelOptionName(value))?.channelModelId || "";
 }
 
 export function commerceModelImageLimit(config: AiConfig, value: string) {

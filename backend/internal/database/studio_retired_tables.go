@@ -15,6 +15,7 @@ var retiredStudioTables = []string{
 	"banner_announcements",
 	"billing_orders",
 	"channel_model_price_tiers",
+	"channel_model_variants",
 	"channel_models",
 	"credit_accounts",
 	"credit_ledger_entries",
