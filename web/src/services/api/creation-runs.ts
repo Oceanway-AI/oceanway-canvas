@@ -26,7 +26,7 @@ export type CreationSubmission = {
     runId: string;
     itemKey: string;
     requestHash: string;
-    quote: { model: string; billingMode: string; quantity: number; amountMicrocredits: number; estimated: boolean; expiresAt: string; quoteHash: string; options?: Record<string, unknown> };
+    quote: { model: string; fundingAuthority: "platform"; quoteAvailable: boolean; expiresAt: string; quoteHash: string; options?: Record<string, unknown> };
     approvedAt?: string;
     revokedAt?: string;
     taskId?: string;

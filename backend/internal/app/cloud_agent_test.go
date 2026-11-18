@@ -410,41 +410,6 @@ func TestCloudAgentAdmissionAndContinuation(t *testing.T) {
 	}
 }
 
-func TestCloudAgentAdmissionAcceptsTokenPricingWithQuotedChargeLimit(t *testing.T) {
-	s, db, _, _ := creationTestService(t)
-	if err := db.Create(&model.CanvasProject{ID: "agent-canvas", UserID: "user", PayloadJSON: `{"nodes":[]}`}).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Model(&model.ChannelModel{}).Where("id = ?", "cm").Updates(map[string]any{
-		"billing_mode": "token", "unit_price_microcredits": 0,
-		"input_token_price_microcredits": int64(1_000_000), "output_token_price_microcredits": int64(1_000_000),
-	}).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Model(&model.ChannelModelPriceTier{}).Where("id = ?", "tier").Updates(map[string]any{
-		"billing_mode": "token", "unit_price_microcredits": 0,
-		"input_token_price_microcredits": int64(1_000_000), "output_token_price_microcredits": int64(1_000_000),
-	}).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Model(&model.CreditAccount{}).Where("user_id = ?", "user").Update("available_microcredits", int64(1_000_000_000)).Error; err != nil {
-		t.Fatal(err)
-	}
-	request := agentTestRequest()
-	request.Budget.MaxCredits = 100_000
-	run, err := s.CreateCloudAgentRun("user", request, "")
-	if err != nil {
-		t.Fatalf("token-priced Agent request was rejected: %v", err)
-	}
-	var order model.BillingOrder
-	if err := db.First(&order, "task_id = ?", run.ID).Error; err != nil {
-		t.Fatal(err)
-	}
-	if order.BillingMode != "token" || order.AmountMicrocredits <= 0 || order.ChargeLimitMicrocredits != order.AmountMicrocredits {
-		t.Fatalf("Agent token order did not persist quoted hard limit: %+v", order)
-	}
-}
-
 func TestCloudAgentWorkerPersistsRealResponse(t *testing.T) {
 	t.Setenv("CANVAS_ALLOWED_PRIVATE_UPSTREAM_HOSTS", "127.0.0.1")
 	t.Setenv("REDIS_URL", "")
@@ -488,7 +453,7 @@ func TestCloudAgentWorkerPersistsRealResponse(t *testing.T) {
 	}
 }
 
-func TestCloudAgentConcurrentIdempotencyReservesOnce(t *testing.T) {
+func TestCloudAgentConcurrentIdempotencyCreatesOneRoot(t *testing.T) {
 	s, db, _, _ := creationTestService(t)
 	if err := db.Create(&model.CanvasProject{ID: "agent-canvas", UserID: "user", PayloadJSON: `{"nodes":[]}`}).Error; err != nil {
 		t.Fatal(err)
@@ -504,18 +469,14 @@ func TestCloudAgentConcurrentIdempotencyReservesOnce(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	for _, table := range []any{&model.Task{}, &model.BillingOrder{}, &model.CreditLedgerEntry{}} {
+	for _, table := range []any{&model.Task{}} {
 		var count int64
 		db.Model(table).Count(&count)
 		if count != 1 {
 			t.Fatalf("expected one %T, got %d", table, count)
 		}
 	}
-	var account model.CreditAccount
-	db.First(&account, "user_id = ?", "user")
-	if account.AvailableMicrocredits != 9900 || account.ReservedMicrocredits != 100 {
-		t.Fatalf("unexpected reservation: %+v", account)
-	}
+
 }
 
 func TestCloudAgentToolLoopPersistsApprovalAndAppliesCanvasWrite(t *testing.T) {

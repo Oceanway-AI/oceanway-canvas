@@ -93,7 +93,6 @@ export type AgentRun = {
     eventCount?: number;
     latestSeq?: number;
     eventsTruncated?: boolean;
-    spentCredits?: number;
     step?: number;
     activeMessage?: { messageId: string; text: string };
     approval?: AgentApproval;
@@ -346,7 +345,6 @@ export function subscribeAgentEvents(
                                         cleanupPending: run.cleanupPending,
                                         failureMessage: run.failureMessage,
                                         skills: run.skills,
-                                        spentCredits: run.spentCredits,
                                         step: run.step,
                                         approval: run.approval,
                                     };

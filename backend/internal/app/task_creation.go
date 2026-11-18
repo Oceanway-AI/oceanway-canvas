@@ -13,15 +13,14 @@ import (
 	"gorm.io/gorm"
 )
 
-// Internal admission constraints are not JSON fields. Callers cannot select a
-// task ID or bypass the quoted-charge ceiling through the public tasks API.
+// Internal admission fields bind task identity to the approved Agent operation.
+// Callers cannot select them through the public tasks API.
 type taskAdmission struct {
 	ID           string
-	MaxCharge    int64
 	AgentRunID   string
 	GenerationID string
 	ApprovalID   string
-	NonBillable  bool
+	ControlPlane bool
 }
 
 // CreateTask 收敛任务进入系统前的 admission 流程：输入标准化、逻辑模型路由、
@@ -202,10 +201,9 @@ func (s *Service) CreateTask(userID string, req CreateTaskRequest) (*model.Task,
 	if err := s.ensureTaskProjectActive(userID, req.ProjectID); err != nil {
 		return nil, err
 	}
-	// Agent roots are durable control-plane carriers, not model calls. They
-	// must not reserve credits or enter the worker queue; Pi creates the
-	// billable cloud_agent_step task for each actual model request instead.
-	if req.admission != nil && req.admission.NonBillable && !s.legacyCloudAgentRootTask {
+	// Agent roots persist orchestration state. Pi creates a separate step task
+	// for each model request, so the root stays outside the worker queue.
+	if req.admission != nil && req.admission.ControlPlane && !s.legacyCloudAgentRootTask {
 		if err := s.protectTaskSecrets(normalizedInput); err != nil {
 			return nil, err
 		}
@@ -217,35 +215,17 @@ func (s *Service) CreateTask(userID string, req CreateTaskRequest) (*model.Task,
 		task.Stage = "Agent 控制面载体"
 		task.Progress = 0
 		task.InputJSON = string(inputJSON)
-		if err := s.createTaskWithinStorageQuota(&task, nil, policy); err != nil {
+		if err := s.createTaskWithinStorageQuota(&task, policy); err != nil {
 			return nil, err
 		}
 		return taskForOutput(task), nil
 	}
-	billingOrder, err := s.taskBillingOrder(userID, &task, normalizedInput)
-	if err != nil {
-		return nil, err
-	}
-	if req.admission != nil && billingOrder != nil {
-		if billingOrder.AmountMicrocredits > req.admission.MaxCharge {
-			return nil, BadAuthRequest("模型调用报价超过本轮 Agent 积分上限，尚未创建任务或扣费")
-		}
-		switch billingOrder.BillingMode {
-		case "fixed_request", "per_second", "token":
-			billingOrder.ChargeLimitSet = true
-			billingOrder.ChargeLimitMicrocredits = billingOrder.AmountMicrocredits
-			task.AuthorizedChargeMicrocredits = billingOrder.AmountMicrocredits
-		default:
-			return nil, BadAuthRequest("Agent 暂不支持当前模型计费方式")
-		}
-	}
-	if req.creationPrepare != nil {
+	if req.prepareOnly {
 		encoded, encodeErr := json.Marshal(normalizedInput)
 		if encodeErr != nil {
 			return nil, encodeErr
 		}
 		task.InputJSON = string(encoded)
-		req.creationPrepare.Order = billingOrder
 		return &task, nil
 	}
 	if err := s.protectTaskSecrets(normalizedInput); err != nil {
@@ -256,15 +236,9 @@ func (s *Service) CreateTask(userID string, req CreateTaskRequest) (*model.Task,
 		return nil, fmt.Errorf("序列化任务输入失败：%w", err)
 	}
 	task.InputJSON = string(inputJSON)
-	if billingOrder != nil {
-		task.BillingOrderID = billingOrder.ID
-	}
-	err = s.createTaskWithinStorageQuota(&task, billingOrder, policy)
+	err = s.createTaskWithinStorageQuota(&task, policy)
 	if errors.Is(err, repository.ErrActiveTaskLimit) {
 		return nil, BadAuthRequest(fmt.Sprintf("同时排队或运行的任务最多 %d 个，请等待已有任务完成", policy.Task.ActiveTaskLimit))
-	}
-	if errors.Is(err, repository.ErrInsufficientCredits) {
-		return nil, BadAuthRequest("积分不足，请先使用兑换码充值")
 	}
 	if errors.Is(err, repository.ErrLogicalModelUnavailable) {
 		return nil, BadAuthRequest("所选模型已停用、归档或配置已更新，请重新选择")
@@ -518,7 +492,7 @@ func (s *Service) createTextReplayTask(userID string, req CreateTaskRequest, nor
 	if err != nil {
 		return nil, err
 	}
-	if err := s.createTaskWithinStorageQuota(&task, nil, policy); err != nil {
+	if err := s.createTaskWithinStorageQuota(&task, policy); err != nil {
 		return nil, err
 	}
 	_ = s.log(userID, task.ID, "info", "文本持久化任务已创建（前端自管）", "")

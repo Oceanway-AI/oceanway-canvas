@@ -242,7 +242,7 @@ func TestCloudAgentExplicitUnsupportedQualityIsNeverDropped(t *testing.T) {
 	if err != nil || plan.Args.Quality != "high" {
 		t.Fatalf("explicit user quality was silently removed: plan=%+v err=%v", plan, err)
 	}
-	req.creationPrepare = &creationTaskPreparation{}
+	req.prepareOnly = true
 	task, err := s.CreateTask("user", req)
 	if err == nil && applyCloudAgentResolvedMediaDefaults(&req, plan, task) == nil {
 		t.Fatal("unsupported user specification bypassed pre-approval admission")

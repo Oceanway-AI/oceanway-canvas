@@ -21,7 +21,7 @@ func TestPersistDramaTaskRollsBackWhenJobChanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	orphan := &model.Task{ID: newID(), UserID: "usr-drama", ProjectID: project, Type: "canvas_text", Status: model.TaskStatusQueued, InputJSON: "{}"}
-	if _, err := svc.persistDramaTask(&stale, orphan, nil); !errors.Is(err, repository.ErrDramaJobChanged) {
+	if _, err := svc.persistDramaTask(&stale, orphan); !errors.Is(err, repository.ErrDramaJobChanged) {
 		t.Fatalf("persist on canceled job = %v", err)
 	}
 	var count int64
@@ -38,7 +38,7 @@ func TestPersistDramaTaskRollsBackWhenJobChanged(t *testing.T) {
 	}
 	fresh := job
 	task := &model.Task{ID: newID(), UserID: "usr-drama", ProjectID: project, Type: "canvas_text", Status: model.TaskStatusQueued, InputJSON: "{}"}
-	if _, err := svc.persistDramaTask(&fresh, task, nil); err != nil {
+	if _, err := svc.persistDramaTask(&fresh, task); err != nil {
 		t.Fatal(err)
 	}
 	if err := fake.db.First(&stored, "id = ?", job.ID).Error; err != nil {
@@ -51,7 +51,7 @@ func TestPersistDramaTaskRollsBackWhenJobChanged(t *testing.T) {
 
 	// 精简续任务：作业已在运行，换绑新任务时保留原开始时间。
 	next := &model.Task{ID: newID(), UserID: "usr-drama", ProjectID: project, Type: "canvas_text", Status: model.TaskStatusQueued, InputJSON: "{}"}
-	if _, err := svc.persistDramaTask(&fresh, next, nil); err != nil {
+	if _, err := svc.persistDramaTask(&fresh, next); err != nil {
 		t.Fatal(err)
 	}
 	if err := fake.db.First(&stored, "id = ?", job.ID).Error; err != nil {

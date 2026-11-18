@@ -1754,8 +1754,8 @@ func (s *Service) submitDramaTask(userID string, req CreateTaskRequest, job *mod
 	if s.dramaTaskHook != nil {
 		return s.dramaTaskHook(userID, req, nil)
 	}
-	prepare := &creationTaskPreparation{}
-	req.creationPrepare = prepare
+
+	req.prepareOnly = true
 	task, err := s.CreateTask(userID, req)
 	if err != nil {
 		return nil, err
@@ -1772,7 +1772,7 @@ func (s *Service) submitDramaTask(userID string, req CreateTaskRequest, job *mod
 		return nil, err
 	}
 	task.InputJSON = string(encoded)
-	return s.persistDramaTask(job, task, prepare.Order)
+	return s.persistDramaTask(job, task)
 }
 
 func (s *Service) createDramaRenderTask(project *model.Project, timeline renderProject, job *model.DramaJob) (*model.Task, bool, error) {
@@ -1784,17 +1784,14 @@ func (s *Service) createDramaRenderTask(project *model.Project, timeline renderP
 	if err != nil {
 		return nil, false, err
 	}
-	task, err = s.persistDramaTask(job, task, nil)
+	task, err = s.persistDramaTask(job, task)
 	return task, false, err
 }
 
-func (s *Service) persistDramaTask(job *model.DramaJob, task *model.Task, order *model.BillingOrder) (*model.Task, error) {
+func (s *Service) persistDramaTask(job *model.DramaJob, task *model.Task) (*model.Task, error) {
 	policy, err := s.RuntimePolicy()
 	if err != nil {
 		return nil, err
-	}
-	if order != nil {
-		task.BillingOrderID = order.ID
 	}
 	bound := *job
 	bound.Status, bound.TaskID, bound.CostMicrocredits = model.DramaJobRunning, task.ID, 0
@@ -1803,11 +1800,11 @@ func (s *Service) persistDramaTask(job *model.DramaJob, task *model.Task, order 
 		now := time.Now()
 		bound.StartedAt = &now
 	}
-	// 任务与计费预留、作业绑定在同一事务中提交，提交前不会唤醒 dispatcher。绑定只在作业仍是派发前
-	// 读到的状态时生效；期间被取消或重试则整笔回滚，不留下已扣费却没人认领的任务。
+	// 任务与作业绑定在同一事务中提交，提交前不会唤醒 dispatcher。绑定只在作业仍是派发前
+	// 读到的状态时生效，期间被取消或重试则整笔回滚。
 	s.storageMu.Lock()
 	err = s.repo.Transaction(func(repo *repository.Repository) error {
-		if err := createTaskWithStorageQuotaRepository(repo, task, order, policy); err != nil {
+		if err := createTaskWithStorageQuotaRepository(repo, task, policy); err != nil {
 			return err
 		}
 		return repo.BindDramaJobTask(&bound, job.Status, job.TaskID)
@@ -1815,9 +1812,6 @@ func (s *Service) persistDramaTask(job *model.DramaJob, task *model.Task, order 
 	s.storageMu.Unlock()
 	if errors.Is(err, repository.ErrActiveTaskLimit) {
 		return nil, BadAuthRequest(fmt.Sprintf("同时排队或运行的任务最多 %d 个，请等待已有任务完成", policy.Task.ActiveTaskLimit))
-	}
-	if errors.Is(err, repository.ErrInsufficientCredits) {
-		return nil, BadAuthRequest("积分不足，请先使用兑换码充值")
 	}
 	if errors.Is(err, repository.ErrLogicalModelUnavailable) {
 		return nil, BadAuthRequest("所选模型已停用、归档或配置已更新，请重新选择")

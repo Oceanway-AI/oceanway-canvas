@@ -113,7 +113,6 @@ type CloudAgentRun struct {
 	Events         []CloudAgentEvent   `json:"events,omitempty"`
 	Skills         []cloudAgentSkill   `json:"skills,omitempty"`
 	Approval       *cloudAgentApproval `json:"approval,omitempty"`
-	SpentCredits   float64             `json:"spentCredits,omitempty"`
 	Billing        string              `json:"billing,omitempty"`
 	Step           int                 `json:"step"`
 	ActiveMessage  map[string]string   `json:"activeMessage,omitempty"`
@@ -590,7 +589,7 @@ func (s *Service) createCloudAgentRun(userID string, req CloudAgentRequest, pare
 		}
 	}
 	task, err := createRoot(userID, CreateTaskRequest{ProjectID: req.CanvasID, Type: "canvas_text", Operation: cloudAgentOperation, Prompt: req.Prompt, Model: req.Model, LogicalModelID: req.LogicalModelID, Input: input,
-		admission: &taskAdmission{ID: id, MaxCharge: int64(math.Floor(req.Budget.MaxCredits * float64(CreditScale))), NonBillable: true}})
+		admission: &taskAdmission{ID: id, ControlPlane: true}})
 	if err != nil {
 		// A concurrent identical request may have won the transaction. Never
 		// replace its result or reserve credits a second time.

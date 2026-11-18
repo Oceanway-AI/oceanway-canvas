@@ -363,8 +363,6 @@ export class CreativeAgentController {
         // pendingPayment also retains submitted IDs for recovery; only unsubmitted items need a fee card.
         const pending = this.state.pendingPayment?.map((id) => this.submissions.find((item) => item.id === id)).filter((item): item is CreationSubmission => Boolean(item && !item.taskId && !item.revokedAt));
         if (!pending?.length) return undefined;
-        const amount = pending.reduce((sum, item) => sum + item.quote.amountMicrocredits, 0);
-        const estimated = pending.some((item) => item.quote.estimated);
         return {
             id: pending.map((item) => item.id).join(":"),
             title: this.state.planning && !this.state.planning.consumed ? "确认本次理解与规划费用" : "确认本批生成费用",
@@ -380,12 +378,12 @@ export class CreativeAgentController {
                         ...Object.entries(item.quote.options || {})
                             .filter(([, value]) => value !== undefined && value !== "")
                             .map(([key, value]) => `${({ size: "比例/尺寸", videoSeconds: "时长（秒）", vquality: "清晰度", quality: "质量", count: "数量" } as Record<string, string>)[key] || key}：${String(value)}`),
-                        `${item.quote.billingMode === "token" ? "按用量" : item.quote.billingMode === "per_second" ? "按秒" : item.quote.billingMode === "per_character" ? "按字符" : "按次"}计费，本项${item.quote.estimated ? "预计" : ""} ${(item.quote.amountMicrocredits / 1_000_000).toLocaleString("zh-CN", { maximumFractionDigits: 6 })} 积分`,
+                        "平台报价暂不可用",
                     ].join(" · "),
                 };
             }),
-            amountLabel: `${estimated ? "预计 " : ""}${(amount / 1_000_000).toLocaleString("zh-CN", { maximumFractionDigits: 6 })} 积分`,
-            basis: estimated ? "按实际用量结算，此金额为估算，不是费用上限。仅批准列出的调用。" : "按当前报价，仅批准本批列出的生成项。",
+            amountLabel: "平台报价暂不可用",
+            basis: "此创作入口的执行授权正在接入 Platform。",
             expiresAt: pending.map((item) => item.quote.expiresAt).sort()[0],
             approvedQuantity: pending.filter((item) => item.approvedAt).length,
         };

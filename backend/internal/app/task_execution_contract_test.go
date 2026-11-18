@@ -8,22 +8,24 @@ import (
 	"yingce/backend/internal/model"
 )
 
-func TestAgentMediaAdmissionPersistsOriginAndChargeAuthorization(t *testing.T) {
-	s, _, args := agentMediaFixture(t)
+func TestAgentMediaAdmissionPersistsOriginWithoutLocalFinance(t *testing.T) {
+	s, db, args := agentMediaFixture(t)
 	run, state := agentMediaRun(t, s, args, "auto")
+	if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+		t.Fatal(err)
+	}
 	req, _, err := s.prepareCloudAgentMedia(run, &state, agentMediaCall(args))
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.admission = &taskAdmission{ID: "generation-task", MaxCharge: 1000, AgentRunID: run.ID, GenerationID: "generation", ApprovalID: "approval"}
-	req.creationPrepare = &creationTaskPreparation{}
+	req.admission = &taskAdmission{ID: "generation-task", AgentRunID: run.ID, GenerationID: "generation", ApprovalID: "approval"}
+	req.prepareOnly = true
 	task, err := s.CreateTask(run.UserID, req)
 	if err != nil {
 		t.Fatal(err)
 	}
-	order := req.creationPrepare.Order
-	if task.AgentRunID != run.ID || task.GenerationID != "generation" || task.ApprovalID != "approval" || order == nil || !order.ChargeLimitSet || task.AuthorizedChargeMicrocredits != order.AmountMicrocredits || order.ChargeLimitMicrocredits != order.AmountMicrocredits {
-		t.Fatalf("incomplete generation authorization: task=%+v order=%+v", task, order)
+	if task.ID != "generation-task" || task.AgentRunID != run.ID || task.GenerationID != "generation" || task.ApprovalID != "approval" {
+		t.Fatalf("incomplete generation identity: task=%+v", task)
 	}
 }
 

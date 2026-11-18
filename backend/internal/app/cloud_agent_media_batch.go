@@ -56,16 +56,15 @@ const cloudAgentPiMediaBatchPauseText = "批次正在后台执行，完成后会
 var errCloudAgentMediaBatchWait = errors.New("media batch submission must wait")
 
 type cloudAgentMediaBatch struct {
-	ID              string                     `json:"id"`
-	CallID          string                     `json:"callId"`
-	Mode            string                     `json:"mode"`
-	ModelName       string                     `json:"modelName,omitempty"`
-	Phase           string                     `json:"phase"`
-	Concurrency     int                        `json:"concurrency"`
-	Canary          bool                       `json:"canary,omitempty"`
-	MaxRetries      int                        `json:"maxRetries"`
-	CapMicrocredits int64                      `json:"capMicrocredits"`
-	Items           []cloudAgentMediaBatchItem `json:"items"`
+	ID          string                     `json:"id"`
+	CallID      string                     `json:"callId"`
+	Mode        string                     `json:"mode"`
+	ModelName   string                     `json:"modelName,omitempty"`
+	Phase       string                     `json:"phase"`
+	Concurrency int                        `json:"concurrency"`
+	Canary      bool                       `json:"canary,omitempty"`
+	MaxRetries  int                        `json:"maxRetries"`
+	Items       []cloudAgentMediaBatchItem `json:"items"`
 }
 
 type cloudAgentMediaBatchItem struct {
@@ -74,7 +73,6 @@ type cloudAgentMediaBatchItem struct {
 	Arguments       string   `json:"arguments"`
 	ResolvedHash    string   `json:"resolvedHash"`
 	SpecHash        string   `json:"specHash"`
-	Amount          int64    `json:"amountMicrocredits"`
 	Duration        int      `json:"durationSeconds,omitempty"`
 	ResourceIDs     []string `json:"resourceIds,omitempty"`
 	Status          string   `json:"status"`
@@ -415,7 +413,6 @@ func (s *Service) requestCloudAgentMediaBatchApproval(run *model.CloudAgentExecu
 	}
 	probe := cloudAgentMediaBatchProbeState(state)
 	prepared := make([]cloudAgentMediaBatchPrepared, 0, len(args.Items))
-	var total int64
 	videoSeconds := 0
 	for index := range args.Items {
 		itemArgs, err := cloudAgentMediaBatchItemArgs(doc, args, index)
@@ -430,8 +427,8 @@ func (s *Service) requestCloudAgentMediaBatchApproval(run *model.CloudAgentExecu
 		if err != nil {
 			return s.cloudAgentMediaError(run, state, "admission", false, false, cloudAgentMediaBatchItemAdmissionError(index, err))
 		}
-		preparation := &creationTaskPreparation{}
-		req.creationPrepare = preparation
+
+		req.prepareOnly = true
 		task, err := s.CreateTask(run.UserID, req)
 		if err != nil {
 			return s.cloudAgentMediaError(run, state, "admission", false, false, cloudAgentMediaBatchItemAdmissionError(index, err))
@@ -457,15 +454,10 @@ func (s *Service) requestCloudAgentMediaBatchApproval(run *model.CloudAgentExecu
 		if err != nil {
 			return err
 		}
-		amount := int64(0)
-		if preparation.Order != nil {
-			amount = preparation.Order.AmountMicrocredits
-		}
-		total += amount
 		videoSeconds += plan.Args.Duration
 		prepared = append(prepared, cloudAgentMediaBatchPrepared{plan: plan, model: modelName, item: cloudAgentMediaBatchItem{
 			NodeID: plan.Args.NodeID, Title: plan.Args.Title, Arguments: string(raw), ResolvedHash: resolvedHash, SpecHash: specHash,
-			Amount: amount, Duration: plan.Args.Duration, ResourceIDs: cloudAgentMediaBatchResourceIDs(req.Input), Status: cloudAgentMediaBatchItemPending,
+			Duration: plan.Args.Duration, ResourceIDs: cloudAgentMediaBatchResourceIDs(req.Input), Status: cloudAgentMediaBatchItemPending,
 		}})
 	}
 	budget := state.Request.Budget
@@ -476,22 +468,11 @@ func (s *Service) requestCloudAgentMediaBatchApproval(run *model.CloudAgentExecu
 	if args.Mode == "video" && budget.MaxVideoSeconds > 0 && state.VideoSeconds+videoSeconds > budget.MaxVideoSeconds {
 		return s.cloudAgentMediaError(run, state, "admission", false, false, cloudAgentFieldError("items", "item_count", fmt.Sprintf("本批视频共 %d 秒，超过本轮剩余视频时长预算 %d 秒；请拆批，或请用户调高预算", videoSeconds, budget.MaxVideoSeconds-state.VideoSeconds)))
 	}
-	orders, err := s.repo.BillingOrdersByTaskIDs(run.UserID, state.TaskIDs)
-	if err != nil {
-		return err
-	}
-	remaining := int64(math.Floor(budget.MaxCredits * float64(CreditScale)))
-	for _, order := range orders {
-		remaining -= order.AmountMicrocredits
-	}
-	if total > remaining {
-		return s.cloudAgentMediaError(run, state, "admission", false, false, cloudAgentFieldError("items", "item_count", fmt.Sprintf("本批预计 %s，超过本轮剩余积分预算 %s；请拆批，或请用户调高本轮积分预算", cloudAgentCreditsLabel(total), cloudAgentCreditsLabel(remaining))))
-	}
 	approvalID := fmt.Sprintf("%s-%d-%d", run.ID, state.Step, state.CallIndex)
 	batch := &cloudAgentMediaBatch{
 		ID: approvalID, CallID: call.ID, Mode: args.Mode, ModelName: prepared[0].model, Phase: cloudAgentMediaBatchPhaseApproval,
 		Concurrency: concurrency, Canary: args.Canary && len(prepared) > 1, MaxRetries: maxRetries,
-		CapMicrocredits: total * int64(1+maxRetries), Items: make([]cloudAgentMediaBatchItem, 0, len(prepared)),
+		Items: make([]cloudAgentMediaBatchItem, 0, len(prepared)),
 	}
 	for _, entry := range prepared {
 		batch.Items = append(batch.Items, entry.item)
@@ -548,12 +529,10 @@ func (s *Service) requestCloudAgentMediaBatchApproval(run *model.CloudAgentExecu
 
 func cloudAgentMediaBatchApprovalPreview(batch *cloudAgentMediaBatch, prepared []cloudAgentMediaBatchPrepared) cloudAgentApprovalPreview {
 	descriptor, _ := cloudAgentNodeCapabilityForGenerationMode(batch.Mode)
-	var total int64
 	items := make([]cloudAgentApprovalPreviewItem, 0, len(prepared))
 	for index, entry := range prepared {
-		total += entry.item.Amount
 		args := entry.plan.Args
-		details := []string{fmt.Sprintf("单价：%s", cloudAgentCreditsLabel(entry.item.Amount))}
+		details := []string{}
 		if entry.model != batch.ModelName {
 			details = append(details, "模型："+truncateRunes(entry.model, 80))
 		}
@@ -587,14 +566,14 @@ func cloudAgentMediaBatchApprovalPreview(batch *cloudAgentMediaBatch, prepared [
 	if len(spec) > 0 {
 		description += "，规格 " + strings.Join(spec, " · ")
 	}
-	description += fmt.Sprintf("；预计 %s，并发 %d", cloudAgentCreditsLabel(total), batch.Concurrency)
+	description += fmt.Sprintf("，并发 %d", batch.Concurrency)
 	if batch.MaxRetries > 0 {
-		description += fmt.Sprintf("；每条最多重试 %d 次，本批总额上限 %s", batch.MaxRetries, cloudAgentCreditsLabel(batch.CapMicrocredits))
+		description += fmt.Sprintf("，每条最多重试 %d 次", batch.MaxRetries)
 	}
 	if batch.Canary {
 		description += "；先试跑第 1 条，结果交给 Agent 确认后再放行其余条目"
 	}
-	description += "。草稿节点已建好，批准后才提交收费任务，结果逐条回写画布。"
+	description += "。草稿节点已建好，批准后才提交任务，结果逐条回写画布。"
 	return cloudAgentApprovalPreview{
 		Kind: "media_batch", Title: fmt.Sprintf("确认批量生成 %d 个%s", len(items), descriptor.Label),
 		Description: description, Items: items,
@@ -819,28 +798,6 @@ func (s *Service) submitCloudAgentMediaBatchItem(run *model.CloudAgentExecution,
 	if batch.Mode == "video" && budget.MaxVideoSeconds > 0 && state.VideoSeconds+item.Duration > budget.MaxVideoSeconds {
 		return s.markCloudAgentMediaBatchItemFailed(run, state, index, "已超过本轮视频时长预算，未提交")
 	}
-	orders, err := s.repo.BillingOrdersByTaskIDs(run.UserID, state.TaskIDs)
-	if err != nil {
-		return err
-	}
-	remaining := int64(math.Floor(budget.MaxCredits * float64(CreditScale)))
-	batchTasks := map[string]bool{}
-	for _, entry := range batch.Items {
-		for _, id := range entry.TaskIDs {
-			batchTasks[id] = true
-		}
-	}
-	var batchSpent int64
-	for _, order := range orders {
-		remaining -= order.AmountMicrocredits
-		if batchTasks[order.TaskID] {
-			batchSpent += order.AmountMicrocredits
-		}
-	}
-	maxCharge := item.Amount
-	if remaining < maxCharge || batch.CapMicrocredits-batchSpent < maxCharge {
-		return s.markCloudAgentMediaBatchItemFailed(run, state, index, "本轮积分预算或批次总额上限不足，未提交")
-	}
 	var a cloudAgentMediaArgs
 	if err := json.Unmarshal([]byte(item.Arguments), &a); err != nil {
 		return s.markCloudAgentMediaBatchItemFailed(run, state, index, "批次条目参数无效，未提交")
@@ -853,11 +810,11 @@ func (s *Service) submitCloudAgentMediaBatchItem(run *model.CloudAgentExecution,
 	if err != nil {
 		return s.markCloudAgentMediaBatchItemFailed(run, state, index, "提交前校验未通过："+cloudAgentSafeToolError(err))
 	}
-	preparation := &creationTaskPreparation{}
-	req.creationPrepare = preparation
+
+	req.prepareOnly = true
 	req.admission = &taskAdmission{
-		ID:        cloudAgentID(run.UserID, fmt.Sprintf("%s:batch:%s:%d:%d", run.ID, batch.ID, index, item.Attempts)),
-		MaxCharge: maxCharge, AgentRunID: run.ID, GenerationID: newID(), ApprovalID: batch.ID,
+		ID:         cloudAgentID(run.UserID, fmt.Sprintf("%s:batch:%s:%d:%d", run.ID, batch.ID, index, item.Attempts)),
+		AgentRunID: run.ID, GenerationID: newID(), ApprovalID: batch.ID,
 	}
 	task, err := s.CreateTask(run.UserID, req)
 	if err != nil {
@@ -885,9 +842,6 @@ func (s *Service) submitCloudAgentMediaBatchItem(run *model.CloudAgentExecution,
 		return err
 	}
 	task.InputJSON = string(raw)
-	if preparation.Order != nil {
-		task.BillingOrderID = preparation.Order.ID
-	}
 	s.storageMu.Lock()
 	defer s.storageMu.Unlock()
 	return s.repo.MutateCloudAgent(run.UserID, run.ID, run.Revision, func(current *model.CloudAgentExecution, repo *repository.Repository) error {
@@ -903,7 +857,7 @@ func (s *Service) submitCloudAgentMediaBatchItem(run *model.CloudAgentExecution,
 		if err := createCloudAgentMediaNode(repo, run.UserID, state.Request.CanvasID, plan, task, policy, cloudAgentCanvasEventRecorder(run.ID, state)); err != nil {
 			return err
 		}
-		if err := createTaskWithStorageQuotaRepository(repo, task, preparation.Order, policy); err != nil {
+		if err := createTaskWithStorageQuotaRepository(repo, task, policy); err != nil {
 			return err
 		}
 		if len(item.ResourceIDs) > 0 {

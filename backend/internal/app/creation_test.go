@@ -48,6 +48,9 @@ func creationTestServiceOnDatabase(t *testing.T, db *gorm.DB) (*Service, *gorm.D
 			t.Fatal(err)
 		}
 	}
+	if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+		t.Fatal(err)
+	}
 	detail, err := s.CreateCreationRun("user", CreationRequest{ClientKey: "client", State: map[string]any{}})
 	if err != nil {
 		t.Fatal(err)
@@ -137,7 +140,7 @@ func TestCreationSubmissionApprovalExpiryAndChangedQuote(t *testing.T) {
 	}
 }
 
-func TestCreationConcurrentExecuteChargesOnceAndRollback(t *testing.T) {
+func TestCreationConcurrentExecuteCreatesOnceAndRollback(t *testing.T) {
 	s, db, id, guard := creationTestService(t)
 	item := prepareApprovedCreation(t, s, id, guard)
 	if err := db.Callback().Create().Before("gorm:create").Register("creation_force_failure", func(tx *gorm.DB) {
@@ -150,7 +153,7 @@ func TestCreationConcurrentExecuteChargesOnceAndRollback(t *testing.T) {
 	if _, err := s.ExecuteCreationSubmission("user", id, CreationRequest{CreationGuard: guard, SubmissionID: item.ID}); err == nil {
 		t.Fatal("injected failure not propagated")
 	}
-	for _, table := range []any{&model.Task{}, &model.BillingOrder{}, &model.CreditLedgerEntry{}} {
+	for _, table := range []any{&model.Task{}} {
 		var count int64
 		db.Model(table).Count(&count)
 		if count != 0 {
@@ -195,17 +198,12 @@ func TestCreationConcurrentExecuteChargesOnceAndRollback(t *testing.T) {
 			t.Fatal("duplicate task")
 		}
 	}
-	for _, table := range []any{&model.Task{}, &model.BillingOrder{}, &model.CreditLedgerEntry{}} {
+	for _, table := range []any{&model.Task{}} {
 		var count int64
 		db.Model(table).Count(&count)
 		if count != 1 {
 			t.Fatalf("expected one %T, got %d", table, count)
 		}
-	}
-	var account model.CreditAccount
-	db.First(&account, "user_id = ?", "user")
-	if account.AvailableMicrocredits != 9900 || account.ReservedMicrocredits != 100 {
-		t.Fatalf("account = %#v", account)
 	}
 	db.Model(&model.CreationSubmission{}).Where("id = ?", item.ID).Update("expires_at", time.Now().Add(-time.Hour))
 	if task, err := s.ExecuteCreationSubmission("user", id, CreationRequest{CreationGuard: guard, SubmissionID: item.ID}); err != nil || task.ID != first {
@@ -375,7 +373,7 @@ func TestCreationRefreshCreatesOneUnapprovedSuccessor(t *testing.T) {
 	if successor == nil {
 		t.Fatal("no successor")
 	}
-	if successor.ApprovedAt != nil || successor.TaskID != nil || successor.Quote.AmountMicrocredits != 200 || !successor.Quote.ExpiresAt.After(time.Now()) {
+	if successor.ApprovedAt != nil || successor.TaskID != nil || successor.Quote.QuoteAvailable || successor.Quote.FundingAuthority != "platform" || !successor.Quote.ExpiresAt.After(time.Now()) {
 		t.Fatalf("bad successor: %#v", successor)
 	}
 	stored, err = s.repo.CreationSubmission("user", id, old.ID)

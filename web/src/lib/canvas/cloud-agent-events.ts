@@ -74,7 +74,6 @@ export function applyAgentEvent(
                       cleanupPending: Boolean(payload.cleanupPending),
                       failureMessage: String(payload.failureMessage || ""),
                       skills: payload.skills as AgentRun["skills"],
-                      spentCredits: Number(payload.spentCredits || 0),
                       step: Number(payload.step || 0),
                       approval: snapshotApproval,
                   }

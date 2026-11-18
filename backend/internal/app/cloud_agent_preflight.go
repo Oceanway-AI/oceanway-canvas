@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -52,7 +51,6 @@ func cloudAgentHandleCanvasPreflight(repo *repository.Repository, userID string,
 	probe := cloudAgentMediaBatchProbeState(state)
 	items := make([]map[string]any, 0, len(args.Items))
 	failed, warned := 0, 0
-	var total int64
 	videoSeconds := 0
 	activeLimitHit := false
 	for index := range args.Items {
@@ -129,8 +127,8 @@ func cloudAgentHandleCanvasPreflight(repo *repository.Repository, userID string,
 						entry["quoteStatus"] = "approval_required"
 					}
 				} else {
-					preparation := &creationTaskPreparation{}
-					req.creationPrepare = preparation
+
+					req.prepareOnly = true
 					task, createErr := s.CreateTask(userID, req)
 					switch {
 					case createErr != nil && strings.Contains(createErr.Error(), "同时排队或运行的任务"):
@@ -142,13 +140,8 @@ func cloudAgentHandleCanvasPreflight(repo *repository.Repository, userID string,
 						if defaultsErr := applyCloudAgentResolvedMediaDefaults(&req, plan, task); defaultsErr != nil {
 							fail("规格解析未通过：" + cloudAgentSafeToolError(defaultsErr))
 						} else {
-							amount := int64(0)
-							if preparation.Order != nil {
-								amount = preparation.Order.AmountMicrocredits
-							}
-							total += amount
 							videoSeconds += plan.Args.Duration
-							entry["quote"] = cloudAgentCreditsLabel(amount)
+							entry["quoteAvailable"] = false
 							spec := []string{}
 							for _, value := range []string{plan.Args.Size, plan.Args.Quality, plan.Args.ImageResolution} {
 								if strings.TrimSpace(value) != "" {
@@ -182,23 +175,7 @@ func cloudAgentHandleCanvasPreflight(repo *repository.Repository, userID string,
 	budgetIssues := []string{}
 	if withModel {
 		budget := state.Request.Budget
-		if s.UsesPlatformIdentity() {
-			result["fundingAuthority"], result["quoteAvailable"] = "platform", false
-		} else {
-			orders, err := repo.BillingOrdersByTaskIDs(userID, state.TaskIDs)
-			if err != nil {
-				return nil, err
-			}
-			remaining := int64(math.Floor(budget.MaxCredits * float64(CreditScale)))
-			for _, order := range orders {
-				remaining -= order.AmountMicrocredits
-			}
-			result["estimatedCredits"] = cloudAgentCreditsLabel(total)
-			result["remainingCredits"] = cloudAgentCreditsLabel(remaining)
-			if total > remaining {
-				budgetIssues = append(budgetIssues, fmt.Sprintf("预计 %s，超过本轮剩余积分 %s", cloudAgentCreditsLabel(total), cloudAgentCreditsLabel(remaining)))
-			}
-		}
+		result["fundingAuthority"], result["quoteAvailable"] = "platform", false
 		if budget.MaxGenerationTasks > 0 && state.Generations+len(items) > budget.MaxGenerationTasks {
 			budgetIssues = append(budgetIssues, fmt.Sprintf("本轮最多还能生成 %d 条", budget.MaxGenerationTasks-state.Generations))
 		}
@@ -211,9 +188,6 @@ func cloudAgentHandleCanvasPreflight(repo *repository.Repository, userID string,
 		result["budgetIssues"] = budgetIssues
 	}
 	summary := fmt.Sprintf("体检：%d 失败 / %d 警告（共 %d 条）", failed, warned, len(items))
-	if total > 0 {
-		summary += "，预计 " + cloudAgentCreditsLabel(total)
-	}
 	if len(budgetIssues) > 0 {
 		summary += "；预算：" + strings.Join(budgetIssues, "；")
 	}

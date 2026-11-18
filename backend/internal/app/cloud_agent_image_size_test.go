@@ -104,7 +104,7 @@ func TestCloudAgentPixelImageReferenceReachesApproval(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			req.creationPrepare = &creationTaskPreparation{}
+			req.prepareOnly = true
 			task, err := s.CreateTask("user", req)
 			if err != nil {
 				t.Fatal(err)
@@ -134,8 +134,8 @@ func TestCloudAgentPixelImageReferenceReachesApproval(t *testing.T) {
 			if plan.Args.Size != tc.want {
 				t.Fatalf("wrong admitted size: %q", plan.Args.Size)
 			}
-			if state.Approval.Prepared.Quote.AmountMicrocredits != tc.price || state.Approval.Prepared.Quote.PriceTierID != "pixel-"+tc.want {
-				t.Fatalf("wrong preset quote: %+v", state.Approval.Prepared.Quote)
+			if state.Approval.Prepared.ResolvedHash == "" || state.Approval.Prepared.Version != 2 {
+				t.Fatalf("missing prepared preset: %+v", state.Approval.Prepared)
 			}
 			approvalID := state.Approval.ID
 			approveAgentMediaDraft(t, s, run.ID)
@@ -173,7 +173,7 @@ func TestCloudAgentPixelImageRejectsUndeclaredSize(t *testing.T) {
 			if plan.Args.Size != size {
 				t.Fatalf("invalid size was silently replaced: %q", plan.Args.Size)
 			}
-			req.creationPrepare = &creationTaskPreparation{}
+			req.prepareOnly = true
 			if _, err := s.CreateTask("user", req); err == nil {
 				t.Fatal("undeclared size passed admission")
 			}

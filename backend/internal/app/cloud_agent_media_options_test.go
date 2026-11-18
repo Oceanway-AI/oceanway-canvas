@@ -172,8 +172,8 @@ func TestCloudAgentLogicalImageOptionsKeepSupportedQualityAndRejectInvalidValues
 	if plan.Args.Quality != "high" || plan.Args.ImageResolution != "2k" || plan.Args.Size != "16:9" {
 		t.Fatalf("supported explicit new-node options were changed: %+v", plan.Args)
 	}
-	preparation := &creationTaskPreparation{}
-	req.creationPrepare = preparation
+
+	req.prepareOnly = true
 	if _, err := s.CreateTask("user", req); err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestCloudAgentLogicalImageOptionsKeepSupportedQualityAndRejectInvalidValues
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.creationPrepare = preparation
+	req.prepareOnly = true
 	_, err = s.CreateTask("user", req)
 	var fieldErr *cloudAgentFieldArgumentError
 	if !errors.As(cloudAgentWrapMediaAdmissionError(err), &fieldErr) || fieldErr.Field != "quality" {
@@ -200,7 +200,7 @@ func TestCloudAgentLogicalImageOptionsKeepSupportedQualityAndRejectInvalidValues
 	if err != nil || plan.Args.Quality != "user-invalid-quality" {
 		t.Fatalf("persisted user setting was silently normalized: plan=%+v err=%v", plan, err)
 	}
-	req.creationPrepare = preparation
+	req.prepareOnly = true
 	if _, err := s.CreateTask("user", req); err == nil {
 		t.Fatal("invalid persisted user setting bypassed strict admission")
 	}

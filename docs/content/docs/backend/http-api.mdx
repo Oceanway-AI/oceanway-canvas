@@ -29,6 +29,8 @@ Studio 普通媒体和 Agent 审批后的 Task，在完成输入校验后将图�
 
 任务列表、任务详情和 Pi 的任务诊断使用 `platformBilling` 投影原 Platform 回执，字段为 `fundsState`、`stateAvailable`、可选的 `settledPoints` 和 `summary`。`settledPoints` 保留十进制字符串精度，显式 `"0"` 表示零积分。缺少回执或金额时显示未知或待确认，预留和释放仅展示状态。Task JSON 不再返回本地账单 ID、微积分授权值或旧 `billing` 汇总。任务中心移除了未注册的 `query-provider` 操作，恢复沿原 Platform 请求查询与素材保存入口。
 
+Agent 轮次摘要退出本地 `spentCredits` 汇总，资金信息通过原 Task 的 Platform 回执读取。保留创作源码中的 `CreationQuote` 仅提供模型、参数、到期时间和准备签名，返回 `fundingAuthority=platform` 与 `quoteAvailable=false`。分镜、工具分析和智能创作显示平台报价暂不可用，其执行入口仍受 Studio 发布能力范围控制。旧媒体准备态升级到版本 2，保存依赖、规格和素材签名及租约期限。版本 1 的旧本地准备态需重新申请审批。原生 Pi 的 `studioMedia` 加密报价使用独立的 Platform 合同。
+
 ## OceanWay Studio 素材 v2
 
 所有以下接口要求当前 Platform 登录、已登记 Host/Origin；写请求必须携带 Origin。成功仍使用 OAC 信封。

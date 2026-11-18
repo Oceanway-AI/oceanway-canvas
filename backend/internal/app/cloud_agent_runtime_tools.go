@@ -464,7 +464,7 @@ func (s *Service) advanceCloudAgentTool(run *model.CloudAgentExecution, state *c
 		var modelName string
 		var mediaRequest CreateTaskRequest
 		var preparedTask *model.Task
-		var mediaPreparation *creationTaskPreparation
+
 		policy, err := s.RuntimePolicy()
 		if err != nil {
 			return s.terminateCloudAgent(run, "Agent 运行策略不可用，本轮已停止")
@@ -480,8 +480,8 @@ func (s *Service) advanceCloudAgentTool(run *model.CloudAgentExecution, state *c
 			// quote. Reusing it avoids a second dry admission after a worker restart.
 			if plan.Prepared == nil {
 				// Dry admission validates the selected model and prompt limits without a task or charge.
-				mediaPreparation = &creationTaskPreparation{}
-				req.creationPrepare = mediaPreparation
+
+				req.prepareOnly = true
 				preparedTask, err = s.CreateTask(run.UserID, req)
 				if err != nil {
 					return s.cloudAgentMediaError(run, state, "admission", false, false, err)
@@ -529,7 +529,7 @@ func (s *Service) advanceCloudAgentTool(run *model.CloudAgentExecution, state *c
 				call.Function.Arguments = string(raw)
 				state.Calls[state.CallIndex] = call
 				preview = cloudAgentMediaApprovalPreview(plan, modelName)
-				preparedMedia, err = prepareCloudAgentMediaApproval(repo, run.UserID, doc, plan, mediaRequest, preparedTask, mediaPreparation.Order)
+				preparedMedia, err = prepareCloudAgentMediaApproval(repo, run.UserID, doc, plan, mediaRequest, preparedTask)
 				if err != nil {
 					return err
 				}

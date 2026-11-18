@@ -184,7 +184,7 @@ func TestCloudAgentCharacterReferenceUsesDefinitionAndTurnaround(t *testing.T) {
 	if err != nil || !strings.Contains(textRequest.Prompt, "三岁幼童，乌黑大眼睛") || len(creationMaps(textRequest.Input["referenceImages"])) != 0 {
 		t.Fatalf("text-only character reference = %q, %v", textRequest.Prompt, err)
 	}
-	prepared := &cloudAgentPreparedMedia{Version: 1, Hash: "test", DependencyHash: "", CharacterVersions: plan.Args.CharacterVersions, Quote: cloudAgentMediaQuote{ExpiresAt: time.Now().Add(time.Minute)}}
+	prepared := &cloudAgentPreparedMedia{Version: 2, Hash: "test", DependencyHash: "", CharacterVersions: plan.Args.CharacterVersions, Quote: cloudAgentMediaQuote{ExpiresAt: time.Now().Add(time.Minute)}}
 	prepared.DependencyHash, err = cloudAgentMediaDependencyHash(doc, plan.Args)
 	if err != nil {
 		t.Fatal(err)
@@ -192,7 +192,7 @@ func TestCloudAgentCharacterReferenceUsesDefinitionAndTurnaround(t *testing.T) {
 	if err := db.Model(&model.Asset{}).Where("id = ?", "character-asset").Update("primary_version_id", "character-v1").Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := validateCloudAgentPreparedAdmission(service.repo, "user", prepared, &model.Task{ProjectID: canvas.ID}, nil, doc, plan.Args); err == nil || !strings.Contains(err.Error(), "角色卡版本已变化") {
+	if err := validateCloudAgentPreparedAdmission(service.repo, "user", prepared, &model.Task{ProjectID: canvas.ID}, doc, plan.Args); err == nil || !strings.Contains(err.Error(), "角色卡版本已变化") {
 		t.Fatalf("approved character version drift not rejected: %v", err)
 	}
 }

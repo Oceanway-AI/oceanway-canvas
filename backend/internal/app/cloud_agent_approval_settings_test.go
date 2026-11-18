@@ -204,12 +204,12 @@ func TestCloudAgentImageApprovalEditsAreValidatedAndIdempotent(t *testing.T) {
 		t.Fatal("invalid settings consumed approval")
 	}
 	var before int64
-	db.Model(&model.BillingOrder{}).Count(&before)
+	db.Model(&model.Task{}).Where("type = ?", "canvas_image").Count(&before)
 	if err := s.DecideCloudAgentApproval("user", run.ID, id, "approve", "", &settings); err != nil {
 		t.Fatal(err)
 	}
 	var afterFirstApproval int64
-	db.Model(&model.BillingOrder{}).Count(&afterFirstApproval)
+	db.Model(&model.Task{}).Where("type = ?", "canvas_image").Count(&afterFirstApproval)
 	if afterFirstApproval <= before {
 		t.Fatal("approval did not submit the approved media task")
 	}
@@ -217,9 +217,9 @@ func TestCloudAgentImageApprovalEditsAreValidatedAndIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	var afterRetry int64
-	db.Model(&model.BillingOrder{}).Count(&afterRetry)
+	db.Model(&model.Task{}).Where("type = ?", "canvas_image").Count(&afterRetry)
 	if afterRetry != afterFirstApproval {
-		t.Fatalf("idempotent approval created another billing order: first=%d retry=%d", afterFirstApproval, afterRetry)
+		t.Fatalf("idempotent approval created another media task: first=%d retry=%d", afterFirstApproval, afterRetry)
 	}
 	changed := settings
 	changed.Size = "1:1"

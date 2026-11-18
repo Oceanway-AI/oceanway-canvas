@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
 	"sort"
 	"strings"
 	"time"
@@ -44,17 +43,6 @@ func (s *Service) enqueueCloudAgentTask(run *model.CloudAgentExecution, state *c
 	if s.UsesPlatformIdentity() {
 		return s.enqueueStudioAgentTask(run, state, req, media)
 	}
-	orders, err := s.repo.BillingOrdersByTaskIDs(run.UserID, state.TaskIDs)
-	if err != nil {
-		return err
-	}
-	remaining := int64(math.Floor(state.Request.Budget.MaxCredits * float64(CreditScale)))
-	for _, order := range orders {
-		remaining -= order.AmountMicrocredits
-	}
-	if remaining < 0 {
-		return s.failCloudAgent(run, state, "Agent 累计预算已耗尽")
-	}
 	var prepared *cloudAgentPreparedMedia
 	approvalID, generationID := "", ""
 	if media != nil {
@@ -83,9 +71,9 @@ func (s *Service) enqueueCloudAgentTask(run *model.CloudAgentExecution, state *c
 			req.Input[field] = value
 		}
 	}
-	prepare := &creationTaskPreparation{}
-	req.admission = &taskAdmission{ID: cloudAgentID(run.UserID, fmt.Sprintf("%s:task:%d", run.ID, len(state.TaskIDs))), MaxCharge: remaining, AgentRunID: run.ID, GenerationID: generationID, ApprovalID: approvalID}
-	req.creationPrepare = prepare
+
+	req.admission = &taskAdmission{ID: cloudAgentID(run.UserID, fmt.Sprintf("%s:task:%d", run.ID, len(state.TaskIDs))), AgentRunID: run.ID, GenerationID: generationID, ApprovalID: approvalID}
+	req.prepareOnly = true
 	task, err := s.CreateTask(run.UserID, req)
 	if err != nil {
 		if media != nil {
@@ -126,9 +114,6 @@ func (s *Service) enqueueCloudAgentTask(run *model.CloudAgentExecution, state *c
 		return err
 	}
 	task.InputJSON = string(raw)
-	if prepare.Order != nil {
-		task.BillingOrderID = prepare.Order.ID
-	}
 	policy, err := s.RuntimePolicy()
 	if err != nil {
 		if media != nil {
@@ -148,14 +133,14 @@ func (s *Service) enqueueCloudAgentTask(run *model.CloudAgentExecution, state *c
 			if err != nil {
 				return err
 			}
-			if err := validateCloudAgentPreparedAdmission(repo, run.UserID, prepared, task, prepare.Order, doc, media.Args); err != nil {
+			if err := validateCloudAgentPreparedAdmission(repo, run.UserID, prepared, task, doc, media.Args); err != nil {
 				return err
 			}
 			if err := createCloudAgentMediaNode(repo, run.UserID, state.Request.CanvasID, media, task, policy, cloudAgentCanvasEventRecorder(run.ID, state)); err != nil {
 				return err
 			}
 		}
-		if err := createTaskWithStorageQuotaRepository(repo, task, prepare.Order, policy); err != nil {
+		if err := createTaskWithStorageQuotaRepository(repo, task, policy); err != nil {
 			return err
 		}
 		if media != nil && prepared != nil {
