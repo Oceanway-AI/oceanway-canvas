@@ -201,28 +201,21 @@ func (p *ecommerceQueuedExecutionProbe) processTask(context.Context, model.Task)
 func TestEcommerceQueuedFeatureCheckPreservesAcceptedWork(t *testing.T) {
 	for _, tc := range []struct {
 		name, dispatch, requestID string
-		uncertain                 bool
 		wantCalls                 int
 	}{
 		{name: "unsent"},
-		{name: "uncertain_billing", uncertain: true},
-		{name: "accepted", dispatch: "accepted", uncertain: true, wantCalls: 1},
-		{name: "unknown", dispatch: "submission_unknown", uncertain: true, wantCalls: 1},
-		{name: "provider_id", requestID: "accepted-request", uncertain: true, wantCalls: 1},
+		{name: "accepted", dispatch: "accepted", wantCalls: 1},
+		{name: "unknown", dispatch: "submission_unknown", wantCalls: 1},
+		{name: "provider_id", requestID: "accepted-request", wantCalls: 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s, db := newMediaRecoveryTestService(t)
 			project := &model.EcommerceProject{ID: newID(), UserID: "user", DraftJSON: "{}", PlanJSON: "{}", Revision: 1}
 			task := &model.Task{ID: newID(), UserID: "user", ProjectID: project.ID, Type: "canvas_text", Status: model.TaskStatusQueued, InputJSON: `{"mode":"text","config":{"channelId":"system","model":"test"}}`, RouteRun: 1, ProviderRequestID: tc.requestID}
-			order := &model.BillingOrder{ID: newID(), UserID: "user", TaskID: task.ID, IdempotencyKey: newID(), Status: model.BillingStatusReserved, AmountMicrocredits: 100, ReservedAmountMicrocredits: 100}
-			if tc.name == "uncertain_billing" {
-				order.Status = model.BillingStatusUncertain
+			if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+				t.Fatal(err)
 			}
-			if tc.wantCalls > 0 {
-				order.ProviderRequestID = "accepted-request"
-			}
-			task.BillingOrderID = order.ID
-			for _, value := range []any{project, task, order, &model.CreditAccount{UserID: "user", AvailableMicrocredits: 900, ReservedMicrocredits: 100}} {
+			for _, value := range []any{project, task} {
 				if err := db.Create(value).Error; err != nil {
 					t.Fatal(err)
 				}
@@ -247,16 +240,8 @@ func TestEcommerceQueuedFeatureCheckPreservesAcceptedWork(t *testing.T) {
 			if probe.calls != tc.wantCalls || tc.wantCalls == 0 && !strings.Contains(stored.Error, "电商创作") {
 				t.Fatalf("worker calls=%d error=%q", probe.calls, stored.Error)
 			}
-			bill, err := s.repo.BillingOrder(order.ID)
-			if err != nil {
-				t.Fatal(err)
-			}
-			wantStatus := model.BillingStatusRefunded
-			if tc.uncertain {
-				wantStatus = model.BillingStatusUncertain
-			}
-			if bill.Status != wantStatus {
-				t.Fatalf("billing = %s, want %s", bill.Status, wantStatus)
+			if stored.Status != model.TaskStatusFailed || stored.CompletedAt == nil || stored.LeaseOwner != "" {
+				t.Fatalf("task did not finish and release its lease: %#v", stored)
 			}
 		})
 	}

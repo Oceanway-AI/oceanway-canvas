@@ -324,7 +324,7 @@ func TestEcommerceSelectedDirectionFlowsToPlanningAndImageTask(t *testing.T) {
 	}
 	imageProfile := mustEncodeModelCapabilityConfig(t, DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceOpenAIImage), "gpt-image-2"))
 	for _, item := range []any{
-		&model.SystemSetting{Key: featureAvailabilitySettingKey, ValueJSON: `{"ecommerceEnabled":true,"imageWorkbenchEnabled":true}`},
+		&model.SystemSetting{Key: featureAvailabilitySettingKey, ValueJSON: `{"ecommerceEnabled":true,"imageWorkbenchEnabled":true,"creditsEnabled":false}`},
 		&model.ModelChannel{ID: "image-channel", Scope: model.ChannelScopeSystem, Enabled: true, Name: "图片测试", APIFormat: "openai", BaseURL: imageUpstream.URL + "/v1", APIKey: "fixture-key"},
 		&model.ChannelModel{ID: "image-model", ChannelID: "image-channel", ModelKey: "gpt-image-2", ProviderModelKey: "gpt-image-2", Capability: "image", Protocol: model.ChannelInterfaceOpenAIImage, CapabilityConfigJSON: imageProfile, BillingMode: "fixed_request", UnitPriceMicrocredits: 200, PriceConfigured: true, Enabled: true},
 		&model.ChannelModelPriceTier{ID: "image-tier", ChannelModelID: "image-model", SelectorKey: "{}", SelectorJSON: "{}", BillingMode: "fixed_request", UnitPriceMicrocredits: 200, PriceConfigured: true, Enabled: true},
@@ -443,10 +443,10 @@ func TestEcommerceSelectedDirectionFlowsToPlanningAndImageTask(t *testing.T) {
 	}
 
 	// Stage 3: the image task created from plan image 1 carries the lock to
-	// the provider, is billed once and survives a service restart.
-	var account model.CreditAccount
-	db.First(&account, "user_id = ?", "user")
-	creditsBefore := account.AvailableMicrocredits
+	// the provider and survives a service restart without local settlement.
+	if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(plan.Images[0].Prompt, "本轮已选Skills图片执行约束") {
 		t.Fatal("managed skill execution rules did not reach image prompt")
 	}
@@ -464,11 +464,8 @@ func TestEcommerceSelectedDirectionFlowsToPlanningAndImageTask(t *testing.T) {
 		t.Fatal(err)
 	}
 	storedImage, _ := svc.repo.Task(imageTask.ID)
-	var consume []model.CreditLedgerEntry
-	db.Where("billing_order_id = ? AND type = ?", storedImage.BillingOrderID, model.CreditLedgerConsume).Find(&consume)
-	db.First(&account, "user_id = ?", "user")
-	if storedImage.Status != model.TaskStatusSucceeded || len(consume) != 1 || account.AvailableMicrocredits >= creditsBefore {
-		t.Fatalf("image task status=%s consume=%d credits %d -> %d", storedImage.Status, len(consume), creditsBefore, account.AvailableMicrocredits)
+	if storedImage.Status != model.TaskStatusSucceeded || storedImage.BillingOrderID != "" {
+		t.Fatalf("image task status=%s local order=%q", storedImage.Status, storedImage.BillingOrderID)
 	}
 	providerPrompt := stringValue(imageRequest["prompt"])
 	if !strings.Contains(providerPrompt, locks[chosen.ID]) {
@@ -481,7 +478,7 @@ func TestEcommerceSelectedDirectionFlowsToPlanningAndImageTask(t *testing.T) {
 		"selectedLock":     locks[chosen.ID],
 		"planningSkills":   metadata["ecommerceSkillTrace"],
 		"planImagePrompts": plan.Images,
-		"imageTask":        map[string]any{"id": storedImage.ID, "status": storedImage.Status, "model": storedImage.Model, "billingOrderId": storedImage.BillingOrderID, "creditsBefore": creditsBefore, "creditsAfter": account.AvailableMicrocredits, "afterRestart": finished},
+		"imageTask":        map[string]any{"id": storedImage.ID, "status": storedImage.Status, "model": storedImage.Model, "afterRestart": finished},
 		"providerRequest":  imageRequest,
 	})
 }
