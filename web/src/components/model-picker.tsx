@@ -6,7 +6,17 @@ import { nativeMediaVariant, nativeParameterValues } from "@/lib/platform-native
 import { ModelPickerPanel } from "@oceanway/model-picker";
 import { usePopoverAnchorAlign } from "@/hooks/use-popover-anchor-align";
 
-import { spokenPlatformPrice, platformModelPriceLabel, platformModelCompactPriceLabel, platformPriceRangesLabel, platformPriceConditions, platformFeatureSummaries, platformHealthLabel, platformHealthTone, type PlatformModelHealth } from "@/lib/platform-models";
+import {
+    spokenPlatformPrice,
+    platformModelPriceLabel,
+    platformModelCompactPriceLabel,
+    platformPriceRangesLabel,
+    platformPriceConditions,
+    platformFeatureSummaries,
+    platformHealthLabel,
+    platformHealthTone,
+    type PlatformModelHealth,
+} from "@/lib/platform-models";
 import { canvasThemes, type CanvasTheme } from "@/lib/canvas-theme";
 import { modelCapabilityConfigFor, videoDurationOptions } from "@/lib/model-capabilities";
 import { compatibleModelInGroup, configuredModelDisplayName, modelCompatibilityError, resolveCompatibleModel, type DisplayModelGroup, type ModelRequirements } from "@/lib/model-selection";
