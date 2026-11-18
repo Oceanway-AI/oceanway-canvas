@@ -7,7 +7,6 @@ import "yingce/backend/internal/repository"
 func New(repo *repository.Repository, dataDir string) *Service {
 	service := newService(repo, dataDir, nil)
 	service.pluginRuntime, service.pluginRuntimeErr = newPluginRuntime(dataDir)
-	service.taskBillingCoordinator = newTaskBillingCoordinator(service.repo)
 	service.taskTerminalCoordinator = newTaskTerminalCoordinator(service)
 	service.taskRouteExecutor = newTaskRouteExecutor(service)
 	return service

@@ -55,7 +55,7 @@ func TestStudioInitializationWithoutLocalPlatformServices(t *testing.T) {
 	}
 	checkRetired := func() {
 		t.Helper()
-		if svc.pluginRuntime != nil || svc.taskBillingCoordinator != nil || svc.taskTerminalCoordinator != nil || svc.taskRouteExecutor != nil {
+		if svc.pluginRuntime != nil || svc.taskTerminalCoordinator != nil || svc.taskRouteExecutor != nil {
 			t.Fatal("Studio initialized retired services")
 		}
 	}

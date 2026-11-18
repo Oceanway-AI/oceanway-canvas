@@ -39,7 +39,7 @@ func TestAllVideoProtocolsQuoteReserveAndSettleWithoutProviderUsage(t *testing.T
 				t.Fatal(err)
 			}
 			for i := 0; i < 2; i++ {
-				if err := svc.SettleBilling(order.ID, "completed-video"); err != nil {
+				if err := svc.repo.SettleBillingOrder(order.ID, "completed-video"); err != nil {
 					t.Fatal(err)
 				}
 			}

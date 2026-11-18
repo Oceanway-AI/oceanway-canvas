@@ -526,23 +526,3 @@ func requestedBillingQuantity(capability string, config map[string]any) int64 {
 	}
 	return billingQuantity(capability, config["videoSeconds"])
 }
-
-func (s *Service) MarkBillingRunning(orderID string) error {
-	return s.taskBilling().MarkBillingRunning(orderID)
-}
-
-func (s *Service) SettleBilling(orderID string, providerRequestID string) error {
-	return s.taskBilling().SettleBilling(orderID, providerRequestID)
-}
-
-func (s *Service) RefundBilling(orderID string, errorText string) error {
-	return s.taskBilling().RefundBilling(orderID, errorText)
-}
-
-func (s *Service) MarkBillingUncertain(orderID string, errorText string) error {
-	return s.taskBilling().MarkBillingUncertain(orderID, errorText)
-}
-
-func (s *Service) BillingFailureRequiresReview(orderID string, taskID string, err error) bool {
-	return s.taskBilling().BillingFailureRequiresReview(orderID, taskID, err)
-}

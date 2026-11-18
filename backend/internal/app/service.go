@@ -43,7 +43,6 @@ type Service struct {
 	pendingStorage           map[string]int64
 	coordinator              *platform.Coordinator
 	platform                 *platform.Service
-	taskBillingCoordinator   *taskBillingCoordinator
 	taskTerminalCoordinator  *taskTerminalCoordinator
 	taskRouteExecutor        *taskRouteExecutor
 	taskWorkerCoordinator    *taskWorkerCoordinator
@@ -157,14 +156,6 @@ func newService(repo *repository.Repository, dataDir string, gateway *platformin
 	service.inspirationFeed = inspirations.New(service.repo, inspirationFeedAdminGate{svc: service}, service.inspirationFeedLock, service.runWorkerLoop)
 	service.platform = platform.New(service.repo, coordinator, platformHost{svc: service})
 	return service
-}
-
-func (s *Service) taskBilling() *taskBillingCoordinator {
-	if s.taskBillingCoordinator != nil {
-		return s.taskBillingCoordinator
-	}
-	// 部分单元测试直接构造 Service 字面量；延迟创建保持这些测试和内部工具兼容。
-	return newTaskBillingCoordinator(s.repo)
 }
 
 func (s *Service) BeginDrain() { s.backgroundWorkers().BeginDrain() }

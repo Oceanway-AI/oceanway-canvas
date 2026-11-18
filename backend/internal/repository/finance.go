@@ -90,17 +90,12 @@ func (r *Repository) CreateTaskWithActiveLimit(task *model.Task, activeTaskLimit
 	})
 }
 
-func (r *Repository) RetryTaskWithBilling(userID string, prepared *model.Task, order *model.BillingOrder, activeTaskLimit int) (*model.Task, error) {
+func (r *Repository) RetryTaskWithActiveLimit(userID string, prepared *model.Task, activeTaskLimit int) (*model.Task, error) {
 	var task model.Task
 	taskID := prepared.ID
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		if err := enforceActiveTaskLimit(tx, userID, activeTaskLimit); err != nil {
 			return err
-		}
-		if order != nil {
-			if err := reserveBillingOrder(tx, order); err != nil {
-				return err
-			}
 		}
 		updates := map[string]any{
 			"status": model.TaskStatusQueued, "stage": "等待队列调度", "progress": 5, "error": "", "result_json": "",
@@ -114,12 +109,6 @@ func (r *Repository) RetryTaskWithBilling(userID string, prepared *model.Task, o
 			"channel_model_id": prepared.ChannelModelID, "input_json": prepared.InputJSON,
 			"model": prepared.Model, "provider": prepared.Provider,
 			"lease_owner": "", "lease_expires_at": nil, "updated_at": time.Now(),
-		}
-		if order != nil {
-			updates["billing_order_id"] = order.ID
-		} else {
-			// 免费模式重试必须解除旧订单，避免任务执行阶段复用上一次的计费状态。
-			updates["billing_order_id"] = ""
 		}
 		updated := tx.Model(&model.Task{}).
 			Where("id = ? AND user_id = ? AND status IN ?", taskID, userID, []model.TaskStatus{model.TaskStatusFailed, model.TaskStatusCancelled}).

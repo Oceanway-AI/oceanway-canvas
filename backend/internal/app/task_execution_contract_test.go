@@ -57,6 +57,9 @@ func TestAgentMediaRetryRequiresNewGenerationAuthorization(t *testing.T) {
 
 func TestOrdinaryFailedAndCancelledTasksKeepRetryIdentity(t *testing.T) {
 	s, db, _ := agentMediaFixture(t)
+	if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}); err != nil {
+		t.Fatal(err)
+	}
 	for _, status := range []model.TaskStatus{model.TaskStatusFailed, model.TaskStatusCancelled} {
 		task := model.Task{
 			ID:        "ordinary-" + string(status),

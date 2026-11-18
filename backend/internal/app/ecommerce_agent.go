@@ -498,7 +498,7 @@ func (s *Service) GenerateEcommerceAgent(ctx context.Context, userID string, req
 		}
 		return nil, err
 	}
-	if err = s.MarkBillingRunning(order.ID); err != nil {
+	if err = s.repo.MarkBillingRunning(order.ID); err != nil {
 		_, _ = s.repo.FinishEcommerceAgentRun(userID, runID, "failed", "UPSTREAM_ERROR")
 		return nil, err
 	}

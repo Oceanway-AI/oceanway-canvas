@@ -35,6 +35,9 @@ func (w *taskLifecycleCoordinator) retryTask(userID string, id string) (*model.T
 	if s.IsDraining() {
 		return nil, &AppError{Status: 503, Code: 503, Message: "服务正在维护，暂不接受任务重试", Retryable: true}
 	}
+	if s.UsesPlatformIdentity() {
+		return nil, NewAppError(501, "任务重试请通过 Platform 原请求恢复或重新确认生成")
+	}
 	task, err := s.repo.TaskForUser(userID, id)
 	if err != nil {
 		return nil, err
@@ -52,13 +55,10 @@ func (w *taskLifecycleCoordinator) retryTask(userID string, id string) (*model.T
 		return nil, errors.New("only failed or cancelled tasks can be retried")
 	}
 	if task.ProviderCancelStatus == model.ProviderCancelStatusRequested {
-		return nil, BadAuthRequest("上游取消状态仍在确认中，请确认费用结果后再重试")
+		return nil, BadAuthRequest("上游取消状态仍在确认中，请先恢复原请求状态")
 	}
-	if err := s.taskBilling().CheckRetryEligibility(task.BillingOrderID); err != nil {
-		if errors.Is(err, errTaskBillingReview) {
-			return nil, BadAuthRequest("上一次调用费用仍在核对中，处理完成前不能重复提交")
-		}
-		return nil, err
+	if diagnostic := taskExecutionDiagnostic(task); diagnostic != nil && diagnostic.SubmissionOutcome == "unknown" {
+		return nil, BadAuthRequest("上一次请求的提交结果未知，请先恢复原请求状态")
 	}
 	if isContentModerationFailure(task.Error) {
 		return nil, BadAuthRequest(contentModerationRetryMessage)
@@ -67,21 +67,17 @@ func (w *taskLifecycleCoordinator) retryTask(userID string, id string) (*model.T
 	if err != nil {
 		return nil, err
 	}
-	var billingInput map[string]any
-	if err := json.Unmarshal([]byte(decryptedInput), &billingInput); err != nil {
+	var input map[string]any
+	if err := json.Unmarshal([]byte(decryptedInput), &input); err != nil {
 		return nil, err
 	}
-	if err := s.requireTaskGenerationFeatures(userID, task.ProjectID, task.Type, task.Operation, task.WorkbenchKind, billingInput); err != nil {
+	if err := s.requireTaskGenerationFeatures(userID, task.ProjectID, task.Type, task.Operation, task.WorkbenchKind, input); err != nil {
 		return nil, err
 	}
-	if err := s.prepareLogicalTaskRetry(task, billingInput); err != nil {
+	if err := s.prepareLogicalTaskRetry(task, input); err != nil {
 		return nil, err
 	}
-	if err := s.requireCustomChannelsForTaskInput(billingInput); err != nil {
-		return nil, err
-	}
-	billingOrder, err := s.taskBillingOrder(userID, task, billingInput)
-	if err != nil {
+	if err := s.requireCustomChannelsForTaskInput(input); err != nil {
 		return nil, err
 	}
 	policy, err := s.RuntimePolicy()
@@ -91,10 +87,7 @@ func (w *taskLifecycleCoordinator) retryTask(userID string, id string) (*model.T
 	if err := s.ensureTaskProjectActive(userID, task.ProjectID); err != nil {
 		return nil, err
 	}
-	task, err = s.repo.RetryTaskWithBilling(userID, task, billingOrder, policy.Task.ActiveTaskLimit)
-	if errors.Is(err, repository.ErrInsufficientCredits) {
-		return nil, BadAuthRequest("积分不足，请先使用兑换码充值")
-	}
+	task, err = s.repo.RetryTaskWithActiveLimit(userID, task, policy.Task.ActiveTaskLimit)
 	if errors.Is(err, repository.ErrActiveTaskLimit) {
 		return nil, BadAuthRequest(fmt.Sprintf("同时排队或运行的任务最多 %d 个，请等待已有任务完成", policy.Task.ActiveTaskLimit))
 	}
