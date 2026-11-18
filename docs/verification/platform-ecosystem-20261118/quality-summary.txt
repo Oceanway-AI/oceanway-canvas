@@ -1,0 +1,15 @@
+基准 origin/main @ 63f35e9b，相对基准改动 876 个文件
+✓ backend:test-rest 1.4s
+✓ web:typecheck 2.7s
+✓ backend:list-app 6.3s
+✓ backend:test-app-1 0.9s
+✓ backend:test-app-2 3.2s
+✓ backend:test-app-3 1.3s
+✓ backend:test-app-4 1.0s
+✓ web:format 5.5s
+✓ backend:gofmt 0.4s
+✓ web:lint 19.0s
+✓ web:test 76.8s
+共 11 项，失败 0 项，用时 76.8s（并行 3）
+  跳过：web:e2e（没有预演台相关改动；--all 可强制运行）
+  本地未覆盖：Agent 静态检查 golangci-lint v2.5.0（本机未安装；Agent 架构测试已包含在 backend:test-rest）

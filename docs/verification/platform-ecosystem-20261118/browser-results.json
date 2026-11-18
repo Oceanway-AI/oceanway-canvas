@@ -1,0 +1,157 @@
+{
+  "source_commit": "e8df8f5562c07d72df40c5262fc767f3aa4fcc9a",
+  "platform": "simulated HTTP fixture",
+  "database": "isolated PostgreSQL schemas",
+  "root": {
+    "url": "http://127.0.0.1:18552/canvas/cs8Nug3doqwz1kVdNIFex",
+    "assets": 2,
+    "resources": 2,
+    "references": 2,
+    "bindings": 2,
+    "deletions": 0,
+    "canvases": [
+      {
+        "id": "cs8Nug3doqwz1kVdNIFex",
+        "userId": "101",
+        "nodes": 2,
+        "connections": 0
+      }
+    ]
+  },
+  "subpath": {
+    "url": "http://127.0.0.1:18554/studio/canvas/1uuhYD9FFrTqrD7QrIFsz",
+    "assets": 2,
+    "resources": 2,
+    "references": 2,
+    "bindings": 2,
+    "deletions": 0,
+    "canvases": [
+      {
+        "id": "1uuhYD9FFrTqrD7QrIFsz",
+        "userId": "101",
+        "nodes": 2
+      }
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/studio/api/public/appearance",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/studio/api/auth/session",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/studio/api/auth/workspace-context",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/studio/api/model-catalog/summaries",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/studio/api/canvas-projects/1uuhYD9FFrTqrD7QrIFsz",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/studio/api/auth/account-summary",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/studio/api/tasks",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/studio/api/agent/conversations",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/studio/api/canvas-projects/1uuhYD9FFrTqrD7QrIFsz/sync-status",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/studio/api/agent/profile",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/studio/api/skills",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/studio/api/skills/added",
+        "status": 200
+      }
+    ]
+  },
+  "account_switch": {
+    "staleWrite": 409,
+    "reason": "studio_actor_changed",
+    "foreignCanvas": 404,
+    "bobTasks": []
+  },
+  "account_restored": {
+    "status": 200,
+    "id": "cs8Nug3doqwz1kVdNIFex",
+    "nodes": 2
+  },
+  "task_funds": {
+    "tasks": [
+      {
+        "id": "wp020-funds-reserved",
+        "platformBilling": {
+          "fundsState": "reserved",
+          "stateAvailable": true,
+          "summary": "平台正在处理本任务资金，实际费用以结算回执为准"
+        },
+        "legacyBilling": false
+      },
+      {
+        "id": "wp020-funds-unknown",
+        "platformBilling": {
+          "fundsState": "unknown",
+          "stateAvailable": false,
+          "summary": "当前任务尚无平台结算回执，费用未知"
+        },
+        "legacyBilling": false
+      },
+      {
+        "id": "wp020-funds-zero",
+        "platformBilling": {
+          "fundsState": "settled",
+          "settledPoints": "0",
+          "stateAvailable": true,
+          "summary": "本任务已结算，settledPoints 为实际平台积分"
+        },
+        "legacyBilling": false
+      },
+      {
+        "id": "wp020-funds-precise",
+        "platformBilling": {
+          "fundsState": "settled",
+          "settledPoints": "9007199254740993.123456789012345678",
+          "stateAvailable": true,
+          "summary": "本任务已结算，settledPoints 为实际平台积分"
+        },
+        "legacyBilling": false
+      }
+    ],
+    "overflow": false
+  },
+  "mobile_preferences": {
+    "defaultImages": "2",
+    "dark": true,
+    "overflow": false
+  }
+}

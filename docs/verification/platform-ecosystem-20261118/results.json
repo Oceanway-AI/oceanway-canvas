@@ -1,0 +1,164 @@
+{
+  "source_commit": "75f556e82c6df4e3ee4a60a96dc6c7a876db6707",
+  "source_tree": "7d1de2940777f74bf4a3eae8947ab9d58f079240",
+  "base_commit": "63f35e9be548ed7ca4a2839147d636992929cca5",
+  "sdk": "github.com/Oceanway-AI/oceanway-platform/platformclient v1.0.0-rc.5",
+  "environment": {
+    "go": "1.26.3",
+    "bun": "1.3.14",
+    "postgresql": "18.4",
+    "redis": "8.6.3",
+    "platform": "simulated HTTP fixture"
+  },
+  "quality": {
+    "command": "bun scripts/verify-before-push.mjs --jobs 3",
+    "checks": [
+      {
+        "name": "backend:test-rest",
+        "status": "pass",
+        "seconds": 1.4
+      },
+      {
+        "name": "web:typecheck",
+        "status": "pass",
+        "seconds": 2.7
+      },
+      {
+        "name": "backend:list-app",
+        "status": "pass",
+        "seconds": 6.3
+      },
+      {
+        "name": "backend:test-app-1",
+        "status": "pass",
+        "seconds": 0.9
+      },
+      {
+        "name": "backend:test-app-2",
+        "status": "pass",
+        "seconds": 3.2
+      },
+      {
+        "name": "backend:test-app-3",
+        "status": "pass",
+        "seconds": 1.3
+      },
+      {
+        "name": "backend:test-app-4",
+        "status": "pass",
+        "seconds": 1.0
+      },
+      {
+        "name": "web:format",
+        "status": "pass",
+        "seconds": 5.5
+      },
+      {
+        "name": "backend:gofmt",
+        "status": "pass",
+        "seconds": 0.4
+      },
+      {
+        "name": "web:lint",
+        "status": "pass",
+        "seconds": 19.0
+      },
+      {
+        "name": "web:test",
+        "status": "pass",
+        "seconds": 76.8
+      }
+    ],
+    "failed": 0,
+    "elapsed_seconds": 76.8,
+    "go_test_cache": "Reused passing f2844bb run; identical Go source",
+    "frontend_tests": 3232,
+    "frontend_assertions": 77234
+  },
+  "supplemental": [
+    {
+      "name": "PostgreSQL system performance fixture",
+      "status": "pass",
+      "repetitions": 5,
+      "seconds": 25.053
+    },
+    {
+      "name": "model catalog refresh child",
+      "status": "pass",
+      "tests": 29,
+      "assertions": 109
+    },
+    {
+      "name": "resource lifecycle, Live2D, storage regressions",
+      "status": "pass",
+      "packages": [
+        "internal/app",
+        "internal/handler"
+      ],
+      "repository_matching_tests": 0
+    },
+    {
+      "name": "go vet ./...",
+      "status": "pass",
+      "source": "f2844bb"
+    },
+    {
+      "name": "go build ./...",
+      "status": "pass",
+      "source": "f2844bb"
+    },
+    {
+      "name": "bun run build",
+      "status": "pass",
+      "source": "e8df8f5",
+      "warning": "Existing large chunks"
+    },
+    {
+      "name": "critical identity/schema/reset/funds race",
+      "status": "pass",
+      "source": "e8df8f5"
+    },
+    {
+      "name": "python3 scripts/test_studio_release.py",
+      "status": "pass",
+      "tests": 9
+    }
+  ],
+  "prior_failed_runs": [
+    {
+      "seconds": 517.4,
+      "failed_checks": 1,
+      "failure": "TestReferenceTransportResolutionDoesNotTrustTaskConfig",
+      "resolution": "Seed enabled channel model"
+    },
+    {
+      "source": "e8df8f5",
+      "seconds": 606.9,
+      "failed_checks": 1,
+      "failure": "TestAdminSystemPerformanceReportsPostgres",
+      "resolution": "Dedicated database for database-wide metrics and complete settings fixture"
+    },
+    {
+      "source": "f2844bb",
+      "seconds": 532.5,
+      "failed_checks": 1,
+      "failure": "model catalog refresh and session isolation",
+      "resolution": "Load real picker during isolated child setup before per-test deadline"
+    }
+  ],
+  "not_covered": [
+    "golangci-lint v2.5.0 unavailable",
+    "previs E2E not selected by default scope",
+    "real Platform/Console payment return",
+    "paid model generation",
+    "production PostgreSQL/Redis multiprocess deployment",
+    "named own Release install/upgrade/rollback"
+  ],
+  "work_package_status": "doing",
+  "remaining": [
+    "E3 source retirement of task finance, routing groups and OSS configuration",
+    "E6 named own release and container acceptance"
+  ],
+  "browser_evidence": "browser-results.json",
+  "inventory": "retirement-inventory.json"
+}
