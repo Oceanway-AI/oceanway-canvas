@@ -13,9 +13,10 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"yingce/backend/internal/database"
@@ -55,12 +56,13 @@ func TestStudioCatalogPresentationLivePlatform(t *testing.T) {
 		"STUDIO_PUBLIC_ORIGIN": manifest.Origin, "STUDIO_PLATFORM_SESSION_HOSTS": manifest.Host,
 		"STUDIO_PLATFORM_ALLOWED_ORIGINS": manifest.Origin,
 	}
-	t.Setenv("REDIS_URL", "")
+
 	gateway, err := platformintegration.NewGatewayFromEnv(func(key string) string { return env[key] })
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	testdb.UseRedis(t)
+	db, err := testdb.Open(t, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,10 +72,10 @@ func TestStudioCatalogPresentationLivePlatform(t *testing.T) {
 	}
 	sqlDB.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := database.MigrateSchema(db); err != nil {
+	if err := database.MigrateStudioSchema(db); err != nil {
 		t.Fatal(err)
 	}
-	svc, err := service.NewStudio(repository.New(db), t.TempDir(), gateway)
+	svc, err := service.NewStudio(repository.NewStudio(db), t.TempDir(), gateway)
 	if err != nil {
 		t.Fatal(err)
 	}

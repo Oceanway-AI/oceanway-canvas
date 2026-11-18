@@ -5,11 +5,12 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -19,7 +20,7 @@ type sqlCaptureLogger struct {
 }
 
 func TestAPICallLogRecordTypeFiltersListAndExport(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:api-log-record-types?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,8 +61,8 @@ func TestAPICallLogRecordTypeFiltersListAndExport(t *testing.T) {
 	}
 }
 
-func TestSQLiteAPICallLogRangeUsesInstantNotOffsetText(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:api-log-utc-range?mode=memory&cache=shared"), &gorm.Config{})
+func TestPostgresAPICallLogRangeUsesInstantNotOffsetText(t *testing.T) {
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +157,7 @@ func TestRecordUserActivityQualifiesPostgresConflictColumns(t *testing.T) {
 }
 
 func TestQueryAPICallLogsSearchesFailureFields(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:api-log-error-search?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +195,7 @@ func TestQueryAPICallLogsSearchesFailureFields(t *testing.T) {
 }
 
 func TestQueryAPICallLogsHidesInternalPollStages(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:api-log-visible-stages?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +231,7 @@ func TestQueryAPICallLogsHidesInternalPollStages(t *testing.T) {
 }
 
 func TestLatestProviderRequestIDsForTasksReturnsNewestPerTask(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:latest-provider-ids?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

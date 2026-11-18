@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func newProjectDeleteTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

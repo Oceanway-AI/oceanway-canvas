@@ -14,11 +14,6 @@ import (
 
 func testCanvasHistory(t *testing.T, db *gorm.DB) {
 	t.Helper()
-	if db.Dialector.Name() == "sqlite" {
-		if err := db.Exec("PRAGMA foreign_keys = ON").Error; err != nil {
-			t.Fatal(err)
-		}
-	}
 	if err := db.AutoMigrate(&model.CanvasSnapshot{}, &model.CanvasSnapshotResource{}, &model.CanvasShare{}, &model.Task{}); err != nil {
 		t.Fatal(err)
 	}

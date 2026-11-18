@@ -231,7 +231,6 @@ export async function createWorkbenchTask(input: WorkbenchTaskIntent) {
     if (!task?.id) throw new Error("任务已提交，但没有返回任务编号");
     observeGenerationTaskStatus(task);
     // 与 createGenerationTask 一致：创建时积分已被预占，钱包余额需要立即刷新。
-    window.dispatchEvent(new CustomEvent("wallet:updated"));
     return task;
 }
 

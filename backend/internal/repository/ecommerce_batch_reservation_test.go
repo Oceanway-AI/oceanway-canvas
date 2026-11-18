@@ -4,20 +4,20 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"sync"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"yingce/backend/internal/model"
 )
 
 func TestEcommerceBatchReservationsCompeteForSameBalance(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "batch.db")+"?_journal_mode=WAL&_busy_timeout=5000"), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := testdb.Open(t, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}

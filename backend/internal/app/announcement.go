@@ -251,7 +251,7 @@ func (s *Service) OpenAnnouncementImage(actor *model.User, announcementID string
 		}
 		return nil, err
 	}
-	if actor.Role != model.UserRoleAdmin && announcement.Status != model.AnnouncementStatusActive {
+	if !actor.CanStudio(model.StudioManageCreativeContent) && announcement.Status != model.AnnouncementStatusActive {
 		return nil, Forbidden("公告不可访问")
 	}
 	if announcement.ImageResourceID == "" {
@@ -281,7 +281,7 @@ func (s *Service) PrepareAnnouncementImageDelivery(actor *model.User, announceme
 		}
 		return nil, err
 	}
-	if actor.Role != model.UserRoleAdmin && announcement.Status != model.AnnouncementStatusActive {
+	if !actor.CanStudio(model.StudioManageCreativeContent) && announcement.Status != model.AnnouncementStatusActive {
 		return nil, Forbidden("公告不可访问")
 	}
 	if announcement.ImageResourceID == "" {

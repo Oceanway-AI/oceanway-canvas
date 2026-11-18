@@ -10,7 +10,6 @@ import (
 )
 
 func TestCloudAgentTaskDiagnosticProjectsDurableExecutionFacts(t *testing.T) {
-	s, db, _, _ := creationTestService(t)
 	now := time.Now().UTC().Truncate(time.Second)
 	diagnostic := model.TaskExecutionDiagnostic{
 		Code: "invalid_duration", Phase: "preparation", FieldPath: "generationSpec.options.durationSeconds",
@@ -19,24 +18,13 @@ func TestCloudAgentTaskDiagnosticProjectsDurableExecutionFacts(t *testing.T) {
 	}
 	rawDiagnostic, _ := json.Marshal(diagnostic)
 	task := &model.Task{
-		ID: "task-facts", UserID: "user", ProjectID: "canvas", Type: "canvas_video", Status: model.TaskStatusFailed,
+		ID: "task-facts", UserID: "101", Provider: "platform", ResultJSON: `{"fundsState":"released"}`, ProjectID: "canvas", Type: "canvas_video", Status: model.TaskStatusFailed,
 		Operation: "cloud_agent_generate_media", AgentRunID: "run-1", GenerationID: "generation-1", ApprovalID: "approval-1",
 		BillingOrderID: "order-facts", AuthorizedChargeMicrocredits: 700, CancellationSource: model.TaskCancellationUserRequest,
 		CancellationRequestedAt: &now, InputJSON: `{"metadata":{"source":"cloud_agent","nodeId":"video-node"}}`,
 		ExecutionDiagnosticJSON: string(rawDiagnostic), CreatedAt: now,
 	}
-	order := &model.BillingOrder{
-		ID: "order-facts", UserID: "user", TaskID: task.ID, Status: model.BillingStatusRefunded,
-		ChargeLimitSet: true, ChargeLimitMicrocredits: 700, ReservedAmountMicrocredits: 700, RefundedAmountMicrocredits: 700,
-	}
-	if err := db.Create(task).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Create(order).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	facts := cloudAgentTaskDiagnostic(s.repo, task)
+	facts := cloudAgentTaskDiagnostic(nil, task)
 	for key, want := range map[string]any{
 		"taskId": task.ID, "taskStatus": string(model.TaskStatusFailed), "agentRunId": "run-1", "generationId": "generation-1",
 		"approvalId": "approval-1", "nodeId": "video-node", "taskSubmitted": false, "submissionOutcome": "not_submitted",
@@ -48,9 +36,9 @@ func TestCloudAgentTaskDiagnosticProjectsDurableExecutionFacts(t *testing.T) {
 			t.Fatalf("%s = %#v, want %#v; facts=%#v", key, got, want, facts)
 		}
 	}
-	billing, ok := facts["billing"].(map[string]any)
-	if !ok || billing["orderId"] != order.ID || billing["status"] != string(model.BillingStatusRefunded) || billing["stateAvailable"] != true || billing["chargeLimitSet"] != true {
-		t.Fatalf("billing facts = %#v", facts["billing"])
+	billing, ok := facts["platformBilling"].(map[string]any)
+	if !ok || billing["fundsState"] != "released" || billing["stateAvailable"] != true || facts["billing"] != nil {
+		t.Fatalf("Platform funds = %#v", facts)
 	}
 	receipt, ok := facts["submissionReceipt"].(map[string]any)
 	if !ok || receipt["taskId"] != task.ID || receipt["generationId"] != task.GenerationID {
@@ -70,46 +58,23 @@ func TestRecordTaskDiagnosticDoesNotClaimUnsubmittedRequest(t *testing.T) {
 	}
 }
 
-func TestCloudAgentTaskDiagnosticRejectsMismatchedBillingOrderFacts(t *testing.T) {
-	_, db, _, _ := creationTestService(t)
-	order := &model.BillingOrder{ID: "other-order", UserID: "other", TaskID: "other-task", Status: model.BillingStatusSettled}
-	if err := db.Create(order).Error; err != nil {
-		t.Fatal(err)
-	}
-	task := &model.Task{ID: "task", UserID: "user", Status: model.TaskStatusQueued, BillingOrderID: order.ID, AuthorizedChargeMicrocredits: 9}
-	facts := cloudAgentTaskDiagnostic(repository.New(db), task)
-	billing := facts["billing"].(map[string]any)
-	if billing["stateAvailable"] != false || billing["status"] != nil {
-		t.Fatalf("cross-owner billing state leaked: %#v", billing)
+func TestCloudAgentTaskDiagnosticDoesNotReadLocalBilling(t *testing.T) {
+	// A repository without a connection exposes any accidental local ledger read.
+	task := &model.Task{ID: "task", UserID: "101", Status: model.TaskStatusQueued, BillingOrderID: "old-order", AuthorizedChargeMicrocredits: 9}
+	facts := cloudAgentTaskDiagnostic(&repository.Repository{}, task)
+	if facts["billing"] != nil || facts["platformBilling"] != nil {
+		t.Fatalf("local billing state exposed: %#v", facts)
 	}
 }
 
-func TestCloudAgentTaskDiagnosticSeparatesReservationFromActualCharge(t *testing.T) {
-	s, db, _, _ := creationTestService(t)
+func TestCloudAgentTaskDiagnosticPreservesPlatformSettlement(t *testing.T) {
 	task := &model.Task{
-		ID: "task-settled", UserID: "user", ProjectID: "canvas", Status: model.TaskStatusSucceeded,
-		BillingOrderID: "order-settled", InputJSON: `{}`,
+		ID: "task-settled", UserID: "101", Provider: "platform", Status: model.TaskStatusSucceeded,
+		ResultJSON: `{"fundsState":"settled","settledPoints":"0.100000000000000001"}`,
 	}
-	order := &model.BillingOrder{
-		ID: "order-settled", UserID: "user", TaskID: task.ID, Status: model.BillingStatusSettled,
-		ReservedAmountMicrocredits: 100_000, ActualAmountMicrocredits: 100_000,
-	}
-	if err := db.Create(task).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Create(order).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	facts := cloudAgentTaskDiagnostic(s.repo, task)
-	billing, ok := facts["billing"].(map[string]any)
-	if !ok {
-		t.Fatalf("billing facts = %#v", facts["billing"])
-	}
-	if billing["reservedAmountMicrocredits"] != float64(100_000) || billing["actualAmountMicrocredits"] != float64(100_000) {
-		t.Fatalf("microcredit facts = %#v", billing)
-	}
-	if billing["reservedCredits"] != 0.1 || billing["actualCredits"] != 0.1 || billing["chargeState"] != "settled" {
-		t.Fatalf("credit facts = %#v", billing)
+	facts := cloudAgentTaskDiagnostic(nil, task)
+	billing, ok := facts["platformBilling"].(map[string]any)
+	if !ok || billing["fundsState"] != "settled" || billing["settledPoints"] != "0.100000000000000001" || facts["billing"] != nil {
+		t.Fatalf("Platform settlement = %#v", facts)
 	}
 }

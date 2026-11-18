@@ -74,8 +74,7 @@ func (r *Repository) Skills(filter SkillListFilter) ([]model.Skill, int64, error
 	}
 	if filter.Search != "" {
 		pattern := "%" + strings.ToLower(filter.Search) + "%"
-		query = query.Joins("LEFT JOIN users skill_owners ON skill_owners.id = skills.owner_id").
-			Where("lower(skills.name) LIKE ? OR lower(skills.description) LIKE ? OR lower(skills.instruction) LIKE ? OR lower(skills.extra_info) LIKE ? OR lower(skills.author_name) LIKE ? OR lower(skill_owners.display_name) LIKE ? OR lower(skill_owners.username) LIKE ?", pattern, pattern, pattern, pattern, pattern, pattern, pattern)
+		query = query.Where("lower(skills.name) LIKE ? OR lower(skills.description) LIKE ? OR lower(skills.instruction) LIKE ? OR lower(skills.extra_info) LIKE ? OR lower(skills.author_name) LIKE ?", pattern, pattern, pattern, pattern, pattern)
 	}
 	if filter.Tag != "" {
 		query = query.Where("skills.tag = ?", filter.Tag)
@@ -301,36 +300,4 @@ func (r *Repository) SkillMetrics(skillIDs []string) (map[string]SkillMetrics, e
 		metrics[item.SkillID] = item
 	}
 	return metrics, nil
-}
-
-func (r *Repository) SkillOwners(ownerIDs []string) (map[string]model.User, error) {
-	owners := make(map[string]model.User, len(ownerIDs))
-	if len(ownerIDs) == 0 {
-		return owners, nil
-	}
-	var users []model.User
-	if err := r.db.Find(&users, "id IN ?", ownerIDs).Error; err != nil {
-		return nil, err
-	}
-	for _, user := range users {
-		owners[user.ID] = user
-	}
-	return owners, nil
-}
-
-func (r *Repository) SkillOwnerAvatars(ownerIDs []string) (map[string]string, error) {
-	avatars := make(map[string]string, len(ownerIDs))
-	if len(ownerIDs) == 0 {
-		return avatars, nil
-	}
-	var identities []model.UserIdentity
-	if err := r.db.Where("user_id IN ? AND avatar_url <> ''", ownerIDs).Order("updated_at desc").Find(&identities).Error; err != nil {
-		return nil, err
-	}
-	for _, identity := range identities {
-		if avatars[identity.UserID] == "" {
-			avatars[identity.UserID] = identity.AvatarURL
-		}
-	}
-	return avatars, nil
 }

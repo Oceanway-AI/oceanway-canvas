@@ -12,12 +12,12 @@
             import { saveCreationConversations } from "/src/services/creation-conversation-store.ts";
             document.querySelector("#seed").addEventListener("click", async () => {
                 try {
-                    const response = await fetch("/api/__fixture/history");
+                    const response = await fetch(`${import.meta.env.BASE_URL}api/__fixture/history`);
                     if (!response.ok) throw new Error("免费夹具未启动");
                     const seed = await response.json();
                     setActiveUserScope(seed.scope);
                     await saveCreationConversations(seed.conversations);
-                    location.href = "/create";
+                    location.href = `${import.meta.env.BASE_URL}create`;
                 } catch (error) {
                     document.querySelector("#status").textContent = String(error);
                 }

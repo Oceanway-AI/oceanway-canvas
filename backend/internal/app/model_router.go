@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -581,22 +580,4 @@ func weightedRoute(routes []cachedLogicalRoute) cachedLogicalRoute {
 		pick -= int64(route.Route.Weight)
 	}
 	return routes[len(routes)-1]
-}
-
-func (s *Service) sortedRouteDiagnostics(routes []cachedLogicalRoute, intent ModelRequestIntent) []RouteSimulationCandidate {
-	result := make([]RouteSimulationCandidate, 0, len(routes))
-	poolPriority := math.MinInt
-	for _, route := range routes {
-		match := MatchCapability(route.CapabilitySpec, intent)
-		blocked := s.logicalRouteBlocked(route)
-		if route.Route.Enabled && route.Route.Weight > 0 && match.Matched && !blocked && route.Route.Priority > poolPriority {
-			poolPriority = route.Route.Priority
-		}
-		result = append(result, RouteSimulationCandidate{RouteID: route.Route.ID, ChannelModelID: route.ChannelModel.ID, ChannelModelKey: route.ChannelModel.ModelKey, ChannelModelName: route.ChannelModel.DisplayName, Priority: route.Route.Priority, Weight: route.Route.Weight, Enabled: route.Route.Enabled, Matched: match.Matched, Blocked: blocked, Reasons: match.Reasons})
-	}
-	for index := range result {
-		result[index].InPool = result[index].Enabled && result[index].Weight > 0 && result[index].Matched && !result[index].Blocked && result[index].Priority == poolPriority
-	}
-	sort.SliceStable(result, func(i, j int) bool { return result[i].Priority > result[j].Priority })
-	return result
 }

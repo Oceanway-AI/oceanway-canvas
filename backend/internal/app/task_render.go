@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
+
 	"yingce/backend/internal/model"
 )
 
@@ -154,6 +156,7 @@ func renderFailureReasonWithFallback(err error, fallback string) string {
 	var networkErr net.Error
 	var pathErr *os.PathError
 	var appErr *AppError
+	var databaseErr *pgconn.PgError
 	switch {
 	case err == nil:
 		return "存储未返回有效的成片记录"
@@ -170,8 +173,7 @@ func renderFailureReasonWithFallback(err error, fallback string) string {
 		return "文件访问权限不足，请检查存储目录权限"
 	case errors.As(err, &pathErr):
 		return renderFailureReasonWithFallback(pathErr.Err, fallback)
-	case strings.Contains(strings.ToLower(err.Error()), "database is locked"):
-		// SQLite 驱动的原文通常带错误码后缀，如 “database is locked (5) (SQLITE_BUSY)”。
+	case errors.As(err, &databaseErr) && (databaseErr.Code == "55P03" || databaseErr.Code == "40P01" || databaseErr.Code == "40001"):
 		return "数据库正忙，请稍后重试"
 	default:
 		return fallback

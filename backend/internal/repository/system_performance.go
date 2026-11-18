@@ -45,7 +45,7 @@ type DatabaseRuntimeStats struct {
 }
 
 func (r *Repository) DatabaseRuntimeStats(ctx context.Context) (DatabaseRuntimeStats, error) {
-	result := DatabaseRuntimeStats{Driver: r.Dialect(), Schema: database.SchemaStatus{Expected: database.CurrentSchemaVersion}}
+	result := DatabaseRuntimeStats{Driver: r.Dialect(), Schema: database.SchemaStatus{Expected: database.CurrentStudioSchemaVersion}}
 	sqlDB, err := r.db.DB()
 	if err != nil {
 		return result, err
@@ -57,23 +57,14 @@ func (r *Repository) DatabaseRuntimeStats(ctx context.Context) (DatabaseRuntimeS
 	result.Connected = true
 	result.LatencyMs = max(1, time.Since(started).Milliseconds())
 	result.Pool = databasePoolStats(sqlDB.Stats())
-	if schema, schemaErr := database.ReadSchemaStatus(r.db.WithContext(ctx)); schemaErr == nil {
+	if schema, schemaErr := database.ReadStudioSchemaStatus(r.db.WithContext(ctx)); schemaErr == nil {
 		result.Schema = schema
 	}
-	if result.Driver == "postgres" {
-		result.Postgres, err = r.postgresRuntimeStats(ctx)
-		if result.Postgres != nil {
-			result.DatabaseBytes = result.Postgres.DatabaseBytes
-		}
-		return result, err
+	result.Postgres, err = r.postgresRuntimeStats(ctx)
+	if result.Postgres != nil {
+		result.DatabaseBytes = result.Postgres.DatabaseBytes
 	}
-	if result.Driver == "sqlite" {
-		var pageCount, pageSize int64
-		if r.db.WithContext(ctx).Raw("PRAGMA page_count").Scan(&pageCount).Error == nil && r.db.WithContext(ctx).Raw("PRAGMA page_size").Scan(&pageSize).Error == nil {
-			result.DatabaseBytes = pageCount * pageSize
-		}
-	}
-	return result, nil
+	return result, err
 }
 
 func databasePoolStats(stats sql.DBStats) DatabasePoolStats {

@@ -10,49 +10,32 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
-	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-	"yingce/backend/internal/auth"
-	"yingce/backend/internal/database"
+
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/repository"
 	"yingce/backend/internal/service"
 )
 
 func TestCanvasRealtimeHTTPAuthorizationBroadcastAndInvalidation(t *testing.T) {
-	t.Setenv("REDIS_URL", "")
-	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB, _ := db.DB()
-	sqlDB.SetMaxOpenConns(1)
-	defer sqlDB.Close()
-	if err := database.MigrateSchema(db); err != nil {
-		t.Fatal(err)
-	}
+	f := newStudioFixture(t)
+	db := f.db
 	for _, row := range []any{
-		&model.User{ID: "user", Username: "realtime", Role: model.UserRoleUser, Status: model.UserStatusActive},
-		&model.AuthSession{ID: "session", UserID: "user", TokenHash: auth.HashToken("test-token"), ExpiresAt: time.Now().Add(time.Hour)},
-		&model.CanvasProject{ID: "canvas", UserID: "user", Revision: 1, Title: "Canvas", PayloadJSON: `{"id":"canvas","title":"Canvas","nodes":[],"connections":[]}`},
+		&model.CanvasProject{ID: "canvas", UserID: "101", Revision: 1, Title: "Canvas", PayloadJSON: `{"id":"canvas","title":"Canvas","nodes":[],"connections":[]}`},
 		&model.CanvasProject{ID: "foreign", UserID: "other", Revision: 1, PayloadJSON: `{}`},
 	} {
 		if err := db.Create(row).Error; err != nil {
 			t.Fatal(err)
 		}
 	}
-	svc := service.New(repository.New(db), t.TempDir())
-	router := gin.New()
-	RegisterCanvasRealtimeRoutes(router.Group("/api"), svc)
-	server := httptest.NewServer(router)
+	svc := f.svc
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Host = "studio.example.test"
+		f.router.ServeHTTP(w, r)
+	}))
 	defer server.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	endpoint := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/canvas-projects/"
-	options := &websocket.DialOptions{HTTPHeader: http.Header{"Cookie": {service.SessionCookieName + "=session.test-token"}}}
+	options := &websocket.DialOptions{HTTPHeader: http.Header{"Cookie": {"platform_session=alice"}}}
 	for _, item := range []struct {
 		id      string
 		options *websocket.DialOptions
@@ -104,7 +87,7 @@ func TestCanvasRealtimeHTTPAuthorizationBroadcastAndInvalidation(t *testing.T) {
 	if err := db.First(&project, "id = ?", "canvas").Error; err != nil || project.Revision != 1 {
 		t.Fatalf("presence persisted: %+v err=%v", project, err)
 	}
-	_, err = svc.ChangeUserCanvasEditLease("user", "canvas", service.CanvasEditLeaseRequest{Action: "acquire", CanvasEditProof: model.CanvasEditProof{NodeID: "node", SessionID: "window"}})
+	_, err = svc.ChangeUserCanvasEditLease("101", "canvas", service.CanvasEditLeaseRequest{Action: "acquire", CanvasEditProof: model.CanvasEditProof{NodeID: "node", SessionID: "window"}})
 	if err != nil {
 		t.Fatal(err)
 	}

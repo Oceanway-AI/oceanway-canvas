@@ -768,7 +768,7 @@ func arkPortraitCallbackBase(setting arkPrivateAssetSettingValue) (string, error
 	if base == "" {
 		return "", BadAuthRequest("管理员尚未配置真人认证回调地址（方舟素材库设置或 CANVAS_PUBLIC_BASE_URL）")
 	}
-	if err := validatePaymentPublicBaseURL(base); err != nil {
+	if err := validatePublicRootURL(base); err != nil {
 		return "", BadAuthRequest("真人认证回调地址必须是有效的 HTTP(S) 根地址")
 	}
 	return base, nil

@@ -1,18 +1,20 @@
 package database
 
 import (
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+	"yingce/backend/internal/testdb"
+
 	"testing"
 	"yingce/backend/internal/model"
+
+	"gorm.io/gorm"
 )
 
-func TestCreationMigrationKeepsLegacyTasksNullableAndEnforcesSubmissionUnique(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+func TestStudioCreationSubmissionIsOptionalAndUnique(t *testing.T) {
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = migrateSchemaV10(db); err != nil {
+	if err = MigrateStudioSchema(db); err != nil {
 		t.Fatal(err)
 	}
 	for _, id := range []string{"manual-one", "manual-two"} {

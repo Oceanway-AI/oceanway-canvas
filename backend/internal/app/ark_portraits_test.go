@@ -145,8 +145,8 @@ func arkPortraitTestService(t *testing.T, mutate ...func(*arkPrivateAssetSetting
 		t.Fatal(err)
 	}
 	for _, row := range []any{
-		&model.User{ID: "other", Username: "other", Role: model.UserRoleUser, Status: model.UserStatusActive},
-		&model.User{ID: "admin", Username: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive},
+		&model.User{ID: "other", Username: "other", Status: model.UserStatusActive},
+		&model.User{ID: "admin", Username: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}},
 		&model.Resource{ID: "portrait-res", UserID: "user", Kind: "image", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "portrait.png", MimeType: "image/png", Size: int64(len(picture)), Width: 400, Height: 500},
 		&model.Resource{ID: "other-res", UserID: "other", Kind: "image", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "portrait.png", MimeType: "image/png", Size: int64(len(picture)), Width: 400, Height: 500},
 		&model.Resource{ID: "admin-res", UserID: "admin", Kind: "image", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "portrait.png", MimeType: "image/png", Size: int64(len(picture)), Width: 400, Height: 500},
@@ -176,8 +176,8 @@ func TestArkRealGroupChargesOnVerificationReviewsUploadsAndCertifiesLibrary(t *t
 		value.BillingEnabled, value.RealGroupPriceMicrocredits = true, 5*CreditScale
 	})
 	ctx := context.Background()
-	user := &model.User{ID: "user", Role: model.UserRoleUser}
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin}
+	user := &model.User{ID: "user"}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if err := db.Model(&model.CreditAccount{}).Where("user_id = ?", "user").Update("available_microcredits", 8*CreditScale).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -312,7 +312,7 @@ func TestArkPortraitSessionFailureExpiryAndCancelRefund(t *testing.T) {
 		value.BillingEnabled, value.RealGroupPriceMicrocredits = true, CreditScale
 	})
 	ctx := context.Background()
-	user := &model.User{ID: "user", Role: model.UserRoleUser}
+	user := &model.User{ID: "user"}
 	if err := db.Model(&model.CreditAccount{}).Where("user_id = ?", "user").Update("available_microcredits", 3*CreditScale).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -379,7 +379,7 @@ func TestArkVirtualGroupRefundsWhenCreationFailsAndRespectsLimit(t *testing.T) {
 		value.BillingEnabled, value.VirtualGroupPriceMicrocredits, value.VirtualGroupLimit, value.VirtualReviewRequired = true, 2*CreditScale, 1, false
 	})
 	ctx := context.Background()
-	user := &model.User{ID: "user", Role: model.UserRoleUser}
+	user := &model.User{ID: "user"}
 	if _, err := s.CreateArkVirtualGroup(ctx, user, ArkGroupInput{Name: "二次元少女"}); err == nil || !strings.Contains(err.Error(), "积分不足") {
 		t.Fatalf("virtual group without credits = %v", err)
 	}
@@ -417,9 +417,9 @@ func TestArkVirtualGroupRefundsWhenCreationFailsAndRespectsLimit(t *testing.T) {
 func TestArkPlatformGroupGrantsControlVisibilityAndReferences(t *testing.T) {
 	s, _, fake := arkPortraitTestService(t)
 	ctx := context.Background()
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin}
-	user := &model.User{ID: "user", Role: model.UserRoleUser}
-	other := &model.User{ID: "other", Role: model.UserRoleUser}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
+	user := &model.User{ID: "user"}
+	other := &model.User{ID: "other"}
 	if _, err := s.AdminCreateArkGroup(ctx, user, AdminArkGroupCreateRequest{Kind: arkGroupKindIP, Name: "影策猫"}); err == nil {
 		t.Fatal("platform groups are admin only")
 	}

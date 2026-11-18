@@ -7,12 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"yingce/backend/internal/app"
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/repository"
 	"yingce/backend/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -53,26 +49,19 @@ func TestAppearanceRoutesAreRegistered(t *testing.T) {
 
 func TestAppearanceUpdateAnnouncementMediaRangeAndDisabledAccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open("file:appearance-handler-range?mode=memory&cache=shared"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := database.MigrateSchema(db); err != nil {
-		t.Fatal(err)
-	}
-	dir := t.TempDir()
+	f := newStudioFixture(t)
+	db, dir, svc := f.db, f.dataDir, f.svc
 	if err := os.MkdirAll(filepath.Join(dir, "resources"), 0750); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "resources", "fixture.mp4"), []byte("video-data"), 0640); err != nil {
 		t.Fatal(err)
 	}
-	resource := model.Resource{ID: "fixture-video", UserID: "admin", Kind: "video", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "fixture.mp4", MimeType: "video/mp4", Size: 10}
+	resource := model.Resource{ID: "fixture-video", UserID: "101", Kind: "video", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "fixture.mp4", MimeType: "video/mp4", Size: 10}
 	if err := db.Create(&resource).Error; err != nil {
 		t.Fatal(err)
 	}
-	svc := service.New(repository.New(db), dir)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "101", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent}}
 	setting, err := svc.AdminAppearance(admin)
 	if err != nil {
 		t.Fatal(err)
@@ -91,7 +80,7 @@ func TestAppearanceUpdateAnnouncementMediaRangeAndDisabledAccess(t *testing.T) {
 		t.Fatalf("Range HTTP response: %d %q %v", rec.Code, rec.Body.String(), rec.Header())
 	}
 	preview := httptest.NewRecorder()
-	router.ServeHTTP(preview, httptest.NewRequest(http.MethodGet, "/api/admin/settings/appearance/updates/fixture-video", nil))
+	router.ServeHTTP(preview, httptest.NewRequest(http.MethodGet, "https://studio.example.test/api/admin/settings/appearance/updates/fixture-video", nil))
 	if preview.Code != 401 {
 		t.Fatalf("anonymous admin preview: %d", preview.Code)
 	}

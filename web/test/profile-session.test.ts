@@ -4,7 +4,7 @@ import { apiClient } from "../src/services/api/request";
 import { loadProfileSession } from "../src/services/profile-session";
 import { useUserStore, type LocalUser } from "../src/stores/use-user-store";
 
-const originalUser: LocalUser = { id: "profile-user", username: "user", displayName: "User", role: "user", status: "active", avatarMode: "default", avatarPreset: "person" };
+const originalUser: LocalUser = { id: "profile-user", username: "user", displayName: "User", status: "active", avatarUrl: "https://example.test/person.png" };
 
 test("profile refresh synchronizes avatars while rejecting stale account and cancelled responses", async () => {
     const originalRequest = apiClient.request;
@@ -25,15 +25,15 @@ test("profile refresh synchronizes avatars while rejecting stale account and can
             if (scenario === "switched-account") useUserStore.getState().setUser({ ...originalUser, id: "other-user" });
             if (scenario === "cancelled") {
                 await client.cancelQueries({ queryKey: key });
-                useUserStore.getState().setUser({ ...originalUser, avatarPreset: "cat" });
+                useUserStore.getState().setUser({ ...originalUser, avatarUrl: "https://example.test/cat.png" });
             }
             if (scenario === "failure") reject(new Error("profile unavailable"));
-            else respond({ data: { code: 0, data: { user: { ...originalUser, id: scenario === "wrong-user" ? "unexpected-user" : originalUser.id, avatarPreset: "robot" } }, msg: "ok" }, status: 200 });
+            else respond({ data: { code: 0, data: { user: { ...originalUser, id: scenario === "wrong-user" ? "unexpected-user" : originalUser.id, avatarUrl: "https://example.test/robot.png" } }, msg: "ok" }, status: 200 });
             await request;
             await Promise.resolve();
             const stored = useUserStore.getState().user;
             expect(stored?.id).toBe(scenario === "switched-account" ? "other-user" : originalUser.id);
-            expect(stored?.avatarPreset).toBe(scenario === "refresh" ? "robot" : scenario === "cancelled" ? "cat" : "person");
+            expect(stored?.avatarUrl).toBe(scenario === "refresh" ? "https://example.test/robot.png" : scenario === "cancelled" ? "https://example.test/cat.png" : "https://example.test/person.png");
         }
     } finally {
         await client.cancelQueries();

@@ -10,9 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"gorm.io/gorm"
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
+	"yingce/backend/internal/testdb"
+
+	"gorm.io/gorm"
 )
 
 // piOutputLimitFixture 复用现有测试库入口；PostgreSQL 只写独立临时 schema。
@@ -31,13 +32,13 @@ func piOutputLimitFixture(t *testing.T) (*Service, *gorm.DB, string) {
 			t.Fatal(err)
 		}
 		t.Cleanup(func() { _ = sqlDB.Close() })
-		if err := db.AutoMigrate(database.Models()...); err != nil {
+		if err := db.AutoMigrate(testdb.DomainModels()...); err != nil {
 			t.Fatal(err)
 		}
 		profile := mustEncodeModelCapabilityConfig(t, DefaultModelCapabilityConfigForModel("chat-completion", "text-test"))
 		for _, row := range []any{
-			// 任务准入按用户分组过滤渠道，账号必须真实存在（与 SQLite 夹具一致）。
-			&model.User{ID: "user", Username: "user", Role: model.UserRoleUser, Status: model.UserStatusActive},
+			// 任务准入按用户分组过滤渠道，账号必须真实存在。
+			&model.User{ID: "user", Username: "user", Status: model.UserStatusActive},
 			&model.ModelChannel{ID: "channel", Scope: model.ChannelScopeSystem, Enabled: true},
 			&model.ChannelModel{ID: "cm", ChannelID: "channel", ModelKey: "text-test", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: profile, BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true},
 			&model.ChannelModelPriceTier{ID: "tier", ChannelModelID: "cm", SelectorKey: "{}", SelectorJSON: "{}", BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true},
@@ -80,7 +81,7 @@ func TestPiOutputLimitCorrection(t *testing.T) {
 		{"oversized-text", []int{0, 1}, false, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// 每个子用例有独立的库（SQLite 临时文件或 PostgreSQL 临时 schema）和 Service，可以并行；
+			// 每个子用例有独立的库（PostgreSQL 临时 schema）和 Service，可以并行；
 			// 串行时 PostgreSQL 下每个子用例都要整库迁移，是该包最慢的用例。
 			t.Parallel()
 			s, db, runID := piOutputLimitFixture(t)

@@ -28,10 +28,8 @@ type TaskDetailModalProps = {
     actingId: string;
     canvasName: string;
     modelName: string;
-    creditsEnabled: boolean;
     onClose: () => void;
     onRetry: (task: GenerationTask) => void;
-    onQueryProvider: (task: GenerationTask) => void;
     onExportDiagnostics: (task: GenerationTask) => void;
     onPreviewMedia: (media: { url: string; kind: "image" | "video"; title: string }) => void;
 };
@@ -40,7 +38,7 @@ type TaskDetailModalProps = {
  * 任务详情弹窗：左侧是结果、提示词和运行日志，右侧是任务信息、参数和原始结果；操作集中在底栏。
  * 打开时先用列表里的摘要渲染，详情和日志到达后原位替换。
  */
-export function TaskDetailModal({ task, loading, logs, logsLoading, actingId, canvasName, modelName, creditsEnabled, onClose, onRetry, onQueryProvider, onExportDiagnostics, onPreviewMedia }: TaskDetailModalProps) {
+export function TaskDetailModal({ task, loading, logs, logsLoading, actingId, canvasName, modelName, onClose, onRetry, onExportDiagnostics, onPreviewMedia }: TaskDetailModalProps) {
     const { t } = useTranslation();
     const { message } = App.useApp();
     const copyText = async (value: string) => {
@@ -64,10 +62,8 @@ export function TaskDetailModal({ task, loading, logs, logsLoading, actingId, ca
                     acting={actingId === task.id}
                     canvasName={canvasName}
                     modelName={modelName}
-                    creditsEnabled={creditsEnabled}
                     onClose={onClose}
                     onRetry={() => onRetry(task)}
-                    onQueryProvider={() => onQueryProvider(task)}
                     onExportDiagnostics={() => onExportDiagnostics(task)}
                     onPreviewMedia={onPreviewMedia}
                     onCopy={(value) => void copyText(value)}
@@ -85,18 +81,15 @@ function TaskDetailContent({
     acting,
     canvasName,
     modelName,
-    creditsEnabled,
     onClose,
     onRetry,
-    onQueryProvider,
     onExportDiagnostics,
     onPreviewMedia,
     onCopy,
-}: Omit<TaskDetailModalProps, "task" | "actingId" | "onRetry" | "onQueryProvider" | "onExportDiagnostics"> & {
+}: Omit<TaskDetailModalProps, "task" | "actingId" | "onRetry" | "onExportDiagnostics"> & {
     task: GenerationTask;
     acting: boolean;
     onRetry: () => void;
-    onQueryProvider: () => void;
     onExportDiagnostics: () => void;
     onCopy: (value: string) => void;
 }) {
@@ -241,11 +234,11 @@ function TaskDetailContent({
                                     </dd>
                                 </div>
                             )}
-                            {creditsEnabled && task.billing ? (
+                            {task.platformBilling ? (
                                 <div>
                                     <dt>{t("library.tasks.detail.billing")}</dt>
-                                    <dd>
-                                        <TaskBilling billing={task.billing} />
+                                    <dd className="is-wrap">
+                                        <TaskBilling billing={task.platformBilling} />
                                     </dd>
                                 </div>
                             ) : null}
@@ -294,11 +287,6 @@ function TaskDetailContent({
                     {failed ? (
                         <Button icon={<Bug className="size-4" />} onClick={onExportDiagnostics}>
                             {t("library.tasks.detail.exportDiagnostics")}
-                        </Button>
-                    ) : null}
-                    {canQueryProviderTask(task) ? (
-                        <Button icon={<RefreshCw className="size-4" />} loading={acting} onClick={onQueryProvider}>
-                            {t("library.tasks.detail.queryProvider")}
                         </Button>
                     ) : null}
                     {task.canRecoverMedia ? (
@@ -395,10 +383,6 @@ export function TaskResultPreview({ item, variant, alt, controls = false, classN
             {media}
         </TaskEarlyMedia>
     );
-}
-
-function canQueryProviderTask(task: GenerationTask) {
-    return task.status === "failed" && !task.mediaStage && (task.type.startsWith("canvas_video") || task.type.startsWith("video_")) && Boolean(task.providerRequestId);
 }
 
 function formatDate(value?: string) {

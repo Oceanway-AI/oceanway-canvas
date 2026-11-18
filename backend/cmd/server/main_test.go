@@ -4,23 +4,19 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/repository"
-	"yingce/backend/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 func TestEnsureBuiltinWorkbenchCatalogStartupWiring(t *testing.T) {
-	db, err := database.Open(database.Config{Driver: "sqlite", DSN: "file:workbench-startup?mode=memory&cache=shared"})
+	db, err := testdb.Open(t)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := database.MigrateSchema(db); err != nil {
-		t.Fatal(err)
-	}
-	svc := service.New(repository.New(db), t.TempDir())
+	svc := newStudioTestService(t, db)
 	if err := ensureBuiltinWorkbenchCatalog(svc); err != nil {
 		t.Fatal(err)
 	}

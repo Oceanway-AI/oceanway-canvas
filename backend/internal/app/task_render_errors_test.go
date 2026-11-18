@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgconn"
+
 	"yingce/backend/internal/model"
 )
 
@@ -24,8 +26,8 @@ func TestRenderSaveFailureMessages(t *testing.T) {
 		{"timeout", fmt.Errorf("upload: %w", context.DeadlineExceeded), "请求超时"},
 		{"disk full", &resourceObjectWriteError{provider: "local", err: &os.PathError{Op: "write", Path: "/private/render.mp4", Err: syscall.ENOSPC}}, "写入服务器本地存储失败：服务器磁盘空间不足"},
 		{"permission", os.ErrPermission, "文件访问权限不足"},
-		{"database", errors.New("database is locked"), "保存成片失败：数据库正忙"},
-		{"sqlite busy", fmt.Errorf("create resource: %w", errors.New("database is locked (5) (SQLITE_BUSY)")), "保存成片失败：数据库正忙"},
+		{"database lock", &pgconn.PgError{Code: "55P03"}, "保存成片失败：数据库正忙"},
+		{"database serialization", fmt.Errorf("create resource: %w", &pgconn.PgError{Code: "40001"}), "保存成片失败：数据库正忙"},
 		{"storage capacity", fmt.Errorf("保存资源就绪状态失败：%w", StorageCapacityExceeded("账号文件容量不足，请清理素材或购买存储空间")), "保存成片失败：账号文件容量不足，请清理素材或购买存储空间。已有镜头"},
 		{"daily quota", QuotaExceeded("每个账号 UTC 自然日上传总量必须小于 2GB。"), "保存成片失败：每个账号 UTC 自然日上传总量必须小于 2GB。已有镜头"},
 		{"missing record", nil, "存储未返回有效的成片记录"},

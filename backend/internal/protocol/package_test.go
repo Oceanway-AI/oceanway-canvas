@@ -45,13 +45,13 @@ func TestParsePluginPackageValidatesWebEntry(t *testing.T) {
 func TestParsePluginPackageAcceptsTaggedRPCBackend(t *testing.T) {
 	manifest := []byte(`{
         "apiVersion":"yingce.plugin/v1",
-        "id":"tagged-payment",
-        "name":"Tagged Payment",
+        "id":"tagged-extension",
+        "name":"Tagged Extension",
         "version":"1.0.0",
         "author":"Test",
         "enabled":true,
         "runtime":{"backend":"rpc","backendEntry":"backend/provider"},
-        "contributes":{"paymentProviders":[{"id":"tagged-pay","label":"Tagged","icon":"brand:test","checkoutMode":"qr_code","expiryPolicy":{"defaultMinutes":30,"minMinutes":5,"maxMinutes":1440}}]}
+        "contributes":{"commands":[{"id":"tagged-extension/open","label":"Open"}]}
     }`)
 	pkg, err := ParsePluginPackage(zipPluginPackage(t, map[string][]byte{
 		"manifest.json":                 manifest,
@@ -74,19 +74,19 @@ func TestParsePluginPackageAcceptsTaggedRPCBackend(t *testing.T) {
 func TestInspectPluginPackageValidatesStructureWithoutContents(t *testing.T) {
 	manifest := []byte(`{
         "apiVersion":"yingce.plugin/v1",
-        "id":"tagged-payment",
-        "name":"Tagged Payment",
+        "id":"tagged-extension",
+        "name":"Tagged Extension",
         "version":"1.0.0",
         "author":"Test",
         "enabled":true,
         "runtime":{"backend":"rpc","backendEntry":"backend/provider"},
-        "contributes":{"paymentProviders":[{"id":"tagged-pay","label":"Tagged","icon":"brand:test","checkoutMode":"qr_code","expiryPolicy":{"defaultMinutes":30,"minMinutes":5,"maxMinutes":1440}}]}
+        "contributes":{"commands":[{"id":"tagged-extension/open","label":"Open"}]}
     }`)
 	info, err := InspectPluginPackage(zipPluginPackage(t, map[string][]byte{"manifest.json": manifest, "backend/provider-linux-amd64": []byte("binary")}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Manifest.Metadata.ID != "tagged-payment" || len(info.ManifestRaw) == 0 {
+	if info.Manifest.Metadata.ID != "tagged-extension" || len(info.ManifestRaw) == 0 {
 		t.Fatalf("info = %#v", info)
 	}
 	if _, err := InspectPluginPackage(zipPluginPackage(t, map[string][]byte{"manifest.json": manifest})); err == nil {
@@ -99,7 +99,7 @@ func TestInspectPluginPackageValidatesStructureWithoutContents(t *testing.T) {
 
 // ParsePluginPackageFiles 只解压选中的条目；未选中的条目以 nil 登记，便于存在性判断。
 func TestParsePluginPackageFilesLoadsOnlySelectedEntries(t *testing.T) {
-	manifest := []byte(`{"apiVersion":"yingce.plugin/v1","id":"tagged-payment","name":"Tagged Payment","version":"1.0.0","author":"Test","enabled":true,"runtime":{"backend":"rpc","backendEntry":"backend/provider"},"contributes":{"paymentProviders":[{"id":"tagged-pay","label":"Tagged","icon":"brand:test","checkoutMode":"qr_code","expiryPolicy":{"defaultMinutes":30,"minMinutes":5,"maxMinutes":1440}}]}}`)
+	manifest := []byte(`{"apiVersion":"yingce.plugin/v1","id":"tagged-extension","name":"Tagged Extension","version":"1.0.0","author":"Test","enabled":true,"runtime":{"backend":"rpc","backendEntry":"backend/provider"},"contributes":{"commands":[{"id":"tagged-extension/open","label":"Open"}]}}`)
 	data := zipPluginPackage(t, map[string][]byte{
 		"manifest.json":                 manifest,
 		"backend/provider-linux-amd64":  []byte("linux"),

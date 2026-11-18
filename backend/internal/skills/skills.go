@@ -135,6 +135,7 @@ type SkillList struct {
 }
 
 type SkillMutationRequest struct {
+	Author        *model.User          `json:"-"`
 	SkillName     string               `json:"skillName"`
 	Description   string               `json:"description"`
 	Instruction   string               `json:"instruction"`
@@ -230,6 +231,19 @@ func (s *Service) SkillDetail(userID string, id string) (*SkillItem, error) {
 	return &items[0], nil
 }
 
+// Author snapshots refresh on owner creation, import and metadata edits. They
+// support display and search without becoming a local identity authority.
+func applySkillAuthor(skill *model.Skill, author *model.User) {
+	if author == nil || author.ID != skill.OwnerID || !author.PlatformAuthenticated {
+		return
+	}
+	skill.AuthorName = strings.TrimSpace(author.DisplayName)
+	if skill.AuthorName == "" {
+		skill.AuthorName = strings.TrimSpace(author.Username)
+	}
+	skill.AuthorAvatarURL = strings.TrimSpace(author.PlatformAvatarURL)
+}
+
 func (s *Service) CreateSkill(userID string, req SkillMutationRequest) (*SkillItem, error) {
 	normalized, mediaJSON, err := normalizeSkillMutationRequest(req, true)
 	if err != nil {
@@ -268,6 +282,7 @@ func (s *Service) UpdateSkill(userID string, id string, req SkillMutationRequest
 	skill.MarkdownURL = normalized.MarkdownURL
 	skill.ShowcaseMediaJSON = mediaJSON
 	skill.ExtraInfo = normalized.ExtraInfo
+	applySkillAuthor(skill, normalized.Author)
 	if skill.SourceType == "markdown" || skill.SourceType == "builtin" || skill.SourceType == "" {
 		if err := s.updateSingleMarkdownSkill(skill, normalized); err != nil {
 			return nil, err
@@ -290,7 +305,7 @@ func (s *Service) DeleteSkill(userID string, id string) error {
 }
 
 func (s *Service) DeleteBuiltinSkill(actor *model.User, id string) error {
-	if actor == nil || actor.Role != model.UserRoleAdmin {
+	if !actor.CanStudio(model.StudioDeleteBuiltinSkill) {
 		return kernel.Forbidden("只有管理员可以删除内置技能")
 	}
 	id = strings.TrimSpace(id)
@@ -361,24 +376,14 @@ func (s *Service) SetSkillLiked(userID string, id string, liked bool) (*SkillIte
 
 func (s *Service) skillItems(userID string, skills []model.Skill, includeInstruction bool) ([]SkillItem, error) {
 	ids := make([]string, 0, len(skills))
-	ownerIDs := make([]string, 0, len(skills))
 	for _, skill := range skills {
 		ids = append(ids, skill.ID)
-		ownerIDs = append(ownerIDs, skill.OwnerID)
 	}
 	states, err := s.repo.UserSkillStatesBySkillIDs(userID, ids)
 	if err != nil {
 		return nil, err
 	}
 	metrics, err := s.repo.SkillMetrics(ids)
-	if err != nil {
-		return nil, err
-	}
-	owners, err := s.repo.SkillOwners(ownerIDs)
-	if err != nil {
-		return nil, err
-	}
-	ownerAvatars, err := s.repo.SkillOwnerAvatars(ownerIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -392,17 +397,8 @@ func (s *Service) skillItems(userID string, skills []model.Skill, includeInstruc
 		if err != nil {
 			return nil, err
 		}
-		owner := owners[skill.OwnerID]
 		ownerName := strings.TrimSpace(skill.AuthorName)
 		ownerAvatarURL := strings.TrimSpace(skill.AuthorAvatarURL)
-		if strings.TrimSpace(owner.DisplayName) != "" {
-			ownerName = strings.TrimSpace(owner.DisplayName)
-		} else if strings.TrimSpace(owner.Username) != "" {
-			ownerName = strings.TrimSpace(owner.Username)
-		}
-		if ownerAvatars[skill.OwnerID] != "" {
-			ownerAvatarURL = ownerAvatars[skill.OwnerID]
-		}
 		state := stateBySkillID[skill.ID]
 		metric := metrics[skill.ID]
 		metric.LikeCount += skill.InitialLikeCount

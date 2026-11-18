@@ -33,6 +33,7 @@ const (
 )
 
 type SkillInstallRequest struct {
+	Author      *model.User `json:"-"`
 	Name        string
 	Description string
 	Tag         string
@@ -40,12 +41,13 @@ type SkillInstallRequest struct {
 }
 
 type SkillGitHubInstallRequest struct {
-	URL        string `json:"url"`
-	Ref        string `json:"ref"`
-	Subdir     string `json:"subdir"`
-	Tag        string `json:"tag"`
-	IsPrivate  bool   `json:"isPrivate"`
-	AutoUpdate bool   `json:"autoUpdate"`
+	Author     *model.User `json:"-"`
+	URL        string      `json:"url"`
+	Ref        string      `json:"ref"`
+	Subdir     string      `json:"subdir"`
+	Tag        string      `json:"tag"`
+	IsPrivate  bool        `json:"isPrivate"`
+	AutoUpdate bool        `json:"autoUpdate"`
 }
 
 type SkillPackageFileItem struct {
@@ -219,7 +221,7 @@ func (s *Service) InstallGitHubSkill(userID string, req SkillGitHubInstallReques
 		}
 		return nil, kernel.WrapAppError(http.StatusBadGateway, "GitHub 技能读取失败，请检查仓库地址和网络", err)
 	}
-	return s.createSkillFromArchive(userID, archive, SkillInstallRequest{Tag: req.Tag, IsPrivate: req.IsPrivate}, "github", canonicalURL, resolvedRef, spec.Subdir, commit, req.AutoUpdate)
+	return s.createSkillFromArchive(userID, archive, SkillInstallRequest{Author: req.Author, Tag: req.Tag, IsPrivate: req.IsPrivate}, "github", canonicalURL, resolvedRef, spec.Subdir, commit, req.AutoUpdate)
 }
 
 func (s *Service) SyncGitHubSkill(userID string, skillID string) (*SkillItem, error) {
@@ -308,7 +310,7 @@ func (s *Service) createSingleMarkdownSkill(userID string, req SkillMutationRequ
 	if err != nil {
 		return nil, err
 	}
-	return s.createSkillFromArchive(userID, archive, SkillInstallRequest{Name: req.SkillName, Description: req.Description, Tag: req.Tag, IsPrivate: req.IsPrivate}, "markdown", req.MarkdownURL, "", "", "", false)
+	return s.createSkillFromArchive(userID, archive, SkillInstallRequest{Author: req.Author, Name: req.SkillName, Description: req.Description, Tag: req.Tag, IsPrivate: req.IsPrivate}, "markdown", req.MarkdownURL, "", "", "", false)
 }
 
 func (s *Service) updateSingleMarkdownSkill(skill *model.Skill, req SkillMutationRequest) error {
@@ -364,6 +366,7 @@ func (s *Service) createSkillFromArchive(userID string, archive skillPackageArch
 		SyncStatus: "synced", AutoUpdate: autoUpdate, LastCheckedAt: &now, LastSyncedAt: &now,
 		Status: skillStatusEnabled, Source: skillSourceUser, Tag: tag, IsPrivate: req.IsPrivate, MarkdownURL: sourceURL, ShowcaseMediaJSON: "[]",
 	}
+	applySkillAuthor(skill, req.Author)
 	state := &model.UserSkillState{ID: kernel.NewID(), UserID: userID, SkillID: skillID, Added: true, InstalledVersionID: versionID, AutoUpdate: autoUpdate}
 	if err := s.repo.CreateSkillWithPackage(skill, version, files, state); err != nil {
 		_ = os.Remove(filepath.Join(s.dataDir, "skill-packages", filepath.FromSlash(packageKey)))

@@ -329,56 +329,16 @@ type ManifestField struct {
 }
 
 type ManifestContributions struct {
-	SMSProviders     []ManifestSMSProvider     `json:"smsProviders,omitempty"`
-	Providers        []ManifestProvider        `json:"providers,omitempty"`
-	PaymentProviders []ManifestPaymentProvider `json:"paymentProviders,omitempty"`
-	Workflows        []ManifestWorkflow        `json:"workflows,omitempty"`
-	CanvasNodes      []ManifestCanvasNode      `json:"canvasNodes,omitempty"`
-	Transforms       []ManifestTransform       `json:"transforms,omitempty"`
-	Commands         []ManifestCommand         `json:"commands,omitempty"`
-	AssetSources     []string                  `json:"assetSources,omitempty"`
-	UsageObservers   []string                  `json:"usageObservers,omitempty"`
-	AICapabilities   []string                  `json:"aiCapabilities,omitempty"`
-	Agents           []string                  `json:"agents,omitempty"`
-	ImportExport     []string                  `json:"importExport,omitempty"`
-}
-
-type ManifestSMSProvider struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
-}
-
-type ManifestPaymentProvider struct {
-	ID                  string                      `json:"id"`
-	Label               string                      `json:"label"`
-	Icon                string                      `json:"icon"`
-	CheckoutMode        string                      `json:"checkoutMode"`
-	ExpiryPolicy        ManifestPaymentExpiryPolicy `json:"expiryPolicy"`
-	IdentityFields      []string                    `json:"identityFields,omitempty"`
-	NotificationSuccess ManifestPaymentResponse     `json:"notificationSuccess,omitempty"`
-	NotificationFailure ManifestPaymentResponse     `json:"notificationFailure,omitempty"`
-	// Methods 是渠道内可选支付方式的目录（名称和图标）。MethodsField 指向保存已启用方式的配置字段，
-	// 值为逗号分隔的方式 ID，可写成 id:名称 增加目录外的方式；为空时目录中的方式全部启用。
-	Methods      []ManifestPaymentMethod `json:"methods,omitempty"`
-	MethodsField string                  `json:"methodsField,omitempty"`
-}
-
-type ManifestPaymentMethod struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
-	Icon  string `json:"icon,omitempty"`
-}
-
-type ManifestPaymentExpiryPolicy struct {
-	DefaultMinutes int `json:"defaultMinutes"`
-	MinMinutes     int `json:"minMinutes"`
-	MaxMinutes     int `json:"maxMinutes"`
-}
-
-type ManifestPaymentResponse struct {
-	Status      int    `json:"status,omitempty"`
-	ContentType string `json:"contentType,omitempty"`
-	Body        string `json:"body,omitempty"`
+	Providers      []ManifestProvider   `json:"providers,omitempty"`
+	Workflows      []ManifestWorkflow   `json:"workflows,omitempty"`
+	CanvasNodes    []ManifestCanvasNode `json:"canvasNodes,omitempty"`
+	Transforms     []ManifestTransform  `json:"transforms,omitempty"`
+	Commands       []ManifestCommand    `json:"commands,omitempty"`
+	AssetSources   []string             `json:"assetSources,omitempty"`
+	UsageObservers []string             `json:"usageObservers,omitempty"`
+	AICapabilities []string             `json:"aiCapabilities,omitempty"`
+	Agents         []string             `json:"agents,omitempty"`
+	ImportExport   []string             `json:"importExport,omitempty"`
 }
 
 type ManifestProvider struct {

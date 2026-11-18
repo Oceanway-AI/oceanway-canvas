@@ -2,9 +2,10 @@ import localforage from "localforage";
 import type { StateStorage } from "zustand/middleware";
 
 import { isUserScopedPersistenceSuppressed, scopedStorageKey } from "@/lib/user-scope";
+import { STUDIO_STORAGE_NAME } from "@/lib/studio-identity";
 
 localforage.config({
-    name: "yingce",
+    name: STUDIO_STORAGE_NAME,
     storeName: "app_state",
 });
 

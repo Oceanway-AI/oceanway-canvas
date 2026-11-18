@@ -2,29 +2,27 @@ package app
 
 import (
 	"context"
-	"crypto/sha256"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
-	"github.com/google/uuid"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/repository"
 )
 
 // NewStudio is the executable's constructor. Missing Platform configuration is
-// an initialization error; the upstream constructor remains for domain fixtures.
+// an initialization error.
 func NewStudio(repo *repository.Repository, dataDir string, gateway *platformintegration.Gateway) (*Service, error) {
 	if gateway == nil || gateway.Client == nil {
 		return nil, errors.New("Studio requires Platform configuration")
 	}
-	s := newService(repo, dataDir)
-	s.studioPlatform = gateway
-	return s, nil
+	if err := repo.RequireStudioSchema(); err != nil {
+		return nil, err
+	}
+	return newService(repo, dataDir, gateway), nil
 }
 
 func (s *Service) UsesPlatformIdentity() bool { return s.studioPlatform != nil }
@@ -43,6 +41,11 @@ func (s *Service) ValidateStudioRequest(r *http.Request) error {
 	if err := s.studioPlatform.ValidateInbound(r); err != nil {
 		return Forbidden("请求来源未经授权")
 	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions && r.Header.Get("X-Studio-Identity-Version") != "platform-id-v1" {
+		err := NewAppError(http.StatusConflict, "Studio 身份版本已更新，请刷新页面后重试")
+		err.Reason = "studio_identity_version_changed"
+		return err
+	}
 	return nil
 }
 
@@ -55,6 +58,15 @@ func (s *Service) StudioLoginURL(ctx context.Context) (string, error) {
 		return "", WrapAppError(503, "暂时无法登录，请稍后重试", err)
 	}
 	return target, nil
+}
+
+func (s *Service) ValidateStudioActor(user *model.User, actorID string) error {
+	if user == nil || !user.PlatformAuthenticated || actorID == "" || user.ID != actorID {
+		err := NewAppError(http.StatusConflict, "账号已切换，请刷新页面后重试")
+		err.Reason = "studio_actor_changed"
+		return err
+	}
+	return nil
 }
 
 func platformIdentityError(err error) error {
@@ -76,8 +88,7 @@ func platformIdentityError(err error) error {
 }
 
 func (s *Service) studioUserID(platformID int) string {
-	subject := s.studioPlatform.Origin() + "\n" + strconv.Itoa(platformID)
-	return uuid.NewSHA1(uuid.NameSpaceURL, []byte(subject)).String()
+	return strconv.Itoa(platformID)
 }
 
 func (s *Service) StudioCurrentUser(ctx context.Context, session platformclient.SessionContext) (*model.User, *platformclient.Response, error) {
@@ -94,25 +105,22 @@ func (s *Service) StudioCurrentUser(ctx context.Context, session platformclient.
 	if identity.User.ID <= 0 || identity.User.Status != 1 || identity.Session.SID == "" {
 		return nil, result.Response, Unauthorized("登录状态已失效")
 	}
-	subject := s.studioPlatform.Origin() + "\n" + strconv.Itoa(identity.User.ID)
-	id := s.studioUserID(identity.User.ID)
-	now := time.Now()
-	user, err := s.repo.WithContext(ctx).SyncPlatformUser(model.User{
-		ID: id, Username: "platform_" + id, DisplayName: identity.User.DisplayName, Email: identity.User.Email,
-		Role: model.UserRoleUser, Status: model.UserStatusActive, CreatedAt: now, UpdatedAt: now,
-	}, model.UserIdentity{ID: id, UserID: id, Provider: "oceanway-platform", Subject: fmt.Sprintf("%x", sha256.Sum256([]byte(subject))),
-		ProviderUsername: identity.User.Username, CreatedAt: now, UpdatedAt: now})
-	if err != nil {
-		return nil, result.Response, err
+	user := &model.User{
+		ID: s.studioUserID(identity.User.ID), Username: identity.User.Username,
+		DisplayName: identity.User.DisplayName, Email: identity.User.Email,
+		Status:                model.UserStatusActive,
+		PlatformAuthenticated: true, PlatformAvatarURL: identity.User.AvatarURL,
+		PlatformSessionID: identity.Session.SID,
 	}
-	// Role is derived from this response and is intentionally never persisted.
-	user.Username = identity.User.Username
-	user.PlatformAuthenticated = true
-	user.PlatformAvatarURL = identity.User.AvatarURL
-	user.PlatformSessionID = identity.Session.SID
+	// PLAT-02-010 delegates product roles to Studio. These permissions cover
+	// creative content only and never authorize Platform account or finance APIs.
 	for _, role := range identity.ProductRoles {
 		if role == "studio:admin" {
-			user.Role = model.UserRoleAdmin
+			user.StudioPermissions = []model.StudioPermission{
+				model.StudioManageCreativeContent,
+				model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills,
+			}
+			break
 		}
 	}
 	return user, result.Response, nil

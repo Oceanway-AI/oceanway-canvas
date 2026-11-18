@@ -48,25 +48,8 @@ describe("account storage meter", () => {
     });
 });
 
-describe("workspace sidebar storage meter", () => {
-    test("sits above the signed-in profile and shows used, remaining and total", () => {
-        const sidebar = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-sidebar-nav.tsx"), "utf8");
-        const meter = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-sidebar-storage-meter.tsx"), "utf8");
-        const css = readFileSync(resolve(import.meta.dir, "../src/styles/globals.css"), "utf8");
-
-        expect(sidebar).toContain("<WorkspaceSidebarStorageMeter collapsed={collapsed} />");
-        expect(sidebar.indexOf("WorkspaceSidebarStorageMeter")).toBeLessThan(sidebar.indexOf("app-workspace-sidebar-profile-row"));
-        expect(meter).toContain("HardDrive");
-        expect(meter).toContain("app-workspace-sidebar-storage-icon");
-        expect(meter).toContain('t("account.layout.storage.used", { size: meter.usedLabel })');
-        expect(accountZh.layout.storage.used).toBe("已用 {{size}}");
-        expect(meter).toContain('t("account.layout.storage.remaining", { size: meter.remainingLabel })');
-        expect(meter).toContain('t("account.layout.storage.total", { size: meter.totalLabel })');
-        expect(accountZh.layout.storage).toMatchObject({ remaining: "剩余 {{size}}", total: "共 {{size}}" });
-        expect(meter).toContain('to="/assets"');
-        expect(css).toContain(".app-workspace-sidebar-storage-icon");
-        expect(css).toMatch(/\.app-workspace-sidebar-storage-used\s*\{[^}]*font-variant-numeric:\s*tabular-nums/s);
-        expect(css).toContain(".app-workspace-sidebar-storage.is-warn");
-        expect(css).toContain(".app-workspace-sidebar-storage.is-critical");
-    });
+test("sidebar uses the Platform account controls", () => {
+    const sidebar = readFileSync(resolve(import.meta.dir, "../src/components/layout/workspace-sidebar-nav.tsx"), "utf8");
+    expect(sidebar).toContain("<StudioAccountBar");
+    expect(sidebar).not.toContain("WorkspaceSidebarStorageMeter");
 });

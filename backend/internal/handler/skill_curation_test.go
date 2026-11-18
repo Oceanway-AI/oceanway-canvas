@@ -1,45 +1,10 @@
 package handler
 
-import (
-	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-	"time"
-	"yingce/backend/internal/auth"
-	"yingce/backend/internal/model"
-	"yingce/backend/internal/repository"
-	"yingce/backend/internal/service"
-)
+import "testing"
 
 func TestSkillCurationHTTP(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB, _ := db.DB()
-	if err := db.AutoMigrate(&model.SkillCurationRoot{}, &model.SkillCurationRootAssignment{}); err != nil {
-		t.Fatal(err)
-	}
-	sqlDB.SetMaxOpenConns(1)
-	defer sqlDB.Close()
-	if err := db.AutoMigrate(&model.User{}, &model.AuthSession{}, &model.Skill{}, &model.SkillCurationSetting{}, &model.SkillCurationCategory{}, &model.SkillCurationAssignment{}, &model.AdminAuditEvent{}); err != nil {
-		t.Fatal(err)
-	}
-	db.Create(&model.SkillCurationSetting{ID: 1})
-	for _, role := range []model.UserRole{model.UserRoleAdmin, model.UserRoleUser} {
-		db.Create(&model.User{ID: string(role), Username: string(role), Role: role, Status: model.UserStatusActive})
-		db.Create(&model.AuthSession{ID: string(role), UserID: string(role), TokenHash: auth.HashToken("test-token"), ExpiresAt: time.Now().Add(time.Hour)})
-	}
-	router := gin.New()
-	svc := service.New(repository.New(db), t.TempDir())
-	api := router.Group("/api")
-	RegisterSkillRoutes(api, svc)
-	RegisterAdminSkillRoutes(api, svc)
+	f := newStudioFixture(t)
+	RegisterAdminSkillRoutes(f.router.Group("/api"), f.svc)
 	for _, tc := range []struct {
 		role, method, path, body string
 		status                   int
@@ -54,15 +19,11 @@ func TestSkillCurationHTTP(t *testing.T) {
 		{"admin", "PUT", "/api/admin/skill-curation", `{"expectedRevision":0,"enabled":true}`, 200},
 		{"admin", "PUT", "/api/admin/skill-curation", `{"expectedRevision":0,"enabled":false}`, 409},
 	} {
-		req := httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
-		req.Header.Set("Content-Type", "application/json")
+		f.admin = tc.role == "admin"
+		cookie := ""
 		if tc.role != "" {
-			req.AddCookie(&http.Cookie{Name: service.SessionCookieName, Value: tc.role + ".test-token"})
+			cookie = "platform_session=alice"
 		}
-		out := httptest.NewRecorder()
-		router.ServeHTTP(out, req)
-		if out.Code != tc.status {
-			t.Fatalf("%s %s %s: %d %s", tc.role, tc.method, tc.path, out.Code, out.Body.String())
-		}
+		f.request(t, tc.method, tc.path, cookie, tc.body, tc.status)
 	}
 }

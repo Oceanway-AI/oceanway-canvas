@@ -1,7 +1,8 @@
+import { STUDIO_STORAGE_NAME } from "../src/lib/studio-identity";
 import { expect, test } from "bun:test";
 import { apiClient } from "../src/services/api/request";
 import { uploadResourceFile, clearResourceAccessCache } from "../src/services/api/resources";
-import { getActiveUserScope, setActiveUserScope } from "../src/lib/user-scope";
+import { ACTIVE_USER_SCOPE_KEY, getActiveUserScope, setActiveUserScope } from "../src/lib/user-scope";
 
 test("a reopened upload keeps confirmed parts and renews the original session for the same account", async () => {
     const adapter = apiClient.defaults.adapter;
@@ -52,7 +53,7 @@ test("a reopened upload keeps confirmed parts and renews the original session fo
         }) as typeof fetch;
         const meta = { fileName: "resume.txt", idempotencyKey: "canvas:project-a:node-a" };
         await expect(uploadResourceFile(new Blob(["abcdef"]), "file", meta)).rejects.toThrow();
-        const checkpoints = [...values.entries()].filter(([key]) => key !== "yingce:active-user-scope");
+        const checkpoints = [...values.entries()].filter(([key]) => key !== ACTIVE_USER_SCOPE_KEY);
         expect(checkpoints).toHaveLength(1);
         expect(checkpoints[0][1]).toContain("etag-1");
         expect(checkpoints[0][1]).not.toContain("ephemeral");
@@ -68,7 +69,7 @@ test("a reopened upload keeps confirmed parts and renews the original session fo
         expect((await uploadResourceFile(new Blob(["abcdef"]), "file", meta)).id).toBe("resume_resource");
         expect(puts).toEqual(["1", "2", "2"]);
         expect(calls.filter((call) => call === "post /resources/platform-uploads")).toHaveLength(1);
-        const readyCheckpoint = [...values.entries()].find(([key]) => key.startsWith("studio-material-upload:"));
+        const readyCheckpoint = [...values.entries()].find(([key]) => key.startsWith(`${STUDIO_STORAGE_NAME}:studio-material-upload:`));
         expect(JSON.parse(readyCheckpoint![1]).parts).toEqual([]);
         const beforeConflict = calls.length;
         await expect(uploadResourceFile(new Blob(["abcdefg"]), "file", meta)).rejects.toThrow("原上传");

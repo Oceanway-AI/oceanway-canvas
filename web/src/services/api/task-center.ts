@@ -11,7 +11,6 @@ import { submitPlatformTask, studioGenerationCommandWasSent } from "@/services/p
 export type { BackendEnvelope } from "@/services/api/request";
 
 export type TaskStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
-export type TaskBillingStatus = "reserved" | "running" | "settled" | "refunded" | "uncertain";
 export type ProviderCancelStatus = "requested" | "confirmed" | "uncertain";
 export type GenerationTaskResultState = "NOT_AVAILABLE" | "PENDING_MATERIALIZATION" | "MATERIALIZING" | "READY" | "FAILED_RETRYABLE" | "FAILED_PERMANENT";
 export type GenerationTaskOutput = {
@@ -73,16 +72,12 @@ export type GenerationTask = {
     completedAt?: string;
     createdAt: string;
     updatedAt: string;
-    /** 计费摘要：冻结额与实收分列，只有已结算订单才有 chargedMicrocredits。 */
-    billing?: {
-        /** 下单时的冻结额（预授权），不是实际扣费；与 reservedMicrocredits 相同。 */
-        amountMicrocredits: number;
-        reservedMicrocredits: number;
-        /** 已结算（settled）时的实收，已扣除差额退回；其余状态不返回。 */
-        chargedMicrocredits?: number;
-        /** 已退回金额：结算时的差额退回，或失败后整笔退回。 */
-        refundedMicrocredits: number;
-        status: TaskBillingStatus;
+    /** Original Platform receipt. Decimal points remain strings. */
+    platformBilling?: {
+        fundsState: string;
+        settledPoints?: string;
+        stateAvailable: boolean;
+        summary: string;
     };
     clientContext?: {
         conversationId?: string;
@@ -101,13 +96,6 @@ export type GenerationTask = {
     };
     created_at?: string;
     updated_at?: string;
-};
-
-export type ProviderTaskQueryResult = {
-    task: GenerationTask;
-    providerStatus: string;
-    recovered: boolean;
-    billingSettled: boolean;
 };
 
 export type TaskTextDelta = {
@@ -430,13 +418,8 @@ export function cancelGenerationTask(id: string) {
     return http.post<GenerationTask>(`/tasks/${encodeURIComponent(id)}/cancel`).then((task) => {
         observeGenerationTaskStatus(task);
         window.dispatchEvent(new CustomEvent("canvas:task-cancelled", { detail: { task } }));
-        window.dispatchEvent(new CustomEvent("wallet:updated"));
         return task;
     });
-}
-
-export function queryFailedVideoProviderTask(id: string) {
-    return http.post<ProviderTaskQueryResult>(`/tasks/${encodeURIComponent(id)}/query-provider`);
 }
 
 export function refreshGenerationTaskStatus(id: string, options?: { signal?: AbortSignal }) {
@@ -559,11 +542,9 @@ export async function waitForGenerationTask(id: string, options?: WaitForGenerat
                 continue;
             }
             if (task.status === "succeeded") {
-                window.dispatchEvent(new CustomEvent("wallet:updated"));
                 return task;
             }
             if (task.status === "failed" || task.status === "cancelled") {
-                window.dispatchEvent(new CustomEvent("wallet:updated"));
                 throw terminalTaskError(task);
             }
             await delay(task.platformGenerationRequest ? task.retryAfterMs || intervalMs : intervalMs, options?.signal);
@@ -658,7 +639,6 @@ async function waitForGenerationTaskTextEvents(id: string, options: WaitForGener
             if (terminalReceived) {
                 const completed = await queryGenerationTask(id, { signal: options.signal });
                 options.onTaskUpdate?.(completed);
-                window.dispatchEvent(new CustomEvent("wallet:updated"));
                 if (completed.status === "succeeded") return completed;
                 if (completed.status === "failed" || completed.status === "cancelled") throw terminalTaskError(completed);
             }

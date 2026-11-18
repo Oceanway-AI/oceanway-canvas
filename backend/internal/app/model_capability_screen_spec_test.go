@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"yingce/backend/internal/model"
 	"yingce/backend/internal/protocol"
 )
 
@@ -172,97 +171,6 @@ func TestAutoDLScreenSpecSubmissionUsesSameValueAsValidation(t *testing.T) {
 		applyAutoDLVideoScreenSpec(&input, profile.Video)
 		if validateVideoTask(profile.Video, input) == nil {
 			t.Fatal("accepted an undeclared explicit request value")
-		}
-	}
-}
-
-func TestAutoDLScreenSpecSystemSaveCatalogAndExecutionIgnoreClientOverride(t *testing.T) {
-	svc, db := newChannelModelTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin}
-	channel := model.ModelChannel{ID: "autodl", UserID: admin.ID, Scope: model.ChannelScopeSystem, Enabled: true, Name: "AutoDL", BaseURL: "https://autodl.art", APIKey: "test", ModelsJSON: `[]`}
-	if err := db.Create(&channel).Error; err != nil {
-		t.Fatal(err)
-	}
-	enabled := true
-	priceTiers := make([]ChannelModelPriceTierRequest, 0, 6)
-	for _, resolution := range autoDLProfile(t, false).Video.Resolutions {
-		sale, cost := int64(6), int64(3)
-		if resolution[:4] == "768p" {
-			sale, cost = 8, 4
-		}
-		priceTiers = append(priceTiers, ChannelModelPriceTierRequest{Resolution: resolution, BillingMode: "per_second", UnitPriceMicrocredits: sale * CreditScale, CostPricing: model.CreditCostPricing{Configured: true, UnitPriceMicrocredits: cost * CreditScale}, PriceConfigured: true, Enabled: &enabled})
-	}
-	for _, subset := range []bool{true, false} {
-		profile := autoDLProfile(t, subset)
-		id := ""
-		if item, err := svc.repo.ChannelModelByKey(channel.ID, "minimax_h3_zm_u24"); err == nil {
-			id = item.ID
-		}
-		saved, err := svc.SaveAdminChannelModel(admin, channel.ID, id, ChannelModelRequest{
-			ModelKey: "minimax_h3_zm_u24", ProviderModelKey: "minimax_h3_zm_u24", Capability: "video", Protocol: "autodl-comfyui", CapabilityConfig: profile, Enabled: &enabled,
-			PriceTiers: priceTiers,
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		public, err := svc.sanitizeChannelModel(saved)
-		if err != nil {
-			t.Fatal(err)
-		}
-		catalogSpec, err := channelModelCapabilitySpec(*saved)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, exists := catalogSpec.Options["size"]; exists {
-			t.Fatal("catalog exposes an unsupported independent ratio")
-		}
-		if len(catalogSpec.Options["vquality"].Values) != len(profile.Video.Resolutions) {
-			t.Fatalf("catalog choices ignored the selected list: %#v", catalogSpec)
-		}
-		for _, tier := range saved.PriceTiers {
-			if !containsCapabilityString(profile.Video.Resolutions, tier.Resolution) {
-				continue
-			}
-			priceInput := map[string]any{"mode": "video", "prompt": "test", "config": map[string]any{"channelId": channel.ID, "channelModelKey": saved.ModelKey, "model": saved.ModelKey, "vquality": tier.Resolution, "videoSeconds": "6"}}
-			priced, err := svc.resolveSystemChannelModelSelection(testGroupAccess(svc), priceInput, "canvas_video", "text_to_video")
-			if err != nil {
-				t.Fatal(err)
-			}
-			config := priced["config"].(map[string]any)
-			if config["priceTierId"] != tier.ID || config["vquality"] != tier.Resolution || tier.BillingMode != "per_second" || tier.UnitPriceMicrocredits != tier.CostPricing.UnitPriceMicrocredits*2 {
-				t.Fatalf("resolution and price diverged: %#v, %#v", config, tier)
-			}
-		}
-		data, _ := json.Marshal(public.CapabilityConfig)
-		catalog, err := DecodeModelCapabilityConfig(string(data))
-		if err != nil || catalog.Video.DefaultResolution != profile.Video.DefaultResolution {
-			t.Fatalf("catalog = %s, err = %v", data, err)
-		}
-		input := map[string]any{"mode": "video", "prompt": "test", "config": map[string]any{"channelId": channel.ID, "channelModelKey": saved.ModelKey, "model": saved.ModelKey, "interfaceType": "autodl-comfyui", "vquality": "auto", "size": "16:9", "videoSeconds": "6", "capabilityConfig": autoDLProfile(t, !subset)}}
-		resolved, err := svc.resolveSystemChannelModelSelection(testGroupAccess(svc), input, "canvas_video", "text_to_video")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := svc.ValidateTaskCapability(resolved); err != nil {
-			t.Fatal(err)
-		}
-		encoded, _ := json.Marshal(resolved)
-		var execution canvasGenerationInput
-		if err := json.Unmarshal(encoded, &execution); err != nil {
-			t.Fatal(err)
-		}
-		if err := svc.validateResolvedVideoCapability(&execution); err != nil {
-			t.Fatal(err)
-		}
-		if execution.Config.VQuality != catalog.Video.DefaultResolution || execution.Config.Size != "" || !reflect.DeepEqual(execution.VideoCapability.Resolutions, catalog.Video.Resolutions) {
-			t.Fatalf("catalog and execution mismatch: %#v, %#v", catalog.Video, execution.Config)
-		}
-		if subset {
-			rejected := map[string]any{"mode": "video", "prompt": "test", "config": map[string]any{"channelId": channel.ID, "model": saved.ModelKey, "vquality": "768p竖", "videoSeconds": "6"}}
-			resolved, err = svc.resolveSystemChannelModelSelection(testGroupAccess(svc), rejected, "canvas_video", "text_to_video")
-			if err == nil && svc.ValidateTaskCapability(resolved) == nil {
-				t.Fatal("unselected preset bypassed saved capability restrictions")
-			}
 		}
 	}
 }

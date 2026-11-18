@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
+	"yingce/backend/internal/testdb"
 )
 
 // approvalFollowUpFixture 准备一轮停在审批上的画布写入：模型请求把节点改名，等待用户批准。
@@ -17,7 +17,7 @@ import (
 func approvalFollowUpFixture(t *testing.T) (*Service, string, string) {
 	t.Helper()
 	db := agentPermissionsDB(t)
-	if err := db.AutoMigrate(database.Models()...); err != nil {
+	if err := db.AutoMigrate(testdb.DomainModels()...); err != nil {
 		t.Fatal(err)
 	}
 	s := &Service{repo: repository.New(db), dataDir: t.TempDir(), disablePiRuntime: true}
@@ -32,7 +32,7 @@ func approvalFollowUpFixture(t *testing.T) (*Service, string, string) {
 	}
 	profile := mustEncodeModelCapabilityConfig(t, DefaultModelCapabilityConfigForModel("chat-completion", "text-test"))
 	for _, row := range []any{
-		&model.User{ID: "user", Username: "user", Role: model.UserRoleUser, Status: model.UserStatusActive},
+		&model.User{ID: "user", Username: "user", Status: model.UserStatusActive},
 		&model.CanvasProject{ID: "agent-canvas", UserID: "user", PayloadJSON: string(raw)},
 		&model.ModelChannel{ID: "channel", Scope: model.ChannelScopeSystem, Name: "测试", Enabled: true},
 		&model.ChannelModel{ID: "cm", ChannelID: "channel", ModelKey: "text-test", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: profile, BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true},

@@ -5,13 +5,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"yingce/backend/internal/model"
 	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/service"
 )
 
-// RegisterStudioAPI is the production surface during the staged replacement.
-// A domain is added here only when its Platform boundary is implemented. The
-// upstream RegisterCanvasAPI remains available to existing domain test fixtures.
+// RegisterStudioAPI exposes domains with a verified Platform boundary.
 func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 	if !svc.UsesPlatformIdentity() {
 		return errors.New("Studio API requires Platform identity")
@@ -23,10 +22,6 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 			return
 		}
 		c.Next()
-	})
-	api.GET("/auth/settings", func(c *gin.Context) {
-		c.Header("Cache-Control", "no-store")
-		ok(c, gin.H{"provider": "platform", "loginMode": "page", "registrationEnabled": false, "firstUser": false})
 	})
 	api.GET("/auth/login-url", func(c *gin.Context) {
 		c.Header("Cache-Control", "no-store")
@@ -88,9 +83,13 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 			failService(c, err)
 			return
 		}
-		ok(c, gin.H{"user": user, "provider": "platform", "consoleURL": svc.StudioConsoleURL(), "hasPassword": false, "emailEnabled": false, "linuxdoEnabled": false})
+		ok(c, gin.H{"user": studioUserProfile(user), "provider": "platform", "consoleURL": svc.StudioConsoleURL()})
 	})
 	api.POST("/auth/logout", func(c *gin.Context) {
+		if _, err := currentUser(c, svc); err != nil {
+			failService(c, err)
+			return
+		}
 		response, err := svc.StudioLogout(c.Request.Context(), platformintegration.Session(c.Request))
 		if response != nil {
 			response.AppendCookies(c.Writer.Header())
@@ -138,7 +137,7 @@ func RegisterStudioAPI(api *gin.RouterGroup, svc *service.Service) error {
 			failService(c, err)
 			return
 		}
-		ok(c, gin.H{"user": user, "provider": "platform", "runtimeLimits": limits, "drawingEngine": drawing, "features": features, "referralAvailable": false})
+		ok(c, gin.H{"user": studioUserProfile(user), "provider": "platform", "runtimeLimits": limits, "drawingEngine": drawing, "features": features})
 	}
 	api.GET("/auth/session", sessionHandler)
 	api.POST("/auth/session", sessionHandler)
@@ -217,4 +216,12 @@ func studioFeatures(svc *service.Service) (*service.PublicFeatureAvailability, e
 
 func StudioUnavailableRoute(c *gin.Context) {
 	failService(c, service.NewAppError(http.StatusNotImplemented, "此功能暂不可用"))
+}
+
+func studioUserProfile(user *model.User) gin.H {
+	return gin.H{
+		"id": user.ID, "username": user.Username, "displayName": user.DisplayName,
+		"email": user.Email, "avatarUrl": user.PlatformAvatarURL, "status": user.Status,
+		"studioPermissions": user.StudioPermissions,
+	}
 }

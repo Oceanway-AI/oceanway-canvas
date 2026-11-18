@@ -6,7 +6,7 @@ import { useNavigate } from "react-router";
 
 import { translate } from "@/i18n";
 import { accountFileStorageUsageQueryKey } from "@/lib/account-storage-usage";
-import { openStoragePurchase, STORAGE_LIMIT_REASONS } from "@/lib/workspace-storage";
+import { openStorageSettings, STORAGE_LIMIT_REASONS } from "@/lib/workspace-storage";
 import { apiClient } from "@/services/api/request";
 
 const NOTICE_KEY = "workspace-storage-limit";
@@ -51,10 +51,10 @@ export function WorkspaceStorageLimitNotice() {
                                     type="primary"
                                     onClick={() => {
                                         notification.destroy(NOTICE_KEY);
-                                        openStoragePurchase();
+                                        openStorageSettings();
                                     }}
                                 >
-                                    {translate("account.layout.storageNotice.buy")}
+                                    管理素材空间
                                 </Button>
                             </span>
                         ),

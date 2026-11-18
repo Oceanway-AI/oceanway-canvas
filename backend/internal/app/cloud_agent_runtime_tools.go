@@ -606,8 +606,7 @@ func (s *Service) advanceCloudAgentTool(run *model.CloudAgentExecution, state *c
 		}
 	}
 	// Service-backed reads may open resources or use domain repositories.
-	// Read before the checkpoint transaction to avoid nested DB reads on SQLite
-	// and holding the write transaction open during storage IO.
+	// Read before the checkpoint transaction to keep storage IO outside its locks.
 	var skillResult any
 	var skillErr error
 	if allowed && toolPolicy.OutsideTransaction {

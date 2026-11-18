@@ -6,24 +6,22 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"yingce/backend/internal/model"
 )
 
 func TestCloudAgentConversationAdmissionAcrossConnections(t *testing.T) {
-	for _, driver := range []string{"sqlite", "postgres"} {
+	for _, driver := range []string{"postgres"} {
 		for _, billed := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/billed=%t", driver, billed), func(t *testing.T) {
 				config := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
-				var dialector gorm.Dialector = sqlite.Open(filepath.Join(t.TempDir(), "conversation.db") + "?_journal_mode=WAL&_busy_timeout=5000")
+				var dialector gorm.Dialector
 				if driver == "postgres" {
 					dsn := os.Getenv("CANVAS_TEST_POSTGRES_DSN")
 					if dsn == "" {

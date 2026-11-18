@@ -6,16 +6,16 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func newAssetLibraryTestRepository(t *testing.T) (*Repository, *gorm.DB) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:asset-library-test-%d?mode=memory&cache=shared", time.Now().UnixNano())), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

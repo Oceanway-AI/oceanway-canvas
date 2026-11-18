@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"yingce/backend/internal/model"
 )
@@ -13,7 +13,7 @@ import (
 func TestStudioExecutionFencesDispatchAndStop(t *testing.T) {
 	for _, submitted := range []bool{false, true} {
 		t.Run(map[bool]string{false: "stop-before-send", true: "recover-after-send"}[submitted], func(t *testing.T) {
-			db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+			db, err := testdb.Open(t, &gorm.Config{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -77,7 +77,7 @@ func TestStudioExecutionFencesDispatchAndStop(t *testing.T) {
 }
 
 func TestStudioMediaReceiptRefreshFencesStalePolls(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

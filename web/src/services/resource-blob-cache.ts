@@ -1,6 +1,7 @@
 import localforage from "localforage";
 
 import { getActiveUserScope } from "@/lib/user-scope";
+import { STUDIO_STORAGE_NAME } from "@/lib/studio-identity";
 import { getResourceBlob, resourceIdFromStorageKey } from "@/services/api/resources";
 
 type ResourceCacheMeta = {
@@ -13,8 +14,8 @@ type ResourceCacheMeta = {
     lastAccessedAt: number;
 };
 
-const blobStore = localforage.createInstance({ name: "yingce", storeName: "resource_blobs" });
-const metaStore = localforage.createInstance({ name: "yingce", storeName: "resource_blob_meta" });
+const blobStore = localforage.createInstance({ name: STUDIO_STORAGE_NAME, storeName: "resource_blobs" });
+const metaStore = localforage.createInstance({ name: STUDIO_STORAGE_NAME, storeName: "resource_blob_meta" });
 const objectUrls = new Map<string, string>();
 const sessionBlobs = new Map<string, Blob>();
 const blobInFlight = new Map<string, Promise<Blob | null>>();

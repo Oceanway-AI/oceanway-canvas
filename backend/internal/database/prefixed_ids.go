@@ -16,7 +16,7 @@ import (
 
 // prefixedIDDefinition is the single source of truth for the readable IDs that
 // are allocated from id_sequences. The business table is used to reconcile a
-// sequence after a SQLite -> PostgreSQL copy or an interrupted write.
+// sequence after imported records or an interrupted write.
 type prefixedIDDefinition struct {
 	prefix string
 	model  any
@@ -171,9 +171,9 @@ func ensureSequenceRow(tx *gorm.DB, prefix string) error {
 
 func lockedSequence(tx *gorm.DB, prefix string) (model.IDSequence, error) {
 	query := tx.Model(&model.IDSequence{}).Where("name = ?", "id:"+prefix)
-	if tx.Dialector.Name() == "postgres" {
-		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
-	}
+
+	query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+
 	var item model.IDSequence
 	if err := query.First(&item).Error; err != nil {
 		return model.IDSequence{}, err

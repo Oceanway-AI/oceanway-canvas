@@ -6,11 +6,8 @@ import { imagePresetForRatio } from "../src/lib/image-size-presets";
 import { imageParameterConstraints, imageParameterRequest, initializeImageRatioDefaults, normalizeImageParameters, projectImageParameters, updateImageParameterSchema, updateImageParameterSize, type ImageParameter } from "../src/lib/image-parameters";
 import { defaultImageCapabilityConfig } from "../src/lib/model-capabilities";
 import { projectLogicalCapability } from "../src/lib/user-session";
-import { capabilitySpecFromChannelModel, mergeCapabilitySpecs, normalizeCapabilitySpecForSources } from "../src/pages/admin/logical-models/model-routing-capabilities";
-import { defaultPriceTier, skuSelectorFromForm } from "../src/pages/admin/components/channel-model-price-tier-form";
 import { prepareBackendGenerationTask } from "../src/services/api/generation-task";
 import { defaultConfig, createModelChannel, encodeChannelModel } from "../src/stores/use-config-store";
-import type { ChannelModel } from "../src/services/api/wallet";
 import { specFromConfig, generationSpecMetadata, synchronizeGenerationSpec } from "../src/lib/canvas/generation-contract";
 import type { CanvasNodeData } from "../src/types/canvas";
 
@@ -21,7 +18,7 @@ const parameters: ImageParameter[] = [
 ];
 function fixture(fields = parameters) {
     const image = projectImageParameters(defaultImageCapabilityConfig(), fields);
-    const spec = capabilitySpecFromChannelModel({ capability: "image", capabilityConfig: { version: 1, image } } as ChannelModel)!;
+    const spec = { version: 1 as const, capability: "image" as const, imageParameters: image.parameters, options: imageParameterConstraints(image.parameters || []) };
     const channel = createModelChannel({
         id: "test",
         models: ["opaque-model"],
@@ -181,28 +178,11 @@ describe("plugin image parameters across model configuration and generation", ()
     });
     test("an arbitrary plugin field crosses channel, logical model and frontend projection", () => {
         const { spec } = fixture();
-        const merged = mergeCapabilitySpecs("image", [spec]);
-        const image = projectLogicalCapability(merged, {}).image!;
+        const image = projectLogicalCapability(spec, {}).image!;
         expect(image.parameters?.map((p) => p.name)).toEqual(parameters.map((p) => p.name));
         expect(image.quality.supported).toBe(false);
         expect(image.resolution.values).toEqual(["small", "large"]);
         expect(imageParameterConstraints(image.parameters!).creativeAmount).toEqual({ min: 0, max: 200, step: 1 });
-    });
-    test("channel changes remove stale quality; explicit frontend restrictions remain disabled", () => {
-        const { spec } = fixture();
-        const old = { version: 1 as const, capability: "image" as const, options: { quality: { values: ["2k"] } } };
-        const next = normalizeCapabilitySpecForSources(old, [spec])!;
-        expect(next.options?.quality).toBeUndefined();
-        expect(next.options?.creativeAmount).toBeDefined();
-        const disabled = { ...next, options: { imageResolution: next.options!.imageResolution } };
-        expect(normalizeCapabilitySpecForSources(disabled, [spec])?.options?.creativeAmount).toBeUndefined();
-        const withNew = { ...spec, imageParameters: [...spec.imageParameters!, { name: "newField", label: "New", type: "boolean" as const }], options: { ...spec.options, newField: { values: [false, true] } } };
-        expect(normalizeCapabilitySpecForSources(disabled, [withNew])?.options?.newField).toBeDefined();
-    });
-    test("only pricing declarations can enter price selectors", () => {
-        const { image } = fixture();
-        const tier = { ...defaultPriceTier("advanced"), imageSelector: { imageResolution: "large", creativeAmount: "100", rawMode: "true", quality: "4k" } };
-        expect(skuSelectorFromForm("image", tier, { version: 1, image })).toEqual({ imageResolution: "large" });
     });
     test("zero and false persist while unsupported fields do not cross model switches", () => {
         const { image, config } = fixture();

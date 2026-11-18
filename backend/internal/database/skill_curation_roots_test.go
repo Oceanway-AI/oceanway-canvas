@@ -1,15 +1,16 @@
 package database
 
 import (
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"path/filepath"
+	"yingce/backend/internal/testdb"
+
 	"testing"
 	"yingce/backend/internal/model"
+
+	"gorm.io/gorm"
 )
 
 func TestSkillCurationRootsMigration(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "roots.db")), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,14 +41,5 @@ func TestSkillCurationRootsMigration(t *testing.T) {
 	db.First(&category, "id = ?", "old")
 	if category.RootTag != "drama" {
 		t.Fatal("migration changed U39 categories")
-	}
-	found := false
-	for _, m := range schemaMigrations {
-		if m.version == 47 {
-			found = m.name == "skill_curation_roots" && m.checksum == "sha256:skill-curation-roots-v47-20261005"
-		}
-	}
-	if !found {
-		t.Fatal("migration 47 is not registered")
 	}
 }

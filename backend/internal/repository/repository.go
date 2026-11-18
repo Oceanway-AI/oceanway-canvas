@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -35,6 +34,7 @@ var ErrCanvasRevisionConflict = errors.New("画布已被更新，请刷新后重
 
 type Repository struct {
 	db                   *gorm.DB
+	studioSchema         bool
 	canvasEditProofs     []model.CanvasEditProof
 	canvasChangeNotifier func(string, string)
 	canvasChanges        map[canvasChange]struct{}
@@ -54,6 +54,17 @@ func New(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
+func NewStudio(db *gorm.DB) *Repository {
+	return &Repository{db: db, studioSchema: true}
+}
+
+func (r *Repository) RequireStudioSchema() error {
+	if !r.studioSchema {
+		return errors.New("Studio requires its creative repository")
+	}
+	return database.RequireStudioSchemaVersion(r.db)
+}
+
 func (r *Repository) WithContext(ctx context.Context) *Repository {
 	copy := *r
 	copy.db = r.db.WithContext(ctx)
@@ -65,7 +76,7 @@ func (r *Repository) WithContext(ctx context.Context) *Repository {
 func (r *Repository) Transaction(fn func(*Repository) error) error {
 	changes := make(map[canvasChange]struct{})
 	err := r.db.Transaction(func(tx *gorm.DB) error {
-		return fn(&Repository{db: tx, canvasEditProofs: r.canvasEditProofs, canvasChangeNotifier: r.canvasChangeNotifier, canvasChanges: changes})
+		return fn(&Repository{db: tx, studioSchema: r.studioSchema, canvasEditProofs: r.canvasEditProofs, canvasChangeNotifier: r.canvasChangeNotifier, canvasChanges: changes})
 	})
 	if err == nil {
 		for change := range changes {
@@ -96,21 +107,18 @@ func (r *Repository) UserStorageUsage(userID string) (UserStorageUsage, error) {
 	query := `
 		SELECT
 			(SELECT COUNT(*) FROM assets WHERE user_id = ?) AS asset_count,
-			(SELECT COALESCE(SUM(length(CAST(COALESCE(payload_json, '') AS BLOB))), 0) FROM assets WHERE user_id = ?) AS asset_bytes,
+			(SELECT COALESCE(SUM(octet_length(COALESCE(payload_json, ''))), 0) FROM assets WHERE user_id = ?) AS asset_bytes,
 			(SELECT COUNT(*) FROM canvas_projects WHERE user_id = ?) AS canvas_count,
-			(SELECT COALESCE(SUM(length(CAST(COALESCE(payload_json, '') AS BLOB))), 0) FROM canvas_projects WHERE user_id = ?) AS canvas_bytes,
+			(SELECT COALESCE(SUM(octet_length(COALESCE(payload_json, ''))), 0) FROM canvas_projects WHERE user_id = ?) AS canvas_bytes,
 			(SELECT COUNT(*) FROM tasks WHERE user_id = ?) AS task_count,
-			(SELECT COALESCE(SUM(length(CAST(COALESCE(prompt, '') AS BLOB)) + length(CAST(COALESCE(input_json, '') AS BLOB)) + length(CAST(COALESCE(result_json, '') AS BLOB)) + length(CAST(COALESCE(media_recovery_json, '') AS BLOB)) + length(CAST(COALESCE(text_draft, '') AS BLOB)) + length(CAST(COALESCE(error, '') AS BLOB))), 0) FROM tasks WHERE user_id = ?)
-			+ (SELECT COALESCE(SUM(length(CAST(COALESCE(message, '') AS BLOB)) + length(CAST(COALESCE(payload, '') AS BLOB))), 0) FROM task_logs WHERE user_id = ?)
-			+ (SELECT COALESCE(SUM(length(CAST(COALESCE(url, '') AS BLOB)) + length(CAST(COALESCE(payload, '') AS BLOB))), 0) FROM results WHERE user_id = ?)
+			(SELECT COALESCE(SUM(octet_length(COALESCE(prompt, '')) + octet_length(COALESCE(input_json, '')) + octet_length(COALESCE(result_json, '')) + octet_length(COALESCE(media_recovery_json, '')) + octet_length(COALESCE(text_draft, '')) + octet_length(COALESCE(error, ''))), 0) FROM tasks WHERE user_id = ?)
+			+ (SELECT COALESCE(SUM(octet_length(COALESCE(message, '')) + octet_length(COALESCE(payload, ''))), 0) FROM task_logs WHERE user_id = ?)
+			+ (SELECT COALESCE(SUM(octet_length(COALESCE(url, '')) + octet_length(COALESCE(payload, ''))), 0) FROM results WHERE user_id = ?)
 			+ (SELECT COALESCE(SUM(byte_count), 0) FROM task_text_delta WHERE user_id = ?)
-			+ (SELECT COALESCE(SUM(length(CAST(COALESCE(path, '') AS BLOB)) + length(CAST(COALESCE(model, '') AS BLOB)) + length(CAST(COALESCE(provider_request_id, '') AS BLOB)) + length(CAST(COALESCE(error_code, '') AS BLOB)) + length(CAST(COALESCE(error, '') AS BLOB)) + length(CAST(COALESCE(upstream_url, '') AS BLOB)) + length(CAST(COALESCE(request_body, '') AS BLOB)) + length(CAST(COALESCE(response_body, '') AS BLOB))), 0) FROM api_call_logs WHERE user_id = ?) AS task_bytes,
+			+ (SELECT COALESCE(SUM(octet_length(COALESCE(path, '')) + octet_length(COALESCE(model, '')) + octet_length(COALESCE(provider_request_id, '')) + octet_length(COALESCE(error_code, '')) + octet_length(COALESCE(error, '')) + octet_length(COALESCE(upstream_url, '')) + octet_length(COALESCE(request_body, '')) + octet_length(COALESCE(response_body, ''))), 0) FROM api_call_logs WHERE user_id = ?) AS task_bytes,
 			(SELECT COUNT(*) FROM api_call_logs WHERE user_id = ?) AS api_call_count
 	`
-	if r.Dialect() == "postgres" {
-		query = strings.ReplaceAll(query, "length(CAST(COALESCE(", "octet_length(COALESCE(")
-		query = strings.ReplaceAll(query, ", '') AS BLOB))", ", ''))")
-	}
+
 	err := r.db.Raw(query, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID).Scan(&usage).Error
 	return usage, err
 }
@@ -123,14 +131,11 @@ func (r *Repository) UserStructuredStorageUsage(userID string) (UserStorageUsage
 	query := `
 		SELECT
 			(SELECT COUNT(*) FROM assets WHERE user_id = ?) AS asset_count,
-			(SELECT COALESCE(SUM(length(CAST(COALESCE(payload_json, '') AS BLOB))), 0) FROM assets WHERE user_id = ?) AS asset_bytes,
+			(SELECT COALESCE(SUM(octet_length(COALESCE(payload_json, ''))), 0) FROM assets WHERE user_id = ?) AS asset_bytes,
 			(SELECT COUNT(*) FROM canvas_projects WHERE user_id = ?) AS canvas_count,
-			(SELECT COALESCE(SUM(length(CAST(COALESCE(payload_json, '') AS BLOB))), 0) FROM canvas_projects WHERE user_id = ?) AS canvas_bytes
+			(SELECT COALESCE(SUM(octet_length(COALESCE(payload_json, ''))), 0) FROM canvas_projects WHERE user_id = ?) AS canvas_bytes
 	`
-	if r.Dialect() == "postgres" {
-		query = strings.ReplaceAll(query, "length(CAST(COALESCE(", "octet_length(COALESCE(")
-		query = strings.ReplaceAll(query, ", '') AS BLOB))", ", ''))")
-	}
+
 	err := r.db.Raw(query, userID, userID, userID, userID).Scan(&usage).Error
 	return usage, err
 }
@@ -167,21 +172,6 @@ func (r *Repository) CleanupDuplicateTaskPayloads() error {
 		}
 		return nil
 	})
-}
-
-func (r *Repository) BackupSQLite(path string) error {
-	if r.Dialect() != "sqlite" {
-		return errors.New("当前数据库不是 SQLite，不能执行 SQLite 备份")
-	}
-	escaped := strings.ReplaceAll(path, "'", "''")
-	return r.db.Exec("VACUUM INTO '" + escaped + "'").Error
-}
-
-func (r *Repository) Vacuum() error {
-	if r.Dialect() != "sqlite" {
-		return nil
-	}
-	return r.db.Exec("VACUUM").Error
 }
 
 // Delete 是低层兼容入口；删除业务数据应使用带用户/项目作用域和关联清理的显式方法。

@@ -4,7 +4,6 @@ package repository
 
 import (
 	"strings"
-	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -27,48 +26,6 @@ func (r *Repository) HistoricalSystemChannelReferences() ([]model.ModelChannel, 
 	return channels, err
 }
 
-// CatalogProviderChannelCounts 统计每个目录服务商已接入的系统渠道数量。
-func (r *Repository) CatalogProviderChannelCounts() (map[string]int64, error) {
-	var rows []struct {
-		CatalogProviderID string
-		Count             int64
-	}
-	if err := r.db.Model(&model.ModelChannel{}).
-		Select("catalog_provider_id, count(*) as count").
-		Where("scope = ? AND catalog_provider_id <> ''", model.ChannelScopeSystem).
-		Group("catalog_provider_id").
-		Scan(&rows).Error; err != nil {
-		return nil, err
-	}
-	result := make(map[string]int64, len(rows))
-	for _, row := range rows {
-		result[row.CatalogProviderID] = row.Count
-	}
-	return result, nil
-}
-
-func (r *Repository) AdminSystemChannels(keyword string, status string, limit int, offset int) ([]model.ModelChannel, int64, error) {
-	var channels []model.ModelChannel
-	var total int64
-	query := r.db.Model(&model.ModelChannel{}).Where("scope = ?", model.ChannelScopeSystem)
-	if value := strings.TrimSpace(keyword); value != "" {
-		pattern := "%" + strings.ToLower(value) + "%"
-		query = query.Where("lower(name) LIKE ? OR lower(base_url) LIKE ?", pattern, pattern)
-	}
-	if status == "enabled" {
-		query = query.Where("enabled = ?", true)
-	} else if status == "disabled" {
-		query = query.Where("enabled = ?", false)
-	}
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	if err := query.Order("sort_order asc, created_at asc, id asc").Limit(limit).Offset(offset).Find(&channels).Error; err != nil {
-		return nil, 0, err
-	}
-	return channels, total, nil
-}
-
 func (r *Repository) AdminSystemChannelReferences() ([]model.ModelChannel, error) {
 	var channels []model.ModelChannel
 	err := r.db.Select("id", "name", "enabled").Where("scope = ?", model.ChannelScopeSystem).Order("created_at asc").Find(&channels).Error
@@ -89,28 +46,6 @@ func (r *Repository) AdminSystemChannel(id string) (*model.ModelChannel, error) 
 		return nil, err
 	}
 	return &channel, nil
-}
-
-func (r *Repository) DeleteSystemChannel(id string) error {
-	now := time.Now()
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		channelResult := tx.Model(&model.ModelChannel{}).
-			Where("id = ? AND scope = ?", id, model.ChannelScopeSystem).
-			Updates(map[string]any{"api_key": "", "secret_key": "", "enabled": false, "updated_at": now})
-		if channelResult.Error != nil {
-			return channelResult.Error
-		}
-		if channelResult.RowsAffected != 1 {
-			return gorm.ErrRecordNotFound
-		}
-		if err := tx.Model(&model.ChannelModel{}).Where("channel_id = ?", id).Updates(map[string]any{"enabled": false, "updated_at": now}).Error; err != nil {
-			return err
-		}
-		if err := tx.Where("channel_id = ?", id).Delete(&model.ChannelModel{}).Error; err != nil {
-			return err
-		}
-		return tx.Where("id = ? AND scope = ?", id, model.ChannelScopeSystem).Delete(&model.ModelChannel{}).Error
-	})
 }
 
 func (r *Repository) ApiCallLogs(userID string, admin bool, limit int) ([]model.ApiCallLog, error) {

@@ -13,14 +13,7 @@ var ErrUploadSessionLimit = errors.New("同时进行中的上传过多，请稍�
 var ErrUploadReservationExpired = errors.New("上传会话不存在或已过期，请重新导入")
 
 func lockUploadStorage(tx *gorm.DB, userID string) error {
-	switch tx.Dialector.Name() {
-	case "postgres":
-		return tx.Exec("SELECT pg_advisory_xact_lock(hashtext(?)::bigint)", "upload-storage:"+userID).Error
-	case "sqlite":
-		return tx.Exec("UPDATE upload_reservations SET size = size WHERE 1 = 0").Error
-	default:
-		return gorm.ErrInvalidData
-	}
+	return tx.Exec("SELECT pg_advisory_xact_lock(hashtext(?)::bigint)", "upload-storage:"+userID).Error
 }
 
 func (r *Repository) ReserveUploadSession(reservation *model.UploadReservation, dailyLimit, storedLimit int64, sessionLimit int) error {

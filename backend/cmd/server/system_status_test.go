@@ -4,24 +4,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"yingce/backend/internal/database"
-	"yingce/backend/internal/repository"
-	"yingce/backend/internal/service"
+	"yingce/backend/internal/testdb"
 
 	"github.com/gin-gonic/gin"
 )
 
 func TestSystemReadinessTracksStartupAndDrain(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := database.Open(database.Config{Driver: "sqlite", DSN: "file:system-status?mode=memory&cache=shared"})
+	db, err := testdb.Open(t)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := database.MigrateSchema(db); err != nil {
-		t.Fatal(err)
-	}
-	svc := service.New(repository.New(db), t.TempDir())
+	svc := newStudioTestService(t, db)
 	status := newSystemStatus(db, svc)
 	router := gin.New()
 	registerSystemStatusRoutes(router.Group("/api"), status)
@@ -37,11 +31,14 @@ func TestSystemReadinessTracksStartupAndDrain(t *testing.T) {
 
 func TestSystemReadinessRejectsMissingSchemaVersion(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := database.Open(database.Config{Driver: "sqlite", DSN: "file:system-status-schema?mode=memory&cache=shared"})
+	db, err := testdb.Open(t)
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc := service.New(repository.New(db), t.TempDir())
+	svc := newStudioTestService(t, db)
+	if err := db.Exec("DROP TABLE schema_migrations").Error; err != nil {
+		t.Fatal(err)
+	}
 	status := newSystemStatus(db, svc)
 	status.markStarted()
 	router := gin.New()

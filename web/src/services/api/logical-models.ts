@@ -1,7 +1,23 @@
 import { http } from "@/services/api/request";
 import type { ModelTag } from "@/lib/model-tags";
 import type { ImageResolutionOption } from "@/lib/image-resolution-tiers";
-import type { TokenPriceRule } from "@/services/api/wallet";
+export type TokenPriceRule = {
+    enabled: boolean;
+    /** 1 = 周一 … 7 = 周日。 */
+    weekdays: number[];
+    /** HH:MM，含。 */
+    start: string;
+    /** HH:MM，不含；24:00 表示当天结束。 */
+    end: string;
+    /** 输入上下文下限（含）。 */
+    minInputTokens: number;
+    /** 输入上下文上限（不含），0 表示不限。 */
+    maxInputTokens: number;
+    inputTokenPriceMicrocredits: number;
+    outputTokenPriceMicrocredits: number;
+    cachedTokenPriceMicrocredits: number;
+    cacheWriteTokenPriceMicrocredits: number;
+};
 
 export type InputConstraint = { min: number; max: number };
 export type OptionConstraint = { values?: unknown[]; min?: number; max?: number; step?: number };

@@ -3,7 +3,6 @@ package repository
 import (
 	"encoding/json"
 	"errors"
-	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -19,12 +18,9 @@ func (r *Repository) CreationStorageUsage(userID string) (int64, int64, error) {
 		Bytes int64
 	}
 	query := `SELECT (SELECT COUNT(*) FROM creation_runs WHERE user_id = ?) AS count,
-	(SELECT COALESCE(SUM(length(CAST(COALESCE(state_json,'') AS BLOB))+length(CAST(COALESCE(approved_operations_json,'') AS BLOB))+length(CAST(COALESCE(approved_canvas_json,'') AS BLOB))),0) FROM creation_runs WHERE user_id = ?)
-	+ (SELECT COALESCE(SUM(length(CAST(COALESCE(request_json,'') AS BLOB))+length(CAST(COALESCE(quote_json,'') AS BLOB))+length(CAST(COALESCE(price_signature,'') AS BLOB))),0) FROM creation_submissions WHERE user_id = ?) AS bytes`
-	if r.Dialect() == "postgres" {
-		query = strings.ReplaceAll(query, "length(CAST(COALESCE(", "octet_length(COALESCE(")
-		query = strings.ReplaceAll(query, ",'') AS BLOB))", ",''))")
-	}
+	(SELECT COALESCE(SUM(octet_length(COALESCE(state_json,''))+octet_length(COALESCE(approved_operations_json,''))+octet_length(COALESCE(approved_canvas_json,''))),0) FROM creation_runs WHERE user_id = ?)
+	+ (SELECT COALESCE(SUM(octet_length(COALESCE(request_json,''))+octet_length(COALESCE(quote_json,''))+octet_length(COALESCE(price_signature,''))),0) FROM creation_submissions WHERE user_id = ?) AS bytes`
+
 	err := r.db.Raw(query, userID, userID, userID).Scan(&usage).Error
 	return usage.Count, usage.Bytes, err
 }
@@ -66,7 +62,7 @@ func (r *Repository) CreateCreationRun(run *model.CreationRun) error {
 	return nil
 }
 
-// A conditional write obtains the run row's write lock in both SQLite and PostgreSQL.
+// A conditional write obtains the run row's write lock in PostgreSQL.
 // All submission consumption and task reservation use the returned transaction repository.
 func (r *Repository) MutateCreationRun(userID, id string, fn func(*model.CreationRun, *Repository) error) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {

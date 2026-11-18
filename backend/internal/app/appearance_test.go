@@ -13,12 +13,11 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"yingce/backend/internal/testdb"
 
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -41,7 +40,7 @@ func TestAppearanceDefaultsPreserveBuiltInBrand(t *testing.T) {
 	if appearance.ActiveSkin.Tokens.Light.SwitchChecked == appearance.ActiveSkin.Tokens.Light.SwitchUnchecked || appearance.ActiveSkin.Tokens.Dark.SwitchChecked == appearance.ActiveSkin.Tokens.Dark.SwitchUnchecked || appearance.ActiveSkin.Tokens.Light.DangerForeground == "" {
 		t.Fatalf("Appearance() state colors = %#v", appearance.ActiveSkin.Tokens)
 	}
-	adminAppearance, err := svc.AdminAppearance(&model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive})
+	adminAppearance, err := svc.AdminAppearance(&model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -555,14 +554,14 @@ func writeAppearanceResourceFixtures(t *testing.T, dataDir string, resources []m
 
 func newAppearanceTestService(t *testing.T) (*Service, *gorm.DB, string, *model.User) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := database.MigrateSchema(db); err != nil {
+	if err := testdb.MigrateDomainSchema(db); err != nil {
 		t.Fatal(err)
 	}
-	admin := &model.User{ID: "appearance-admin", Username: "appearance-admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "appearance-admin", Username: "appearance-admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if err := db.Create(admin).Error; err != nil {
 		t.Fatal(err)
 	}

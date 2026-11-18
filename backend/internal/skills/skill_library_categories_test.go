@@ -3,21 +3,21 @@ package skills
 import (
 	"errors"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/kernel"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 func TestSkillLibraryCategoriesVisibilityAssignmentAndDelete(t *testing.T) {
 	svc, db := newSkillLibraryCategoryTestService(t)
-	user := &model.User{ID: "user-1", Role: model.UserRoleUser}
-	otherUser := &model.User{ID: "user-2", Role: model.UserRoleUser}
-	admin := &model.User{ID: "admin-1", Role: model.UserRoleAdmin}
+	user := &model.User{ID: "user-1"}
+	otherUser := &model.User{ID: "user-2"}
+	admin := &model.User{ID: "101", PlatformAuthenticated: true, PlatformSessionID: "test", Status: model.UserStatusActive, StudioPermissions: []model.StudioPermission{model.StudioManageSkillCategories}}
 
 	personal, err := svc.CreateSkillLibraryCategory(user, SkillLibraryCategoryMutationRequest{Name: "  Writer\tRoom  "})
 	if err != nil {
@@ -174,7 +174,7 @@ func TestSkillLibraryCategoriesVisibilityAssignmentAndDelete(t *testing.T) {
 
 func newSkillLibraryCategoryTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:"+kernel.NewID()+"?mode=memory&cache=shared"), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := testdb.Open(t, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +183,7 @@ func newSkillLibraryCategoryTestService(t *testing.T) (*Service, *gorm.DB) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := db.AutoMigrate(&model.SkillLibraryCategory{}, &model.UserSkillState{}, &model.Skill{}, &model.User{}, &model.UserIdentity{}); err != nil {
+	if err := db.AutoMigrate(&model.SkillLibraryCategory{}, &model.UserSkillState{}, &model.Skill{}, &model.User{}); err != nil {
 		t.Fatal(err)
 	}
 	return New(repository.New(db), t.TempDir(), nil), db

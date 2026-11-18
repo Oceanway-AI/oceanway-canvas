@@ -2,22 +2,21 @@ package app
 
 import (
 	"encoding/json"
-	"path/filepath"
 	"sync"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func creationTestService(t *testing.T) (*Service, *gorm.DB, string, CreationGuard) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "creation.db")+"?_journal_mode=WAL&_busy_timeout=5000"), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := testdb.Open(t, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +29,7 @@ func creationTestServiceOnDatabase(t *testing.T, db *gorm.DB) (*Service, *gorm.D
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = db.AutoMigrate(database.Models()...); err != nil {
+	if err = db.AutoMigrate(testdb.DomainModels()...); err != nil {
 		t.Fatal(err)
 	}
 	s := &Service{
@@ -44,7 +43,7 @@ func creationTestServiceOnDatabase(t *testing.T, db *gorm.DB) (*Service, *gorm.D
 		_ = sqlDB.Close()
 	})
 	capabilityConfig := mustEncodeModelCapabilityConfig(t, DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceChatCompletion), "text-test"))
-	for _, item := range []any{&model.User{ID: "user", Username: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}, &model.ModelChannel{ID: "channel", Scope: model.ChannelScopeSystem, Enabled: true, Name: "受控测试"}, &model.ChannelModel{ID: "cm", ChannelID: "channel", ModelKey: "text-test", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: capabilityConfig, BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true}, &model.ChannelModelPriceTier{ID: "tier", ChannelModelID: "cm", SelectorKey: "{}", SelectorJSON: "{}", BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true}, &model.CreditAccount{UserID: "user", AvailableMicrocredits: 10000}} {
+	for _, item := range []any{&model.User{ID: "user", Username: "user", Status: model.UserStatusActive}, &model.ModelChannel{ID: "channel", Scope: model.ChannelScopeSystem, Enabled: true, Name: "受控测试"}, &model.ChannelModel{ID: "cm", ChannelID: "channel", ModelKey: "text-test", Capability: "text", Protocol: model.ChannelInterfaceChatCompletion, CapabilityConfigJSON: capabilityConfig, BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true}, &model.ChannelModelPriceTier{ID: "tier", ChannelModelID: "cm", SelectorKey: "{}", SelectorJSON: "{}", BillingMode: "fixed_request", UnitPriceMicrocredits: 100, PriceConfigured: true, Enabled: true}, &model.CreditAccount{UserID: "user", AvailableMicrocredits: 10000}} {
 		if err = db.Create(item).Error; err != nil {
 			t.Fatal(err)
 		}

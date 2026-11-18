@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"github.com/redis/go-redis/v9"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,14 +12,13 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platform"
 	"yingce/backend/internal/repository"
 
-	"github.com/redis/go-redis/v9"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -38,7 +38,7 @@ func TestAdminAgentStatusExplainsDeploymentHardCap(t *testing.T) {
 
 func TestAdminSystemPerformanceRequiresAdmin(t *testing.T) {
 	svc := &Service{}
-	user := &model.User{ID: "user-1", Role: model.UserRoleUser}
+	user := &model.User{ID: "user-1"}
 
 	if _, err := svc.AdminSystemPerformance(context.Background(), user); authStatus(err) != 403 {
 		t.Fatalf("AdminSystemPerformance() error = %#v, want 403", err)
@@ -51,9 +51,9 @@ func TestAdminSystemPerformanceRequiresAdmin(t *testing.T) {
 	}
 }
 
-func TestAdminSystemPerformanceReportsSQLiteWithoutRedis(t *testing.T) {
+func TestAdminSystemPerformanceReportsPostgres(t *testing.T) {
 	svc, db := newSystemPerformanceTestService(t)
-	admin := &model.User{ID: "admin-1", Role: model.UserRoleAdmin}
+	admin := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	result, err := svc.AdminSystemPerformance(context.Background(), admin)
 	if err != nil {
@@ -62,13 +62,13 @@ func TestAdminSystemPerformanceReportsSQLiteWithoutRedis(t *testing.T) {
 	if result.Status != "healthy" {
 		t.Fatalf("status = %q, want healthy", result.Status)
 	}
-	if result.Database.Driver != "sqlite" || !result.Database.Connected || result.Database.Postgres != nil {
+	if result.Database.Driver != "postgres" || !result.Database.Connected || result.Database.Postgres == nil {
 		t.Fatalf("database = %#v", result.Database)
 	}
 	if result.Database.DatabaseBytes <= 0 {
 		t.Fatalf("database bytes = %d, want > 0", result.Database.DatabaseBytes)
 	}
-	if result.Database.Schema.Expected != database.CurrentSchemaVersion {
+	if result.Database.Schema.Expected != database.CurrentStudioSchemaVersion {
 		t.Fatalf("schema = %#v", result.Database.Schema)
 	}
 	if result.Redis.Configured || result.Redis.Connected || result.Redis.Mode != "local" {
@@ -95,7 +95,7 @@ func TestAdminSystemPerformanceReportsSQLiteWithoutRedis(t *testing.T) {
 
 func TestClearAdminRuntimeCacheRejectsUnknownScopeAndAuditsLocalClear(t *testing.T) {
 	svc, db := newSystemPerformanceTestService(t)
-	admin := &model.User{ID: "admin-1", Role: model.UserRoleAdmin}
+	admin := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if ok, err := svc.coordinator.Allow(context.Background(), "user-1", 10, time.Hour); err != nil || !ok {
 		t.Fatalf("seed local rate cache: ok=%v err=%v", ok, err)
 	}
@@ -144,7 +144,7 @@ func TestClearAdminRuntimeCacheUsesRedisWhitelist(t *testing.T) {
 	client := startSystemPerformanceRedis(t)
 	svc, db := newSystemPerformanceTestService(t)
 	svc.coordinator = platform.NewCoordinatorWithRedis(client, "system-performance-test")
-	admin := &model.User{ID: "admin-redis", Role: model.UserRoleAdmin}
+	admin := &model.User{ID: "admin-redis", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -195,7 +195,7 @@ func TestClearAdminRuntimeCacheUsesRedisWhitelist(t *testing.T) {
 func newSystemPerformanceTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
 	dataDir := t.TempDir()
-	db, err := gorm.Open(sqlite.Open(filepath.Join(dataDir, "system-performance.db")), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

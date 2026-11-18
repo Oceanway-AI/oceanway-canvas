@@ -2,17 +2,16 @@ package app
 
 import (
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/protocol"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func TestApplicationPluginUsesUserStateUnderPlatformAvailability(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,8 +23,8 @@ func TestApplicationPluginUsesUserStateUnderPlatformAvailability(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := &Service{repo: repository.New(db), pluginRuntime: center}
-	user := &model.User{ID: "user-1", Role: model.UserRoleUser}
-	admin := &model.User{ID: "admin-1", Role: model.UserRoleAdmin}
+	user := &model.User{ID: "user-1"}
+	admin := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	states, err := svc.PluginStatesForUser(user)
 	if err != nil {
@@ -71,22 +70,6 @@ func TestUploadedManifestCannotClaimUserActivationScope(t *testing.T) {
 	}
 }
 
-func TestPaymentContributionInfersPaymentManagementKind(t *testing.T) {
-	plugin := PluginView{
-		Source: PluginOriginOfficial,
-		Manifest: PluginManifestView{
-			ID: "official-payment-xunhupay",
-			Contributes: protocol.ManifestContributions{PaymentProviders: []protocol.ManifestPaymentProvider{{
-				ID: "xunhupay-aggregate", Label: "虎皮椒聚合支付", Icon: "assets/icon.svg", CheckoutMode: "qr_code",
-			}}},
-		},
-	}
-	policy := pluginManagementFromView(plugin)
-	if policy.Kind != PluginKindPayment || policy.Origin != PluginOriginOfficial || policy.ActivationScope != PluginScopeSystem {
-		t.Fatalf("inferred payment policy = %#v", policy)
-	}
-}
-
 func TestArtCritiqueIsUserToggleableApplication(t *testing.T) {
 	policy := pluginManagement(PluginAIArtCritique, "bundled")
 	if policy.Origin != PluginOriginOfficial || policy.Kind != PluginKindApplication || policy.ActivationScope != PluginScopeUser || policy.ConfigurationScope != PluginConfigurationNone {
@@ -105,7 +88,7 @@ func TestEditorShellIsUserToggleableApplication(t *testing.T) {
 }
 
 func TestEditorShellReportsPlatformAvailableWithoutPlatformState(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +100,7 @@ func TestEditorShellReportsPlatformAvailableWithoutPlatformState(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := &Service{repo: repository.New(db), pluginRuntime: center}
-	user := &model.User{ID: "user-1", Role: model.UserRoleUser}
+	user := &model.User{ID: "user-1"}
 
 	states, err := svc.PluginStatesForUser(user)
 	if err != nil {

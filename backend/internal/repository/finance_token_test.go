@@ -4,10 +4,10 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -26,7 +26,7 @@ func TestTokenUsageAmountSettlesArkVideoCompletionTokens(t *testing.T) {
 }
 
 func TestBillingUsageReadsAsyncVideoPollUsage(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:finance-token-poll?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestTokenUsageAmountRejectsVideoWithoutOutputUsage(t *testing.T) {
 }
 
 func TestSettleArkVideoTokenOrderFromPollUsage(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:finance-token-settle?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestSettleArkVideoTokenOrderFromPollUsage(t *testing.T) {
 }
 
 func TestSettleArkVideoTokenOrderSupplementsUnderreservation(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:finance-token-supplement?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestSettleArkVideoTokenOrderSupplementsUnderreservation(t *testing.T) {
 }
 
 func TestSettleAgentTokenOrderCapsChargeAtQuotedLimit(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:finance-token-agent-cap?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestSettleAgentTokenOrderCapsChargeAtQuotedLimit(t *testing.T) {
 }
 
 func TestSettleArkVideoTokenOrderAllowsNegativeBalance(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:finance-token-negative-balance?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -264,8 +264,8 @@ func TestSettleArkVideoTokenOrderAllowsNegativeBalance(t *testing.T) {
 	}
 }
 
-func TestNegativeBalanceBlocksNewReservationsAndAcceptsRepayment(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:finance-negative-balance-repayment?mode=memory&cache=shared"), &gorm.Config{})
+func TestNegativeBalanceBlocksNewReservations(t *testing.T) {
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -285,11 +285,4 @@ func TestNegativeBalanceBlocksNewReservationsAndAcceptsRepayment(t *testing.T) {
 		t.Fatalf("ReserveBillingOrder() error = %v", err)
 	}
 
-	account, err := repo.AdjustCredits("user-1", "admin-1", 100_000_000, "充值入账")
-	if err != nil {
-		t.Fatalf("AdjustCredits() error = %v", err)
-	}
-	if account.AvailableMicrocredits != 99_000_000 {
-		t.Fatalf("available balance = %d", account.AvailableMicrocredits)
-	}
 }

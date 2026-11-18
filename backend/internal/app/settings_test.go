@@ -2,16 +2,16 @@ package app
 
 import (
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func TestMissingOSSSettingsReturnNormalizedDefaults(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,7 +19,7 @@ func TestMissingOSSSettingsReturnNormalizedDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := New(repository.New(db), t.TempDir())
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	platformSetting, err := svc.AdminOSSSetting(admin)
 	if err != nil {

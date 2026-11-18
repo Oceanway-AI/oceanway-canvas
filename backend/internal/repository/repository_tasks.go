@@ -49,7 +49,7 @@ func (r *Repository) ActiveTaskCountForProjectIDs(userID string, projectIDs []st
 	return count, err
 }
 
-// 任务领取以数据库租约为真相；PostgreSQL 锁行跳过竞争任务，SQLite 继续依赖条件更新保证单实例原子性。
+// 任务领取以数据库租约为真相，PostgreSQL 锁行跳过竞争任务，条件更新校验租约状态。
 func (r *Repository) ClaimNextTask(owner string, leaseDuration time.Duration) (*model.Task, error) {
 	var task model.Task
 	now := time.Now()
@@ -57,9 +57,9 @@ func (r *Repository) ClaimNextTask(owner string, leaseDuration time.Duration) (*
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		query := tx.Where("(status = ? OR (status = ? AND (lease_expires_at IS NULL OR lease_expires_at <= ?))) AND (next_poll_at IS NULL OR next_poll_at <= ?)", model.TaskStatusQueued, model.TaskStatusRunning, now, now).
 			Where("platform_generation_request = ''").Order("created_at asc").Limit(1)
-		if r.Dialect() == "postgres" {
-			query = query.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
-		}
+
+		query = query.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
+
 		result := query.Find(&task)
 		if result.Error != nil {
 			return result.Error
@@ -69,9 +69,7 @@ func (r *Repository) ClaimNextTask(owner string, leaseDuration time.Duration) (*
 			return nil
 		}
 		claim := tx.Model(&model.Task{}).Where("id = ?", task.ID)
-		if r.Dialect() != "postgres" {
-			claim = claim.Where("(status = ? OR (status = ? AND (lease_expires_at IS NULL OR lease_expires_at <= ?))) AND (next_poll_at IS NULL OR next_poll_at <= ?)", model.TaskStatusQueued, model.TaskStatusRunning, now, now)
-		}
+
 		updated := claim.
 			Updates(map[string]any{
 				"status": model.TaskStatusRunning,
@@ -351,9 +349,9 @@ func (r *Repository) ClaimNextTaskProviderCancellation(owner string, leaseDurati
 			"status = ? AND provider_cancel_status = ? AND (provider_cancel_next_check_at IS NULL OR provider_cancel_next_check_at <= ?) AND (lease_expires_at IS NULL OR lease_expires_at <= ?)",
 			model.TaskStatusCancelled, model.ProviderCancelStatusRequested, now, now,
 		).Order("provider_cancel_requested_at asc").Limit(1)
-		if r.Dialect() == "postgres" {
-			query = query.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
-		}
+
+		query = query.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
+
 		if result := query.Find(&task); result.Error != nil || result.RowsAffected == 0 {
 			task = model.Task{}
 			return result.Error
@@ -405,11 +403,9 @@ func (r *Repository) TasksWithWorkbenchKind(userID string, limit int, projectID 
 	}
 	if workbenchKind != "" {
 		taskType := "canvas_" + workbenchKind
-		if r.db.Dialector.Name() == "postgres" {
-			query = query.Where("(workbench_kind = ? AND type = ?) OR (type = ? AND input_json::jsonb -> 'metadata' ->> 'source' = ? AND input_json::jsonb -> 'metadata' ->> 'workbenchKind' = ?)", workbenchKind, taskType, taskType, "workbench", workbenchKind)
-		} else {
-			query = query.Where("(workbench_kind = ? AND type = ?) OR (type = ? AND json_extract(input_json, '$.metadata.source') = ? AND json_extract(input_json, '$.metadata.workbenchKind') = ?)", workbenchKind, taskType, taskType, "workbench", workbenchKind)
-		}
+
+		query = query.Where("(workbench_kind = ? AND type = ?) OR (type = ? AND input_json::jsonb -> 'metadata' ->> 'source' = ? AND input_json::jsonb -> 'metadata' ->> 'workbenchKind' = ?)", workbenchKind, taskType, taskType, "workbench", workbenchKind)
+
 	}
 	err := query.Order("created_at desc").Limit(limit).Find(&tasks).Error
 	return tasks, err

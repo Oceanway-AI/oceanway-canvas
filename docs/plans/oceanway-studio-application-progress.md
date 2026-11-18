@@ -1,5 +1,11 @@
 # Studio 应用侧并行实施进度
 
+## 2026-11-18 平台生态融合与 PostgreSQL 基线
+
+本批执行中央 Docs 的 FS-STUDIO-001 v1.2 与 WP-STUDIO-020。代码从 `63f35e9be548ed7ca4a2839147d636992929cca5` 接续，SDK 为 `platformclient v1.0.0-rc.5`。开发、测试、Compose 与安装配置统一要求 PostgreSQL + Redis。Studio 请求直接使用稳定 Platform 用户 ID，运行基线退出旧账号和商业表，清理入口先释放引用及执行授权再重建 schema。
+
+已退出旧认证／短信／支付装配、钱包／充值／订阅／后台页面及若干配置管理服务。任务中心和 Pi 使用 Platform 原资金回执，金额保持精确字符串。E3 仍需清理保留创作源码中耦合的本地账务、渠道分组和 OSS 配置分支，E6 仍需自有制品及实际容器环境验收。完整结果、源码摘要和命令记录见 `docs/verification/platform-ecosystem-20261118/`，工作包保持 doing。
+
 2026-11-11 接续：当前分支 `codex/studio-native-parameter-bindings-20261111` 从 `73c77c7` 固定正式 SDK rc.7，完成 Gateway 原生 profile、动态参数、普通生成/Agent 冻结请求、固定 Resource 转画布及 Platform poster 接入。本地免费三型号联合浏览器验收、刷新恢复与专项检查通过；本批不推送应用或部署。具体范围、失败记录和未覆盖项见 [rc.7 联调记录](../verification/studio-native-rc7-20261111/README.md)。下文为原应用批次记录，旧 SDK/运行状态不代表本次源码。
 
 ## 2026-11-09 模型供给最终候选接收

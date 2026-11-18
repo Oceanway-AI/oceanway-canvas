@@ -2,7 +2,8 @@ import { appURL } from "./app-path";
 export type SettingsSection = "profile" | "channels" | "models" | "preferences" | "prompts" | "storage";
 
 export function settingsPath(section?: SettingsSection, continueCreation = false) {
-    const params = new URLSearchParams({ section: section ?? (continueCreation ? "channels" : "profile") });
+    const requested = section ?? (continueCreation ? "models" : "profile");
+    const params = new URLSearchParams({ section: requested === "channels" ? "models" : requested });
     if (continueCreation) params.set("continue", "1");
     return `/settings?${params.toString()}`;
 }

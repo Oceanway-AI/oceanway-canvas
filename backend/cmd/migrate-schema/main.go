@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,6 +10,8 @@ import (
 
 	"yingce/backend/internal/canvas"
 	"yingce/backend/internal/database"
+	"yingce/backend/internal/platformintegration"
+	"yingce/backend/internal/service"
 )
 
 func main() {
@@ -17,18 +20,18 @@ func main() {
 		command = strings.ToLower(strings.TrimSpace(os.Args[1]))
 	}
 	apply := false
-	if command == "repair-asset-bytes" || command == "repair-canvas-resources" {
+	if command == "repair-asset-bytes" || command == "repair-canvas-resources" || command == "reset-studio" {
 		if len(os.Args) == 3 && os.Args[2] == "--apply" {
 			apply = true
 		} else if len(os.Args) > 2 {
 			log.Fatalf("用法：migrate-schema %s [--apply]；默认只检查", command)
 		}
 	}
-	if command == "repair-canvas-resources" && strings.TrimSpace(os.Getenv("CANVAS_BACKEND_DATA_DIR")) == "" && strings.TrimSpace(os.Getenv("DATABASE_URL")) == "" {
-		log.Fatal("资源修复必须显式设置 CANVAS_BACKEND_DATA_DIR 或 DATABASE_URL；拒绝使用默认数据库")
+	if strings.TrimSpace(os.Getenv("DATABASE_URL")) == "" {
+		log.Fatal("必须显式设置 PostgreSQL DATABASE_URL")
 	}
 	db, err := database.Open(database.Config{
-		Driver:  env("CANVAS_DATABASE_DRIVER", "sqlite"),
+		Driver:  env("CANVAS_DATABASE_DRIVER", "postgres"),
 		DSN:     os.Getenv("DATABASE_URL"),
 		DataDir: env("CANVAS_BACKEND_DATA_DIR", "data"),
 	})
@@ -45,8 +48,26 @@ func main() {
 	defer sqlDB.Close()
 
 	switch command {
+	case "reset-studio":
+		var gateway *platformintegration.Gateway
+		if apply {
+			gateway, err = platformintegration.NewGatewayFromEnv(os.Getenv)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		report, resetErr := service.ResetStudioDatabase(context.Background(), db, os.Getenv("CANVAS_BACKEND_DATA_DIR"), gateway, apply)
+		encoded, err := json.Marshal(report)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(string(encoded))
+		if resetErr != nil {
+			log.Fatal(resetErr)
+		}
+		return
 	case "repair-canvas-resources":
-		if err := database.RequireSchemaVersion(db); err != nil {
+		if err := database.RequireStudioSchemaVersion(db); err != nil {
 			log.Fatal(err)
 		}
 		report, repairErr := canvas.RepairCanvasResources(db, apply)
@@ -77,18 +98,18 @@ func main() {
 		}
 		return
 	case "up":
-		if err := database.MigrateSchema(db); err != nil {
+		if err := database.MigrateStudioSchema(db); err != nil {
 			log.Fatal(err)
 		}
 	case "status":
 	case "verify":
-		if err := database.RequireSchemaVersion(db); err != nil {
+		if err := database.RequireStudioSchemaVersion(db); err != nil {
 			log.Fatal(err)
 		}
 	default:
-		log.Fatalf("未知命令 %q；可用命令：up、status、verify、repair-asset-bytes、repair-canvas-resources", command)
+		log.Fatalf("未知命令 %q；可用命令：up、status、verify、reset-studio、repair-asset-bytes、repair-canvas-resources", command)
 	}
-	status, err := database.ReadSchemaStatus(db)
+	status, err := database.ReadStudioSchemaStatus(db)
 	if err != nil {
 		log.Fatal(err)
 	}

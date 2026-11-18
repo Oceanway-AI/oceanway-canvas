@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platform"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"yingce/backend/internal/repository"
 )
@@ -64,7 +64,7 @@ func TestTaskExecutionTimeoutPrefersAgentStepSeconds(t *testing.T) {
 
 // 单步边界必须真的来自策略：管理端改完，运行期下一步就用新值，不需要重发本轮。
 func TestCloudAgentStepLimitsFollowAdminPolicy(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestCloudAgentStepLimitsFollowAdminPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := New(repository.New(db), t.TempDir())
-	actor := &model.User{ID: "admin", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	defaults, err := svc.cloudAgentStepLimits()
 	if err != nil {
@@ -142,7 +142,7 @@ func TestRuntimePolicyRejectsOutOfRangeAgentStepLimits(t *testing.T) {
 
 // 旧配置 JSON 没有这两个字段时按默认值回填：不需要数据迁移。
 func TestRuntimePolicyBackfillsAgentStepLimitsForLegacyJSON(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,10 +3,10 @@ package canvas
 import (
 	"encoding/json"
 	"errors"
-	"gorm.io/driver/sqlite"
+	"yingce/backend/internal/testdb"
+
 	"gorm.io/gorm"
 	"net/http"
-	"path/filepath"
 	"testing"
 	"yingce/backend/internal/repository"
 
@@ -64,7 +64,7 @@ func TestCanvasSaveRevisionContract(t *testing.T) {
 
 func newCanvasHistoryTestService(t *testing.T) *Service {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "canvas.db")), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

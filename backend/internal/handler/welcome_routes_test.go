@@ -7,31 +7,16 @@ import (
 	"testing"
 
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/repository"
-	"yingce/backend/internal/service"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 func TestWelcomeAvailabilityPublicRoute(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB, err := db.DB()
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB.SetMaxOpenConns(1)
-	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := db.AutoMigrate(&model.SystemSetting{}); err != nil {
-		t.Fatal(err)
-	}
+	f := newStudioFixture(t)
+	db := f.db
 	router := gin.New()
-	RegisterFeatureAvailabilityRoutes(router.Group("/api"), service.New(repository.New(db), t.TempDir()))
+	RegisterFeatureAvailabilityRoutes(router.Group("/api"), f.svc)
 	for _, enabled := range []bool{true, false, true} {
 		payload, _ := json.Marshal(map[string]bool{"welcomeEnabled": enabled})
 		if err := db.Save(&model.SystemSetting{Key: "feature_availability", ValueJSON: string(payload)}).Error; err != nil {

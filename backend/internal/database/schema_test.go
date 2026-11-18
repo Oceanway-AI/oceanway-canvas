@@ -1,8 +1,6 @@
 package database
 
 import (
-	"fmt"
-	"strings"
 	"sync"
 	"testing"
 
@@ -37,35 +35,11 @@ func TestAssetIDColumnsUseSharedLimit(t *testing.T) {
 	}
 }
 
-func TestPostgresAssetIDMigrationsCoverEveryAssetIDColumn(t *testing.T) {
-	want := map[string]bool{
-		"assets.id":                                  false,
-		"project_asset_links.asset_id":               false,
-		"project_asset_candidates.resolved_asset_id": false,
-		"asset_versions.asset_id":                    false,
-	}
-	for _, migration := range assetIDColumnMigrations {
-		key := migration.table + "." + migration.column
-		if _, exists := want[key]; !exists {
-			t.Fatalf("unexpected asset ID migration %s", key)
-		}
-		if !strings.Contains(migration.statement, fmt.Sprintf("varchar(%d)", model.AssetIDMaxLength)) {
-			t.Fatalf("asset ID migration %s does not use limit %d", key, model.AssetIDMaxLength)
-		}
-		want[key] = true
-	}
-	for key, covered := range want {
-		if !covered {
-			t.Fatalf("missing asset ID migration %s", key)
-		}
-	}
-}
-
 func TestModelsIncludeCloudAgentCanvasMutation(t *testing.T) {
-	for _, item := range Models() {
+	for _, item := range StudioModels() {
 		if _, ok := item.(*model.CloudAgentCanvasMutation); ok {
 			return
 		}
 	}
-	t.Fatal("Models must include CloudAgentCanvasMutation")
+	t.Fatal("StudioModels must include CloudAgentCanvasMutation")
 }

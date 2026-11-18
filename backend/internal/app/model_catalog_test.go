@@ -3,11 +3,11 @@ package app
 import (
 	"encoding/json"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -57,7 +57,7 @@ func TestModelCatalogAlwaysSerializesCollectionsAsArrays(t *testing.T) {
 
 func newModelCatalogTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

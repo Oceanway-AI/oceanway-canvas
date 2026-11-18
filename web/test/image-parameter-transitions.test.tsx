@@ -1,12 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ImageParameterSizeEditor } from "../src/components/image-parameter-fields";
-import { imageParameterRequest, projectImageParameters, resolveImageParameters, updateImageParameterSchema, updateImageParameterSize, type ImageParameter } from "../src/lib/image-parameters";
+import { imageParameterConstraints, imageParameterRequest, projectImageParameters, resolveImageParameters, updateImageParameterSchema, updateImageParameterSize, type ImageParameter } from "../src/lib/image-parameters";
 import { IMAGE_RATIOS, imagePresetForRatio, imageSizeConfigWithPresets } from "../src/lib/image-size-presets";
 import { defaultImageCapabilityConfig, type ImageCapabilityConfig } from "../src/lib/model-capabilities";
 import { projectLogicalCapability } from "../src/lib/user-session";
-import { capabilitySpecFromChannelModel } from "../src/pages/admin/logical-models/model-routing-capabilities";
-import type { ChannelModel } from "../src/services/api/wallet";
 
 const definitions: ImageParameter[] = [
     { name: "size", label: "画幅", type: "string", encoding: "pixels" },
@@ -62,7 +60,13 @@ describe("图片尺寸与分辨率配置顺序", () => {
 
         const reopened = resolveImageParameters(JSON.parse(JSON.stringify(enabled)), definitions, "test-model");
         expect(reopened.size.presets).toEqual(enabled.size.presets);
-        const spec = capabilitySpecFromChannelModel({ capability: "image", capabilityConfig: { version: 1, image: reopened } } as ChannelModel)!;
+        const spec = {
+            version: 1 as const,
+            capability: "image" as const,
+            options: imageParameterConstraints(reopened.parameters || []),
+            imageParameters: reopened.parameters,
+            imageSize: { parameter: reopened.size.parameter, presets: reopened.size.presets },
+        };
         const projected = projectLogicalCapability(spec, {}).image!;
         for (const tier of ["1k", "2k", "4k"]) {
             expectRatios(projected, tier);

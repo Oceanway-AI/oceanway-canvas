@@ -4,19 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ImageSizePresetsEditor } from "../src/components/image-size-presets-editor";
 import { defaultImageCapabilityConfig } from "../src/lib/model-capabilities";
 import { imageParametersForSpec, initializeImageRatioDefaults, projectImageParameters, resolveImageParameters, type ImageParameter } from "../src/lib/image-parameters";
-import { initialChannelModelValues, replaceChannelModelFormValues } from "../src/pages/admin/components/channel-model-editor-form";
 
 describe("generic model configuration fixes", () => {
-    test("replacing a draft clears nested fields and undefined capability configuration in the real form store", () => {
-        const form = new FormStore(() => {}).getForm();
-        const draft = initialChannelModelValues(null, []);
-        form.setFieldsValue({ ...draft, capabilityConfig: { version: 1, image: defaultImageCapabilityConfig() } });
-        replaceChannelModelFormValues(form, { ...draft, capabilityConfig: { version: 1 } });
-        expect(form.getFieldValue("capabilityConfig")).toEqual({ version: 1 });
-        replaceChannelModelFormValues(form, { ...draft, capabilityConfig: undefined });
-        expect(form.getFieldValue("capabilityConfig")).toBeUndefined();
-    });
-
     test("free pixels initialize usable presets and default output choices", () => {
         const fields: ImageParameter[] = [{ name: "size", label: "尺寸", type: "string", encoding: "pixels" }];
         const image = projectImageParameters({ ...defaultImageCapabilityConfig(), size: { ...defaultImageCapabilityConfig().size, presets: [] } }, fields);

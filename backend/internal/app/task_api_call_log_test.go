@@ -7,20 +7,20 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func TestVideoPollLogSchedulesNextCheckThirtySecondsLater(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:provider-poll-schedule?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&model.Task{}, &model.ApiCallLog{}, &model.ModelPricing{}); err != nil {
+	if err := db.AutoMigrate(&model.Task{}, &model.ApiCallLog{}); err != nil {
 		t.Fatal(err)
 	}
 	task := model.Task{ID: "task-1", UserID: "user-1", Type: "canvas_video", Status: model.TaskStatusRunning}
@@ -53,11 +53,11 @@ func TestVideoPollLogSchedulesNextCheckThirtySecondsLater(t *testing.T) {
 }
 
 func TestImagePollLogMergesIntoCreateLog(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:image-poll-merge?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&model.Task{}, &model.ApiCallLog{}, &model.ModelPricing{}); err != nil {
+	if err := db.AutoMigrate(&model.Task{}, &model.ApiCallLog{}); err != nil {
 		t.Fatal(err)
 	}
 	task := model.Task{ID: "image-task-1", UserID: "user-1", Type: "canvas_image", Status: model.TaskStatusRunning}
@@ -85,7 +85,7 @@ func TestImagePollLogMergesIntoCreateLog(t *testing.T) {
 }
 
 func TestEnsureFailedProviderAttemptLoggedFillsPreflightGapOnce(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:provider-preflight-log?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,6 @@ func TestEnsureFailedProviderAttemptLoggedFillsPreflightGapOnce(t *testing.T) {
 		&model.Result{},
 		&model.ApiCallLog{},
 		&model.TaskTextDelta{},
-		&model.ModelPricing{},
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +143,7 @@ func TestEnsureFailedProviderAttemptLoggedFillsPreflightGapOnce(t *testing.T) {
 }
 
 func TestEnsureFailedProviderAttemptLoggedDoesNotDuplicateHTTPLog(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:provider-http-log-dedup?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,11 +167,11 @@ func TestEnsureFailedProviderAttemptLoggedDoesNotDuplicateHTTPLog(t *testing.T) 
 }
 
 func TestRecordProviderRequestKeepsUserVisibleSpeechAndNetworkErrors(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:provider-visible-error-log?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&model.SystemSetting{}, &model.Asset{}, &model.CanvasProject{}, &model.Task{}, &model.TaskLog{}, &model.Result{}, &model.ApiCallLog{}, &model.TaskTextDelta{}, &model.ModelPricing{}); err != nil {
+	if err := db.AutoMigrate(&model.SystemSetting{}, &model.Asset{}, &model.CanvasProject{}, &model.Task{}, &model.TaskLog{}, &model.Result{}, &model.ApiCallLog{}, &model.TaskTextDelta{}); err != nil {
 		t.Fatal(err)
 	}
 	service := &Service{repo: repository.New(db)}
@@ -203,11 +202,11 @@ func assertLoggedTaskError(t *testing.T, db *gorm.DB, taskID string, parts ...st
 }
 
 func TestEnsureFailedProviderAttemptLoggedRecordsFailureHiddenBySuccessLog(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:provider-success-hides-failure?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&model.SystemSetting{}, &model.Asset{}, &model.CanvasProject{}, &model.Task{}, &model.TaskLog{}, &model.Result{}, &model.ApiCallLog{}, &model.TaskTextDelta{}, &model.ModelPricing{}); err != nil {
+	if err := db.AutoMigrate(&model.SystemSetting{}, &model.Asset{}, &model.CanvasProject{}, &model.Task{}, &model.TaskLog{}, &model.Result{}, &model.ApiCallLog{}, &model.TaskTextDelta{}); err != nil {
 		t.Fatal(err)
 	}
 	success := model.ApiCallLog{ID: "api-log-success", TaskID: "task-1", Status: model.ApiCallStatusSucceeded, RequestKind: "create"}

@@ -12,10 +12,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	_ "modernc.org/sqlite"
 	"yingce/backend/internal/ecommerceagent"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
@@ -26,7 +25,7 @@ func mockEcommerceAgentService(t *testing.T) (*Service, *gorm.DB) {
 	t.Setenv("AI_MODE", "mock")
 	t.Setenv("TEXT_API_KEY", "")
 	t.Setenv("IMAGE_API_KEY", "")
-	db, err := gorm.Open(sqlite.Dialector{DriverName: "sqlite", DSN: "file:" + newID() + "?mode=memory&cache=shared"}, &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -44,7 +44,8 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 			}
 		}
 		skill, err := svc.InstallSkillUpload(user.ID, sourceType, file, service.SkillInstallRequest{
-			Name: c.PostForm("name"), Description: c.PostForm("description"), Tag: c.PostForm("tag"), IsPrivate: isPrivate,
+			Author: user,
+			Name:   c.PostForm("name"), Description: c.PostForm("description"), Tag: c.PostForm("tag"), IsPrivate: isPrivate,
 		})
 		if err != nil {
 			failService(c, err)
@@ -65,6 +66,7 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 			failService(c, service.BadAuthRequest("GitHub 技能数据格式无效"))
 			return
 		}
+		req.Author = user
 		skill, err := svc.InstallGitHubSkill(user.ID, req)
 		if err != nil {
 			failService(c, err)
@@ -188,6 +190,7 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 			failService(c, service.BadAuthRequest("技能数据格式无效"))
 			return
 		}
+		req.Author = user
 		skill, err := svc.CreateSkill(user.ID, req)
 		if err != nil {
 			failService(c, err)
@@ -207,6 +210,7 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 			failService(c, service.BadAuthRequest("技能数据格式无效"))
 			return
 		}
+		req.Author = user
 		skill, err := svc.UpdateSkill(user.ID, c.Param("id"), req)
 		if err != nil {
 			failService(c, err)
@@ -221,7 +225,7 @@ func RegisterSkillRoutes(r *gin.RouterGroup, svc *service.Service) {
 			failService(c, err)
 			return
 		}
-		if user.Role == model.UserRoleAdmin {
+		if user.CanStudio(model.StudioDeleteBuiltinSkill) {
 			if err := svc.DeleteBuiltinSkill(user, c.Param("id")); err == nil {
 				ok(c, gin.H{"deleted": true})
 				return

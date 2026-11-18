@@ -2,17 +2,17 @@
 
 set -Eeuo pipefail
 
-REPOSITORY_REF="${REPOSITORY_REF:-main}"
+REPOSITORY_REF="${REPOSITORY_REF:-}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/open-ai-canvas}"
 CANVAS_HTTP_PORT="${CANVAS_HTTP_PORT:-3000}"
 REQUESTED_IMAGE_TAG="${CANVAS_IMAGE_TAG:-}"
 CANVAS_IMAGE_TAG="${REQUESTED_IMAGE_TAG#v}"
-IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-ghcr.io/ddcat-ai/open-ai-canvas}"
+IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-ghcr.io/oceanway-ai/open-ai-canvas}"
 CANVAS_BACKEND_IMAGE=""
 CANVAS_WEB_IMAGE=""
 COMPOSE_FILE="docker-compose.deploy.yml"
-COMPOSE_URL="${COMPOSE_URL:-https://raw.githubusercontent.com/ddcat-ai/open-ai-canvas/${REPOSITORY_REF}/${COMPOSE_FILE}}"
-UPDATER_INSTALL_URL="${UPDATER_INSTALL_URL:-https://raw.githubusercontent.com/ddcat-ai/open-ai-canvas/${REPOSITORY_REF}/scripts/install-host-updater.sh}"
+COMPOSE_URL="${COMPOSE_URL:-}"
+UPDATER_INSTALL_URL="${UPDATER_INSTALL_URL:-}"
 
 step() {
     printf '\n==> %s\n' "$1"
@@ -150,7 +150,6 @@ CANVAS_BACKEND_IMAGE=${IMAGE_REPOSITORY}-backend:${CANVAS_IMAGE_TAG}
 CANVAS_WEB_IMAGE=${IMAGE_REPOSITORY}-web:${CANVAS_IMAGE_TAG}
 CANVAS_YINGCE_AGENT_IMAGE=${IMAGE_REPOSITORY}-yingce-agent:${CANVAS_IMAGE_TAG}
 YINGCE_AGENT_TOKEN=$(openssl rand -hex 32)
-CANVAS_REGISTRATION_ENABLED=false
 CANVAS_ALLOW_PRIVATE_UPSTREAMS=false
 CANVAS_ALLOWED_PRIVATE_UPSTREAM_HOSTS=
 CANVAS_CORS_ORIGINS=
@@ -174,6 +173,18 @@ set_env_value() {
 }
 
 download_compose() {
+    local release_tag="v${CANVAS_IMAGE_TAG#v}"
+    REPOSITORY_REF="${REPOSITORY_REF:-$release_tag}"
+    [[ "$REPOSITORY_REF" == "$release_tag" ]] || fail "REPOSITORY_REF 必须与 CANVAS_IMAGE_TAG 指向同一 Release"
+    COMPOSE_URL="${COMPOSE_URL:-https://raw.githubusercontent.com/Oceanway-AI/oceanway-canvas/${REPOSITORY_REF}/${COMPOSE_FILE}}"
+    UPDATER_INSTALL_URL="${UPDATER_INSTALL_URL:-https://raw.githubusercontent.com/Oceanway-AI/oceanway-canvas/${REPOSITORY_REF}/scripts/install-host-updater.sh}"
+    local checksums
+    checksums="$(mktemp)"
+    curl -fsSL "https://github.com/Oceanway-AI/oceanway-canvas/releases/download/${release_tag}/SHA256SUMS" -o "$checksums" || fail "OceanWay Release 或校验清单尚未发布"
+    for arch in amd64 arm64; do
+        grep -Eq "^[a-f0-9]{64}  open-ai-canvas-host-updater-linux-${arch}$" "$checksums" || fail "Release 缺少 Host Updater ${arch} 校验项"
+    done
+    rm -f "$checksums"
     step "下载 GHCR 镜像部署配置"
     local temporary_file
     temporary_file="$(mktemp "${INSTALL_DIR}/.docker-compose.deploy.XXXXXX")"
@@ -191,6 +202,21 @@ install_host_updater() {
 
     step "重建 backend 以启用在线更新"
     docker compose --env-file .env -f "$COMPOSE_FILE" up -d --no-deps --force-recreate --wait --wait-timeout 600 backend
+}
+
+configure_studio() {
+    local key value
+    for key in STUDIO_PLATFORM_ORIGIN STUDIO_PLATFORM_BROWSER_ORIGIN STUDIO_PLATFORM_PRODUCT_KEY STUDIO_PUBLIC_ORIGIN STUDIO_PUBLIC_BASE_PATH STUDIO_PLATFORM_SESSION_HOSTS STUDIO_PLATFORM_ALLOWED_ORIGINS; do
+        value="${!key:-}"
+        if [[ -n "$value" ]] && ! grep -Eq "^${key}=.+$" .env; then
+            [[ "$value" != *$'\n'* && "$value" != *$'\r'* && "$value" != *"'"* ]] || fail "${key} 必须为单行配置"
+            printf "%s='%s'\n" "$key" "$value" >> .env
+        fi
+    done
+    for key in STUDIO_PLATFORM_ORIGIN STUDIO_PLATFORM_PRODUCT_KEY STUDIO_PUBLIC_ORIGIN STUDIO_PLATFORM_SESSION_HOSTS STUDIO_PLATFORM_ALLOWED_ORIGINS; do
+        grep -Eq "^${key}=.+$" .env || fail "请在 ${INSTALL_DIR}/.env 中填写 ${key} 后重新运行"
+    done
+    chmod 600 .env
 }
 
 start_services() {
@@ -220,7 +246,7 @@ print_result() {
     printf '访问地址：http://%s:%s\n' "$local_ip" "$CANVAS_HTTP_PORT"
     printf '安装目录：%s\n' "$INSTALL_DIR"
     printf '查看状态：cd %q && docker compose --env-file .env -f %s ps\n' "$INSTALL_DIR" "$COMPOSE_FILE"
-    printf '\n首次打开后注册的第一个账号会自动成为管理员。公网长期使用前请配置 HTTPS。\n'
+    printf '\n请通过已登记的 Studio HTTPS 地址访问并使用 OceanWay 账号登录。\n'
 }
 
 main() {
@@ -230,6 +256,7 @@ main() {
     install_docker
     login_ghcr
     prepare_environment
+    configure_studio
     download_compose
     start_services
     install_host_updater

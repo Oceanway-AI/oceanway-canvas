@@ -5,25 +5,23 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func newResourceFallbackTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := db.AutoMigrate(
 		&model.Resource{},
 		&model.UploadReservation{},
-		&model.UserStorageGrant{},
-		&model.UserStorageState{},
 		&model.UserOSSSetting{},
 		&model.SystemSetting{},
 		&model.StorageLocation{},

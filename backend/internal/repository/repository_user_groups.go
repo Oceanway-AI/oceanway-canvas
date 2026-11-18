@@ -3,15 +3,11 @@
 package repository
 
 import (
-	"errors"
 	"time"
 
 	"gorm.io/gorm"
 	"yingce/backend/internal/model"
 )
-
-// ErrUserGroupInUse 表示分组仍有用户，不能删除。
-var ErrUserGroupInUse = errors.New("user group in use")
 
 func (r *Repository) UserGroups() ([]model.UserGroup, error) {
 	var groups []model.UserGroup
@@ -66,37 +62,4 @@ func (r *Repository) SaveUserGroupWithChannels(group *model.UserGroup, channelID
 		}
 		return tx.Create(&rows).Error
 	})
-}
-
-// DeleteUserGroup 在同一事务内确认分组没有用户后删除分组和绑定；默认分组由 service 层禁止删除。
-func (r *Repository) DeleteUserGroup(id string, code string) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		var count int64
-		if err := tx.Model(&model.User{}).Where("user_group = ?", code).Count(&count).Error; err != nil {
-			return err
-		}
-		if count > 0 {
-			return ErrUserGroupInUse
-		}
-		if err := tx.Where("group_id = ?", id).Delete(&model.UserGroupChannel{}).Error; err != nil {
-			return err
-		}
-		return tx.Delete(&model.UserGroup{}, "id = ?", id).Error
-	})
-}
-
-// UserGroupUserCounts 返回每个分组编码的用户数；空编码原样返回，由调用方归入默认分组。
-func (r *Repository) UserGroupUserCounts() (map[string]int64, error) {
-	var rows []struct {
-		UserGroup string
-		Count     int64
-	}
-	if err := r.db.Model(&model.User{}).Select("user_group, count(*) as count").Group("user_group").Scan(&rows).Error; err != nil {
-		return nil, err
-	}
-	result := make(map[string]int64, len(rows))
-	for _, row := range rows {
-		result[row.UserGroup] += row.Count
-	}
-	return result, nil
 }

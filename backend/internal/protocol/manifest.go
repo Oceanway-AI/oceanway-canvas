@@ -266,13 +266,6 @@ func loadDeclarativeManifestProvider(manifest Manifest, index int) (Adapter, err
 }
 
 func ValidateManifest(manifest Manifest) error {
-	seenSMS := map[string]bool{}
-	for _, provider := range manifest.Contributes.SMSProviders {
-		if !validManifestIdentifier(provider.ID) || strings.TrimSpace(provider.Label) == "" || seenSMS[provider.ID] {
-			return fmt.Errorf("invalid or duplicate SMS provider contribution")
-		}
-		seenSMS[provider.ID] = true
-	}
 	if version := strings.TrimSpace(manifest.APIVersion); version != "yingce.plugin/v1" && version != "yingce.plugin/v2" {
 		return fmt.Errorf("unsupported protocol manifest apiVersion %q", manifest.APIVersion)
 	}
@@ -295,7 +288,7 @@ func ValidateManifest(manifest Manifest) error {
 		return fmt.Errorf("unsupported plugin backend %q", backend)
 	}
 	if len(manifest.Contributes.Providers) == 0 {
-		return validatePaymentProviderContributions(manifest)
+		return nil
 	}
 	providerIDs := make(map[string]struct{}, len(manifest.Contributes.Providers))
 	for index, provider := range manifest.Contributes.Providers {
@@ -389,75 +382,7 @@ func ValidateManifest(manifest Manifest) error {
 			}
 		}
 	}
-	return validatePaymentProviderContributions(manifest)
-}
-
-func validatePaymentProviderContributions(manifest Manifest) error {
-	seen := make(map[string]struct{}, len(manifest.Contributes.PaymentProviders))
-	for index, provider := range manifest.Contributes.PaymentProviders {
-		provider.ID = strings.TrimSpace(provider.ID)
-		if provider.ID == "" || strings.TrimSpace(provider.Label) == "" || !validManifestIdentifier(provider.ID) {
-			return fmt.Errorf("payment provider contribution %d requires a valid id and label", index)
-		}
-		if _, exists := seen[provider.ID]; exists {
-			return fmt.Errorf("duplicate payment provider contribution %q", provider.ID)
-		}
-		seen[provider.ID] = struct{}{}
-		if strings.TrimSpace(provider.Icon) == "" {
-			return fmt.Errorf("payment provider contribution %q requires an icon", provider.ID)
-		}
-		switch provider.CheckoutMode {
-		case "qr_code", "redirect":
-		default:
-			return fmt.Errorf("payment provider contribution %q has unsupported checkout mode %q", provider.ID, provider.CheckoutMode)
-		}
-		policy := provider.ExpiryPolicy
-		if policy.MinMinutes <= 0 || policy.DefaultMinutes < policy.MinMinutes || policy.MaxMinutes < policy.DefaultMinutes {
-			return fmt.Errorf("payment provider contribution %q has invalid expiry policy", provider.ID)
-		}
-		for _, field := range provider.IdentityFields {
-			if strings.TrimSpace(field) == "" || len(field) > 80 {
-				return fmt.Errorf("payment provider contribution %q has invalid identity field %q", provider.ID, field)
-			}
-		}
-		for _, response := range []ManifestPaymentResponse{provider.NotificationSuccess, provider.NotificationFailure} {
-			if response.Status < 0 || response.Status > 599 {
-				return fmt.Errorf("payment provider contribution %q has invalid notification response status", provider.ID)
-			}
-		}
-		methods := make(map[string]struct{}, len(provider.Methods))
-		for _, method := range provider.Methods {
-			if !ValidPaymentMethodID(method.ID) || strings.TrimSpace(method.Label) == "" {
-				return fmt.Errorf("payment provider contribution %q has invalid method %q", provider.ID, method.ID)
-			}
-			if _, exists := methods[method.ID]; exists {
-				return fmt.Errorf("payment provider contribution %q has duplicate method %q", provider.ID, method.ID)
-			}
-			methods[method.ID] = struct{}{}
-		}
-		if field := strings.TrimSpace(provider.MethodsField); field != "" && !manifestHasConfigField(manifest, field) {
-			return fmt.Errorf("payment provider contribution %q methods field %q is not a configuration field", provider.ID, field)
-		}
-	}
 	return nil
-}
-
-// ValidPaymentMethodID 限定支付方式 ID 为 1-32 位小写字母、数字、- 或 _，且以字母或数字开头；
-// 该值会原样作为渠道下单参数，宿主据此拒绝任意字符串。
-func ValidPaymentMethodID(value string) bool {
-	if len(value) == 0 || len(value) > 32 {
-		return false
-	}
-	for index, char := range value {
-		if (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') {
-			continue
-		}
-		if index > 0 && (char == '-' || char == '_') {
-			continue
-		}
-		return false
-	}
-	return true
 }
 
 func manifestHasConfigField(manifest Manifest, name string) bool {
@@ -522,10 +447,7 @@ func normalizeManifestForProvider(manifest *Manifest, index int) error {
 }
 
 func hasNonProviderContribution(contributes ManifestContributions) bool {
-	if len(contributes.SMSProviders) > 0 {
-		return true
-	}
-	return len(contributes.PaymentProviders) > 0 || len(contributes.Workflows) > 0 || len(contributes.CanvasNodes) > 0 || len(contributes.Transforms) > 0 || len(contributes.Commands) > 0 || len(contributes.AssetSources) > 0 || len(contributes.UsageObservers) > 0 || len(contributes.AICapabilities) > 0 || len(contributes.Agents) > 0 || len(contributes.ImportExport) > 0
+	return len(contributes.Workflows) > 0 || len(contributes.CanvasNodes) > 0 || len(contributes.Transforms) > 0 || len(contributes.Commands) > 0 || len(contributes.AssetSources) > 0 || len(contributes.UsageObservers) > 0 || len(contributes.AICapabilities) > 0 || len(contributes.Agents) > 0 || len(contributes.ImportExport) > 0
 }
 
 func operationSummary(operation ManifestOperation) string {

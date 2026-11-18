@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -16,7 +16,7 @@ func TestRuntimeConcurrencySettingPersistsAndChannelOverrideWins(t *testing.T) {
 	t.Setenv("REDIS_URL", "")
 	t.Setenv("CANVAS_WORKER_CONCURRENCY", "3")
 	t.Setenv("CANVAS_CHANNEL_CONCURRENCY", "3")
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestRuntimeConcurrencySettingPersistsAndChannelOverrideWins(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := New(repository.New(db), t.TempDir())
-	actor := &model.User{ID: "admin-1", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	policy := defaultRuntimePolicy()
 	policy.Task.WorkerConcurrency = 8
 	policy.Task.ChannelConcurrency = 6

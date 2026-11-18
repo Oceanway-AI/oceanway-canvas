@@ -67,28 +67,6 @@ func TestReserveUserUploadQuotaRejectsTotalStoredFilesAtLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := svc.reserveUserUploadQuota("user-1", 1); err == nil || !strings.Contains(err.Error(), "20GB 上限") {
-	}
-}
-
-func TestAccountFileStorageUsageUsesStoredFilePolicy(t *testing.T) {
-	svc := newResourceTestService(t)
-	if err := svc.repo.Create(&model.Resource{ID: "resource-1", UserID: "user-1", Status: model.ResourceStatusReady, Provider: "local", ObjectKey: "ready.png", Size: 3 << 20}); err != nil {
-		t.Fatal(err)
-	}
-	if err := svc.repo.Create(&model.Resource{ID: "resource-duplicate", UserID: "user-1", Status: model.ResourceStatusReady, Provider: "", ObjectKey: "ready.png", Size: 3 << 20}); err != nil {
-		t.Fatal(err)
-	}
-	if err := svc.repo.Create(&model.Resource{ID: "resource-failed", UserID: "user-1", Status: model.ResourceStatusFailed, Provider: "local", ObjectKey: "failed.png", Size: 7 << 20}); err != nil {
-		t.Fatal(err)
-	}
-	if err := svc.repo.Create(&model.Resource{ID: "resource-pending", UserID: "user-1", Status: model.ResourceStatusPending, Provider: "local", ObjectKey: "pending.png", Size: 11 << 20}); err != nil {
-		t.Fatal(err)
-	}
-	usage, err := svc.AccountFileStorageUsage("user-1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if usage.UsedBytes != 3<<20 || usage.TotalBytes != gigabytes(defaultRuntimePolicy().Resource.StoredFileGB) {
-		t.Fatalf("AccountFileStorageUsage() = %#v", usage)
+		t.Fatalf("reserveUserUploadQuota() error = %v", err)
 	}
 }

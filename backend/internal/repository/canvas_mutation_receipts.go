@@ -10,8 +10,7 @@ import (
 )
 
 // LockCanvasMutation serializes all operations for an existing canvas, including
-// deletion. On SQLite this first write also avoids a deferred read transaction
-// trying to upgrade its stale snapshot to a write lock.
+// deletion, by acquiring the canvas row's write lock.
 func (r *Repository) LockCanvasMutation(userID, canvasID string) error {
 	return r.db.Model(&model.CanvasProject{}).Where("id = ? AND user_id = ?", canvasID, userID).
 		UpdateColumn("revision", gorm.Expr("revision")).Error

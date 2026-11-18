@@ -5,26 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
 
-	"yingce/backend/internal/auth"
 	"yingce/backend/internal/canvas"
 	"yingce/backend/internal/inspirations"
 	"yingce/backend/internal/kernel"
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/payment"
 	"yingce/backend/internal/platform"
 	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/poselibrary"
 	"yingce/backend/internal/prompts"
-	"yingce/backend/internal/providercatalog"
 	"yingce/backend/internal/repository"
 	"yingce/backend/internal/skills"
-	"yingce/backend/internal/sms"
 	"yingce/backend/internal/tools"
 	"yingce/backend/internal/workbench"
 )
@@ -35,9 +30,6 @@ type Service struct {
 	repo                     *repository.Repository
 	dataDir                  string
 	cancelMu                 sync.Mutex
-	registrationMu           sync.Mutex
-	emailCodeMu              sync.Mutex
-	redeemBatchMu            sync.Mutex
 	storageMu                sync.Mutex
 	storageTestMu            sync.Mutex
 	workerRuntimeMu          sync.Mutex
@@ -51,8 +43,6 @@ type Service struct {
 	characterTaskMu          sync.Mutex
 	activeCancels            map[string]context.CancelFunc
 	pendingStorage           map[string]int64
-	storageStatusMu          sync.Mutex
-	storageStatusCache       map[string]storageStatusEntry
 	coordinator              *platform.Coordinator
 	platform                 *platform.Service
 	taskBillingCoordinator   *taskBillingCoordinator
@@ -63,7 +53,6 @@ type Service struct {
 	runtimeErr               error
 	pluginRuntime            *pluginRuntime
 	pluginRuntimeErr         error
-	paymentRegistry          *payment.Registry
 	workerID                 string
 	routeCatalogMu           sync.RWMutex
 	routeCatalogRefreshMu    sync.Mutex
@@ -85,8 +74,6 @@ type Service struct {
 	skills                   *skills.Service
 	tools                    *tools.Service
 	prompts                  *prompts.Service
-	auth                     *auth.Service
-	sms                      *sms.Service
 	canvas                   *canvas.Service
 	canvasRealtime           *canvas.RealtimeHub
 	workbench                *workbench.Service
@@ -112,14 +99,10 @@ type Service struct {
 	approvalFollowUpWg       sync.WaitGroup
 	approvalFollowUps        map[string]struct{} // 正在执行批准后收尾的审批（runID:approvalID），见 cloud_agent_approval_followup.go
 	approvalFollowUpClosed   bool
-	providerCatalogOnce      sync.Once
-	providerCatalog          *providercatalog.Source
 	userGroups               userGroupState
 	modelAvailabilityMu      sync.RWMutex
 	modelAvailabilityCache   map[publicModelAvailabilityKey]*PublicModelAvailability
 	modelAvailabilityAt      time.Time
-	adminModelHealthMu       sync.Mutex
-	adminModelHealthCache    *AdminChannelModelHealthReport
 	// dramaTaskHook 只在测试中替换短剧调度的任务提交，生产路径始终走 CreateTask 准入。
 	dramaTailFrameHook func(userID, resourceID string) (string, error)
 	dramaTaskHook      func(userID string, req CreateTaskRequest, timeline *renderProject) (*model.Task, error)
@@ -159,33 +142,16 @@ type TaskListOptions struct {
 	WorkbenchKind string
 }
 
-func New(repo *repository.Repository, dataDir string) *Service {
-	return newService(repo, dataDir)
-}
-
-func newService(repo *repository.Repository, dataDir string) *Service {
-	coordinator, err := platform.NewCoordinator(repo.Dialect())
+func newService(repo *repository.Repository, dataDir string, gateway *platformintegration.Gateway) *Service {
+	coordinator, err := platform.NewCoordinator()
 	canvasRealtime := canvas.NewRealtimeHub(coordinator.Redis())
 	repo = repo.WithCanvasChangeNotifier(canvasRealtime.Changed)
-	pluginRuntime, pluginRuntimeErr := newPluginRuntime(dataDir)
-	paymentRegistry, _ := payment.NewRegistry()
-	if pluginRuntime != nil {
-		if dynamic := pluginRuntime.paymentRegistrySnapshot(); dynamic != nil {
-			paymentRegistry = dynamic
-		}
-	}
-	service := &Service{repo: repo, dataDir: dataDir, activeStorageTests: make(map[string]bool), activeCancels: make(map[string]context.CancelFunc), agentConflictStreak: make(map[string]int), agentSchedulerWake: make(chan struct{}, 1), taskDispatcherWake: make(chan struct{}, 1), piRunners: make(map[string]context.CancelFunc), coordinator: coordinator, runtimeErr: err, pluginRuntime: pluginRuntime, pluginRuntimeErr: pluginRuntimeErr, paymentRegistry: paymentRegistry, workerID: newID(), routeCatalogTTL: 30 * time.Second, routeCatalogMaxStale: 5 * time.Minute, routeHealthBlocked: make(map[string]time.Time), geminiCacheLocks: make(map[string]*geminiCacheKeyLock)}
-	service.taskBillingCoordinator = newTaskBillingCoordinator(service.repo)
-	service.taskTerminalCoordinator = newTaskTerminalCoordinator(service)
-	service.taskRouteExecutor = newTaskRouteExecutor(service)
+	service := &Service{studioPlatform: gateway, repo: repo, dataDir: dataDir, activeStorageTests: make(map[string]bool), activeCancels: make(map[string]context.CancelFunc), agentConflictStreak: make(map[string]int), agentSchedulerWake: make(chan struct{}, 1), taskDispatcherWake: make(chan struct{}, 1), piRunners: make(map[string]context.CancelFunc), coordinator: coordinator, runtimeErr: err, workerID: newID(), routeCatalogTTL: 30 * time.Second, routeCatalogMaxStale: 5 * time.Minute, routeHealthBlocked: make(map[string]time.Time), geminiCacheLocks: make(map[string]*geminiCacheKeyLock)}
 	service.taskWorkerCoordinator = newTaskWorkerCoordinator(service)
 	service.taskLifecycleCoordinator = newTaskLifecycleCoordinator(service)
 	service.skills = skills.New(service.repo, service.dataDir, service.runWorkerLoop)
 	service.tools = tools.New(service.repo)
 	service.prompts = prompts.New(service.repo, promptAdminGate{svc: service})
-	service.auth = auth.New(service.repo, authHost{svc: service}, nil)
-	service.sms = service.newSMSDomain()
-	service.auth.SetSMSDelivery(service.sms)
 	service.canvas = canvas.New(service.repo, canvasHost{svc: service})
 	service.canvasRealtime = canvasRealtime
 	service.workbench = workbench.New(service.repo, workbenchAdminGate{svc: service}, workbenchAdminGate{svc: service})
@@ -201,51 +167,6 @@ func (s *Service) taskBilling() *taskBillingCoordinator {
 	}
 	// 部分单元测试直接构造 Service 字面量；延迟创建保持这些测试和内部工具兼容。
 	return newTaskBillingCoordinator(s.repo)
-}
-
-func (s *Service) StartWorker() {
-	runtime := s.backgroundWorkers()
-	ctx, started := runtime.Start()
-	if !started {
-		return
-	}
-	s.taskWorker().start(ctx)
-	s.startResourceDeletionWorker(ctx)
-	s.startResourceOffloadWorker()
-	s.startSkillSyncWorker(ctx)
-	s.startEcommerceSkillSyncWorker(ctx)
-	s.startPaymentWorker(ctx)
-	s.startBillingAutoRefundWorker()
-	s.startArkPortraitWorker()
-	s.startDramaScheduler()
-	s.startInspirationFeedWorker()
-	s.startConsumptionReportWorker()
-	go s.syncAgentSessionLimit()
-	s.runWorkerLoop(func(ctx context.Context) {
-		ticker := time.NewTicker(3 * time.Second)
-		defer ticker.Stop()
-		for {
-			s.recoverCloudAgentPiRunners()
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-			}
-		}
-	})
-}
-
-func (s *Service) syncAgentSessionLimit() {
-	policy, err := s.RuntimePolicy()
-	if err != nil {
-		slog.Warn("agent session limit load failed", "error", err)
-		return
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	if err := s.applyAgentSessionLimit(ctx, policy.Task.AgentMaxSessions); err != nil {
-		slog.Warn("agent session limit apply failed", "error", err)
-	}
 }
 
 func (s *Service) BeginDrain() { s.backgroundWorkers().BeginDrain() }
@@ -288,42 +209,13 @@ func (s *Service) TasksWithOptions(userID string, options TaskListOptions) ([]Ta
 	if err != nil {
 		return nil, err
 	}
-	if s.UsesPlatformIdentity() {
-		if err := s.projectStudioAgentTasks(userID, tasks); err != nil {
-			return nil, err
-		}
-		if err := s.projectStudioMediaFailures(userID, tasks); err != nil {
-			return nil, err
-		}
-		return taskSummariesForOutput(tasks), nil
-	}
-	orders, err := s.repo.BillingOrdersByTaskIDs(userID, taskBillingTaskIDs(tasks))
-	if err != nil {
+	if err := s.projectStudioAgentTasks(userID, tasks); err != nil {
 		return nil, err
 	}
-	// Active task lists are the primary source for the canvas cancel affordance.
-	// The worker may have already logged an upstream request while the task row
-	// is waiting for its next lease update, so hydrate the list read model from
-	// the API log in one query instead of briefly exposing a stale cancel button.
-	taskIDs := make([]string, 0, len(tasks))
-	for _, task := range tasks {
-		taskIDs = append(taskIDs, task.ID)
-	}
-	providerRequestIDs, err := s.repo.LatestProviderRequestIDsForTasks(taskIDs)
-	if err != nil {
+	if err := s.projectStudioMediaFailures(userID, tasks); err != nil {
 		return nil, err
 	}
-	for index := range tasks {
-		if strings.TrimSpace(tasks[index].ProviderRequestID) != "" {
-			continue
-		}
-		if order, ok := orders[tasks[index].ID]; ok && strings.TrimSpace(order.ProviderRequestID) != "" {
-			tasks[index].ProviderRequestID = strings.TrimSpace(order.ProviderRequestID)
-			continue
-		}
-		tasks[index].ProviderRequestID = providerRequestIDs[tasks[index].ID]
-	}
-	return taskSummariesForOutputWithBilling(tasks, orders), nil
+	return taskSummariesForOutput(tasks), nil
 }
 
 func (s *Service) Task(userID string, id string) (*model.Task, error) {
@@ -348,11 +240,6 @@ func (s *Service) Task(userID string, id string) (*model.Task, error) {
 func (s *Service) hydrateTaskProviderRequestID(task *model.Task) {
 	if task == nil || task.ProviderRequestID != "" {
 		return
-	}
-	if task.BillingOrderID != "" {
-		if order, err := s.repo.BillingOrder(task.BillingOrderID); err == nil {
-			task.ProviderRequestID = strings.TrimSpace(order.ProviderRequestID)
-		}
 	}
 	if task.ProviderRequestID == "" {
 		if providerRequestID, err := s.repo.LatestProviderRequestIDForTask(task.ID); err == nil {

@@ -5,6 +5,16 @@ description: 信封、错误码与 OpenAPI
 
 # HTTP API 合同
 
+## Platform 身份与写入版本
+
+正式入口为 `RegisterStudioAPI`。当前用户 ID 是 Platform 数字 ID 的十进制字符串，账号、登录会话和产品角色在每次请求由 Platform 校验。Studio 业务库按该 ID 校验归属。
+
+除 GET、HEAD、OPTIONS 外，所有请求要求 `X-Studio-Identity-Version: platform-id-v1`。缺失或旧版本返回 HTTP 409，`reason=studio_identity_version_changed`。已登录写请求还要求 `X-Studio-Actor-ID` 与当前 Cookie 对应主体一致，缺失或不一致返回 409 `studio_actor_changed`。这保证旧标签页在 Cookie 切号后无法把草稿写入新账号。
+
+`POST /api/auth/session` 用于初始化当前 Cookie 身份和素材授权，允许尚未恢复本地 scope 的请求，其身份版本和 Host/Origin 校验仍生效。前端 `http` 在请求发起时捕获本标签页主体，在异步拦截器之前写入请求头。
+
+技能内置删除、公共分类写入和策展分别使用 `skills:builtin:delete`、`skills:categories:write`、`skills:curation:write`，角色撤销影响下一次请求。作者信息由 handler 注入当前身份，客户端不能提交作者。
+
 Studio 已开放 `POST /api/tasks`、`POST /api/tasks/preview`、`GET /api/tasks`、`GET /api/tasks/:id`、`GET /api/tasks/by-command/:command` 与只读日志/文本回放/SSE。创建必须提供账号内唯一的 `commandId`；同命令同意图返回原任务，改变意图为 409。支持已发布文本、图片及视频协议。媒体要求 `platform.expectedPriceVersion`，可选 variantId/billingPreference。普通图片和视频生成省略 `platform.walletMaxPoints`。已有调用显式提供该字段时仍按十进制字符串校验和执行，`"0"` 表示钱包支出上限为零。预估入口使用同一 OAC 创作意图，返回平台原始精确预估，不能视为预留或执行事实。未知提交不自动重试；旧 `/retry`、供应商取消、浏览器自写文本结果未注册。执行授权只在服务端加密保存。
 
 媒体创建还必须携带预览中的 `platform.expectedCapabilityRevision`（64位小写十六进制）和 `platform.expectedConnectionRevision`（正整数）。对应预览响应字段为 `capability_revision` / `connection_revision`。缺失创建版本为400，预览版本缺失/无效或创建复核与已确认版本不同为409，拒绝发生在新 Task/执行授权创建之前。Studio 加密保存版本、计费方式与原生正文，经 SDK 消费头发送原约束。恢复只读原任务，旧任务的消费上限继续有效。
@@ -16,6 +26,8 @@ Studio 原生 Pi 已开放 `/api/agent` 的轮次、事件、审批和同链工�
 Pi 媒体报价同时冻结能力/连接 revision 到原加密准备态，公共审批格式不变；批准不重新报价、不申请独立 EXA。缺失版本的旧准备态409拒绝，已排队且未提交的旧媒体任务标记失败；已提交的旧任务继续按原 request ID 恢复，即使旧 envelope 缺少 revision，也不得改判为未执行或补发。
 
 Studio 普通媒体和 Agent 审批后的 Task，在完成输入校验后将图片、视频、音频及 mask 的固定本地 ID 写入公开 `inputJson.referenceResourceIds`；原协议正文与执行凭据仍加密保存。此字段随原 Task 保留，供历史及清理引用检查，不授权客户端添加任意引用，也不包含签名 URL。
+
+任务列表、任务详情和 Pi 的任务诊断使用 `platformBilling` 投影原 Platform 回执，字段为 `fundsState`、`stateAvailable`、可选的 `settledPoints` 和 `summary`。`settledPoints` 保留十进制字符串精度，显式 `"0"` 表示零积分。缺少回执或金额时显示未知或待确认，预留和释放仅展示状态。Task JSON 不再返回本地账单 ID、微积分授权值或旧 `billing` 汇总。任务中心移除了未注册的 `query-provider` 操作，恢复沿原 Platform 请求查询与素材保存入口。
 
 ## OceanWay Studio 素材 v2
 
@@ -98,12 +110,6 @@ WP-STUDIO-018 的 ST1 候选已接入上下文门禁及已验收的三处公共�
 | `DELETE /api/admin/pose-library/items/:id` | 删除条目及其图片目录 |
 | `POST /api/admin/pose-library/bulk` | `{ action: "enable"\|"disable"\|"delete", ids?: string[] }` 或 `{ action, sourceKey?, system }`；不指定条目时必须给体系，避免误删全库。返回 `data={affected}` |
 
-## 注册与签到积分策略
-
-`GET /api/admin/settings/credits` 和 `PATCH /api/admin/settings/credits` 均要求管理员，返回 `data={policy}`。PATCH 提交完整策略：`signupBonusMicrocredits`、`checkinBonusMicrocredits`、`defaultMultiplierBasisPoints`、`modelMultiplierBasisPoints`；停止赠送只将前两项设为 0，保留倍率。金额为微积分（1000000 = 1 积分），倍率为万分比（10000 = 1 倍）。
-
-未保存策略时两项奖励均为 0、默认倍率为 10000；已有正数配置不因升级自动覆盖。发放与展示读取最新数据库策略，不使用进程缓存；更新不影响已完成入账、已读旧策略的在途请求或已创建的计费订单。已有账号的密码、验证码和第三方登录不补发注册奖励。`POST /api/wallet/checkin` 在签到奖励为 0 时返回业务错误，不新增签到入账。历史赠送核对见[注册与签到积分赠送](./credit-rewards)。
-
 ## 电商连续创作与逐屏差异
 
 电商策划从当前用户拥有的项目读取最近 20 页已提交历史；只有商品参考图存在交集时才继承商品文案上下文，Logo、模特和借鉴图不用于关联商品。历史文字不作为新规格或功效的证据。
@@ -145,52 +151,9 @@ WP-STUDIO-018 的 ST1 候选已接入上下文门禁及已验收的三处公共�
 
 渠道模型的 `capabilityConfig.image.responseFormat` 包含 `supported` 和可选的 `default`。默认值为 `auto`，表示请求中不发送 `response_format`，由上游决定返回 URL 或 Base64；`b64_json` 和 `url` 会分别强制发送对应值。该配置按模型保存，不根据 `openai-image` 协议名称自动推断，避免兼容网关不接受 Base64 时生成失败。需要持久化 Base64 结果的模型（例如已验证的 ddcat 图片模型）应将默认值设为 `b64_json`。
 
-## 邮件发送记录与消费日报
-
-菜单“运行监控 → 邮件记录”，页面 `/admin/email-logs`。管理员权限在 service 校验：匿名 401、普通用户 403。
-
-- `GET /api/admin/email-logs`：支持 `keyword`（收件邮箱、标题或用户 ID）、`purpose`、`status=sent|failed|skipped`、RFC3339 `from/to`、`page/pageSize`。成功 `data={logs,total,page,pageSize,last24h}`，`last24h` 是近 24 小时各状态数量。
-- `POST /api/admin/settings/email/test`：`{ recipient }`，留空发给当前管理员邮箱。用已保存的 SMTP 配置发一封验证码样式的测试邮件；失败返回 400，`msg` 带脱敏后的 SMTP 原因。每位管理员 10 分钟最多 10 次。
-- `GET /api/auth/notification-settings`：当前用户的订阅状态，`data.settings={consumptionReportEnabled,emailAvailable,email}`。
-- `PUT /api/auth/notification-settings`：`{ consumptionReportEnabled: boolean }`。开启时要求平台已启用邮件且账号已绑定邮箱，否则 400。
-
-找回密码接口对外始终返回成功，避免枚举账号；邮箱未绑定账号、账号停用、账号未设置密码、60 秒内重复请求这几种情况不发信，但会写一条 `status=skipped` 的发送记录并注明原因，供管理员排查“收不到邮件”。
-
-系统邮件为 `multipart/alternative`（纯文本 + HTML），带 `Date`、`Message-ID` 头；验证码同时出现在标题开头和正文独立一行。SMTP 会话总时长上限 45 秒；端口 465 且未选“无加密”时按直接 TLS 连接。
-
-消费日报：已订阅、账号正常且有邮箱、当天（东八区自然日）有 `consume` 流水的用户，在 23:59 收到当天报告，含净消费、较昨日变化、生成次数、失败退回、余额、按小时分布、按能力构成、模型排行、近 7 日趋势、单笔 Top 5 和文字分析。多实例由协调器租约互斥，`last_consumption_report_date` 保证每人每天最多一封；投递失败不重试，结果见发送记录。报告里的链接取 `CANVAS_PUBLIC_BASE_URL`，未配置时不放链接。
-
-## 用户登录日志
-
-菜单“用户与运营 → 用户登录日志”，页面 `/admin/login-logs`。查询在 service 校验管理员权限：匿名 401、普通用户 403。
-
-- `GET /api/admin/login-logs`：支持 `keyword`（用户名、昵称、脱敏账号或用户 ID）、`event=login|logout`、`method=password|email|sms|linuxdo|verification|unknown`、`result=success|failed`、精确 `ip`、RFC3339 `from/to`（含边界）、`page/pageSize`。开始时间不能晚于结束时间。默认每页 20 条、时间倒序；成功 `data={logs,total,page,pageSize}`，空结果 `logs=[]`。
-- `GET /api/admin/login-logs/:id`：成功 `data={log}`；不存在返回 404。包含用户快照、时间、事件、来源、方式、IP、UA、安全原因码/文案和非凭据的关联会话标识。
-
-后端在密码、邮箱/短信验证码、Linux.do 登录、注册后自动登录及主动退出的真实认证路径记录，不提供客户端任意新增日志接口。`verification` 表示凭据/请求无效导致方式无法识别；`unknown` 表示上线前会话未保存方式。`source=registration` 标记注册自动登录。退出失败不清 Cookie，不再忽略撤销错误。刷新状态和会话自然过期不新增事件。浏览器/系统由页面根据 UA 展示，无法识别时明确标注；UA 是客户端自报信息。
-
 ## 个人信息
 
-所有 `/auth/profile` 路径均要求当前活动用户的登录 Cookie，不能通过用户 ID 修改他人资料。
-
-| 路径 | 入参与结果 |
-| --- | --- |
-| `GET /auth/profile` | 返回 `user`、`hasPassword`、`emailEnabled`、`linuxdoEnabled` 和可选 `reauthenticatedUntil`；密码散列、头像图片正文、内部缓存版本均不在用户 JSON 中 |
-| `PUT /auth/profile/avatar` | multipart `file`，只接受真实 PNG/JPEG、最大 5 MiB；返回 `{ user }`，包含带版本的头像地址 |
-| `DELETE /auth/profile/avatar` | 清除个人头像并明确选择系统默认头像；第三方重新登录不会覆盖该选择；返回 `{ user }` |
-| `POST /auth/profile/avatar/default` | `{ preset }`，只接受 `person/director/camera/cat/rabbit/robot/rocket/sparkles`；保存选择并清除个人图片，返回 `{ user }` |
-| `GET /auth/profile/avatar/:userId` | 只读取本账号的 PNG，`Cache-Control: private, no-store`；账号之间拒绝读取 |
-| `POST /auth/profile/password` | `{ currentPassword, newPassword }`；新密码至少 8 个 Unicode 字符、UTF-8 不超过 72 字节；返回 `{ changed: true }` 并清除 Cookie、撤销全部会话 |
-| `POST /auth/profile/email-code` | `{ email, currentPassword }`；向未占用的新邮箱发送验证码，返回 `{ ticket, expiresIn, retryAfter }` |
-| `POST /auth/profile/email` | `{ ticket, emailCode, currentPassword }`；验证后更新邮箱及验证时间、撤销全部会话并清除 Cookie；返回 `{ changed: true, notificationStatus }` |
-| `GET /auth/profile/linuxdo/start` | 纯第三方账号重新核验身份的入口；绑定原用户和原会话，成功回到 `/settings?section=profile&reauth=success`，失败回到该页的 `reauth=error` 状态 |
-
-已有本地密码的账号必须验证当前密码。纯 Linux.do 账号设置密码或更换邮箱时，必须先完成同一会话内的重新授权，核验必须匹配原第三方用户标识；有效期为 5 分钟。邮箱验证码用途固定为 `profile_email`，绑定当前会话与凭据状态，6 位数字、10 分钟有效、最多 5 次核验；收件地址跨场景共享 60 秒发送冷却、每小时 5 次和每天 20 次额度。发送失败明确报错；邮件服务未启用时禁止更换邮箱。
-
-新邮箱验证之前保留原绑定。更新及验证码消费、登录会话撤销一起提交，唯一性检查在事务内重复执行。更新后向原邮箱发通知，`notificationStatus` 为 `sent`、`failed` 或 `not_needed`；`failed` 表示邮箱已更新、原邮箱通知失败，不能把已成功更新显示成未保存。接口使用现有业务错误信封和限流规则，密码、验证码和 ticket 不进入 URL。
-
-上传头像先通过共享裁剪弹窗选择 1:1 区域，支持拖动、缩放裁剪框、键盘调整与重置；确认后导出最大 512×512 的 PNG 到待保存预览，点击“保存头像”才上传。取消裁剪保留原头像；待保存图片可重新调整裁剪。选择系统头像使用现有 AppModal、Avatar 与主题 token，支持 8 个预设，确认后才写入服务端。
-
+`GET /api/auth/profile` 返回当前 Platform 主体及其资料入口。账号资料、安全验证与邮箱密码管理使用 Platform Console。Studio 的个人编辑偏好通过用户数据同步保存。
 
 ## 用户反馈
 
@@ -243,50 +206,9 @@ handle 放错端点、格式错误或行 ID 不存在时，工具错误回执提
 
 图片能力 `size.presets[].tier` 在已有档位之外接受 `1.5k`；前端档位选择、请求归一化与服务端预设校验保持一致。`km-kemei-seedream` 默认 `2048x2048`、单次一张、最多十张参考图，提供二十四个精确尺寸。透明输出使用插件扩展字段，不开启宿主通用透明背景开关。模型能力仍保存在现有 JSON 字段，无数据库迁移或新端点。
 
-## 注册邮箱等价检查
+## 存储容量
 
-公开注册与邮箱绑定的唯一性检查将 `gmail.com` 和 `googlemail.com` 视为同一域，移除本地部分的点及 `+` 后缀。例如 `a.b+x@googlemail.com` 与 `ab@gmail.com` 不允许创建两个账号。其他域保留点和 `+`；现有域名白名单规则保持不变。
-
-邮箱原值仍按原有小写、去首尾空格规则保存。登录、密码重置、验证码收件地址保持精确邮箱匹配，避免既有重复别名账号被合并或错误授权。已存在的重复账号不迁移、不删除、不重新发放注册奖励；它们会阻止相同规范信箱的新注册。写入前在事务内重新检查，以覆盖不同实例使用不同验证码的并发注册。无数据库结构迁移；唯一性由公开注册与绑定的事务入口保证，直接 SQL 写入不属于该约束入口。
-
-## 分片上传配额
-
-`POST /resources/uploads` 在接收分片前预留整个文件的日额度和账号容量。文件大小必须严格小于 `resourceUploadMB`；同一账号最多 32 个未到期会话，跨后端实例共同计数。未满足配额的请求不会创建分片目录。分片和完成请求按会话串行执行；会话过期或已完成返回 404，重新创建会话后可整传重试。
-
-完成上传时以数据库事务提交容量并消费预留，使用既有资源幂等标识。失败释放预留；跨 UTC 日期完成需要通过当天日额度检查。请求与响应字段不变。
-
-## 存储容量与只读
-
-账号有效文件容量 = 后台全局 `storedFileGB` + 当前生效的存储扩容（支付购买或管理员赠送，多笔叠加、各自到期）。
-
-`GET /api/resources/storage-usage` 返回 `{ usage }`：
-
-| 字段 | 说明 |
-| --- | --- |
-| `usedBytes` / `totalBytes` | 已用与有效总容量 |
-| `baseBytes` / `purchasedBytes` | 全局基础容量与生效扩容合计 |
-| `nextExpiresAt` | 最近一笔有期限扩容的到期时间，可为空 |
-| `overLimit` | `usedBytes > totalBytes` |
-| `overLimitSince` / `readOnlyAt` | 首次观察到超额的时间及其 7 天后进入只读的时间 |
-| `readOnly` | 宽限期已结束且仍超额 |
-
-该接口每次实时计算，并刷新本实例的只读判定缓存（15 秒），所以用户删除素材或扩容后刷新用量即可解除限制。
-
-超额后的行为：
-
-- 宽限期内：上传、分片上传、生成资源落库和媒体生成任务准入返回 `storage_capacity_exceeded`，其它写入照常。
-- 宽限期结束：`/api` 下的非 GET 请求先经过只读守卫，返回 HTTP 403、`code=40302`、`reason=storage_read_only`。放行的请求：所有 `GET`/`HEAD`/`OPTIONS`/`DELETE`；路径前缀 `/auth/`、`/payments/`、`/wallet/`、`/admin/`、`/settings/`、`/diagnostics/`、`/model-catalog/`；以及 `POST /assets/batch-delete`、`/assets/batch`、`/resources/access`、`/announcements/read`、`/models/available`、`/models/:id/quote`、`/ai/models`、`/runninghub/*-info`、`/canvas-projects/:id/edit-lease`、`/feedbacks`、`/feedbacks/attachments`、`/tasks/:id/{cancel,query-provider,recover-media,text-deltas,text-replay-complete}`、`/agent/runs/:id/cancel`、`/dramas/:id/pause`、`/creation-runs/:id/{release,heartbeat}`。新增的写接口默认受只读约束，确需放行时在 `backend/internal/handler/storage_guard.go` 登记。
-
-扩容相关接口：
-
-| 方法 | 路径 | 行为 |
-| --- | --- | --- |
-| GET | `/api/resources/storage-grants` | 当前用户的扩容记录（含已到期、已撤销），最多 100 条 |
-| GET | `/api/admin/users/:id/storage` | 管理员查看用户有效容量（不写入超额状态）和扩容记录 |
-| POST | `/api/admin/users/:id/storage-grants` | 管理员赠送，请求 `{ "bytes": 10737418240, "durationDays": 30, "note": "" }`；`bytes` 必须是整 GB，`durationDays=0` 为永久；写管理员审计 |
-| POST | `/api/admin/storage-grants/:id/revoke` | 管理员撤销，请求 `{ "reason": "线下退款" }`，原因必填；写管理员审计 |
-
-存储空间商品与积分商品共用 `/api/payments/*` 和 `/api/admin/payments/products`。商品和订单增加 `kind`/`productKind`（`credits`|`storage`）、`storageBytes`、`storageDurationDays`。`/payments/providers` 与下单不再要求积分功能；积分功能关闭时，`/payments/products` 只返回存储空间商品，积分商品下单返回功能未开启。商品类型创建后不能修改。
+账户面板和容量页读取当前空间的 Platform 摘要。容量办理入口使用 Platform Console 导航返回的可办理目标，上传失败以平台返回的原因提示。创作对象大小与并发限制仍由 Studio 运行参数控制。
 
 ## AutoDL 视频画面规格配置
 
@@ -379,41 +301,6 @@ CANVAS_BACKEND_DATA_DIR=/明确的数据目录 ./migrate-schema repair-canvas-re
 - 物理空间由后台删除队列异步释放，失败保留任务重试；接口成功不代表对象存储已经清理完成。未选中素材使用的资源，以及其他 Resource 行（包括其他用户）复用的物理对象继续保留。
 - 旧画布 / 任务 / 历史快照记录本身保留，但被删媒体链接将失效。此操作不可恢复；没有数据库结构迁移。
 
-## 密码登录限流
-
-`POST /auth/login` 保留 IP 总请求限制与十分钟账号请求限制。同一 IP 下，用户名和邮箱解析为同一用户时共享账号计数；不存在的账号仍按去除首尾空白、转小写后的输入计次。错误密码与不存在的账号使用相同的 401 响应，达到限额后均返回 429，不返回限流键或用户身份。计数仍涵盖所有登录请求，成功不清零。
-
-## 注册服务协议
-
-`POST /auth/register` 的 JSON 请求必须携带布尔值 `acceptedTerms: true`，首次创建管理员也适用。缺省、`false` 或 `null` 均按未同意处理，在创建用户、消费验证码和创建会话前返回 HTTP 400，提示 `请先同意<协议名称>`。原有注册开放、邮箱白名单、验证码与限流校验继续生效。
-
-`GET /auth/linuxdo/start` 可携带 `acceptedTerms=true`，只有该精确值表示同意。服务端将标志写入一次性的 OAuth state；回调仅在新建 Linux.do 用户时要求该 state 已同意，不从回调参数重新取值。已有 Linux.do 用户可从登录页继续登录，无需传此参数；同意协议不绕过注册关闭策略。
-
-协议名称与正文由管理员在 `PATCH /admin/settings/registration` 配置，公开读取面是 `GET /auth/settings` 的 `agreementTitle`、`agreementContent`。`agreementTitle` 未配置时按当前外观品牌名生成 `<品牌名>服务协议`，因此外观改名后注册页文案同步；接口返回的标题不含书名号，由注册页补《》。`agreementContent` 支持多段文本，按空行分段渲染，留空时注册页提示“服务协议内容待补充”。
-
-读取注册配置失败（如 JSON 损坏）时，`RegistrationAgreement` 返回空标题而不是品牌名兜底标题，注册页据此隐藏协议入口并提示可重新读取，避免展示后台并不存在的协议名称；此时错误提示统一回落为“请先同意服务协议”。
-
-`PATCH /admin/settings/registration` 的两个协议字段为可选指针语义：不提交表示保留已保存内容，提交空串表示明确清空。注册开关与协议正文可以分开保存，单独切换 `enabled` 不会覆盖协议。当前只校验本次注册的同意标志，不保存长期协议版本或签署凭证。前后端需一起更新，旧客户端缺少同意标志时无法注册。
-
-## 登录注册一体与邮箱要求
-
-前台只有一个登录注册表单。密码登录时客户端提交 `autoRegister: true`：账号不存在、允许创建账号（或尚无任何账号）且输入是合法用户名或邮箱时，`POST /auth/login` 返回 HTTP 404、`code=40401`、`reason=account_not_registered`，`details.accountKind` 为 `username` 或 `email`。客户端据此在同一表单补齐确认密码、邮箱或验证码和服务协议，再调用 `POST /auth/register`。注册关闭、输入不合法或未提交 `autoRegister` 时保持原来的 401“用户名、邮箱或密码不正确”，不额外暴露账号是否存在。`/register` 路由保留给推广链接，打开的也是一体表单。
-
-`POST /auth/register` 的 `username` 可以为空，前提是提交了 `email`：服务端加锁后按邮箱前缀生成可用用户名（非法字符替换为 `-`，冲突时追加随机后缀）。
-
-`PATCH /admin/settings/registration` 可选提交两个邮箱开关，不提交表示保留已保存值，`GET /admin/settings/registration` 与 `GET /auth/settings` 都会返回：
-
-- `emailRequired`（默认 `false`）：注册必须填写邮箱，缺少时返回 400“请输入邮箱”。
-- `emailVerificationRequired`（默认 `true`，旧记录缺字段时同样按 `true`）：注册必须先通过登录注册策略里的验证方式。关闭后不校验验证码，填写的邮箱按未验证保存（`emailVerifiedAt` 为空），仍然检查唯一性和注册域名白名单。从关闭切到开启时，如果没有可用验证方式（邮件服务或短信渠道未就绪），返回 400。
-
-未验证邮箱可以用于密码登录，但不能用于邮箱验证码登录。找回密码仍按邮箱发信，因此关闭验证会让填写他人邮箱的账号收到找回邮件，部署方应按需权衡。绑定邮箱：用户在账号设置里走 `POST /settings/profile/email-code` 和 `/settings/profile/email` 验证新邮箱；当前邮箱未验证时允许填同一地址重新验证，验证成功后写入 `emailVerifiedAt`，不再发“邮箱已变更”通知。`emailCodeRequired` 在关闭验证时为 `false`。
-
-## 登录与注册打开方式
-
-`PATCH /admin/settings/registration` 可选提交 `loginMode`：`modal`（默认，在当前页面弹出登录框）或 `page`（跳转 `/login` 独立页面）。与协议字段相同，不提交表示保留已保存值；其他值返回 HTTP 400。`GET /admin/settings/registration` 与公开的 `GET /auth/settings` 都返回 `loginMode`，未配置或旧记录缺少该字段时为 `modal`，尚无账号时同样下发。
-
-上述设置属于上游管理接口。OceanWay Studio 的工作区入口和受保护画布直接展示平台统一表单，`/login`、`/register` 和 `/forgot-password` 也使用同一面板。找回密码入口请求平台的 `auth=forgot` 视图。
-
 ## 站点皮肤主按钮
 
 ### 画布配置、更新公告、状态动画包与 Live2D（外观合同版本 11）
@@ -435,102 +322,9 @@ CANVAS_BACKEND_DATA_DIR=/明确的数据目录 ./migrate-schema repair-canvas-re
 
 `GET /public/appearance` 返回当前 `activeSkin`；管理员通过 `GET/PUT /admin/settings/appearance` 读取、保存完整主题库。外观合同版本 8 新增 `tokens.buttons.light/dark`，字段为 `mode`（`solid|gradient`）、整数 `angle`（0–360）、HEX 色值 `start/end`、`hoverStart/hoverEnd`、`activeStart/activeEnd`、`foreground`。纯色模式使用既有主操作颜色，渐变仅用于主按钮。非法模式、角度、色值或修改锁定经典主题均拒绝保存；整块缺失的旧配置按主题身份补齐。此变更不增加数据表迁移。
 
-## 模型规格报价
+## 模型目录与报价
 
-### 管理员批量调价
-
-`POST /admin/channels/:id/models/batch-reprice` 接收最终售价及原始价格版本，返回 `{ code: 0, data: { updated: number }, msg }`。仅管理员可调用；单批 1–100 个模型，空 ID、重复 ID 或不属于当前系统渠道的记录整批拒绝。请求结构如下（价格为整数微积分）：
-
-```json
-{
-  "models": [{
-    "modelId": "MODEL001",
-    "priceVersion": 4,
-    "priceTiers": [{
-      "id": "TIER001",
-      "priceVersion": 8,
-      "prices": { "unitPriceMicrocredits": 1370000 }
-    }]
-  }]
-}
-```
-
-弹窗一行一个模型，列为模型展示名、渠道展示名（上游模型 ID）、规格、成本价和销售价输入框；多个规格在模型行内纵向对齐。利润率沿用财务口径：`(销售价 − 成本价) / 销售价 × 100%`，并非成本加价率。目标利润率为 0–99.99%，最多两位小数；售价按 `成本价 / (1 − 目标利润率)` 计算，按所选 0–6 位积分小数四舍五入（默认 2 位）。成本 1 积分、目标 20%、保留 2 位时售价为 1.25 积分。修改比例或精度实时计算，也可点击「重新计算」按当前参数覆盖全部手动售价；随后允许逐规格手动修改，保存以最终输入值为准。舍入和手动修改可能使实际利润率偏离目标；售价为零时利润率显示 `—`。
-
-每个模型必须提交全部已启用规格（模型本身可停用），且每个规格只提交当前计费方式需要的完整 `prices` 字段：按次/秒为 `unitPriceMicrocredits`；文本 Token 为 `inputTokenPriceMicrocredits`、`outputTokenPriceMicrocredits`、`cachedTokenPriceMicrocredits`、`cacheWriteTokenPriceMicrocredits`（缓存写入，默认 0 表示不单独收费）；视频 Token 仅为 `outputTokenPriceMicrocredits`。缺失、多余、重复、停用规格、null、负数或非整数价格均拒绝。成本和售价配置必须已保存；成本及 Token 售价上限为 1,000,000 积分，按次/秒售价不得超出 JavaScript 安全整数微积分范围。
-
-服务端校验最终售价和模型/规格版本，不重新计算覆盖手工价格。价格快照过期必须刷新后重试。所有模型与价格档在单事务中更新，增加价格版本、失效目录缓存；无效配置、归属错误、超限或并发版本冲突均不部分提交。不改变成本、规格、计费方式和启停状态；未启用规格保持原值。此接口不新增数据表或迁移，不追溯修改已下单的计费快照。
-
-### 用户模型目录
-
-`GET /model-catalog` 固定返回 `source=system`，直接查询所有启用系统渠道下的渠道模型，目录数据在 `channels[].models[]`，`models` 固定为空数组。不受逻辑模型开关影响，不反查逻辑模型或供应线路。每项的 `modelKey` 是调用标识，`displayName` 是一级分组展示名（未设置时归入 `未分类`），`icon` 是模型图标键，`channelLabel` 是二级渠道展示名。后台渠道模型创建与更新请求使用相同的 `channelLabel` 字段；服务端去除首尾空白后限制为 80 字，空值或与上游模型 ID 相同的值表示不固化该名称，读取时回退到上游模型 ID（默认与上游 ID 保持一致，上游改名时自动跟随）。
-
-文本模型额外返回 `textWire`（`chat-completion` / `responses` / `claude-api`），由协议插件的 `create.path` 识别，不看协议 ID；识别不出时省略。浏览器直连系统代理的提示词优化、编辑器助手和美术点评按它选择 `/chat/completions`、`/responses` 或 `/messages`。`GET /plugins/catalog` 的 provider 同样返回 `textWire`，并在插件 `auth.secretField` 指向 Secret Key 时返回 `requiresSecretKey: true`。系统渠道代理只放行内置合同或插件声明的 POST 路径，出站鉴权按插件 `auth` 声明写，详见 [统一插件运行时](/docs/backend/protocol-plugins)。
-
-渠道模型创建、更新、管理列表、公开目录和会话模型价格信息均使用 `description` 表达模型描述。服务端去除首尾空白后限制为 500 字，允许空字符串清除描述；无管理员权限或超长内容拒绝保存。创作端二级选项常驻展示该字段，不依赖悬浮 Tooltip；未填写的系统模型不按名称生成宣传文案。
-
-以上模型接口同时使用 `tags: [{ text, color }]` 传递有序展示标签，例如 `[{"text":"限时特价","color":"purple"},{"text":"官方1折","color":"gold"}]`。最多 5 个，文字去除首尾空白后为 1–12 字且不可重复；颜色仅接受 `purple`、`blue`、`green`、`gold`、`orange`、`pink`。创建/更新由管理员操作，非法标签拒绝整个保存；提交 `tags: []`（或省略字段）清空标签。用户模型选择器在对应二级渠道项中常驻展示，标签不参与路由、价格计算或权限判断。
-
-创作端跨渠道按模型 `displayName` 分组为一级菜单（新导入模型默认 `未分类`），二级菜单使用每条模型的 `channelLabel`；未手动设置时与上游模型 ID 保持一致，例如 `MiniMax H3 → minimax-h3`。选中值继续使用 `channelId::modelKey`，报价和生成请求保留该渠道身份。展示字段不参与路由、权限及计费。系统渠道的“前台名称/前台显示别名”已移除，管理 API 不再接受或返回 `publicAlias`。
-
-同一产品在不同渠道中使用相同的模型展示名即可归组，`modelKey` 可以不同；相同 `modelKey` 但展示名不同会分为不同组。一级顺序与图标按后台渠道和模型排序首次出现的位置确定，二级保持后台渠道与模型顺序。即使二级展示名相同，也保留独立选项及各自能力、价格，不自动改写历史配置或交换两个展示字段。
-
-`GET /admin/references` 的 `channels[]` 同时返回 `modelDisplayNames`，包含系统渠道已创建模型的一级分组名称（含停用模型）。已设置过展示名的分组保留原值，即使与模型 ID 相同也算作已分组；未设置的模型不进入该列表，避免把模型 ID 当成一级分组。编辑器“模型展示名（一级目录）”汇总去重后提供可搜索下拉，点击即可展开全部已有分组，同时允许输入新分组；保存后刷新引用数据。
-
-以下接口需要登录 Cookie，返回 `data.quote`，仅校验和报价，不创建任务、账单或冻结余额，不调用供应商生成接口。
-
-| 接口 | 请求 |
-| --- | --- |
-| `POST /model-catalog/quote` | `{ channelId, modelKey, intent }`，仅允许启用的系统渠道与可用模型，复用任务准入、默认参数和价格档选择 |
-| `POST /models/:id/quote` | 直接提交 `intent`，按前台逻辑模型当前可用线路和价格策略报价 |
-
-`intent` 包含 `capability`（`text/image/video/audio`）、`operation`、`inputs`（素材类型到数量的映射）和 `options`（请求规格）。素材数量必须为 0–128 的整数，再按模型能力限制校验。视频规格包括 `vquality`、`size`、`videoSeconds`、布尔值 `videoGenerateAudio`，显式 `false` 必须保留。
-
-报价包含 `logicalModelId`（系统渠道直连为空）、`billingMode`、`quantity`、`amountMicrocredits`、`estimated`。视频 Token 报价另有 `videoTokenEstimate`：`formulaTokens`、`reservedTokens`、`outputWidth`、`outputHeight`、`framesPerSecond`、`outputSeconds`、`referenceSeconds`、`referenceDurationEstimated`、`dimensionsEstimated`、`reservationMarginPercent`。
-
-Token 报价的 `estimated` 为 `true`，`quantity` 是预留 Token 数。`intent.referenceVideoDurationsMs` 可按顺序给出参考视频时长（毫秒，长度必须等于 `inputs.video`，单个 1 到 3,600,000）；省略时带参考视频统一按 15 秒估算并返回 `referenceDurationEstimated: true`。该字段只用于报价，真实任务按秒计费时由后端实测参考视频时长。
-
-按秒或视频 Token 计费、挂参考视频的视频报价另有 `referenceVideo`（按次计费不返回）：`count`、`billed`（模型开启参考视频计费时为 `true`）、`generatedSeconds`、`referenceSeconds`、`billedSeconds`（按秒计入数量的参考视频秒数，Token 为 0）、`estimated`（时长未知、按 15 秒预估）。系统渠道目录的模型新增 `referenceVideoBilling`，价格档新增 `referenceVideoUnitPriceMicrocredits` / `referenceVideoOutputTokenPriceMicrocredits`（开关关闭时为 0）。规则见[视频 Token 计费](/docs/backend/video-token-billing#参考视频计费开关)。所有视频协议均支持 Token 定价；10% 预留是平台策略，不是费用上限。成功后优先有效上游用量，无有效用量时按提交的公式快照结算，余量不计入公式费用。账单新增 `videoFormulaTokens` 及 `usageSource`（`provider` / `video_formula`），公式结算的 `usageAvailable` 为 `false`，`outputTokens` 表示公式数量。算法、配置与异常用量处理见[视频 Token 计费](/docs/backend/video-token-billing)。
-
-## 用户分组与多币种计价
-
-用户模型目录、报价、任务创建、工作台任务、短剧模型选择、云端 Agent 模型列表和系统渠道中转都按当前用户分组过滤系统渠道：分组未绑定的渠道不出现在 `GET /model-catalog` 与 `GET /models`，直接提交其 `channelId` 时报价、建任务和中转返回 `reason=model_catalog_mismatch`。管理员账号可见全部渠道。目录与报价返回的价格档单价（`unitPriceMicrocredits`、Token 单价）已按分组换算为实际扣费的微积分，含全局积分倍率、分组倍率和模型倍率；分组未配置该货币兑换比例的模型不进入目录，报价返回 `model_price_not_configured`。
-
-`GET /auth/session` 增加 `userGroup`：`{ code, name, badgeLabel, badgeStyle, ratioBasisPoints }`，分组配置缺失时为 `null`。用户对象增加 `userGroup`（空串表示 `default`）。
-
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| GET | `/api/admin/user-groups` | 分组列表，含 `isDefault`、`channelIds`、`modelOverrides`、`userCount` |
-| POST | `/api/admin/user-groups` | 创建分组：`code`（`^[a-z0-9][a-z0-9_-]{0,39}$`，不可改）、`name`、`description`、`badgeLabel`、`badgeStyle`（`none`/`vip`/`svip`）、`sortOrder`、`ratioBasisPoints`（1–1000000）、`pointsPerUsdMicrocredits`、`pointsPerCnyMicrocredits`（0–10¹²）、`allChannels`、`channelIds`、`modelOverrides[]`（`modelKey`、`ratioBasisPoints`、`pointsPerUsdMicrocredits`、`pointsPerCnyMicrocredits`，0 表示沿用分组值） |
-| PATCH | `/api/admin/user-groups/:id` | 更新分组，请求体同上；`code` 与原值不同时拒绝 |
-| DELETE | `/api/admin/user-groups/:id` | 删除分组；`default` 和仍有用户的分组拒绝 |
-| GET | `/api/admin/users?group=vip` | 按分组筛选用户，`group=default` 同时匹配未分组用户 |
-| PATCH | `/api/admin/users/:id` | 增加可选 `userGroup`；省略表示不修改 |
-| POST | `/api/admin/users` | 增加可选 `userGroup`，默认 `default` |
-
-渠道模型创建与更新增加 `priceCurrency`：`credits`（默认）/ `USD` / `CNY`。省略时更新保留原值、新建为 `credits`。货币计价时价格档售价字段表示百万分之一货币单位，例如 `unitPriceMicrocredits: 40000` 表示每次 0.04 USD；成本价仍是微积分。渠道导出文件携带 `priceCurrency`。
-
-充值商品增加 `currency`（`CNY` / `USD`），`amountFen` 表示该货币最小单位（分 / 美分）；新建未传 `currency` 时使用默认充值货币，更新未传时保留原值。支付订单 `currency` 取自商品。充值设置接口：`GET /api/payments/settings`（登录用户）、`GET/PUT /api/admin/payments/settings`（`{ defaultCurrency: "CNY" | "USD", usdCnyRate: string }`，PUT 整体替换）；`defaultCurrency` 未设置时为 `USD`，`usdCnyRate` 为 1 USD 兑换的 CNY（最多 6 位小数，0–10000，空串表示未配置）。用户端 `/payments/products` 把默认货币的商品排在前面，切换默认货币不改写已有商品价格。
-
-每个支付渠道有结算货币：渠道配置的 `settlementCurrency`（易支付可选 `CNY` / `USD`），其余官方渠道为 `CNY`。商品货币与结算货币不同时，下单按 `usdCnyRate` 换算并四舍五入到分；未配置汇率时返回 400，不创建订单。`GET /api/payments/providers` 的每个渠道返回 `settlementCurrency` 和 `methods`（`[{ id, name, icon }]`，渠道内已启用的支付方式，来自插件清单 `methods` / `methodsField` 与渠道配置）。`POST /api/payments/orders` 增加可选 `method`：渠道有多种方式时必填且必须是已启用方式，只有一种时可省略，渠道没有方式时必须省略；同一幂等键换用其他方式返回 409。订单视图增加 `paymentMethod`、`chargeAmountFen`、`chargeCurrency` 和 `exchangeRate`（跨币种时的汇率字符串）；回调、查单和对账按实收金额与货币校验。
-
-## 管理员积分成本
-
-同一组接口的 `priceTiers[]` 还接受 `tokenPriceRulesEnabled` 与 `tokenPriceRules`（分时与上下文价格，只用于文本 Token 档）。每条规则为 `{ enabled, weekdays: number[] (1–7), start: "HH:MM", end: "HH:MM" | "24:00", minInputTokens, maxInputTokens (0 不限), inputTokenPriceMicrocredits, outputTokenPriceMicrocredits, cachedTokenPriceMicrocredits, cacheWriteTokenPriceMicrocredits }`，单价单位与价格档售价相同。时段按任务创建时的东八区时间锁定，上下文区间按上游真实输入 Token（含缓存）判定，按顺序取首条命中，未命中用价格档基础单价。非文本 Token 档提交非空规则、开始不早于结束、区间上限不大于下限、超过 48 条时返回 400。`GET /model-catalog` 的系统渠道价格档在启用时返回 `tokenPriceRules`（只含参与计费的规则，单价已按分组换算），报价接口按当前时段与估算输入 Token 选档。账单 `tokenPriceRule` 为结算命中的规则序号，0 为基础价。
-
-`GET/POST /admin/channels/:id/models` 与 `PATCH /admin/channels/:id/models/:modelId` 的 `priceTiers[]` 增加 `costPricing`：`configured`、`unitPriceMicrocredits`、`inputTokenPriceMicrocredits`、`outputTokenPriceMicrocredits`、`cachedTokenPriceMicrocredits`、`cacheWriteTokenPriceMicrocredits`。成本沿用该价格档的计费方式；按次/秒使用单位价，文本 Token 按输入/输出/缓存命中/缓存写入分别定价（缓存写入默认 0），视频 Token 只使用输出价。价格档售价同样新增 `cacheWriteTokenPriceMicrocredits`，公开模型目录随价格档返回。价格为整数微积分，范围为 0 到 1000000000000；`configured=false` 表示未配置，`true` 且价格为 0 表示显式零成本。
-
-成本保存到下单时的内部账单快照，不受售价倍率或扣费上限影响，后续改价不重算旧订单。历史逻辑模型任务切换备用线路时，成本更新为实际执行线路的快照，独立于用户售价策略。管理员请求列表、详情与 CSV 分列展示预授权、实收及成本金额；JSON 返回 `billingReservedMicrocredits`（订单预授权额）、可选 `billingSettledMicrocredits`（仅已结算订单返回实收）、`creditCostConfigured` 和可选 `creditCostMicrocredits`。预授权、待核对和已退回订单不返回实收，不能把预授权额当作扣费额；CSV 对应列为“预授权(微积分)”“实收(微积分)”。成功结算后按实际计费数量、Token 用量或视频公式快照核算；未结算、已退回、历史无快照或缺少有效用量时不编造成本金额。
-
-成本字段仅通过经过管理员权限校验的接口显式返回；普通用户的模型目录、会话模型信息、报价、任务与账单 JSON 均不包含成本配置、成本快照或成本金额。底层价格档和账单成本字段禁止 JSON 序列化，不以页面隐藏代替接口隔离。
-
-数据概览不再提供独立的“模型价格配置”入口。`GET /admin/analytics/overview` 的 `kpi`、`models[]` 使用 `finance` 返回 `settledOrders`、`costedOrders`、`revenueMicrocredits`、`costMicrocredits`、可空的 `profitMicrocredits`、`profitMargin`，取代旧的费用/币种字段。按当前请求日志时间及筛选范围关联已结算订单，以订单 ID 去重并核对用户与实际结算渠道；轮询、下载、未结算、退款和无关联账单请求不计入财务汇总。收入为实际结算积分，成本复用系统模型价格档的订单快照与计费用量，利润为收入减成本，利润率为利润占收入百分比。已知成本可显示部分合计；只要有已结算订单缺失成本，利润和利润率返回 `null`，不把未知成本视为零。无订单时利润为 `null`；零收入时利润率为 `null`。历史无成本快照的订单不按当前价回填。此处为已结算生成订单的积分毛利，不含充值收入或失败请求的上游损耗。
-
-总览的请求类指标（`kpi.upstreamRequests`、`kpi.successRate`、`kpi.p95DurationMs`、`trend[].requests`、`models[].requests` 与耗时、`failures[]`、按调用计入的活跃用户）只统计 `request_kind = create` 的模型生成请求；图片、视频的轮询结果已合并进 create 根记录，轮询、下载、上传、本地保存等阶段不计入。成功率按 succeeded /（succeeded + failed）计算，`trend[].requestSuccessRate`、`models[].taskSuccessRate`、`models[].requestSuccessRate` 在没有样本时返回 `null`，不返回 0。`trend[].consumedMicrocredits` 为当天已结算订单的实收积分，与 `kpi.finance.revenueMicrocredits` 同一口径，按订单首条可计费调用的 UTC 日期归属；`kpi.totalConsumedMicrocredits` 已移除。
-
-`GET /admin/api-logs` 与 `GET /admin/api-logs-export.csv` 支持 `from`、`to`（`YYYY-MM-DD` 按 UTC 自然日、含结束日，或 RFC 3339 时间点）、`userId`、`model`、`channelId`、`capability`；不传日期时默认近 30 个 UTC 日，单次最多 366 天。
-
-`GET /admin/billing-orders` 的每条订单额外返回 `userDisplayName`、`userAccount`，按当前页用户 ID 批量读取；字段不入库，普通用户的订单接口不返回。
+正式模型目录使用 `GET /api/model-catalog/summaries` 与 `GET /api/model-catalog/detail`。参数、可用性、价格和执行额度来自 Platform 目录、预览及执行授权。每次提交沿当前 Studio Task 合同重新校验当前用户、空间和授权。
 
 ## 用户任务计费与作品花费口径
 
@@ -603,14 +397,6 @@ Token 报价的 `estimated` 为 `true`，`quantity` 是预留 Token 数。`inten
 平移和缩放只持久化浏览器视口，不生成远端 operations。保存日志仅记录请求/链路 ID、画布/用户 ID、版本、节点数量变化及 HTTP 状态，不记录正文、提示词或媒体 URL。
 
 operations 的结构化配额在提交事务内实时统计账号的素材/画布数量和 JSON 字节数，不为画布保存扫描任务正文及 API 请求/响应日志。接口请求、响应、容量上限及错误语义均不变；性能排查应分别记录成功写入、同请求重放和冲突请求的耗时，冲突请求提前退出不能代表完整提交耗时。
-
-## 推广中心
-
-推广设置保存在 `system_settings` 的 `referral` 键，管理员通过 `GET/PATCH /admin/settings/referral` 读写 `{ enabled, mode, commissionRateBasisPoints }`，保存记录管理员审计。`mode` 为 `all`（全民推广）或 `assigned`（指定推广人）；返佣比例为万分比，范围 0–5000。推广人标记通过 `PATCH /admin/users/:id` 的可选布尔字段 `isPromoter` 修改，省略表示不变。
-
-`GET /auth/session` 的 `data.referralAvailable` 表示当前账号能否进入推广中心：推广已开启、账号正常，并且是全民模式或账号为推广人。用户接口 `GET /referral`、`GET /referral/invitees`、`GET /referral/commissions`（`page`、`pageSize`）在无资格时返回 403 `forbidden`；被邀请用户名称只返回首字加 `**`。`GET /admin/referral/commissions` 返回全站返佣，名称不脱敏。
-
-`POST /auth/register` 接受可选 `referralCode`（来自推广链接 `/register?ref=推广码`）。推广码无效、推广人当时无资格或绑定写入失败时注册照常成功，只是不记录归属。积分充值订单入账后按当时设置计算返佣：`floor(到账积分 × 比例 / 10000)`，以积分写入推广人账户，流水类型 `referral_commission`；同一订单只返佣一次，存储空间订单不返佣。
 
 ## 欢迎页开放配置
 
@@ -757,40 +543,6 @@ Skills 的 `tool_completed` / `tool_failed` 事件附带 `skillId`、`skillName`
 
 生成任务的参考图、视频和音频中出现 `asset://<id>` 时：属于他人自建组、未授权的平台组或已过期真人组的 ID 返回 403；未登记的 ID（方舟公共数字人等）不受限制。
 
-## 管理员支付订单
-
-`GET /api/admin/payments/orders` 需要管理员权限，支持 `status`、`keyword`、`providerId`、`timeField`、`from`、`to`、`page`、`pageSize`。关键词匹配订单号、渠道交易号、用户名称、用户名或邮箱，也支持完整用户 ID 精确匹配。用户名和邮箱搜索忽略大小写；所有筛选同时生效，返回匹配总数和当前页订单。`timeField` 为 `created`（默认创建时间）、`paid`（渠道支付时间）、`credited`（入账时间）。`from`、`to` 为 `YYYY-MM-DD`，包含起止日期，按北京时间转换为左闭右开的时间区间；未填写的边界不限制，倒置日期或无效状态/时间口径返回 400。
-
-每条管理员列表订单在原有字段之外包含 `user: { id, username, displayName, email }`，由当前页用户 ID 批量读取；用户不存在时返回 `user: null`，保留原 `userId` 与历史订单。此身份摘要仅用于管理员订单列表，不添加到普通用户支付接口或支付状态同步响应。
-
-后台支付订单列表展示用户身份，点击名称打开用户详情；订单详情提供完整订单号、渠道交易号、用户 ID 和各阶段时间。同步支付状态与关闭订单位于更多菜单，关闭订单仍需确认。
-
-支付插件 RPC 使用 `order_not_found`、`order_not_paid`、`trade_bill_not_found` 保留“订单不存在／未支付／账单不存在”的业务含义，宿主不根据错误文案推断订单状态。关闭订单时，查单、关单及失败后的复查均明确返回订单不存在，才以 `NOT_FOUND` 关闭本地订单；复查发现已支付则正常入账，网络或验签失败继续保留订单。升级此协议处理需同步更新宿主后端及支付插件；源码 Docker 构建会重新打包官方支付插件，旧插件返回的通用错误仍作为未知结果处理。
-
-官方易支付插件 `official-payment-epay` 通过既有支付接口接入，不新增业务路由。管理员必须显式填写可信支付网关；V1 支持 MD5 下单、查单与通知验签，未付款订单的关单仅关闭本地记录。V1 下单方式 `submitMode` 可选 `api`（服务端调用 `mapi.php`）或 `submit`（生成签名的 `submit.php` 地址，经 `/api/payments/orders/:id/checkout` 302 让浏览器跳转到网关收银台，地址不含商户密钥）。`payTypes` 可启用多种支付方式，用户在充值面板逐个选择。V2 目前只支持 RSA 下单和通知验签，不支持查单、刷新收银台及自动关单；相应操作返回明确失败，不能按“订单已关闭”处理。启用前需在实际网关验收回调和到账，不能用插件安装成功代替支付链路验收。
-
-### 支付对账筛选及 CSV 导出
-
-`GET /api/admin/payments/reconciliations` 支持 `providerId`、`status`（`running` / `completed` / `failed`）、`from`、`to`（账单日期，包含起止日）、`page`、`pageSize`。`GET /api/admin/payments/reconciliations/:id/items` 支持 `result`、`page`、`pageSize`；`result=abnormal` 同时选出所有非 `matched`、非 `recovered` 明细，未指定或 `all` 表示全部。具体结果还支持 `matched`、`recovered`、`local_order_not_found`、`provider_record_missing`、`amount_mismatch`、`trade_no_mismatch`、`credit_failed`。
-
-三个只读导出接口均在 service 校验管理员权限，返回 `text/csv; charset=utf-8` 附件，设置 `Cache-Control: no-store`。导出复用列表筛选条件，不受 `page`、`pageSize` 影响：
-
-| 接口 | 参数与内容 |
-| --- | --- |
-| `GET /api/admin/payments/orders/export.csv` | 与订单列表相同的筛选；完整订单号、渠道交易号、用户身份、商品、渠道、金额、币种、积分、订单/渠道状态、各阶段时间，以及支付方式、实收金额、实收币种和汇率（追加在末尾） |
-| `GET /api/admin/payments/reconciliations/export.csv` | 与对账列表相同的筛选；每日执行状态、总笔数、一致/补发/异常笔数、失败原因、发起人 ID 或系统、开始/完成时间 |
-| `GET /api/admin/payments/reconciliations/:id/items/export.csv` | `result`；单次对账的完整交易明细及对账开始/完成时间，便于区分同日重跑结果 |
-
-最多导出 10000 行数据（不含表头）；超限返回 400 业务错误，提示缩小筛选范围，不截断文件。无匹配数据时接口返回仅含表头的 CSV；前端无数据时禁用导出。导出不查单、不重跑对账、不补发积分。
-
-对账完成不代表无异常，汇总保留异常笔数；失败记录仍可导出汇总及失败原因。明细仅允许已完成的对账，执行中或失败返回 409。对账重跑复用记录并替换明细，明细导出使用可重复读快照，保证汇总与明细来自同一次数据库快照。订单及关联用户身份也在同一快照内读取。
-
-明细的“记录金额”附带“金额来源”：通常为渠道账单，`provider_record_missing` 为本地订单。该字段不声称同时保存渠道和本地金额，不根据订单当前值推算历史差额。订单金额和积分为订单数据，未支付订单的积分不代表已经发放。
-
-CSV 使用中文表头、UTF-8 BOM、CRLF；金额按整数分精确转换为两位小数，积分从微积分转换并保留最多六位小数，时间表头注明北京时间。空时间留空。文本转义逗号/引号/换行，并在公式触发字符前加单引号；可被解析为数字或科学计数法的 ID/订单号也加单引号防止表格软件丢失精度，不生成 `="..."` 公式。通用 CSV 消费者可能看见该保护前缀，按文本导入并按需移除；仅 CSV 引号不能声明列类型。
-
-前端使用已经应用到列表的筛选条件导出；更改条件后，先查询/筛选再启用导出，分页和刷新沿用已应用条件。明细抽屉支持“仅异常”和单独刷新，切换记录/筛选时取消旧请求，避免旧响应覆盖新记录。下载接口的 JSON 错误 Blob 会解析为业务提示，超量或重跑冲突不会被保存为 CSV。
-
 ## 用户 Agent 记忆
 
 每个用户一份长期记忆文件，Agent 在对话中用 `memory_update` 维护（见上文“云端 Agent”）。以下接口都要求登录 Cookie，只操作当前用户自己的文件，客户端不能指定其他用户。视图字段为 `{ mode, capacity, charCount, revision, entries: [{ id, section, text, source?, originRunId?, createdAt, updatedAt }], pendingCount, updatedAt }`，`source` 为 `agent`、`user` 或 `lesson_import`。
@@ -845,10 +597,6 @@ Agent 已不再注入、召回或写入下列经验条目，记忆设置页只�
 | `PATCH /api/skills/:id/agent-mode` | `{ mode: "auto" \| "manual" }`，只能改自己已安装或自建的技能；`manual` 的技能不进 Agent 的自动发现目录，只在点名或为对话固定时使用。返回 `{ skill }` |
 
 推荐目录随后端发布（`backend/internal/skills/seed/recommendations.json`），启动时校验只引用内置技能。安装只写用户技能库，不会替用户把技能固定到对话。
-
-## 管理员系统渠道
-
-`POST /api/admin/channels/:id/duplicate` 需要管理员权限，会复制指定系统渠道的连接配置、加密凭证、请求头、模型和价格档，生成新的渠道与模型 ID；复制渠道名称自动追加“ - 副本”。原渠道及其前台供应线路不受影响。
 
 ## 信封
 
@@ -999,19 +747,6 @@ Agent 已不再注入、召回或写入下列经验条目，记忆设置页只�
 新增登录读取 `/api/skills/curation` 与管理员 GET／PUT `/api/admin/skill-curation`；原技能列表仅在策展开启时应用新增分类筛选，响应结构不变。见 [接口与行为](./skill-curation)。
 
 一级分类扩展：管理写入增加 root 命令，assignment.rootId 与子分类完整集合一起保存；列表增加 platformRootId 筛选。关闭模式继续忽略新增筛选。
-
-## 服务商目录 API
-
-均需管理员权限，返回统一信封。目录来自 `https://ai.yingce.tv/v1/catalog.json`（静态 JSON），`CANVAS_PROVIDER_CATALOG_DISABLED=1` 时关闭。
-
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| GET | `/admin/provider-catalog` | 返回推广期内（`startsAt ≤ now < endsAt`）的服务商，按 `rank` 排序；`source` 为 `live/cache/unavailable/disabled`；成本已按 1 元 = 1 积分换算为微积分；不支持的协议标记 `supported=false` |
-| POST | `/admin/provider-catalog/refresh` | 强制重新拉取，失败时沿用上次快照 |
-| POST | `/admin/provider-catalog/:id/verify` | `{ apiKey }`，请求 `GET {baseUrl}/models`，返回 `upstreamModelCount`、`availableModels`、`missingModels`，不落库 |
-| POST | `/admin/provider-catalog/:id/install` | `{ name, apiKey, markupPercent, models: [{ modelKey, markupPercent? }], enabled }`，一次事务创建渠道、模型和规格档，返回 `{ channel }` |
-
-install 的 Base URL、协议、能力和成本全部从服务端快照读取，不信任请求体。售价 = 成本 × (1 + 加价率)，向上取整到微积分；加价率 0–1000%，最多两位小数。推广期已过返回 404。API Key 只加密存入渠道，不写日志。
 
 ## 短剧自动制作
 

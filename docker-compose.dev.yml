@@ -1,7 +1,37 @@
 name: open-ai-canvas-dev
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-open_ai_canvas}
+      POSTGRES_USER: ${POSTGRES_USER:-open_ai_canvas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请配置 PostgreSQL 密码}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
   backend:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     build:
       context: .
       dockerfile: backend/Dockerfile.dev
@@ -16,13 +46,19 @@ services:
       GOCACHE: /tmp/go-build
       GOMODCACHE: /tmp/go-mod
       CANVAS_BACKEND_ADDR: ":8080"
+      STUDIO_PLATFORM_ORIGIN: ${STUDIO_PLATFORM_ORIGIN:?请配置 Platform Origin}
+      STUDIO_PLATFORM_BROWSER_ORIGIN: ${STUDIO_PLATFORM_BROWSER_ORIGIN:-}
+      STUDIO_PLATFORM_PRODUCT_KEY: ${STUDIO_PLATFORM_PRODUCT_KEY:?请配置 Studio 产品凭据}
+      STUDIO_PUBLIC_ORIGIN: ${STUDIO_PUBLIC_ORIGIN:?请配置 Studio HTTPS Origin}
+      STUDIO_PUBLIC_BASE_PATH: ${STUDIO_PUBLIC_BASE_PATH:-}
+      STUDIO_PLATFORM_SESSION_HOSTS: ${STUDIO_PLATFORM_SESSION_HOSTS:?请配置登记的 Session Host}
+      STUDIO_PLATFORM_ALLOWED_ORIGINS: ${STUDIO_PLATFORM_ALLOWED_ORIGINS:?请配置登记的 Origin}
       CANVAS_BACKEND_DATA_DIR: /data
-      CANVAS_DATABASE_DRIVER: ${CANVAS_DATABASE_DRIVER:-sqlite}
-      DATABASE_URL: ${DATABASE_URL:-}
-      REDIS_URL: ${REDIS_URL:-}
+      CANVAS_DATABASE_DRIVER: postgres
+      DATABASE_URL: ${DATABASE_URL:?请配置 PostgreSQL DATABASE_URL}
+      REDIS_URL: redis://redis:6379/0
       CANVAS_WORKER_CONCURRENCY: ${CANVAS_WORKER_CONCURRENCY:-3}
       CANVAS_CHANNEL_CONCURRENCY: ${CANVAS_CHANNEL_CONCURRENCY:-3}
-      CANVAS_REGISTRATION_ENABLED: ${CANVAS_REGISTRATION_ENABLED:-false}
       CANVAS_ALLOW_PRIVATE_UPSTREAMS: ${CANVAS_ALLOW_PRIVATE_UPSTREAMS:-false}
       CANVAS_ALLOWED_PRIVATE_UPSTREAM_HOSTS: ${CANVAS_ALLOWED_PRIVATE_UPSTREAM_HOSTS:-}
       CANVAS_CORS_ORIGINS: ${CANVAS_CORS_ORIGINS:-http://localhost:3000}
@@ -60,6 +96,7 @@ services:
     working_dir: /workspace/web
     command: ["sh", "-c", "bun install --frozen-lockfile && bun run dev"]
     environment:
+      VITE_APP_BASE_PATH: ${STUDIO_PUBLIC_BASE_PATH:-/}
       VITE_API_PROXY_TARGET: http://backend:8080
       VITE_TLDRAW_LICENSE_KEY: ${VITE_TLDRAW_LICENSE_KEY:-}
     volumes:
@@ -75,5 +112,7 @@ services:
     init: true
 
 volumes:
+  postgres-data:
+  redis-data:
   web-node-modules:
   web-bun-cache:

@@ -1,36 +1,5 @@
 # syntax=docker/dockerfile:1.7
 
-FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS payment-package-build
-
-ARG GOPROXY=https://proxy.golang.org,direct
-ENV GOPROXY=$GOPROXY
-
-RUN apk add --no-cache nodejs unzip zip
-
-WORKDIR /src
-# 插件只下载实际依赖，不为四个小程序预取整个业务后端的模块图。
-COPY backend ./backend
-COPY plugin-packages ./plugin-packages
-ARG TARGETOS
-ARG TARGETARCH
-RUN --mount=type=cache,target=/root/.cache/go-build set -eu; \
-    test -n "$TARGETOS"; \
-    test -n "$TARGETARCH"; \
-    PAYMENT_PLUGIN_GOOS="$TARGETOS" \
-    PAYMENT_PLUGIN_GOARCH="$TARGETARCH" \
-    PAYMENT_PLUGIN_CGO_ENABLED=0 \
-      ./plugin-packages/build-packages.sh --payments-only; \
-    sh ./plugin-packages/verify-payment-packages.sh "$TARGETOS" "$TARGETARCH"
-
-FROM alpine:3.22 AS payment-package-smoke
-
-ARG TARGETOS
-ARG TARGETARCH
-RUN apk add --no-cache unzip
-COPY --from=payment-package-build /src/plugin-packages /app/plugin-packages
-RUN PAYMENT_PLUGIN_SMOKE_TEST=1 \
-    sh /app/plugin-packages/verify-payment-packages.sh "$TARGETOS" "$TARGETARCH"
-
 FROM golang:1.25-alpine AS backend-build
 
 ARG GOPROXY=https://proxy.golang.org,direct
@@ -40,11 +9,6 @@ RUN apk add --no-cache build-base git
 
 WORKDIR /src/backend
 COPY backend/go.mod backend/go.sum ./
-# go.mod 含本地 replace（github.com/casdoor/go-sms-sender => ./third_party/go-sms-sender）。
-# go mod download 解析依赖时就需要读到该目录的 go.mod，而这行执行时完整源码尚未复制，
-# 缺了它会报 "reading third_party/go-sms-sender/go.mod: no such file or directory"。
-# 后面 COPY backend ./ 会覆盖为完整源码，这里只为让依赖解析通过。
-COPY backend/third_party ./third_party
 # 模块保留在普通镜像层中，供后续编译及跨 Runner 的 GHA 层缓存复用。
 # SDK belongs to a private OceanWay repository. Authentication is ephemeral and
 # never copied into the build context or image layers.
@@ -59,8 +23,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build set -eu; \
     version="${BUILD_VERSION:-$(tr -d '\r\n' </src/VERSION)}"; \
     ldflags="-s -w -X yingce/backend/internal/buildinfo.Version=${version} -X yingce/backend/internal/buildinfo.Commit=${BUILD_COMMIT} -X yingce/backend/internal/buildinfo.BuildTime=${BUILD_TIME}"; \
     CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="$ldflags" -o /out/yingce-backend ./cmd/server; \
-    CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="$ldflags" -o /out/migrate-schema ./cmd/migrate-schema; \
-    CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="$ldflags" -o /out/migrate-sqlite-postgres ./cmd/migrate-sqlite-postgres
+    CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="$ldflags" -o /out/migrate-schema ./cmd/migrate-schema
 
 FROM node:22.19-alpine AS pi-runtime-deps
 
@@ -83,8 +46,6 @@ ENV CANVAS_BACKEND_DATA_DIR=/data
 RUN mkdir -p /data && chown -R app:app /data
 COPY --from=backend-build /out/yingce-backend /usr/local/bin/yingce-backend
 COPY --from=backend-build /out/migrate-schema /usr/local/bin/migrate-schema
-COPY --from=backend-build /out/migrate-sqlite-postgres /usr/local/bin/migrate-sqlite-postgres
-COPY --from=payment-package-smoke /app/plugin-packages /app/plugin-packages
 COPY --from=pi-runtime-deps /app/backend/agent-runtime/pi/node_modules /app/backend/agent-runtime/pi/node_modules
 COPY backend/agent-runtime/pi/package.json backend/agent-runtime/pi/package-lock.json /app/backend/agent-runtime/pi/
 COPY backend/agent-runtime/pi/agent-runtime.mjs /app/backend/agent-runtime/pi/agent-runtime.mjs

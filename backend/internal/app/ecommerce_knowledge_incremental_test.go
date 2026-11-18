@@ -35,7 +35,7 @@ func TestEcommerceCompletedPinnedSyncUsesDatabaseEvidenceOffline(t *testing.T) {
 	if err := svc.repo.UpsertEcommerceKnowledgeEntry(&entry); err != nil {
 		t.Fatal(err)
 	}
-	actor := &model.User{ID: "admin", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	result, err := svc.SyncEcommerceKnowledge(context.Background(), actor)
 	if err != nil || transport.requests != 0 || result["duplicates"].(int) != 1 || result["imported"].(int) != 0 || len(result["failed"].([]string)) != 0 {
 		t.Fatalf("completed source depended on network: result=%v requests=%d err=%v", result, transport.requests, err)

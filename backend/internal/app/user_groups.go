@@ -9,27 +9,19 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
-	"regexp"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"gorm.io/gorm"
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/repository"
 )
 
 const (
 	userGroupCacheTTL       = 30 * time.Second
-	maxUserGroupRatioBPS    = 1_000_000
-	maxPointsPerCurrency    = 1_000_000 * CreditScale
-	maxUserGroupOverrides   = 500
 	defaultPointsPerCNYSeed = 1 * CreditScale
 	defaultPointsPerUSDSeed = 7 * CreditScale
 )
-
-var userGroupCodePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,39}$`)
 
 // userGroupState 是 Service 内的分组缓存；多实例部署下由短 TTL 收敛。
 type userGroupState struct {
@@ -56,53 +48,10 @@ type userGroupAccess struct {
 	bypassVisibility bool
 }
 
-// UserGroupView 是管理端分组读模型。
-type UserGroupView struct {
-	model.UserGroup
-	IsDefault      bool                           `json:"isDefault"`
-	ChannelIDs     []string                       `json:"channelIds"`
-	ModelOverrides []model.UserGroupModelOverride `json:"modelOverrides"`
-	UserCount      int64                          `json:"userCount"`
-}
-
-// UserGroupRequest 是创建/更新分组的入参。编码创建后不可修改。
-type UserGroupRequest struct {
-	Code             string                         `json:"code"`
-	Name             string                         `json:"name"`
-	Description      string                         `json:"description"`
-	BadgeLabel       string                         `json:"badgeLabel"`
-	BadgeStyle       string                         `json:"badgeStyle"`
-	SortOrder        int                            `json:"sortOrder"`
-	RatioBasisPoints int64                          `json:"ratioBasisPoints"`
-	PointsPerUSD     int64                          `json:"pointsPerUsdMicrocredits"`
-	PointsPerCNY     int64                          `json:"pointsPerCnyMicrocredits"`
-	AllChannels      bool                           `json:"allChannels"`
-	ChannelIDs       []string                       `json:"channelIds"`
-	ModelOverrides   []model.UserGroupModelOverride `json:"modelOverrides"`
-}
-
-// PublicUserGroup 是用户端会话里的分组展示信息，不含渠道绑定。
-type PublicUserGroup struct {
-	Code             string `json:"code"`
-	Name             string `json:"name"`
-	BadgeLabel       string `json:"badgeLabel"`
-	BadgeStyle       string `json:"badgeStyle"`
-	RatioBasisPoints int64  `json:"ratioBasisPoints"`
-}
-
 func normalizeUserGroupCode(code string) string {
 	value := strings.ToLower(strings.TrimSpace(code))
 	if value == "" {
 		return model.DefaultUserGroupCode
-	}
-	return value
-}
-
-// storedUserGroupCode 是写入 users.user_group 的值；默认分组保存为空串，与历史用户一致。
-func storedUserGroupCode(code string) string {
-	value := normalizeUserGroupCode(code)
-	if value == model.DefaultUserGroupCode {
-		return ""
 	}
 	return value
 }
@@ -230,7 +179,7 @@ func (s *Service) resolvedUserGroup(code string) (*resolvedUserGroup, error) {
 	return group, nil
 }
 
-// userGroupAccessForUser 构造登录用户的分组上下文。管理员可见全部渠道，但价格仍按自己的分组计算。
+// userGroupAccessForUser applies the selected catalog group without local role exemptions.
 func (s *Service) userGroupAccessForUser(user *model.User) (*userGroupAccess, error) {
 	if user == nil {
 		return nil, Unauthorized("请先登录")
@@ -239,7 +188,7 @@ func (s *Service) userGroupAccessForUser(user *model.User) (*userGroupAccess, er
 	if err != nil {
 		return nil, err
 	}
-	return &userGroupAccess{userID: user.ID, group: group, bypassVisibility: user.Role == model.UserRoleAdmin}, nil
+	return &userGroupAccess{userID: user.ID, group: group, bypassVisibility: false}, nil
 }
 
 // userGroupAccess 按用户 ID 读取分组上下文；账单和任务准入使用它，用户不存在时失败关闭。
@@ -382,269 +331,6 @@ func combineMultiplierBPS(values ...int64) int64 {
 	return result.Int64()
 }
 
-// PublicUserGroupFor 返回会话展示用的分组；分组缺失时返回 nil，不阻断登录态读取。
-func (s *Service) PublicUserGroupFor(user *model.User) *PublicUserGroup {
-	if user == nil {
-		return nil
-	}
-	group, err := s.resolvedUserGroup(user.UserGroup)
-	if err != nil {
-		return nil
-	}
-	return &PublicUserGroup{Code: group.Code, Name: group.Name, BadgeLabel: group.BadgeLabel, BadgeStyle: group.BadgeStyle, RatioBasisPoints: group.RatioBasisPoints}
-}
-
-// requireExistingUserGroup 校验管理员给用户分配的分组存在，返回写入 users 表的编码。
-func (s *Service) requireExistingUserGroup(code string) (string, error) {
-	normalized := normalizeUserGroupCode(code)
-	if normalized == model.DefaultUserGroupCode {
-		if _, err := s.resolvedUserGroup(normalized); err != nil {
-			return "", err
-		}
-		return "", nil
-	}
-	if _, err := s.repo.UserGroupByCode(normalized); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", BadAuthRequest("用户分组不存在")
-		}
-		return "", err
-	}
-	return storedUserGroupCode(normalized), nil
-}
-
-func (s *Service) AdminUserGroups(actor *model.User) ([]UserGroupView, error) {
-	if err := s.RequireAdmin(actor); err != nil {
-		return nil, err
-	}
-	groups, err := s.repo.UserGroups()
-	if err != nil {
-		return nil, err
-	}
-	bindings, err := s.repo.UserGroupChannels()
-	if err != nil {
-		return nil, err
-	}
-	counts, err := s.repo.UserGroupUserCounts()
-	if err != nil {
-		return nil, err
-	}
-	channelsByGroup := make(map[string][]string, len(groups))
-	for _, binding := range bindings {
-		channelsByGroup[binding.GroupID] = append(channelsByGroup[binding.GroupID], binding.ChannelID)
-	}
-	result := make([]UserGroupView, 0, len(groups))
-	for _, group := range groups {
-		overrides, decodeErr := decodeUserGroupOverrides(group.ModelOverridesJSON)
-		if decodeErr != nil {
-			return nil, decodeErr
-		}
-		count := counts[group.Code]
-		if group.Code == model.DefaultUserGroupCode {
-			count += counts[""]
-		}
-		channelIDs := channelsByGroup[group.ID]
-		if channelIDs == nil {
-			channelIDs = []string{}
-		}
-		result = append(result, UserGroupView{UserGroup: group, IsDefault: group.Code == model.DefaultUserGroupCode, ChannelIDs: channelIDs, ModelOverrides: overrides, UserCount: count})
-	}
-	return result, nil
-}
-
-func (s *Service) CreateUserGroup(actor *model.User, req UserGroupRequest) (*UserGroupView, error) {
-	if err := s.RequireAdmin(actor); err != nil {
-		return nil, err
-	}
-	code := strings.ToLower(strings.TrimSpace(req.Code))
-	if !userGroupCodePattern.MatchString(code) {
-		return nil, BadAuthRequest("分组编码只能使用小写字母、数字、下划线或连字符，最多 40 位")
-	}
-	if _, err := s.repo.UserGroupByCode(code); err == nil {
-		return nil, BadAuthRequest("分组编码已存在")
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
-	}
-	group := &model.UserGroup{ID: newID(), Code: code}
-	channelIDs, err := s.applyUserGroupRequest(group, req)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.repo.SaveUserGroupWithChannels(group, channelIDs, true); err != nil {
-		return nil, err
-	}
-	s.invalidateUserGroups()
-	if err := s.appendAdminAudit(actor, "user_group.create", "user_group", group.ID, "创建用户分组", userGroupAuditMetadata(group, channelIDs)); err != nil {
-		return nil, err
-	}
-	return s.adminUserGroupView(actor, group.ID)
-}
-
-func (s *Service) UpdateUserGroup(actor *model.User, id string, req UserGroupRequest) (*UserGroupView, error) {
-	if err := s.RequireAdmin(actor); err != nil {
-		return nil, err
-	}
-	group, err := s.repo.UserGroup(strings.TrimSpace(id))
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, NotFound("用户分组不存在")
-	}
-	if err != nil {
-		return nil, err
-	}
-	if code := strings.ToLower(strings.TrimSpace(req.Code)); code != "" && code != group.Code {
-		return nil, BadAuthRequest("分组编码创建后不能修改")
-	}
-	channelIDs, err := s.applyUserGroupRequest(group, req)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.repo.SaveUserGroupWithChannels(group, channelIDs, false); err != nil {
-		return nil, err
-	}
-	s.invalidateUserGroups()
-	if err := s.appendAdminAudit(actor, "user_group.update", "user_group", group.ID, "更新用户分组", userGroupAuditMetadata(group, channelIDs)); err != nil {
-		return nil, err
-	}
-	return s.adminUserGroupView(actor, group.ID)
-}
-
-func (s *Service) DeleteUserGroup(actor *model.User, id string) error {
-	if err := s.RequireAdmin(actor); err != nil {
-		return err
-	}
-	group, err := s.repo.UserGroup(strings.TrimSpace(id))
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return NotFound("用户分组不存在")
-	}
-	if err != nil {
-		return err
-	}
-	if group.Code == model.DefaultUserGroupCode {
-		return BadAuthRequest("默认分组不能删除")
-	}
-	if err := s.repo.DeleteUserGroup(group.ID, group.Code); err != nil {
-		if errors.Is(err, repository.ErrUserGroupInUse) {
-			return BadAuthRequest("分组下仍有用户，请先把用户调整到其他分组")
-		}
-		return err
-	}
-	s.invalidateUserGroups()
-	return s.appendAdminAudit(actor, "user_group.delete", "user_group", group.ID, "删除用户分组", map[string]any{"code": group.Code})
-}
-
-func (s *Service) adminUserGroupView(actor *model.User, id string) (*UserGroupView, error) {
-	groups, err := s.AdminUserGroups(actor)
-	if err != nil {
-		return nil, err
-	}
-	for index := range groups {
-		if groups[index].ID == id {
-			return &groups[index], nil
-		}
-	}
-	return nil, NotFound("用户分组不存在")
-}
-
-// applyUserGroupRequest 校验并写入可编辑字段，返回去重后的渠道绑定。
-func (s *Service) applyUserGroupRequest(group *model.UserGroup, req UserGroupRequest) ([]string, error) {
-	name := strings.TrimSpace(req.Name)
-	if name == "" || len([]rune(name)) > 80 {
-		return nil, BadAuthRequest("分组名称不能为空且不能超过 80 字")
-	}
-	description := strings.TrimSpace(req.Description)
-	if len([]rune(description)) > 500 {
-		return nil, BadAuthRequest("分组说明不能超过 500 字")
-	}
-	badgeLabel := strings.TrimSpace(req.BadgeLabel)
-	if len([]rune(badgeLabel)) > 16 {
-		return nil, BadAuthRequest("徽章文字不能超过 16 字")
-	}
-	badgeStyle := strings.ToLower(strings.TrimSpace(req.BadgeStyle))
-	switch badgeStyle {
-	case "", model.UserGroupBadgeNone:
-		badgeStyle = model.UserGroupBadgeNone
-	case model.UserGroupBadgeVIP, model.UserGroupBadgeSVIP:
-	default:
-		return nil, BadAuthRequest("徽章样式无效")
-	}
-	if req.RatioBasisPoints <= 0 || req.RatioBasisPoints > maxUserGroupRatioBPS {
-		return nil, BadAuthRequest("分组倍率必须在 0.0001-100 之间")
-	}
-	if req.PointsPerUSD < 0 || req.PointsPerUSD > maxPointsPerCurrency || req.PointsPerCNY < 0 || req.PointsPerCNY > maxPointsPerCurrency {
-		return nil, BadAuthRequest("货币兑换积分比例必须在 0 至 100 万积分之间")
-	}
-	overrides, err := normalizeUserGroupOverrides(req.ModelOverrides)
-	if err != nil {
-		return nil, err
-	}
-	encoded, err := json.Marshal(overrides)
-	if err != nil {
-		return nil, err
-	}
-	channelIDs := []string{}
-	if !req.AllChannels {
-		channelIDs = uniqueNonEmpty(req.ChannelIDs)
-		if len(channelIDs) > 0 {
-			channels, channelErr := s.repo.SystemChannelsByIDs(channelIDs, true)
-			if channelErr != nil {
-				return nil, channelErr
-			}
-			if len(channels) != len(channelIDs) {
-				return nil, BadAuthRequest("分组绑定的系统渠道不存在或已删除")
-			}
-		}
-		sort.Strings(channelIDs)
-	}
-	group.Name = name
-	group.Description = description
-	group.BadgeLabel = badgeLabel
-	group.BadgeStyle = badgeStyle
-	group.SortOrder = req.SortOrder
-	group.RatioBasisPoints = req.RatioBasisPoints
-	group.PointsPerUSD = req.PointsPerUSD
-	group.PointsPerCNY = req.PointsPerCNY
-	group.AllChannels = req.AllChannels
-	group.ModelOverridesJSON = string(encoded)
-	return channelIDs, nil
-}
-
-func normalizeUserGroupOverrides(items []model.UserGroupModelOverride) ([]model.UserGroupModelOverride, error) {
-	if len(items) > maxUserGroupOverrides {
-		return nil, BadAuthRequest("单个分组最多配置 500 个模型倍率")
-	}
-	result := make([]model.UserGroupModelOverride, 0, len(items))
-	seen := make(map[string]bool, len(items))
-	for _, item := range items {
-		key := strings.TrimPrefix(strings.TrimSpace(item.ModelKey), "models/")
-		if key == "" || len([]rune(key)) > 120 {
-			return nil, BadAuthRequest("模型倍率的模型标识不能为空且不能超过 120 字")
-		}
-		if seen[key] {
-			return nil, BadAuthRequest("模型 " + key + " 重复配置了倍率")
-		}
-		seen[key] = true
-		if item.RatioBasisPoints < 0 || item.RatioBasisPoints > maxUserGroupRatioBPS {
-			return nil, BadAuthRequest("模型 " + key + " 的倍率必须在 0.0001-100 之间")
-		}
-		if item.PointsPerUSD < 0 || item.PointsPerUSD > maxPointsPerCurrency || item.PointsPerCNY < 0 || item.PointsPerCNY > maxPointsPerCurrency {
-			return nil, BadAuthRequest("模型 " + key + " 的货币兑换积分比例无效")
-		}
-		if item.RatioBasisPoints == 0 && item.PointsPerUSD == 0 && item.PointsPerCNY == 0 {
-			continue
-		}
-		result = append(result, model.UserGroupModelOverride{ModelKey: key, RatioBasisPoints: item.RatioBasisPoints, PointsPerUSD: item.PointsPerUSD, PointsPerCNY: item.PointsPerCNY})
-	}
-	sort.Slice(result, func(i, j int) bool { return result[i].ModelKey < result[j].ModelKey })
-	return result, nil
-}
-
-func userGroupAuditMetadata(group *model.UserGroup, channelIDs []string) map[string]any {
-	return map[string]any{
-		"code": group.Code, "ratioBasisPoints": group.RatioBasisPoints,
-		"pointsPerUsdMicrocredits": group.PointsPerUSD, "pointsPerCnyMicrocredits": group.PointsPerCNY,
-		"allChannels": group.AllChannels, "channelIds": channelIDs, "badgeStyle": group.BadgeStyle,
-	}
-}
-
 // ModelCatalogForUser 是 HTTP 目录入口：按登录用户的分组过滤渠道并换算价格。
 func (s *Service) ModelCatalogForUser(user *model.User, intent *ModelRequestIntent) (*ModelCatalogResponse, error) {
 	access, err := s.userGroupAccessForUser(user)
@@ -652,22 +338,4 @@ func (s *Service) ModelCatalogForUser(user *model.User, intent *ModelRequestInte
 		return nil, err
 	}
 	return s.ModelCatalog(access, intent)
-}
-
-// PublicLogicalModelsForUser 是前台模型目录的 HTTP 入口。
-func (s *Service) PublicLogicalModelsForUser(user *model.User, intent *ModelRequestIntent) ([]PublicLogicalModel, error) {
-	access, err := s.userGroupAccessForUser(user)
-	if err != nil {
-		return nil, err
-	}
-	return s.PublicLogicalModels(access, intent)
-}
-
-// RequireUserChannelAccess 供系统渠道中转校验分组权限。
-func (s *Service) RequireUserChannelAccess(user *model.User, channelID string) error {
-	access, err := s.userGroupAccessForUser(user)
-	if err != nil {
-		return err
-	}
-	return access.requireChannel(channelID)
 }

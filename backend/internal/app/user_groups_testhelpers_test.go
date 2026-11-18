@@ -18,7 +18,7 @@ func testGroupUserID(svc *Service) string {
 	if _, err := svc.repo.User(testGroupUserIDValue); err == nil || !errors.Is(err, gorm.ErrRecordNotFound) {
 		return testGroupUserIDValue
 	}
-	user := &model.User{ID: testGroupUserIDValue, Username: testGroupUserIDValue, DisplayName: "分组测试用户", Role: model.UserRoleUser, Status: model.UserStatusActive}
+	user := &model.User{ID: testGroupUserIDValue, Username: testGroupUserIDValue, DisplayName: "分组测试用户", Status: model.UserStatusActive}
 	_ = svc.repo.Create(user)
 	return testGroupUserIDValue
 }
@@ -39,7 +39,7 @@ func ensureTestUsers(t interface{ Fatal(...any) }, db *gorm.DB, ids ...string) {
 		t.Fatal(err)
 	}
 	for _, id := range ids {
-		if err := db.FirstOrCreate(&model.User{}, model.User{ID: id, Username: id, Role: model.UserRoleUser, Status: model.UserStatusActive}).Error; err != nil {
+		if err := db.FirstOrCreate(&model.User{}, model.User{ID: id, Username: id, Status: model.UserStatusActive}).Error; err != nil {
 			t.Fatal(err)
 		}
 	}

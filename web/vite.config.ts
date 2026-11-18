@@ -10,9 +10,10 @@ const buildCommit = process.env.CANVAS_BUILD_COMMIT?.trim() || process.env.VITE_
 const buildTime = process.env.CANVAS_BUILD_TIME?.trim() || process.env.VITE_BUILD_TIME?.trim() || "unknown";
 const appChangelog = readFileSync(resolve(webDir, "../CHANGELOG.md"), "utf8");
 const apiProxyTarget = process.env.VITE_API_PROXY_TARGET?.trim() || "http://127.0.0.1:8080";
+const appBasePath = (process.env.VITE_APP_BASE_PATH || "/").replace(/\/$/, "");
 
 export default defineConfig({
-    base: process.env.VITE_APP_BASE_PATH || "/",
+    base: `${appBasePath}/`,
     plugins: [react()],
     define: {
         __APP_VERSION__: JSON.stringify(appVersion),
@@ -23,16 +24,12 @@ export default defineConfig({
     },
     server: {
         proxy: {
-            "/api": {
+            [`${appBasePath}/api`]: {
                 target: apiProxyTarget,
                 changeOrigin: true,
                 xfwd: true,
                 ws: true,
-            },
-            "/oauth/linuxdo/callback": {
-                target: apiProxyTarget,
-                changeOrigin: true,
-                xfwd: true,
+                rewrite: (path) => path.slice(appBasePath.length),
             },
         },
     },

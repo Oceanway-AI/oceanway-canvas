@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
+	"yingce/backend/internal/testdb"
 
 	"gorm.io/gorm"
 )
@@ -138,7 +138,7 @@ func TestDeleteAssetDatabaseFailureLeavesPhysicalObjectAndNoOutbox(t *testing.T)
 	if err := db.Create(&asset).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Exec("CREATE TRIGGER fail_asset_delete BEFORE DELETE ON assets BEGIN SELECT RAISE(ABORT, 'forced asset delete failure'); END;").Error; err != nil {
+	if err := db.Exec("CREATE FUNCTION fail_asset_delete() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'forced asset delete failure'; END $$; CREATE TRIGGER fail_asset_delete BEFORE DELETE ON assets FOR EACH ROW EXECUTE FUNCTION fail_asset_delete()").Error; err != nil {
 		t.Fatal(err)
 	}
 
@@ -246,7 +246,7 @@ func TestDeleteGeneratedAssetTaskReferences(t *testing.T) {
 			t.Parallel()
 			svc, db, _ := newResourceDeletionTestService(t)
 			payload := `{"url":"/api/resources/generated-resource/file"}`
-			resource := model.Resource{ID: "generated-resource", UserID: "user-1", Provider: "unsupported-test-provider", ObjectKey: "generated.png", Status: model.ResourceStatusReady}
+			resource := model.Resource{ID: "generated-resource", UserID: "user-1", Provider: "unsupported-test", ObjectKey: "generated.png", Status: model.ResourceStatusReady}
 			asset := model.Asset{ID: "generated-asset", UserID: "user-1", Title: "生成图片", PayloadJSON: payload}
 			task := model.Task{ID: "generation-task", UserID: "user-1", Prompt: "生成图片", Status: tc.status, InputJSON: `{}`, ResultJSON: payload}
 			if tc.input {
@@ -304,7 +304,7 @@ func TestPurgeConfirmedAssetIgnoresTaskReferences(t *testing.T) {
 	svc, db, _ := newResourceDeletionTestService(t)
 	payload := `{"url":"/api/resources/purge-confirmed-resource/file"}`
 	resource := model.Resource{
-		ID: "purge-confirmed-resource", UserID: "user-1", Provider: "unsupported-test-provider",
+		ID: "purge-confirmed-resource", UserID: "user-1", Provider: "unsupported-test",
 		ObjectKey: "purge-confirmed.png", Status: model.ResourceStatusReady,
 	}
 	asset := model.Asset{
@@ -380,7 +380,7 @@ func TestExpiredArchivedAssetCleanupDeletesReferencedAssetAndUsesDeletionOutbox(
 	svc, db, _ := newResourceDeletionTestService(t)
 	old := time.Now().Add(-45 * 24 * time.Hour)
 	resource := model.Resource{
-		ID: "resource-expired-archive", UserID: "user-1", Provider: "unsupported-test-provider",
+		ID: "resource-expired-archive", UserID: "user-1", Provider: "unsupported-test",
 		ObjectKey: "users/user-1/image/expired.png", Status: model.ResourceStatusReady,
 	}
 	asset := model.Asset{
@@ -419,7 +419,7 @@ func TestDetachedResourceCleanupRemovesOrphanAndKeepsAssetBackedResource(t *test
 	old := time.Now().Add(-48 * time.Hour)
 	orphan := model.Resource{
 		ID: "resource-detached", UserID: "user-1", Status: model.ResourceStatusReady,
-		Provider: "unsupported-test-provider", ObjectKey: "users/user-1/image/detached.png",
+		Provider: "unsupported-test", ObjectKey: "users/user-1/image/detached.png",
 		CreatedAt: old, UpdatedAt: old,
 	}
 	backed := model.Resource{
@@ -537,8 +537,8 @@ func TestDetachedFailedResourceWithoutObjectKeyNeedsNoDeletionJob(t *testing.T) 
 
 func newResourceDeletionTestService(t *testing.T) (*Service, *gorm.DB, string) {
 	t.Helper()
-	db := newSQLiteTestDB(t)
-	if err := database.MigrateSchema(db); err != nil {
+	db := newPostgresTestDB(t)
+	if err := testdb.MigrateDomainSchema(db); err != nil {
 		t.Fatal(err)
 	}
 	dataDir := t.TempDir()

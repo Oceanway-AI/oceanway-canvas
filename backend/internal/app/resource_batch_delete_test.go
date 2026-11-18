@@ -14,7 +14,7 @@ func TestPurgeAssetsBatchSharedResourcesAndHistory(t *testing.T) {
 		if id == "foreign-alias" {
 			owner, objectKey = "user-2", "same-object.png"
 		}
-		if err := db.Create(&model.Resource{ID: id, UserID: owner, Provider: "unsupported-test-provider", ObjectKey: objectKey, Status: model.ResourceStatusReady}).Error; err != nil {
+		if err := db.Create(&model.Resource{ID: id, UserID: owner, Provider: "unsupported-test", ObjectKey: objectKey, Status: model.ResourceStatusReady}).Error; err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -45,7 +45,7 @@ func TestPurgeAssetsBatchSharedResourcesAndHistory(t *testing.T) {
 
 	// 彻底删除不受任务、画布与画布历史引用拦截（产品约定）；
 	// 但事务后段失败时，素材、版本、表现、历史索引与 Outbox 必须整批回滚。
-	if err := db.Exec("CREATE TRIGGER fail_batch_resource_delete BEFORE DELETE ON resources BEGIN SELECT RAISE(ABORT, 'forced failure'); END;").Error; err != nil {
+	if err := db.Exec("CREATE FUNCTION fail_batch_resource_delete() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'forced failure'; END $$; CREATE TRIGGER fail_batch_resource_delete BEFORE DELETE ON resources FOR EACH ROW EXECUTE FUNCTION fail_batch_resource_delete()").Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := svc.PurgeUserAssets("user-1", []string{"first", "second"}); err == nil {
@@ -57,7 +57,7 @@ func TestPurgeAssetsBatchSharedResourcesAndHistory(t *testing.T) {
 	assertCount(&model.CanvasSnapshotResource{}, 1)
 	assertCount(&model.AssetVersion{}, 2)
 	assertCount(&model.AssetRepresentation{}, 2)
-	if err := db.Exec("DROP TRIGGER fail_batch_resource_delete").Error; err != nil {
+	if err := db.Exec("DROP TRIGGER fail_batch_resource_delete ON resources").Error; err != nil {
 		t.Fatal(err)
 	}
 

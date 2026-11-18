@@ -77,9 +77,9 @@ func (r *Repository) SaveCanvasWithSnapshot(project *model.CanvasProject, snapsh
 		if len(requiredIDs) > 0 {
 			var resources []model.Resource
 			query := tx.Select("id").Where("id IN ? AND user_id = ? AND status = ?", requiredIDs, project.UserID, model.ResourceStatusReady).Order("id")
-			if r.Dialect() == "postgres" {
-				query = query.Clauses(clause.Locking{Strength: "UPDATE"})
-			}
+
+			query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+
 			if err := query.Find(&resources).Error; err != nil {
 				return err
 			}
@@ -254,9 +254,9 @@ func (r *Repository) RequireNoCanvasHistoryReferences(resourceIDs []string) erro
 	}
 	var resources []model.Resource
 	query := r.db.Select("id").Where("id IN ?", resourceIDs).Order("id")
-	if r.Dialect() == "postgres" {
-		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
-	}
+
+	query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+
 	if err := query.Find(&resources).Error; err != nil {
 		return err
 	}

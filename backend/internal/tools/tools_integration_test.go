@@ -2,23 +2,22 @@ package tools_test
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 	"testing"
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
+	"yingce/backend/internal/testdb"
 	"yingce/backend/internal/tools"
 )
 
 func TestToolsVisibilityTokensSeedAndReferences(t *testing.T) {
-	db, err := database.Open(database.Config{Driver: "sqlite", DSN: filepath.Join(t.TempDir(), "tools.db")})
+	db, err := testdb.Open(t)
 	if err != nil {
 		t.Fatal(err)
 	}
 	sqlDB, _ := db.DB()
 	defer sqlDB.Close()
-	if err = database.MigrateSchema(db); err != nil {
+	if err = testdb.MigrateDomainSchema(db); err != nil {
 		t.Fatal(err)
 	}
 	repo := repository.New(db)

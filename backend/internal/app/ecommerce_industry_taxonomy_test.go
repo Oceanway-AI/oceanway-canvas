@@ -37,7 +37,7 @@ func TestIndustryDictionaryInstallsOnceAndPreservesAdministratorChoices(t *testi
 	if source.Status != "disabled" {
 		t.Fatal("source reenabled")
 	}
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	page, err := svc.EcommerceIndustryCategories(admin, "", "", 1, 50)
 	if err != nil || page["total"] != 26 {
 		t.Fatalf("root browser: %+v %v", page, err)

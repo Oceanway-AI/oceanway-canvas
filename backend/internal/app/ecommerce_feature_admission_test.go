@@ -161,7 +161,7 @@ func TestEcommerceDisabledWritesKeepHistoryAndManualRetryGate(t *testing.T) {
 			t.Fatalf("history %s: %v", kind, err)
 		}
 	}
-	if _, err := s.EcommerceManagedSkills(&model.User{ID: "admin", Role: model.UserRoleAdmin}); err != nil {
+	if _, err := s.EcommerceManagedSkills(&model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}); err != nil {
 		t.Fatalf("admin configuration was gated: %v", err)
 	}
 }

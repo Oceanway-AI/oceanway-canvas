@@ -3,17 +3,16 @@ package app
 import (
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func TestAnnouncementPublishReadAndCloseLifecycle(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,8 +25,8 @@ func TestAnnouncementPublishReadAndCloseLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := New(repository.New(db), t.TempDir())
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
-	user := &model.User{ID: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
+	user := &model.User{ID: "user", Status: model.UserStatusActive}
 
 	announcement, err := svc.CreateAnnouncement(admin, CreateAnnouncementRequest{Title: "服务恢复", Content: "视频模型已经恢复正常使用。", Level: model.AnnouncementLevelSuccess})
 	if err != nil {
@@ -72,7 +71,7 @@ func TestAnnouncementPublishReadAndCloseLifecycle(t *testing.T) {
 }
 
 func TestAnnouncementUpdateRepublishesAndResetsReads(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,8 +84,8 @@ func TestAnnouncementUpdateRepublishesAndResetsReads(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := New(repository.New(db), t.TempDir())
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
-	user := &model.User{ID: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
+	user := &model.User{ID: "user", Status: model.UserStatusActive}
 
 	announcement, err := svc.CreateAnnouncement(admin, CreateAnnouncementRequest{Title: "旧标题", Content: "旧正文", Level: model.AnnouncementLevelInfo})
 	if err != nil {
@@ -116,7 +115,7 @@ func TestAnnouncementUpdateRepublishesAndResetsReads(t *testing.T) {
 }
 
 func TestPinnedAnnouncementsAreReturnedBeforeNewerRegularAnnouncements(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,8 +128,8 @@ func TestPinnedAnnouncementsAreReturnedBeforeNewerRegularAnnouncements(t *testin
 		t.Fatal(err)
 	}
 	svc := New(repository.New(db), t.TempDir())
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
-	user := &model.User{ID: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
+	user := &model.User{ID: "user", Status: model.UserStatusActive}
 
 	pinned, err := svc.CreateAnnouncement(admin, CreateAnnouncementRequest{Title: "置顶", Content: "置顶公告", Level: model.AnnouncementLevelWarning, Pinned: true})
 	if err != nil {
@@ -162,7 +161,7 @@ func TestPinnedAnnouncementsAreReturnedBeforeNewerRegularAnnouncements(t *testin
 
 func TestAnnouncementImageDraftIsConsumedWhenAnnouncementIsCreated(t *testing.T) {
 	svc, db := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	resource := createAnnouncementImageDraft(t, db, admin.ID, "image-draft")
 
 	announcement, err := svc.CreateAnnouncement(admin, CreateAnnouncementRequest{
@@ -185,7 +184,7 @@ func TestAnnouncementImageDraftIsConsumedWhenAnnouncementIsCreated(t *testing.T)
 
 func TestAnnouncementImageReplacementQueuesOldResourceDeletionAtomically(t *testing.T) {
 	svc, db := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	oldResource := createAnnouncementImageDraft(t, db, admin.ID, "old-image")
 	announcement, err := svc.CreateAnnouncement(admin, CreateAnnouncementRequest{
 		Title: "旧公告", Content: "旧正文", ImageResourceID: oldResource.ID, Level: model.AnnouncementLevelInfo,
@@ -229,7 +228,7 @@ func TestAnnouncementImageReplacementQueuesOldResourceDeletionAtomically(t *test
 
 func TestDiscardAnnouncementImageDraftRemovesRecordAndQueuesDeletion(t *testing.T) {
 	svc, db := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	resource := createAnnouncementImageDraft(t, db, admin.ID, "cancelled-image")
 
 	if err := svc.DiscardAnnouncementImage(admin, resource.ID); err != nil {
@@ -253,7 +252,7 @@ func TestDiscardAnnouncementImageDraftRemovesRecordAndQueuesDeletion(t *testing.
 
 func TestAnnouncementPublishRejectsInvalidInput(t *testing.T) {
 	svc := &Service{}
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if _, err := svc.CreateAnnouncement(admin, CreateAnnouncementRequest{Title: "", Content: "正文", Level: model.AnnouncementLevelInfo}); err == nil {
 		t.Fatal("expected blank title to be rejected")
 	}
@@ -264,7 +263,7 @@ func TestAnnouncementPublishRejectsInvalidInput(t *testing.T) {
 
 func TestAnnouncementPublishAllowsEmptyContent(t *testing.T) {
 	svc, _ := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	announcement, err := svc.CreateAnnouncement(admin, CreateAnnouncementRequest{Title: "仅标题公告", Content: "   ", Level: model.AnnouncementLevelInfo})
 	if err != nil {
@@ -277,7 +276,7 @@ func TestAnnouncementPublishAllowsEmptyContent(t *testing.T) {
 
 func TestBannerAnnouncementLifecycle(t *testing.T) {
 	svc, _ := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	banner, err := svc.CreateBannerAnnouncement(admin, CreateBannerAnnouncementRequest{
 		Title:  "常驻公告1",
@@ -318,7 +317,7 @@ func TestBannerAnnouncementLifecycle(t *testing.T) {
 
 func TestBannerAnnouncementAcceptsFutureStartAndLinkKinds(t *testing.T) {
 	svc, _ := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	future := time.Now().Add(24 * time.Hour)
 	banner, err := svc.CreateBannerAnnouncement(admin, CreateBannerAnnouncementRequest{
@@ -361,7 +360,7 @@ func TestBannerAnnouncementAcceptsFutureStartAndLinkKinds(t *testing.T) {
 
 func TestBannerAnnouncementValidityWindowFiltering(t *testing.T) {
 	svc, _ := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	now := time.Now()
 	past := now.Add(-48 * time.Hour)
@@ -396,7 +395,7 @@ func TestBannerAnnouncementValidityWindowFiltering(t *testing.T) {
 
 func TestBannerAnnouncementTitleRuns(t *testing.T) {
 	svc, _ := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	size := 16
 	weight := 700
@@ -462,7 +461,7 @@ func TestBannerAnnouncementTitleRuns(t *testing.T) {
 
 func TestBannerAnnouncementRejectsInvalidTitleRuns(t *testing.T) {
 	svc, _ := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	size := func(value int) *int { return &value }
 	weight := func(value int) *int { return &value }
@@ -512,7 +511,7 @@ func TestBannerAnnouncementRejectsInvalidTitleRuns(t *testing.T) {
 
 func TestBannerAnnouncementNoticeType(t *testing.T) {
 	svc, _ := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	// 未传类型时补成默认值，行数据始终是可直接渲染的具体取值。
 	def, err := svc.CreateBannerAnnouncement(admin, CreateBannerAnnouncementRequest{Title: "默认外观", Status: "active"})
@@ -600,7 +599,7 @@ func TestBannerAnnouncementNoticeType(t *testing.T) {
 
 func TestBannerAnnouncementRejectsUnknownNoticeType(t *testing.T) {
 	svc, _ := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	cases := []struct {
 		name string
@@ -628,7 +627,7 @@ func TestBannerAnnouncementRejectsUnknownNoticeType(t *testing.T) {
 // emoji 图标素材就是普通文本分段：不需要独立字段或白名单，但必须能完整往返、并入纯文本标题参与检索。
 func TestBannerAnnouncementTitleRunsWithEmoji(t *testing.T) {
 	svc, _ := newAnnouncementImageTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	banner, err := svc.CreateBannerAnnouncement(admin, CreateBannerAnnouncementRequest{
 		TitleRuns: []model.BannerTitleRun{
@@ -668,7 +667,7 @@ func TestBannerAnnouncementTitleRunsWithEmoji(t *testing.T) {
 
 func newAnnouncementImageTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -677,7 +676,7 @@ func newAnnouncementImageTestService(t *testing.T) (*Service, *gorm.DB) {
 		t.Fatal(err)
 	}
 	sqlDB.SetMaxOpenConns(1)
-	if err := db.AutoMigrate(database.Models()...); err != nil {
+	if err := db.AutoMigrate(testdb.DomainModels()...); err != nil {
 		t.Fatal(err)
 	}
 	return New(repository.New(db), t.TempDir()), db

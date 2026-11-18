@@ -8,12 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"yingce/backend/internal/model"
+	"yingce/backend/internal/repository"
+	"yingce/backend/internal/testdb"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"yingce/backend/internal/database"
-	"yingce/backend/internal/model"
-	"yingce/backend/internal/repository"
 )
 
 // TestCloudAgentVideoFramesPostgres 验证 Agent 的帧选择进入任务输入、协议角色和持久化草稿。
@@ -58,7 +59,7 @@ func TestCloudAgentVideoFramesPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := db.AutoMigrate(database.Models()...); err != nil {
+	if err := db.AutoMigrate(testdb.DomainModels()...); err != nil {
 		t.Fatal(err)
 	}
 	s := &Service{repo: repository.New(db), dataDir: t.TempDir()}

@@ -11,9 +11,10 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"yingce/backend/internal/catalogtest"
@@ -28,6 +29,7 @@ type studioFixture struct {
 	router       *gin.Engine
 	db           *gorm.DB
 	svc          *service.Service
+	dataDir      string
 	admin        bool
 	unavailable  bool
 	revoked      bool
@@ -53,7 +55,7 @@ func newStudioFixture(t *testing.T) *studioFixture {
 
 func newStudioFixtureWithBase(t *testing.T, base string) *studioFixture {
 	t.Helper()
-	t.Setenv("REDIS_URL", "")
+	testdb.UseRedis(t)
 	gin.SetMode(gin.TestMode)
 	f := &studioFixture{}
 	platform := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -166,19 +168,20 @@ func newStudioFixtureWithBase(t *testing.T, base string) *studioFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := testdb.Open(t, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := database.MigrateSchema(db); err != nil {
+	if err := database.MigrateStudioSchema(db); err != nil {
 		t.Fatal(err)
 	}
 	f.db = db
 	dataDir := t.TempDir()
-	f.svc, err = service.NewStudio(repository.New(db), dataDir, gateway)
+	f.dataDir = dataDir
+	f.svc, err = service.NewStudio(repository.NewStudio(db), dataDir, gateway)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +197,7 @@ func newStudioFixtureWithBase(t *testing.T, base string) *studioFixture {
 		if err := f.svc.Close(); err != nil {
 			t.Fatal(err)
 		}
-		f.svc, err = service.NewStudio(repository.New(db), dataDir, gateway)
+		f.svc, err = service.NewStudio(repository.NewStudio(db), dataDir, gateway)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -252,6 +255,12 @@ func (f *studioFixture) request(t *testing.T, method, path, cookie, body string,
 	r.Header.Set("Cookie", cookie)
 	r.Header.Set("Origin", "https://studio.example.test")
 	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("X-Studio-Identity-Version", "platform-id-v1")
+	actor := "101"
+	if strings.Contains(cookie, "bob") {
+		actor = "202"
+	}
+	r.Header.Set("X-Studio-Actor-ID", actor)
 	w := httptest.NewRecorder()
 	f.router.ServeHTTP(w, r)
 	if w.Code != status {
@@ -333,17 +342,15 @@ func TestStudioPlatformLoginCanvasPersistenceAndIsolation(t *testing.T) {
 	if len(w.Header().Values("Set-Cookie")) != 2 {
 		t.Fatal("lost rotated cookies")
 	}
-	if !strings.Contains(w.Body.String(), `"role":"user"`) {
-		t.Fatal("numeric Platform role granted product admin")
+	if strings.Contains(w.Body.String(), `"role":`) || strings.Contains(w.Body.String(), `"content:manage"`) {
+		t.Fatal("numeric Platform role exposed local role or granted product authority")
 	}
 	f.rotate = false
 	for i := 0; i < 2; i++ {
 		f.request(t, "GET", "/api/auth/session", "platform_session=alice", "", 200)
 	}
-	var count int64
-	f.db.Model(&model.User{}).Count(&count)
-	if count != 1 {
-		t.Fatalf("duplicate users=%d", count)
+	if f.db.Migrator().HasTable(&model.User{}) {
+		t.Fatal("Studio initialized a local account table")
 	}
 	body := `{"mutationId":"create-1","operations":[{"type":"create_canvas","id":"canvas-1","patch":{"title":"平台画布"}}]}`
 	f.request(t, "PATCH", "/api/canvas-projects/canvas-1/operations", "platform_session=alice", body, 200)
@@ -354,12 +361,9 @@ func TestStudioPlatformLoginCanvasPersistenceAndIsolation(t *testing.T) {
 	f.request(t, "GET", "/api/canvas-projects/canvas-1", "platform_session=bob", "", 404)
 	f.request(t, "GET", "/api/canvas-projects/canvas-1", "", "", 401)
 	f.request(t, "POST", "/api/canvas-projects/canvas-1/share", "platform_session=alice", `{"expiresDays":1}`, 501)
-	for _, table := range []any{&model.AuthSession{}, &model.CreditAccount{}, &model.BillingOrder{}} {
-		if err := f.db.Model(table).Count(&count).Error; err != nil {
-			t.Fatal(err)
-		}
-		if count != 0 {
-			t.Fatalf("unexpected local platform writes %T count=%d", table, count)
+	for _, table := range []any{"user_identities", "auth_sessions", &model.CreditAccount{}, &model.BillingOrder{}} {
+		if f.db.Migrator().HasTable(table) {
+			t.Fatalf("unexpected retired table %T", table)
 		}
 	}
 	f.request(t, "POST", "/api/auth/logout", "platform_session=alice", "{}", 200)
@@ -398,20 +402,22 @@ func TestStudioRoleRevocationAndRealtimeRevalidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := f.svc.RequireAdmin(user); err != nil {
-		t.Fatal(err)
+	if !user.CanStudio(model.StudioDeleteBuiltinSkill) || f.svc.RequireAdmin(user) != nil {
+		t.Fatal("product role must grant only its creative actions")
 	}
 	var stored model.User
-	f.db.First(&stored, "id = ?", user.ID)
-	if stored.Role != model.UserRoleUser || f.svc.RequireAdmin(&stored) == nil {
-		t.Fatal("durable user inherited administrator authority")
+	if err := json.Unmarshal([]byte(`{"id":"101","role":"admin","status":"active"}`), &stored); err != nil {
+		t.Fatal(err)
+	}
+	if stored.CanStudio(model.StudioDeleteBuiltinSkill) || f.svc.RequireAdmin(&stored) == nil {
+		t.Fatal("local role granted Platform authority")
 	}
 	f.admin = false
 	current, err := currentUser(ctx, f.svc)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.svc.RequireAdmin(current) == nil {
+	if current.CanStudio(model.StudioDeleteBuiltinSkill) || f.svc.RequireAdmin(current) == nil {
 		t.Fatal("role revocation ignored")
 	}
 	if err := revalidateCanvasSession(context.Background(), ctx, f.svc, user.ID); err != nil {

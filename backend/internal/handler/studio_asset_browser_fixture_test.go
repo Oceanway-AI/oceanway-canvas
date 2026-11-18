@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"github.com/gin-gonic/gin"
 	"yingce/backend/internal/model"
 )
 
@@ -28,8 +29,49 @@ func TestStudioAssetBrowserFixture(t *testing.T) {
 	if !strings.HasPrefix(address, "127.0.0.1:") {
 		t.Fatal("explicit loopback fixture address required")
 	}
-	f := newStudioFixture(t)
+	f := newStudioFixtureWithBase(t, os.Getenv("STUDIO_ASSET_FIXTURE_BASE_PATH"))
 	f.catalog = `{"success":true,"data":{"items":[]}}`
+	actor := func(r *http.Request) int {
+		cookie, _ := r.Cookie("platform_session")
+		if cookie != nil && cookie.Value == "bob" {
+			return 202
+		}
+		return 101
+	}
+	f.workspace = func(w http.ResponseWriter, r *http.Request) {
+		id := actor(r)
+		workspaceID := "personal-" + strconv.Itoa(id)
+		personal := gin.H{"id": workspaceID, "kind": "personal", "name": "个人空间", "status": "active", "actor_user_id": id, "actions": []string{"workspace:read"}}
+		var data any
+		switch r.URL.Path {
+		case "/api/platform/v1/me/workspace-selection":
+			data = gin.H{"actor_user_id": id, "state": "unset"}
+		case "/api/platform/v1/me/workspaces":
+			data = gin.H{"items": []any{personal}, "personal_workspace_id": workspaceID}
+		case "/api/platform/v1/workspaces/" + workspaceID + "/context":
+			data = personal
+		default:
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": data})
+	}
+	f.account = func(w http.ResponseWriter, r *http.Request) {
+		id := actor(r)
+		_ = json.NewEncoder(w).Encode(gin.H{"success": true, "data": gin.H{
+			"version": "oceanway.account-summary.v1", "product": "studio", "user": gin.H{"id": id, "status": 1, "display_name": "免费测试账号", "username": "same-name"},
+			"workspace":    gin.H{"id": "personal-" + strconv.Itoa(id), "name": "个人空间", "kind": "personal", "actor_user_id": id},
+			"balance":      gin.H{"state": "ready", "kind": "personal", "available_points": "0", "frozen_points": "0"},
+			"membership":   gin.H{"state": "ready", "active_count": 0},
+			"benefits":     gin.H{"state": "ready", "items": []any{}},
+			"capabilities": gin.H{"can_read_finance": true, "can_purchase": true},
+			"applications": []gin.H{{"product": "studio", "url": "https://studio.example.test"}, {"product": "console", "url": "/console"}},
+		}})
+	}
+	f.execution = func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("unexpected paid execution: %s", r.URL.Path)
+		w.WriteHeader(http.StatusForbidden)
+	}
 	imageURL := "https://mdn.github.io/shared-assets/images/examples/balloons.jpg"
 	videoURL := "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
 	var mu sync.Mutex
@@ -133,10 +175,7 @@ func TestStudioAssetBrowserFixture(t *testing.T) {
 			}
 			messages = append(messages, map[string]any{"id": "a2-" + entry.kind, "role": "assistant", "mode": entry.kind, "content": "A2 已有" + entry.kind + "结果", "createdAt": "2026-11-09T00:00:00Z", "status": "done", "resultStorageKeys": []string{"resource:" + adopted.Data.Resource.ID}})
 		}
-		var owner model.User
-		if err := f.db.First(&owner).Error; err != nil {
-			t.Fatal(err)
-		}
+		owner := f.user(t, "alice")
 		seed = map[string]any{"scope": owner.ID, "conversations": []any{map[string]any{"id": "a2-history", "title": "A2 免费既有结果", "updatedAt": "2026-11-09T00:00:00Z", "messages": messages}}}
 	}
 	listener, err := net.Listen("tcp", address)
@@ -148,7 +187,7 @@ func TestStudioAssetBrowserFixture(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(seed)
 			return
 		}
-		if r.URL.Path == "/__fixture/state" {
+		if r.URL.Path == "/__fixture/state" || r.URL.Path == "/api/__fixture/state" {
 			var assets, resources, refs, deletions int64
 			f.db.Model(&model.Asset{}).Count(&assets)
 			f.db.Model(&model.Resource{}).Count(&resources)
@@ -165,7 +204,9 @@ func TestStudioAssetBrowserFixture(t *testing.T) {
 		}
 		r.Host = "studio.example.test"
 		r.Header.Set("Origin", "https://studio.example.test")
-		r.Header.Set("Cookie", "platform_session=alice")
+		if _, err := r.Cookie("platform_session"); err != nil {
+			r.AddCookie(&http.Cookie{Name: "platform_session", Value: "alice"})
+		}
 		f.router.ServeHTTP(w, r)
 	})}
 	go func() {

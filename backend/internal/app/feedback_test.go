@@ -3,19 +3,19 @@ package app
 import (
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func newTestFeedbackService(t *testing.T) (*Service, *model.User, *model.User) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
+		t.Fatalf("open postgres: %v", err)
 	}
 	if err := db.AutoMigrate(&model.User{}, &model.UserFeedback{}); err != nil {
 		t.Fatalf("migrate: %v", err)
@@ -24,8 +24,8 @@ func newTestFeedbackService(t *testing.T) (*Service, *model.User, *model.User) {
 	repo := repository.New(db)
 	svc := &Service{repo: repo}
 
-	admin := &model.User{ID: "admin_1", Username: "admin", Role: "admin", Status: "active", CreatedAt: time.Now()}
-	user := &model.User{ID: "user_1", Username: "testuser", Email: "test@example.com", Role: "user", Status: "active", CreatedAt: time.Now()}
+	admin := &model.User{ID: "admin_1", Username: "admin", Status: "active", CreatedAt: time.Now(), PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
+	user := &model.User{ID: "user_1", Username: "testuser", Email: "test@example.com", Status: "active", CreatedAt: time.Now()}
 
 	if err := db.Create(admin).Error; err != nil {
 		t.Fatal(err)

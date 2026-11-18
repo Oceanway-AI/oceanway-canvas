@@ -70,7 +70,7 @@ func TestCanvasHistoryProtectsMediaAndDeletionWorker(t *testing.T) {
 func TestArchivedAssetDeletionRemovesCanvasHistoryReference(t *testing.T) {
 	svc, db, _ := newResourceDeletionTestService(t)
 	resource := model.Resource{
-		ID: "archived-history-resource", UserID: "user-1", Provider: "unsupported-test-provider",
+		ID: "archived-history-resource", UserID: "user-1", Provider: "unsupported-test",
 		ObjectKey: "users/user-1/image/archived-history.png", Status: model.ResourceStatusReady,
 	}
 	asset := model.Asset{

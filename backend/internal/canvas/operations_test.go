@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"yingce/backend/internal/kernel"
 	"yingce/backend/internal/model"
@@ -572,7 +571,7 @@ func TestApplyCanvasOperationsRequiresObjectPreconditions(t *testing.T) {
 
 func newCanvasOperationTestService(t *testing.T) *Service {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "canvas-operations.db")), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

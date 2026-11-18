@@ -1,4 +1,3 @@
-import { Popover } from "antd";
 import { ShoppingBag } from "lucide-react";
 import { ChevronDown, ChevronRight, CircleUserRound, History as HistoryIcon, Image as ImageIcon, PanelLeftClose, PanelLeftOpen, Plus, Video } from "lucide-react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
@@ -11,8 +10,6 @@ import { AuthLoginLink } from "@/components/auth/auth-login-link";
 import { StudioProductSwitcher } from "./studio-product-switcher";
 import { StudioAccountBar } from "./studio-account-bar";
 import { BrandLogoFrame } from "@/components/brand/brand-logo";
-import { UserAvatar } from "@/components/layout/user-avatar";
-import { UserGroupAvatarRing, UserGroupBadge } from "@/components/layout/user-group-badge";
 import { Kbd } from "@/components/ui/base/kbd";
 import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { useWorkspaceLogout } from "@/hooks/use-workspace-logout";
@@ -21,10 +18,6 @@ import { cn } from "@/lib/utils";
 import { preloadWorkspaceRoute } from "@/lib/workspace-route-modules";
 import { useUserStore, type FeatureAvailability } from "@/stores/use-user-store";
 import { useAppearanceStore } from "@/stores/use-appearance-store";
-import { WorkspaceAccountCard } from "./workspace-account-card";
-import { WorkspaceSidebarCheckin } from "./workspace-sidebar-checkin";
-import { WorkspaceSidebarStorageMeter } from "./workspace-sidebar-storage-meter";
-import { openWorkspaceWallet } from "@/lib/workspace-wallet";
 
 export type WorkspaceNavItem = {
     id: string;
@@ -89,11 +82,7 @@ function buildNav(features: FeatureAvailability, t: TFunction): { groups: Worksp
 }
 
 function WorkspaceSidebarProfile({ collapsed, user, onExpand, onCollapse }: { collapsed: boolean; user: NonNullable<ReturnType<typeof useUserStore.getState>["user"]> | null; onExpand: () => void; onCollapse: () => void }) {
-    const [menuOpen, setMenuOpen] = useState(false);
     const { t } = useTranslation();
-    const userGroup = useUserStore((state) => state.userGroup);
-    const platformIdentity = useUserStore((state) => state.platformIdentity);
-    const profileName = user?.displayName || user?.username || t("shell.guest");
 
     if (!user) {
         return (
@@ -106,56 +95,12 @@ function WorkspaceSidebarProfile({ collapsed, user, onExpand, onCollapse }: { co
         );
     }
 
-    if (platformIdentity) {
-        return (
-            <div className={cn("app-workspace-sidebar-profile-row", collapsed && "is-collapsed")}>
-                <StudioAccountBar compact={collapsed} />
-                <button type="button" className={cn("app-workspace-sidebar-collapse-toggle", collapsed && "is-collapsed")} aria-label={collapsed ? t("shell.expandSidebarMenu") : t("shell.collapseSidebar")} onClick={collapsed ? onExpand : onCollapse}>
-                    {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
-                </button>
-            </div>
-        );
-    }
-
-    const content = (
-        <WorkspaceAccountCard
-            onNavigate={() => setMenuOpen(false)}
-            onWallet={() => {
-                setMenuOpen(false);
-                openWorkspaceWallet();
-            }}
-        />
-    );
-
     return (
-        <div className={cn("app-workspace-sidebar-account", collapsed && "is-collapsed")}>
-            <WorkspaceSidebarCheckin collapsed={collapsed} />
-            <WorkspaceSidebarStorageMeter collapsed={collapsed} />
-            <div className={cn("app-workspace-sidebar-profile-row", collapsed && "is-collapsed")}>
-                <Popover open={menuOpen} onOpenChange={setMenuOpen} trigger="click" placement="topLeft" arrow={false} rootClassName="workspace-account-popover" content={content}>
-                    <button type="button" className={cn("app-workspace-sidebar-profile", collapsed && "is-collapsed")} aria-label={t("shell.openAccountMenu")} title={profileName}>
-                        <UserGroupAvatarRing>
-                            <UserAvatar user={user} className="app-workspace-sidebar-profile-avatar" />
-                        </UserGroupAvatarRing>
-                        {!collapsed ? (
-                            <span className="app-workspace-sidebar-profile-copy">
-                                <strong>{profileName}</strong>
-                                {userGroup?.badgeStyle === "vip" || userGroup?.badgeStyle === "svip" ? <UserGroupBadge className="self-start" /> : <span>{t("shell.workbench")}</span>}
-                            </span>
-                        ) : null}
-                    </button>
-                </Popover>
-                {!collapsed ? (
-                    <button type="button" className="app-workspace-sidebar-collapse-toggle" aria-label={t("shell.collapseSidebar")} title={t("shell.collapseSidebar")} onClick={onCollapse}>
-                        <PanelLeftClose className="size-4" strokeWidth={1.7} />
-                    </button>
-                ) : null}
-            </div>
-            {collapsed ? (
-                <button type="button" className="app-workspace-sidebar-collapse-toggle is-collapsed" aria-label={t("shell.expandSidebarMenu")} title={t("shell.expandSidebarMenu")} onClick={onExpand}>
-                    <PanelLeftOpen className="size-4" strokeWidth={1.7} />
-                </button>
-            ) : null}
+        <div className={cn("app-workspace-sidebar-profile-row", collapsed && "is-collapsed")}>
+            <StudioAccountBar compact={collapsed} />
+            <button type="button" className={cn("app-workspace-sidebar-collapse-toggle", collapsed && "is-collapsed")} aria-label={collapsed ? t("shell.expandSidebarMenu") : t("shell.collapseSidebar")} onClick={collapsed ? onExpand : onCollapse}>
+                {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+            </button>
         </div>
     );
 }

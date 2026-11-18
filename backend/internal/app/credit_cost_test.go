@@ -1,99 +1,10 @@
 package app
 
 import (
-	"encoding/json"
-	"strings"
 	"testing"
 
 	"yingce/backend/internal/model"
 )
-
-func TestCreditCostSnapshotPersistsWithoutChangingSalesOrPublicResponses(t *testing.T) {
-	svc, db := newChannelModelTestService(t)
-	if err := db.AutoMigrate(&model.SystemSetting{}, &model.BillingOrder{}); err != nil {
-		t.Fatal(err)
-	}
-	ensureTestUsers(t, db, "user")
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin}
-	channel := model.ModelChannel{ID: "channel", Scope: model.ChannelScopeSystem, Name: "供应渠道", Enabled: true, ModelsJSON: `[]`}
-	if err := db.Create(&channel).Error; err != nil {
-		t.Fatal(err)
-	}
-	req := ChannelModelRequest{
-		ModelKey: "model-a", DisplayName: "产品模型", ChannelLabel: "优惠渠道", Capability: "text", Protocol: string(model.ChannelInterfaceChatCompletion),
-		CapabilityConfig: DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceChatCompletion), "model-a"),
-		PriceTiers:       []ChannelModelPriceTierRequest{{BillingMode: "fixed_request", UnitPriceMicrocredits: 900_000, PriceConfigured: true, CostPricing: model.CreditCostPricing{Configured: true, UnitPriceMicrocredits: 123_456}}},
-	}
-	for _, actor := range []*model.User{nil, {ID: "user", Role: model.UserRoleUser}} {
-		if _, err := svc.SaveAdminChannelModel(actor, channel.ID, "", req); err == nil {
-			t.Fatal("non-admin wrote cost")
-		}
-		if _, err := svc.AdminChannelModels(actor, channel.ID); err == nil {
-			t.Fatal("non-admin read cost")
-		}
-		if _, err := svc.AdminAPICallLogs(actor, APICallLogQuery{}); err == nil {
-			t.Fatal("non-admin read request cost")
-		}
-	}
-	saved, err := svc.SaveAdminChannelModel(admin, channel.ID, "", req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rows, err := svc.AdminChannelModels(admin, channel.ID)
-	if err != nil || len(rows) != 1 || rows[0].PriceTiers[0].CostPricing.UnitPriceMicrocredits != 123_456 {
-		t.Fatalf("persisted cost: %#v %v", rows, err)
-	}
-	order, err := svc.newBillingOrder("user", "task", "request", channel.ID, saved.ModelKey, "text", "test", 1, tokenBillingEstimate{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if order.AmountMicrocredits != 900_000 || order.CostPricing.UnitPriceMicrocredits != 123_456 {
-		t.Fatalf("sales/cost snapshot: %#v", order)
-	}
-	if err := db.Create(order).Error; err != nil {
-		t.Fatal(err)
-	}
-	req.PriceTiers[0].CostPricing.UnitPriceMicrocredits = 654_321
-	if _, err := svc.SaveAdminChannelModel(admin, channel.ID, saved.ID, req); err != nil {
-		t.Fatal(err)
-	}
-	var historical model.BillingOrder
-	if err := db.First(&historical, "id = ?", order.ID).Error; err != nil {
-		t.Fatal(err)
-	}
-	historical.Status = model.BillingStatusSettled
-	cost, err := billingCreditCost(historical)
-	if err != nil || cost == nil || *cost != 123_456 {
-		t.Fatalf("historical cost changed: %v %v", cost, err)
-	}
-	catalog, err := svc.ModelCatalog(testGroupAccess(svc), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	public := publicChannel(channel, false, []model.ChannelModel{*saved})
-	for _, value := range []any{saved, saved.PriceTiers, order, catalog, public, quoteFromOrder("", order, tokenBillingEstimate{})} {
-		encoded, err := json.Marshal(value)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, forbidden := range []string{"costPricing", "costConfigured", "CostPricing", "123456", "654321"} {
-			if strings.Contains(string(encoded), forbidden) {
-				t.Fatalf("cost leaked into %T: %s", value, encoded)
-			}
-		}
-	}
-	// The catalog must not query logical models, even if their old feature flag is enabled.
-	if err := db.Create(&model.SystemSetting{Key: featureAvailabilitySettingKey, ValueJSON: `{"frontendModelsEnabled":true}`}).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Migrator().DropTable(&model.LogicalModel{}); err != nil {
-		t.Fatal(err)
-	}
-	catalog, err = svc.ModelCatalog(testGroupAccess(svc), nil)
-	if err != nil || catalog.Source != ModelCatalogSourceSystem || len(catalog.Channels) != 1 {
-		t.Fatalf("catalog depends on logical models: %#v %v", catalog, err)
-	}
-}
 
 func TestBillingCreditCostUsesExactUsageAndIgnoresSalesMultiplier(t *testing.T) {
 	for _, tc := range []struct {

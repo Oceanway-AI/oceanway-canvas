@@ -307,7 +307,7 @@ func requirePluginCenterAccess(svc *service.Service) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		if user.Role == model.UserRoleAdmin {
+		if user.CanStudio(model.StudioManageCreativeContent) {
 			c.Next()
 			return
 		}

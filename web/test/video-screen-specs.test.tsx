@@ -4,7 +4,6 @@ import { ModelCapabilityEditor } from "../src/components/model-capability-editor
 import { defaultModelCapabilityConfig, modelCapabilityConfigFor, normalizeModelCapabilityConfig, normalizeVideoValue } from "../src/lib/model-capabilities";
 import type { ModelProtocolWorkflow } from "../src/lib/model-protocols";
 import { findProtocolWorkflow, GENERIC_WORKFLOW_ID, resolveWorkflowVideoScreenSpec, updateWorkflowVideoScreenSpec } from "../src/lib/video-screen-specs";
-import { updateChannelModelUpstreamCapabilities } from "../src/pages/admin/components/channel-model-editor-form";
 
 const workflow: ModelProtocolWorkflow = {
     id: "minimax_h3_zm_u24",
@@ -108,13 +107,4 @@ test("custom resolution labels survive alongside presets", () => {
     const custom = updateWorkflowVideoScreenSpec(base, genericWorkflow, { resolutions: ["768p竖", "1080p竖"], defaultResolution: "1080p竖" });
     expect(custom.resolutions).toEqual(["768p竖", "1080p竖"]);
     expect(custom.defaultResolution).toBe("1080p竖");
-});
-
-test("selecting an AutoDL upstream writes the resolved spec into the form value", () => {
-    const protocols = [{ value: "autodl-comfyui", label: "AutoDL", capability: "video" as const, create: "", contentType: "application/json", media: "", enabled: true, workflows: [workflow, genericWorkflow] }];
-    const values = { modelKey: "minimax_h3_zm_nono", providerModelKey: "", tags: [], capability: "video" as const, protocol: "autodl-comfyui", priceTiers: [], enabled: true, capabilityConfig: defaultModelCapabilityConfig("autodl-comfyui", "") };
-    const next = updateChannelModelUpstreamCapabilities(values, protocols);
-    expect(next.capabilityConfig?.video?.resolutions).toEqual(genericWorkflow.parameters[0]!.values!);
-    expect(next.capabilityConfig?.video?.defaultResolution).toBe("768p竖");
-    expect(updateChannelModelUpstreamCapabilities(next, protocols)).toBe(next);
 });

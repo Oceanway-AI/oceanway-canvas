@@ -16,17 +16,18 @@ import (
 	"testing"
 	"time"
 
-	"gorm.io/gorm"
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/protocol"
 	"yingce/backend/internal/repository"
+	"yingce/backend/internal/testdb"
+
+	"gorm.io/gorm"
 )
 
 func newMediaRecoveryTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
-	db := newSQLiteTestDB(t)
-	if err := database.MigrateSchema(db); err != nil {
+	db := newPostgresTestDB(t)
+	if err := testdb.MigrateDomainSchema(db); err != nil {
 		t.Fatal(err)
 	}
 	return &Service{repo: repository.New(db), dataDir: t.TempDir(), activeCancels: make(map[string]context.CancelFunc)}, db
@@ -207,7 +208,7 @@ func TestMediaRecoveryRegistrationRollbackAndRetryWithoutDownload(t *testing.T) 
 		t.Fatalf("staging copy was not released after resource persistence: %v", err)
 	}
 	encoded, _ := json.Marshal(output)
-	if err := db.Exec(`CREATE TRIGGER reject_media_asset BEFORE INSERT ON assets BEGIN SELECT RAISE(ABORT, 'injected asset failure'); END`).Error; err != nil {
+	if err := db.Exec(`CREATE FUNCTION reject_media_asset() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'injected asset failure'; END $$; CREATE TRIGGER reject_media_asset BEFORE INSERT ON assets FOR EACH ROW EXECUTE FUNCTION reject_media_asset()`).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := s.saveTaskCompletionWithinStorageQuota(task, encoded, nil, false); err == nil {
@@ -217,7 +218,7 @@ func TestMediaRecoveryRegistrationRollbackAndRetryWithoutDownload(t *testing.T) 
 	if saved.Status != model.TaskStatusRunning || saved.ResultJSON != "" {
 		t.Fatal("false succeeded task escaped transaction")
 	}
-	if err := db.Exec(`DROP TRIGGER reject_media_asset`).Error; err != nil {
+	if err := db.Exec(`DROP TRIGGER reject_media_asset ON assets`).Error; err != nil {
 		t.Fatal(err)
 	}
 	output, err = s.resumeTaskMedia(context.Background(), saved)

@@ -51,7 +51,7 @@ func TestTaskDeadlineRenewalAndTerminalFencing(t *testing.T) {
 			name = "deadline_with_reclaimed_lease"
 		}
 		t.Run(name, func(t *testing.T) {
-			db := newSQLiteTestDB(t)
+			db := newPostgresTestDB(t)
 			if err := db.AutoMigrate(&model.Task{}); err != nil {
 				t.Fatal(err)
 			}

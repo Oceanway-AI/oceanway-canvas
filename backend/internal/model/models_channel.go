@@ -25,10 +25,8 @@ type ModelChannel struct {
 	ProxyURL   string `json:"proxyUrl" gorm:"size:512"`
 	ModelsJSON string `json:"modelsJson" gorm:"type:text"`
 	// RetiredModelsJSON 记录已被一个模型家族吸收的上游 SKU，防止目录拉取时重新创建重复记录。
-	RetiredModelsJSON string `json:"-" gorm:"type:text"`
-	HeadersJSON       string `json:"-" gorm:"type:text"`
-	// CatalogProviderID 记录渠道由哪个目录服务商一键接入；空表示自定义渠道。只用于来源展示。
-	CatalogProviderID string         `json:"catalogProviderId" gorm:"size:64;not null;default:'';index"`
+	RetiredModelsJSON string         `json:"-" gorm:"type:text"`
+	HeadersJSON       string         `json:"-" gorm:"type:text"`
 	CreatedAt         time.Time      `json:"createdAt"`
 	UpdatedAt         time.Time      `json:"updatedAt"`
 	DeletedAt         gorm.DeletedAt `json:"-" gorm:"index"`

@@ -16,11 +16,7 @@ import (
 
 func studioLibraryResource(t *testing.T, f *studioFixture, id string) model.User {
 	t.Helper()
-	f.request(t, "GET", "/api/auth/session", "platform_session=alice", "", 200)
-	var user model.User
-	if err := f.db.First(&user).Error; err != nil {
-		t.Fatal(err)
-	}
+	user := f.user(t, "alice")
 	if err := f.db.Create(&model.Resource{ID: id, UserID: user.ID, Provider: "platform", Status: model.ResourceStatusReady, Kind: "image", MimeType: "image/png", Size: 8}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +82,7 @@ func TestStudioNativeAssetLibraryOrganizeAndRecover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	recovered, err := service.NewStudio(repository.New(f.db), t.TempDir(), gateway)
+	recovered, err := service.NewStudio(repository.NewStudio(f.db), t.TempDir(), gateway)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -12,9 +12,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"yingce/backend/internal/database"
@@ -50,23 +51,24 @@ func TestStudioNativeGatewayBrowser(t *testing.T) {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("REDIS_URL", "")
+
 	env := map[string]string{"STUDIO_PLATFORM_ORIGIN": m.URL, "STUDIO_PLATFORM_PRODUCT_KEY": m.ProductKey, "STUDIO_PUBLIC_ORIGIN": m.Origin, "STUDIO_PLATFORM_SESSION_HOSTS": m.Host, "STUDIO_PLATFORM_ALLOWED_ORIGINS": m.Origin}
 	gateway, err := platformintegration.NewGatewayFromEnv(func(k string) string { return env[k] })
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, err := gorm.Open(sqlite.Open(filepath.Join(dir, "studio.db")), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	testdb.UseRedis(t)
+	db, err := testdb.Open(t, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := database.MigrateSchema(db); err != nil {
+	if err := database.MigrateStudioSchema(db); err != nil {
 		t.Fatal(err)
 	}
-	svc, err := service.NewStudio(repository.New(db), dir, gateway)
+	svc, err := service.NewStudio(repository.NewStudio(db), dir, gateway)
 	if err != nil {
 		t.Fatal(err)
 	}

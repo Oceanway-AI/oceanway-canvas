@@ -114,11 +114,18 @@ func TestStudioNativeDeletionCannotRemovePlatformResources(t *testing.T) {
 			case "direct":
 				err = repo.DeleteResource(user.ID, "managed-file")
 			case "announcement-draft":
+				// Historical cleanup entry points must still reject managed files.
+				if e := f.db.AutoMigrate(&model.AnnouncementImageDraft{}); e != nil {
+					t.Fatal(e)
+				}
 				if e := f.db.Create(&model.AnnouncementImageDraft{ResourceID: "managed-file", UserID: user.ID}).Error; e != nil {
 					t.Fatal(e)
 				}
 				err = repo.DiscardAnnouncementImageDraft(user.ID, &rows[1], &jobs[0])
 			case "announcement-replace":
+				if e := f.db.AutoMigrate(&model.Announcement{}); e != nil {
+					t.Fatal(e)
+				}
 				announcement := model.Announcement{ID: "announcement", ImageResourceID: "managed-file", Title: "before"}
 				if e := f.db.Create(&announcement).Error; e != nil {
 					t.Fatal(e)
@@ -165,7 +172,7 @@ func TestStudioDurableAgentReferencesSurviveLeaseExpiry(t *testing.T) {
 		}
 	}
 	// Recreate the repository and remove expired leases; persisted originals must suffice.
-	repo := repository.New(f.db)
+	repo := repository.NewStudio(f.db)
 	if err := repo.ReleaseExpiredCloudAgentResourceLeases(time.Now()); err != nil {
 		t.Fatal(err)
 	}

@@ -4,6 +4,7 @@ import { translate } from "@/i18n";
 import { nanoid } from "nanoid";
 import { readImageMeta } from "@/lib/image-utils";
 import { getActiveUserScope } from "@/lib/user-scope";
+import { STUDIO_STORAGE_NAME } from "@/lib/studio-identity";
 import { getResourceAccess, importResourceFromUrl, isResourceUrl, resolveResourceAccessURL, resourceFileUrl, resourceIdFromStorageKey, resourceStorageKey, ResourceUploadError, uploadResourceFile } from "@/services/api/resources";
 import { getCachedResourceBlob, primeResourceBlobCache } from "@/services/resource-blob-cache";
 
@@ -24,7 +25,7 @@ export type UploadedImage = {
     remoteUploadError?: string;
 };
 
-const store = localforage.createInstance({ name: "yingce", storeName: "image_files" });
+const store = localforage.createInstance({ name: STUDIO_STORAGE_NAME, storeName: "image_files" });
 const objectUrls = new Map<string, string>();
 
 export async function uploadImage(input: string | Blob, onProgress?: (uploadedBytes: number, totalBytes: number) => void, knownSize?: { width: number; height: number }, uploadIdentity?: string): Promise<UploadedImage> {

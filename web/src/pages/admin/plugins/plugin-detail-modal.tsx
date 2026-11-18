@@ -175,7 +175,6 @@ function contributionSummary(manifest: PluginManifest | PluginManifestV2): Array
     const labels = (items?: Array<{ id: string; label?: string }>) => (items || []).map((item) => item.label || item.id).join("、");
     const rows: Array<[string, string]> = [
         ["模型接入", labels(contributes.providers)],
-        ["支付", labels(contributes.paymentProviders)],
         ["工作流", labels(contributes.workflows)],
         ["画布节点", labels(contributes.canvasNodes)],
         ["命令", labels(contributes.commands)],

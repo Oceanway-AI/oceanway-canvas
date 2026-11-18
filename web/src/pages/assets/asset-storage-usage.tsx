@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { useAccountFileStorageUsage } from "@/hooks/use-account-file-storage-usage";
 import { accountFileStorageUsageQueryKey, accountStorageMeter, accountStorageStateMessage, formatStorageBytes } from "@/lib/account-storage-usage";
-import { openStoragePurchase } from "@/lib/workspace-storage";
+import { openStorageSettings } from "@/lib/workspace-storage";
 import { progressFillStyle } from "@/lib/progress-fill";
 
 export const assetStorageUsageQueryKey = accountFileStorageUsageQueryKey;
@@ -14,7 +14,6 @@ export function AssetStorageUsage({ canPurchase = true }: { canPurchase?: boolea
     const usage = query.data;
     const meter = accountStorageMeter(usage);
     const stateMessage = accountStorageStateMessage(meter);
-    const showUpsell = meter.state !== "ok" || meter.tone !== "ok";
 
     return (
         <section
@@ -45,8 +44,8 @@ export function AssetStorageUsage({ canPurchase = true }: { canPurchase?: boolea
                     </span>
                     <span className="assets-storage-usage-percent">{meter.percentLabel}</span>
                     {canPurchase ? (
-                        <button type="button" className="assets-storage-usage-action" onClick={() => openStoragePurchase()}>
-                            {showUpsell ? t("library.assets.storage.expand") : t("library.assets.storage.buy")}
+                        <button type="button" className="assets-storage-usage-action" onClick={() => openStorageSettings()}>
+                            管理素材空间
                         </button>
                     ) : null}
                 </>

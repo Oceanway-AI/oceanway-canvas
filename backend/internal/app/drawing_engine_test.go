@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -31,7 +31,7 @@ func TestValidateDrawingEngineSetting(t *testing.T) {
 }
 
 func TestUpdateDrawingEngineSettingKeepsDefaultEngineAndStoresTldrawLicenseSeparately(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestUpdateDrawingEngineSettingKeepsDefaultEngineAndStoresTldrawLicenseSepar
 	}
 	repo := repository.New(db)
 	svc := New(repo, t.TempDir())
-	actor := &model.User{ID: "admin-1", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 
 	setting, err := svc.UpdateDrawingEngineSetting(actor, DrawingEngineSetting{
 		DefaultEngine:    DrawingEngineExcalidraw,

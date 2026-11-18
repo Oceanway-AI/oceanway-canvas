@@ -23,7 +23,6 @@ func (s *Service) LogAPICall(log model.ApiCallLog) error {
 	if log.StartedAt.IsZero() {
 		log.StartedAt = log.CreatedAt.Add(-time.Duration(log.DurationMs) * time.Millisecond)
 	}
-	s.estimateCallCost(&log)
 	if log.BillingOrderID != "" && log.ProviderRequestID != "" {
 		if err := s.repo.UpdateBillingProviderRequestID(log.BillingOrderID, log.ProviderRequestID); err != nil {
 			// 账单关联是请求日志的辅助状态，不能因为关联更新失败而丢失
@@ -185,5 +184,5 @@ func (s *Service) APICallLogs(actor *model.User, limit int) ([]model.ApiCallLog,
 	if actor == nil {
 		return nil, Unauthorized("请先登录")
 	}
-	return s.repo.ApiCallLogs(actor.ID, actor.Role == model.UserRoleAdmin, limit)
+	return s.repo.ApiCallLogs(actor.ID, actor.CanStudio(model.StudioManageCreativeContent), limit)
 }

@@ -44,40 +44,13 @@ func TestEcommerceAgentTaskRejectsStalePlanningModel(t *testing.T) {
 	}
 }
 
-func TestAdminCatalogKeepsHealthyModelsWhenOneRevisionIsInvalid(t *testing.T) {
-	svc, db, _, _ := creationTestService(t)
-	good := seedAgentLogicalImageModel(t, svc, db)
-	broken := model.LogicalModel{ID: "broken-ecommerce-catalog", Code: "broken-ecommerce-catalog", Name: "待修复模型", Capability: "text", Enabled: true, ActiveRevisionID: "broken-ecommerce-revision", PricePolicy: "channel", BillingMode: "token"}
-	if err := db.Create(&broken).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Create(&model.LogicalModelRevision{ID: broken.ActiveRevisionID, LogicalModelID: broken.ID, Version: 1, CapabilitySpecJSON: "{invalid", DefaultOptionsJSON: "{}"}).Error; err != nil {
-		t.Fatal(err)
-	}
-	items, err := svc.AdminLogicalModels(&model.User{ID: "admin", Role: model.UserRoleAdmin})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(items) != 2 {
-		t.Fatalf("catalog lost models: %#v", items)
-	}
-	for _, item := range items {
-		if item.ID == good.ID && !item.Available {
-			t.Fatal("healthy model became unavailable")
-		}
-		if item.ID == broken.ID && (item.Available || item.ConfigurationError == "") {
-			t.Fatal("broken model was not diagnosed and disabled")
-		}
-	}
-}
-
 // stageModelFixture seeds an administrator and three image-capable channel
 // models that appear in the administrator's catalog.
 func stageModelFixture(t *testing.T) (*Service, *gorm.DB, *model.User) {
 	t.Helper()
 	t.Setenv("AI_MODE", "disabled")
 	svc, db, _, _ := creationTestService(t)
-	admin := &model.User{ID: "admin", Username: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Username: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if err := db.Create(admin).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +123,7 @@ func TestEcommerceStageSettingDrivesAgentModels(t *testing.T) {
 
 func TestEcommerceStageSettingRequiresAdminAndVisionModel(t *testing.T) {
 	svc, _, admin := stageModelFixture(t)
-	ordinary := &model.User{ID: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}
+	ordinary := &model.User{ID: "user", Status: model.UserStatusActive}
 	if _, err := svc.UpdateEcommerceOrchestrationSetting(ordinary, stageModelSetting()); err == nil {
 		t.Fatal("ordinary user changed the stage models")
 	}

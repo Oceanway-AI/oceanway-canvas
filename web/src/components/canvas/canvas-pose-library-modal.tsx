@@ -1,4 +1,3 @@
-import { appURL } from "@/lib/app-path";
 import { App, Button, Input } from "antd";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { Check, ImageOff, Maximize2, PersonStanding, Search, X } from "lucide-react";
@@ -9,7 +8,7 @@ import { WorkspaceErrorState, WorkspaceNoResultsState, WorkspaceState } from "@/
 import { SegmentedControl } from "@/components/ui/base/segmented-control";
 import { AppModal } from "@/components/ui/product/app-modal";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { adoptStudioPoseImages, copyPoseLibraryItems, listPoseLibrary, poseLibraryFileUrl, POSE_LIBRARY_MAX_USE, type PoseLibraryFacet, type PoseLibraryItem, type PoseLibraryPose } from "@/services/api/pose-library";
+import { adoptStudioPoseImages, listPoseLibrary, poseLibraryFileUrl, POSE_LIBRARY_MAX_USE, type PoseLibraryFacet, type PoseLibraryItem, type PoseLibraryPose } from "@/services/api/pose-library";
 import { resourceFileUrl, resourceStorageKey } from "@/services/api/resources";
 import { useUserStore } from "@/stores/use-user-store";
 
@@ -27,8 +26,6 @@ type Picked = { item: PoseLibraryItem; pose: PoseLibraryPose };
  */
 export function CanvasPoseLibraryModal({ open, onClose, onInsert }: { open: boolean; onClose: () => void; onInsert: (payloads: InsertAssetPayload[]) => Promise<unknown> }) {
     const { message } = App.useApp();
-    const platformIdentity = useUserStore((state) => state.platformIdentity);
-    const isAdmin = useUserStore((state) => !state.platformIdentity && state.user?.role === "admin");
     const userId = useUserStore((state) => state.user?.id);
     const [keyword, setKeyword] = useState("");
     const [system, setSystem] = useState(ALL);
@@ -113,7 +110,7 @@ export function CanvasPoseLibraryModal({ open, onClose, onInsert }: { open: bool
         setInserting(true);
         let payloads: InsertAssetPayload[];
         try {
-            const copies = platformIdentity ? await adoptStudioPoseImages(selection) : await copyPoseLibraryItems(selection.map(({ item }) => item.id));
+            const copies = await adoptStudioPoseImages(selection);
             payloads = copies.map((copy) => ({
                 kind: "image",
                 dataUrl: resourceFileUrl(copy.resource.id),
@@ -156,20 +153,7 @@ export function CanvasPoseLibraryModal({ open, onClose, onInsert }: { open: bool
             </div>
         );
     } else if (libraryEmpty) {
-        content = (
-            <WorkspaceState
-                compact
-                title="姿势库还没有内容"
-                description={isAdmin ? "在后台「姿势库」导入姿势数据并同步图片后，就能在这里选用。" : "站点管理员添加姿势后即可在这里选用。"}
-                action={
-                    isAdmin ? (
-                        <Button type="primary" href={appURL("/admin/pose-library")} target="_blank" rel="noopener">
-                            前往后台管理
-                        </Button>
-                    ) : undefined
-                }
-            />
-        );
+        content = <WorkspaceState compact title="姿势库还没有内容" description="姿势内容准备完成后，可在这里选用。" />;
     } else if (!poses.length) {
         content = <WorkspaceNoResultsState compact query={debouncedKeyword} onClear={filtered ? resetFilters : undefined} />;
     } else {

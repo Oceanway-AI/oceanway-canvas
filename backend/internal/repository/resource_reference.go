@@ -408,6 +408,9 @@ func (r *Repository) ResourceReferenceSnapshotExcludingAssets(userID string, exc
 		snapshot.Direct = append(snapshot.Direct, ResourceDirectReference{Kind: "镜头产物", ID: artifact.ID, Title: artifact.Title, ResourceID: artifact.ResourceID})
 	}
 
+	if r.studioSchema {
+		return snapshot, nil
+	}
 	var announcements []model.Announcement
 	if err := r.db.Where("created_by = ? AND image_resource_id IN ?", userID, resourceIDs).Find(&announcements).Error; err != nil {
 		return snapshot, err
@@ -481,9 +484,9 @@ func (r *Repository) DeleteAssetsAndResources(userID string, assetIDs []string, 
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var ownedAssets []model.Asset
 		query := tx.Where("user_id = ? AND id IN ?", userID, assetIDs).Order("id")
-		if r.Dialect() == "postgres" {
-			query = query.Clauses(clause.Locking{Strength: "UPDATE"})
-		}
+
+		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+
 		if err := query.Find(&ownedAssets).Error; err != nil {
 			return err
 		}
@@ -498,12 +501,12 @@ func (r *Repository) DeleteAssetsAndResources(userID string, assetIDs []string, 
 			// 历史快照正文保留，恢复该版本时由画布断链修复处理失效媒体。
 			if len(resourceIDs) > 0 {
 				// 与历史快照写入串行化，避免清除索引后又插入外键引用。
-				if r.Dialect() == "postgres" {
-					var resources []model.Resource
-					if err := tx.Select("id").Where("id IN ?", resourceIDs).Order("id").Clauses(clause.Locking{Strength: "UPDATE"}).Find(&resources).Error; err != nil {
-						return err
-					}
+
+				var resources []model.Resource
+				if err := tx.Select("id").Where("id IN ?", resourceIDs).Order("id").Clauses(clause.Locking{Strength: "UPDATE"}).Find(&resources).Error; err != nil {
+					return err
 				}
+
 				if err := tx.Where("resource_id IN ?", resourceIDs).Delete(&model.CanvasSnapshotResource{}).Error; err != nil {
 					return err
 				}

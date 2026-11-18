@@ -47,7 +47,7 @@ func TestUpdateAnnouncementSwitchSaveAndPublicProjection(t *testing.T) {
 	if _, err := svc.UpdateAppearance(admin, adminValue.AppearanceSetting); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.UpdateAppearance(&model.User{ID: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}, setting); err == nil {
+	if _, err := svc.UpdateAppearance(&model.User{ID: "user", Status: model.UserStatusActive}, setting); err == nil {
 		t.Fatal("non-admin changed appearance")
 	}
 }

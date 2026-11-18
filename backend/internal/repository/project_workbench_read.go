@@ -187,10 +187,9 @@ func (r *Repository) UserCanvasProjectsPage(userID string, page int, pageSize in
 	if sort == "name" {
 		order = "title asc, id asc"
 	} else if sort == "nodes" {
-		order = "COALESCE(json_array_length(payload_json, '$.nodes'), 0) desc, id asc"
-		if r.db.Dialector.Name() == "postgres" {
-			order = "COALESCE(jsonb_array_length(payload_json::jsonb->'nodes'), 0) desc, id asc"
-		}
+
+		order = "COALESCE(jsonb_array_length(payload_json::jsonb->'nodes'), 0) desc, id asc"
+
 	}
 	err := query.Order(order).Offset((page - 1) * pageSize).Limit(pageSize).Find(&projects).Error
 	return projects, total, err

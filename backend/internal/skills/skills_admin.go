@@ -62,8 +62,8 @@ func requireSkillAdmin(actor *model.User) error {
 	if actor == nil {
 		return kernel.Unauthorized("请先登录")
 	}
-	if actor.Role != model.UserRoleAdmin {
-		return kernel.Forbidden("需要管理员权限")
+	if !actor.CanStudio(model.StudioCurateSkills) {
+		return kernel.Forbidden("需要当前 Platform 内容治理授权")
 	}
 	return nil
 }

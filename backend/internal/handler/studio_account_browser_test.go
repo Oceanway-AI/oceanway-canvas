@@ -17,7 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Actual Studio routes with an isolated SQLite database and free Platform
+// Actual Studio routes with an isolated PostgreSQL schema and free Platform
 // responses. This fixture is never registered in an application build.
 func TestStudioAccountBrowserFixture(t *testing.T) {
 	addr := os.Getenv("STUDIO_ACCOUNT_FIXTURE_ADDR")

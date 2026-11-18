@@ -160,8 +160,7 @@ func sameMemorySnapshots(expected, actual []model.AgentMemorySnapshot) bool {
 
 func memorySnapshotQuery(tx *gorm.DB, userID string, expected model.AgentMemorySnapshot) *gorm.DB {
 	// All affected rows were locked and compared by ContentVersion before any
-	// write. SQLite serializes the transaction from the proposal CAS write;
-	// comparing SQL timestamp strings here would reject equivalent time zones.
+	// write. Comparing SQL timestamp strings would reject equivalent time zones.
 	return tx.Model(&model.AgentLesson{}).Where("id = ? AND author_user_id = ? AND status = ?", expected.ID, userID, expected.Status)
 }
 

@@ -187,7 +187,7 @@ func TestEcommerceKnowledgeDrivesDirectionsForFiveProducts(t *testing.T) {
 	writeAcceptanceReport(t, "five-products.json", records)
 
 	// Knowledge changes must change the plan, not only the evidence list.
-	admin, _ := svc.repo.User("admin")
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent}}
 	bottle := acceptanceProducts(project.ID)[0]
 	before, err := svc.RecommendEcommerceCreativeDirections("user", bottle.Request)
 	if err != nil {

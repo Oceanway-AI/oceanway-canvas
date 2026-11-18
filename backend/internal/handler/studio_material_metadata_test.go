@@ -15,10 +15,7 @@ func TestStudioOriginalFileMetadataReconcilesOwnedResources(t *testing.T) {
 	const cookie = "platform_session=alice"
 	f := newStudioFixture(t)
 	f.request(t, "GET", "/api/auth/session", cookie, "", 200)
-	var user model.User
-	if err := f.db.First(&user).Error; err != nil {
-		t.Fatal(err)
-	}
+	user := f.user(t, "alice")
 	newAsset := studioMaterialFixtureAsset()
 	newAsset.Kind, newAsset.File.ContentType = "video", "video/mp4"
 	type originalFile struct {

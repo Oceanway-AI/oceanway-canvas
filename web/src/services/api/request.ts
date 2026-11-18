@@ -3,6 +3,8 @@ import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 import { translate } from "@/i18n";
 import { localizedApiErrorMessage } from "@/services/api/error-codes";
 import { appURL } from "@/lib/app-path";
+import { STUDIO_IDENTITY_VERSION } from "@/lib/studio-identity";
+import { getActiveUserScope } from "@/lib/user-scope";
 
 export type ApiParams = Record<string, string | string[] | number | number[] | undefined>;
 
@@ -43,7 +45,7 @@ export class ApiError extends Error {
 
 // 所有后端 JSON 请求共用同一实例，避免认证、Base URL 和错误语义在模块间漂移。
 export const apiBaseURL = import.meta.env.VITE_CANVAS_BACKEND_URL || appURL("/api");
-export const apiClient = axios.create({ baseURL: apiBaseURL, withCredentials: true });
+export const apiClient = axios.create({ baseURL: apiBaseURL, withCredentials: true, headers: { "X-Studio-Identity-Version": STUDIO_IDENTITY_VERSION } });
 
 /**
  * 解包后端业务信封的唯一边界。这里把非零业务 code 转成 ApiError，保留 reason、重试语义和 Retry-After；
@@ -134,7 +136,13 @@ export type HttpRequestConfig = Omit<AxiosRequestConfig, "method" | "url" | "dat
 
 async function send<T>(method: string, url: string, data?: unknown, config?: HttpRequestConfig) {
     const { allowNotModified, ...axiosConfig } = config || {};
-    return request<T>(apiClient.request<BackendEnvelope<T>>({ method, url, data, ...axiosConfig }), { allowNotModified });
+    return request<T>(apiClient.request<BackendEnvelope<T>>(withStudioActor({ method, url, data, ...axiosConfig })), { allowNotModified });
+}
+
+function withStudioActor(config: AxiosRequestConfig): AxiosRequestConfig {
+    // Capture this tab's owner before asynchronous request interceptors run.
+    const headers = axios.mergeConfig(config, { headers: { "X-Studio-Actor-ID": getActiveUserScope() } }).headers;
+    return { ...config, headers };
 }
 
 /**
@@ -150,7 +158,7 @@ export const http = {
     deleteWithBody: <T>(url: string, data?: unknown, config?: HttpRequestConfig) => send<T>("delete", url, data, config),
     async raw<T>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
         try {
-            return await apiClient.request<T>(config);
+            return await apiClient.request<T>(withStudioActor(config));
         } catch (error) {
             throw unwrapTransportError(error);
         }

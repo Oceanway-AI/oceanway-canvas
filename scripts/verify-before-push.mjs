@@ -102,7 +102,7 @@ if (dirty.length) console.log("⚠ 工作区有未提交改动：本次结果包
 /** @type {Array<{name: string, cwd: string, cmd: string, args?: string[], env?: Record<string,string>, weight: number, after?: string, check?: (output: string) => string, build?: () => {args: string[]} }>} */
 const tasks = [];
 const skipped = [];
-const notCovered = ["Payment plugin artifacts（需要 Docker linux/amd64 构建，由 CI 检查）"];
+const notCovered = [];
 
 if (wantWeb) {
     const leftovers = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock"].filter((file) => existsSync(path.join(WEB, file)));
@@ -162,7 +162,10 @@ if (wantBackend) {
             },
         });
     }
-    if (!process.env.CANVAS_TEST_POSTGRES_DSN || spawnSync("redis-server", ["--version"]).status !== 0) notCovered.push("依赖 PostgreSQL / redis-server 的 5 个后端用例（本机缺少服务时会跳过，由 CI 检查）");
+    if (!process.env.CANVAS_TEST_POSTGRES_DSN || spawnSync("redis-server", ["--version"]).status !== 0) {
+        console.error("后端检查需要 CANVAS_TEST_POSTGRES_DSN 和 redis-server，数据库夹具统一使用 PostgreSQL。");
+        process.exit(1);
+    }
 } else skipped.push("后端检查（没有 backend/ 改动）");
 
 if (!tasks.length) {

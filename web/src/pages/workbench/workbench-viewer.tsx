@@ -73,7 +73,7 @@ export function WorkbenchViewer({
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [index, onNavigate, open, outputs]);
 
-    const billing = detail?.billing || task?.billing;
+    const billing = detail?.platformBilling || task?.platformBilling;
     const elapsed = task ? elapsedLabel(detail || task) : "";
     const dimensions = output && size?.key === output.key ? `${size.width} × ${size.height}` : output?.width && output.height ? `${output.width} × ${output.height}` : "";
 

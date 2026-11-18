@@ -16,10 +16,6 @@ import (
 )
 
 func TestCreateProjectReturnsStructuredConflictForDuplicateName(t *testing.T) {
-	t.Run("sqlite", func(t *testing.T) {
-		service, db := newProjectSettingsTestService(t)
-		testStructuredProjectNameConflict(t, service, db)
-	})
 	t.Run("postgres", func(t *testing.T) {
 		service, db := newProjectNameConflictPostgresService(t)
 		testStructuredProjectNameConflict(t, service, db)

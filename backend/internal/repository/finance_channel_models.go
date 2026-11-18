@@ -16,12 +16,6 @@ import (
 	"yingce/backend/internal/model"
 )
 
-type AdminRedeemCodeRow struct {
-	model.RedeemCode
-	RedeemedUsername    string `json:"redeemedUsername" gorm:"column:redeemed_username"`
-	RedeemedDisplayName string `json:"redeemedDisplayName" gorm:"column:redeemed_display_name"`
-}
-
 func (r *Repository) ChannelModels(channelID string, includeDisabled bool) ([]model.ChannelModel, error) {
 	var items []model.ChannelModel
 	query := r.db.Where("channel_id = ?", channelID).Order("sort_order asc, created_at asc, id asc")
@@ -317,9 +311,9 @@ func (r *Repository) SyncChannelModelNames(channelID string, now time.Time) erro
 
 func (r *Repository) lockSystemChannelForModelMutation(tx *gorm.DB, channelID string) error {
 	query := tx.Select("id").Where("id = ? AND scope = ?", channelID, model.ChannelScopeSystem)
-	if r.Dialect() == "postgres" {
-		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
-	}
+
+	query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+
 	var channel model.ModelChannel
 	return query.First(&channel).Error
 }

@@ -8,12 +8,9 @@ import (
 	"time"
 
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/repository"
 	"yingce/backend/internal/service"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 func TestTaskTextEventCursorPrefersQueryAndSupportsLastEventID(t *testing.T) {
@@ -52,22 +49,14 @@ func TestTaskTextEventCursorRejectsInvalidValues(t *testing.T) {
 }
 
 func TestStreamTaskTextEventsCachedReplayReachesTerminalWithoutDuplicateDelta(t *testing.T) {
-	t.Setenv("REDIS_URL", "")
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := db.AutoMigrate(&model.Task{}, &model.TaskTextDelta{}); err != nil {
-		t.Fatal(err)
-	}
+	f := newStudioFixture(t)
+	db, svc := f.db, f.svc
 	if err := db.Create(&model.Task{ID: "task", UserID: "user", Status: model.TaskStatusRunning}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Create(&model.TaskTextDelta{ID: "delta", UserID: "user", TaskID: "task", Sequence: 8, Content: "text", ExpiresAt: time.Now().Add(time.Hour)}).Error; err != nil {
 		t.Fatal(err)
 	}
-	svc := service.New(repository.New(db), t.TempDir())
-	t.Cleanup(func() { _ = svc.Close() })
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 	initial, err := svc.CachedTaskTextReplay(ctx, "user", "task", 7)

@@ -2,8 +2,8 @@ package repository
 
 import (
 	"testing"
+	"yingce/backend/internal/testdb"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"yingce/backend/internal/model"
 )
@@ -16,7 +16,7 @@ func TestAudioBillingAmountRoundsUp(t *testing.T) {
 }
 
 func TestSettleAudioPerSecondOrderUsesMeasuredDuration(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:finance-audio-settle?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestSettleAudioPerSecondOrderUsesMeasuredDuration(t *testing.T) {
 }
 
 func TestSettleAudioPerSecondOrderRequiresMeasuredDuration(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:finance-audio-duration-required?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

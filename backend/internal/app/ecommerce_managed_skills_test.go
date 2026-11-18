@@ -10,8 +10,8 @@ import (
 
 func TestEcommerceManagedSkillSwitchPersistsAndControlsPromptAndKnowledge(t *testing.T) {
 	svc, _ := knowledgeTestService(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
-	user := &model.User{ID: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
+	user := &model.User{ID: "user", Status: model.UserStatusActive}
 	if _, err := svc.EcommerceManagedSkills(user); err == nil {
 		t.Fatal("non-admin listed management catalog")
 	}

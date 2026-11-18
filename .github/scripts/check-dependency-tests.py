@@ -6,7 +6,7 @@ import sys
 REQUIRED = {
     ("database", "TestPostgresAssetIDMigration"),
     ("canvas", "TestRepairAssetBytesPostgres"),
-    ("repository", "TestCanvasRevision/postgres"),
+    ("repository", "TestCanvasRevision"),
     ("platform", "TestRuntimeCoordinatorRedisLeasePreservesLongestTTL"),
     ("app", "TestClearAdminRuntimeCacheUsesRedisWhitelist"),
 }

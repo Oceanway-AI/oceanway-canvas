@@ -3,20 +3,23 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"sync"
 	"testing"
+	"yingce/backend/internal/testdb"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"yingce/backend/internal/model"
 )
 
 func TestCanvasAgentAdmissionAcrossConnections(t *testing.T) {
-	dsn := filepath.Join(t.TempDir(), "agent-admission.db") + "?_journal_mode=WAL&_busy_timeout=5000"
+
+	base, err := testdb.Open(t)
+	if err != nil {
+		t.Fatal(err)
+	}
 	open := func() *Repository {
-		db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+		db, err := testdb.Reopen(t, base, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 		if err != nil {
 			t.Fatal(err)
 		}

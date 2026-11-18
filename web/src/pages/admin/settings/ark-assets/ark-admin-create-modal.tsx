@@ -3,7 +3,7 @@ import { App, Button, Form, Input } from "antd";
 import { CheckCircle2, Copy, ExternalLink } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { PaymentCheckoutCode } from "@/components/payment-checkout-code";
+import { VerificationQRCode } from "@/components/verification-qr-code";
 import { useCopyText } from "@/hooks/use-copy-text";
 import { cancelArkPortraitSession, checkArkPortraitSession, createAdminArkGroup, createAdminArkSession, getArkPortraitSession, type ArkGroupKind, type ArkPortraitSession } from "@/services/api/ark-portraits";
 import { AdminModal } from "../../ui/overlays";
@@ -153,7 +153,7 @@ export function ArkAdminCreateModal({ open, resume, onClose, onCreated }: { open
         >
             {session ? (
                 <div className="admin-ark-session">
-                    {session.h5Link ? <PaymentCheckoutCode value={session.h5Link} /> : null}
+                    {session.h5Link ? <VerificationQRCode value={session.h5Link} /> : null}
                     <div className="admin-ark-session-copy">
                         <strong>请「{session.name}」本人完成认证</strong>
                         <p>用手机扫码，或在本机打开认证页。完成后这里会自动刷新；如未刷新，点击「我已完成认证」。链接 {formatArkAdminDate(session.expiresAt, true)} 前有效，不要转发给无关人员。</p>

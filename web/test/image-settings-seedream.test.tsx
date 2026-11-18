@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ImageSettingsPanel } from "../src/components/image-settings-panel";
 import { canvasThemes } from "../src/lib/canvas-theme";
 import { defaultImageCapabilityConfig } from "../src/lib/model-capabilities";
-import { priceTierToForm, skuSelectorFromForm } from "../src/pages/admin/components/channel-model-price-tier-form";
+
 import type { AiConfig } from "../src/stores/use-config-store";
 
 function seedreamConfig(model: string): AiConfig {
@@ -42,27 +42,5 @@ describe("ImageSettingsPanel with km-kemei-seedream", () => {
             expect(html).toContain("2K");
             expect(html).not.toContain("4K");
         }
-    });
-
-    test("存量 Seedream 价格档 quality=1k/1.5k/2k 安全迁移为 imageResolution，无冲突", () => {
-        const profile = defaultImageCapabilityConfig("km-kemei-seedream", "doubao-seedream-5-0-pro-260628");
-        expect(profile.resolution).toEqual({ supported: true, values: ["1k", "1.5k", "2k"], default: "2k" });
-
-        const rawTiers = [
-            { id: "t1", selector: { quality: "1k" }, billingMode: "fixed_request", unitPriceMicrocredits: 20000000, priceConfigured: true, enabled: true },
-            { id: "t2", selector: { quality: "1.5k" }, billingMode: "fixed_request", unitPriceMicrocredits: 40000000, priceConfigured: true, enabled: true },
-            { id: "t3", selector: { quality: "2k" }, billingMode: "fixed_request", unitPriceMicrocredits: 40000000, priceConfigured: true, enabled: true },
-        ];
-
-        const formValues = rawTiers.map((tier) => priceTierToForm(tier, profile, "km-kemei-seedream"));
-        expect(formValues[0].imageResolution).toBe("1k");
-        expect(formValues[1].imageResolution).toBe("1.5k");
-        expect(formValues[2].imageResolution).toBe("2k");
-
-        const selectors = formValues.map((values) => skuSelectorFromForm("image", values, { image: profile }));
-        expect(selectors[0]).toEqual({ imageResolution: "1k" });
-        expect(selectors[1]).toEqual({ imageResolution: "1.5k" });
-        expect(selectors[2]).toEqual({ imageResolution: "2k" });
-        expect(new Set(selectors.map((selector) => JSON.stringify(selector))).size).toBe(3);
     });
 });

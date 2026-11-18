@@ -269,7 +269,7 @@ func arkPrivateAssetSettingFromRequest(req ArkPrivateAssetSettingRequest, curren
 		return next, BadAuthRequest("方舟站点只支持 volcengine（火山引擎）或 byteplus（BytePlus 海外站）")
 	}
 	if next.CallbackBaseURL != "" {
-		if err := validatePaymentPublicBaseURL(next.CallbackBaseURL); err != nil {
+		if err := validatePublicRootURL(next.CallbackBaseURL); err != nil {
 			return next, BadAuthRequest("真人认证回调地址必须是有效的 HTTP(S) 根地址")
 		}
 	}

@@ -4,16 +4,16 @@ import (
 	"context"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func TestCancelTaskCancelsRunningTask(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestCancelTaskCancelsRunningTask(t *testing.T) {
 func TestCancelTaskRejectsUserCancellationAfterProviderStageStarts(t *testing.T) {
 	for _, stage := range []string{"调用生成模型", "正在连接上游", "上游生成中", "后台仍在生成", "等待上游任务同步", "generating", "submitting", "submitted", "submission_unknown", "provider_processing", "作品已生成，正在保存"} {
 		t.Run(stage, func(t *testing.T) {
-			db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+			db, err := testdb.Open(t, &gorm.Config{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -74,7 +74,7 @@ func TestCancelTaskRejectsUserCancellationAfterProviderStageStarts(t *testing.T)
 }
 
 func TestCancelTaskRejectsUserCancellationDuringMediaMaterialization(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestCancelTaskRejectsUserCancellationDuringMediaMaterialization(t *testing.
 }
 
 func TestInternalCancellationStillCoordinatesSubmittedTask(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestInternalCancellationStillCoordinatesSubmittedTask(t *testing.T) {
 }
 
 func TestCancelTaskCancelsQueuedTask(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestCancelTaskCancelsQueuedTask(t *testing.T) {
 func TestCancelTaskRejectsTaskWithProviderRequestID(t *testing.T) {
 	for _, status := range []model.TaskStatus{model.TaskStatusQueued, model.TaskStatusRunning} {
 		t.Run(string(status), func(t *testing.T) {
-			db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+			db, err := testdb.Open(t, &gorm.Config{})
 			if err != nil {
 				t.Fatal(err)
 			}

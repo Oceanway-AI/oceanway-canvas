@@ -228,7 +228,7 @@ func studioMaterialResourceID(userID string, a platformclient.Asset) string {
 
 func (c *studioMaterialCall) adopt(a platformclient.Asset, meta StudioResourceMeta) (*model.Resource, error) {
 	owner, err := strconv.ParseInt(a.Owner.ID, 10, 64)
-	if err != nil || owner <= 0 || strconv.FormatInt(owner, 10) != a.Owner.ID || a.Owner.Kind != "account" || uuid.NewSHA1(uuid.NameSpaceURL, []byte(c.s.studioPlatform.Origin()+"\n"+a.Owner.ID)).String() != c.userID {
+	if err != nil || owner <= 0 || strconv.FormatInt(owner, 10) != a.Owner.ID || a.Owner.Kind != "account" || a.Owner.ID != c.userID {
 		return nil, NotFound("素材不存在或不可访问")
 	}
 	if a.State == "trashed" {

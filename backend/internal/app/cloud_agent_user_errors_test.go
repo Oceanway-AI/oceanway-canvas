@@ -75,12 +75,11 @@ func TestCloudAgentUserFailureMessageHidesInternalEnglish(t *testing.T) {
 // 所有仓储层哨兵错误都必须是中文：它们会经 handler 直接返回给用户。
 func TestRepositorySentinelErrorsAreChinese(t *testing.T) {
 	for _, err := range []error{
-		repository.ErrCreationConflict, repository.ErrInsufficientCredits, repository.ErrRedeemCodeInvalid,
+		repository.ErrCreationConflict, repository.ErrInsufficientCredits,
 		repository.ErrActiveTaskLimit, repository.ErrTaskNotRetryable, repository.ErrBillingStateConflict,
 		repository.ErrBillingUsageUnavailable, repository.ErrBillingChargeLimit, repository.ErrChannelModelInUse,
 		repository.ErrLogicalModelInUse, repository.ErrLogicalModelUnavailable, repository.ErrTaskStateConflict,
 		repository.ErrCanvasRevisionConflict, repository.ErrDailyUploadLimitExceeded, repository.ErrProjectHasActiveTasks,
-		repository.ErrPaymentOrderStateConflict, repository.ErrPaymentEvidenceMismatch,
 	} {
 		if !cloudAgentReadableMessage(err.Error()) {
 			t.Errorf("sentinel error is not user-readable Chinese: %q", err.Error())

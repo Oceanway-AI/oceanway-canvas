@@ -4,15 +4,15 @@ import (
 	"errors"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func TestClaimFailedTaskProviderRecoveryUsesConditionalLease(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:provider-recovery-lease?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestClaimFailedTaskProviderRecoveryUsesConditionalLease(t *testing.T) {
 }
 
 func TestClaimFailedTaskProviderRecoveryRejectsNonFailedTask(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:provider-recovery-status?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

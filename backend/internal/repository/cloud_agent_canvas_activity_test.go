@@ -2,85 +2,42 @@ package repository
 
 import (
 	"fmt"
-	"net/url"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
+	"yingce/backend/internal/testdb"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func TestCanvasAgentActivityIndexed(t *testing.T) {
-	for _, driver := range []string{"sqlite", "postgres"} {
-		t.Run(driver, func(t *testing.T) {
-			// SQLite 临时文件与 PostgreSQL 临时 schema 互不相干，两种驱动并行跑。
-			t.Parallel()
-			config := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
-			var dialector gorm.Dialector = sqlite.Open(filepath.Join(t.TempDir(), "activity.db") + "?_journal_mode=WAL&_busy_timeout=5000")
-			if driver == "postgres" {
-				dsn := os.Getenv("CANVAS_TEST_POSTGRES_DSN")
-				if dsn == "" {
-					t.Skip("set CANVAS_TEST_POSTGRES_DSN to an isolated test database")
-				}
-				admin, err := gorm.Open(postgres.Open(dsn), config)
-				if err != nil {
-					t.Fatal(err)
-				}
-				schema := fmt.Sprintf("agent_activity_%d", time.Now().UnixNano())
-				if err := admin.Exec("CREATE SCHEMA " + schema).Error; err != nil {
-					t.Fatal(err)
-				}
-				t.Cleanup(func() {
-					if err := admin.Exec("DROP SCHEMA " + schema + " CASCADE").Error; err != nil {
-						t.Error(err)
-					}
-					conn, _ := admin.DB()
-					_ = conn.Close()
-				})
-				parsed, err := url.Parse(dsn)
-				if err != nil {
-					t.Fatal(err)
-				}
-				query := parsed.Query()
-				query.Set("search_path", schema)
-				parsed.RawQuery = query.Encode()
-				dialector = postgres.Open(parsed.String())
-			}
-			open := func() *gorm.DB {
-				db, err := gorm.Open(dialector, config)
-				if err != nil {
-					t.Fatal(err)
-				}
-				conn, err := db.DB()
-				if err != nil {
-					t.Fatal(err)
-				}
-				t.Cleanup(func() { _ = conn.Close() })
-				return db
-			}
-			db := open()
-			for range 2 {
-				if err := database.MigrateSchema(db); err != nil {
-					t.Fatal(err)
-				}
-				if err := database.RequireSchemaVersion(db); err != nil {
-					t.Fatal(err)
-				}
-			}
-			t.Run("state-semantics", func(t *testing.T) { testCanvasAgentActivityStates(t, db) })
-			t.Run("checkpoint-marker", func(t *testing.T) { testCanvasAgentCheckpointMarker(t, db) })
-			t.Run("pi-history-indexes", func(t *testing.T) { testCanvasAgentHistoryPlan(t, db) })
-			t.Run("concurrent-admission", func(t *testing.T) { testCanvasAgentAdmissionAcrossConnections(t, New(db), New(open())) })
-		})
+	t.Parallel()
+	config := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
+	db, err := testdb.Open(t, config)
+	if err != nil {
+		t.Fatal(err)
 	}
+	for range 2 {
+		if err := database.MigrateStudioSchema(db); err != nil {
+			t.Fatal(err)
+		}
+		if err := database.RequireStudioSchemaVersion(db); err != nil {
+			t.Fatal(err)
+		}
+	}
+	reopened, err := testdb.Reopen(t, db, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("state-semantics", func(t *testing.T) { testCanvasAgentActivityStates(t, db) })
+	t.Run("checkpoint-marker", func(t *testing.T) { testCanvasAgentCheckpointMarker(t, db) })
+	t.Run("pi-history-indexes", func(t *testing.T) { testCanvasAgentHistoryPlan(t, db) })
+	t.Run("concurrent-admission", func(t *testing.T) { testCanvasAgentAdmissionAcrossConnections(t, New(db), New(reopened)) })
 }
 
 func testCanvasAgentHistoryPlan(t *testing.T, db *gorm.DB) {
@@ -106,32 +63,17 @@ func testCanvasAgentHistoryPlan(t *testing.T, db *gorm.DB) {
 		t.Fatalf("history occupancy: %+v %v", activity, err)
 	}
 	// Refresh planner statistics for the historical and active rows.
-	analyze := "ANALYZE"
-	if db.Dialector.Name() == "postgres" {
-		analyze = "VACUUM ANALYZE tasks"
-	}
-	if err := db.Exec(analyze).Error; err != nil {
+	if err := db.Exec("VACUUM ANALYZE tasks").Error; err != nil {
 		t.Fatal(err)
 	}
-	if db.Dialector.Name() == "postgres" {
-		if err := db.Exec("ANALYZE cloud_agent_executions").Error; err != nil {
-			t.Fatal(err)
-		}
+	if err := db.Exec("ANALYZE cloud_agent_executions").Error; err != nil {
+		t.Fatal(err)
 	}
 	var plan string
-	if db.Dialector.Name() == "postgres" {
-		if err := db.Raw("EXPLAIN (ANALYZE, FORMAT JSON) "+canvasAgentActivitySQL, "history", "history-canvas", "history", "history-canvas").Scan(&plan).Error; err != nil {
-			t.Fatal(err)
-		}
-	} else {
-		var rows []struct{ Detail string }
-		if err := db.Raw("EXPLAIN QUERY PLAN "+canvasAgentActivitySQL, "history", "history-canvas", "history", "history-canvas").Scan(&rows).Error; err != nil {
-			t.Fatal(err)
-		}
-		for _, row := range rows {
-			plan += row.Detail + "\n"
-		}
+	if err := db.Raw("EXPLAIN (ANALYZE, FORMAT JSON) "+canvasAgentActivitySQL, "history", "history-canvas", "history", "history-canvas").Scan(&plan).Error; err != nil {
+		t.Fatal(err)
 	}
+
 	for _, index := range []string{"idx_cloud_agent_canvas_active", "idx_tasks_canvas_agent_reservation"} {
 		if !strings.Contains(plan, index) {
 			t.Fatalf("missing active-only index %s: %s", index, plan)

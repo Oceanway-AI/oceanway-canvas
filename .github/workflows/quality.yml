@@ -59,9 +59,8 @@ jobs:
     defaults:
       run:
         working-directory: backend
-    # 后端有 5 个用例默认会静默跳过：3 个需要 CANVAS_TEST_POSTGRES_DSN（PostgreSQL 迁移、
-    # 素材字节修复、画布版本历史），2 个用 exec.LookPath("redis-server") 自起临时实例
-    # （Redis 租约、缓存白名单）。只跑 go test ./... 而不备齐这两样，这些路径永远不会被执行。
+    # 所有数据库夹具使用独立 PostgreSQL schema。Studio 路由夹具另起独立 Redis，
+    # 避免并行分片之间共享账号限流和租约状态。
     services:
       postgres:
         image: postgres:16-alpine
@@ -195,28 +194,6 @@ jobs:
           name: go-test-timings
           path: ${{ runner.temp }}/go-tests.jsonl
           if-no-files-found: ignore
-
-  payment-plugins:
-    name: Payment plugin artifacts
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify canonical payment packages
-        env:
-          PAYMENT_PLUGIN_SMOKE_TEST: "1"
-        run: sh plugin-packages/verify-payment-packages.sh --all linux amd64
-      - uses: docker/setup-buildx-action@v3
-        if: github.workflow == 'Quality checks'
-      - name: Build and execute payment packages for linux/amd64
-        if: github.workflow == 'Quality checks'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64
-          target: payment-package-smoke
-          file: backend/Dockerfile
-          cache-from: type=gha,scope=payment-smoke
-          cache-to: type=gha,mode=max,scope=payment-smoke
 
   web:
     name: Web checks

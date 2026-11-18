@@ -34,23 +34,6 @@ func TestPluginViewIncludesDocumentationForEveryOfficialProtocol(t *testing.T) {
 		t.Fatal(err)
 	}
 	bundledCount := len(bundledWorkflowPluginManifests())
-	packageIDs := make(map[string]bool, len(packages))
-	for _, packagePath := range packages {
-		data, err := os.ReadFile(packagePath)
-		if err != nil {
-			t.Fatal(err)
-		}
-		pkg, err := protocol.ParsePluginPackage(data)
-		if err != nil {
-			t.Fatal(err)
-		}
-		packageIDs[pkg.Manifest.Metadata.ID] = true
-	}
-	for _, manifest := range append(bundledPaymentPluginManifests(), bundledSMSPluginManifests()...) {
-		if !packageIDs[manifest.Metadata.ID] {
-			bundledCount++
-		}
-	}
 	if len(plugins) != len(packages)+bundledCount {
 		t.Fatalf("plugin views = %d, official packages plus bundled plugins = %d", len(plugins), len(packages)+bundledCount)
 	}
@@ -69,9 +52,6 @@ func TestPluginViewIncludesDocumentationForEveryOfficialProtocol(t *testing.T) {
 			continue
 		}
 		expectedSource := PluginOriginOfficial
-		if isSystemPaymentPluginID(plugin.Manifest.ID) {
-			expectedSource = PluginOriginSystem
-		}
 		if plugin.Source != expectedSource {
 			t.Errorf("plugin %q source = %q, want %s", plugin.Manifest.ID, plugin.Source, expectedSource)
 		}
@@ -287,19 +267,9 @@ func TestPluginRuntimeRejectsPersistedUploadedPaymentProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 	center, err := newPluginRuntime(dataDir)
-	if err != nil {
-		t.Fatal(err)
+	if err == nil || center != nil || !strings.Contains(err.Error(), "paymentProviders") {
+		t.Fatalf("retired plugin runtime was accepted: center=%v err=%v", center, err)
 	}
-	for _, plugin := range center.list() {
-		if plugin.Manifest.ID != "uploaded-payment-provider" {
-			continue
-		}
-		if plugin.Status != "invalid" || !strings.Contains(plugin.Error, "系统宿主适配器") {
-			t.Fatalf("persisted uploaded payment plugin = %#v", plugin)
-		}
-		return
-	}
-	t.Fatal("persisted uploaded payment plugin was not retained as invalid")
 }
 
 func TestAutoDLPluginPackageLoadsAsOfficialRuntime(t *testing.T) {

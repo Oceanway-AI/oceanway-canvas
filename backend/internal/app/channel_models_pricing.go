@@ -88,15 +88,6 @@ func validateChannelModelTierCapabilities(tiers []model.ChannelModelPriceTier, r
 	return nil
 }
 
-// syncLogicalModelsFromChannelModel 只失效路由目录。系统渠道 SKU 与前台模型目录
-// 分别维护：保存渠道模型绝不能自动创建、覆盖或删除前台模型及其线路配置。
-func (s *Service) syncLogicalModelsFromChannelModel(actor *model.User, channelModel *model.ChannelModel) error {
-	_ = actor
-	_ = channelModel
-	s.invalidateRouteCatalog()
-	return nil
-}
-
 func supportsTokenBilling(capability string, _ model.ChannelInterfaceType) bool {
 	return capability == "text" || capability == "video"
 }

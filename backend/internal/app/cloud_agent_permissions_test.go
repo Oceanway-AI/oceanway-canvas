@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"yingce/backend/internal/model"
@@ -17,7 +17,7 @@ import (
 )
 
 // agentPermissionsDB 为权限测试创建数据库，只迁移真实画布表。
-// CI 使用临时 SQLite；Windows 可提供 PostgreSQL DSN，数据只写入独立临时 schema。
+// CANVAS_TEST_POSTGRES_DSN 指向测试 PostgreSQL，数据只写入独立临时 schema。
 func agentPermissionsDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	options := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
@@ -51,7 +51,7 @@ func agentPermissionsDB(t *testing.T) *gorm.DB {
 		parsed.RawQuery = query.Encode()
 		db, err = gorm.Open(postgres.Open(parsed.String()), options)
 	} else {
-		db, err = gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "permissions.db")), options)
+		db, err = testdb.Open(t, options)
 	}
 	if err != nil {
 		t.Fatal(err)

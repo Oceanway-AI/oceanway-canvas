@@ -1,3 +1,4 @@
+import { STUDIO_STORAGE_NAME } from "../src/lib/studio-identity";
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -226,7 +227,7 @@ test("late upload acknowledgements cannot complete or mutate a canvas after its 
         expect(view.nodesRef.current).toEqual(beforeSwitch);
         expect(view.assets).toHaveLength(0);
         expect(state.calls.some((call) => call.endsWith("/complete"))).toBe(false);
-        const checkpoints = [...state.values].filter(([key]) => key.startsWith("studio-material-upload:"));
+        const checkpoints = [...state.values].filter(([key]) => key.startsWith(`${STUDIO_STORAGE_NAME}:studio-material-upload:`));
         expect(checkpoints).toHaveLength(1);
         expect(JSON.parse(checkpoints[0][1]).parts).toEqual([]);
         view.unmount();

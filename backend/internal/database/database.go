@@ -3,14 +3,12 @@ package database
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"yingce/backend/internal/logging"
 
 	"github.com/jackc/pgx/v5/stdlib"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -23,18 +21,9 @@ type Config struct {
 func Open(config Config) (*gorm.DB, error) {
 	driver := strings.ToLower(strings.TrimSpace(config.Driver))
 	if driver == "" {
-		driver = "sqlite"
+		driver = "postgres"
 	}
 	switch driver {
-	case "sqlite":
-		dsn := strings.TrimSpace(config.DSN)
-		if dsn == "" {
-			if err := os.MkdirAll(config.DataDir, 0o755); err != nil {
-				return nil, err
-			}
-			dsn = config.DataDir + "/open_ai_canvas.db?_busy_timeout=5000&_journal_mode=WAL&_foreign_keys=on&_synchronous=NORMAL"
-		}
-		return gorm.Open(sqlite.Open(dsn), &gorm.Config{Logger: logging.GormLogger()})
 	case "postgres", "postgresql":
 		dsn := strings.TrimSpace(config.DSN)
 		if dsn == "" {
@@ -54,12 +43,7 @@ func ConfigurePool(db *gorm.DB) error {
 	if err != nil {
 		return err
 	}
-	if db.Dialector.Name() == "postgres" {
-		sqlDB.SetMaxOpenConns(30)
-		sqlDB.SetMaxIdleConns(10)
-		return nil
-	}
-	sqlDB.SetMaxOpenConns(8)
-	sqlDB.SetMaxIdleConns(4)
+	sqlDB.SetMaxOpenConns(30)
+	sqlDB.SetMaxIdleConns(10)
 	return nil
 }

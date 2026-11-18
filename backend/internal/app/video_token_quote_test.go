@@ -179,7 +179,7 @@ func newVideoTokenQuoteFixture(t *testing.T) (*Service, *gorm.DB, model.ModelCha
 	if err := db.AutoMigrate(&model.SystemSetting{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}, &model.BillingOrder{}, &model.User{}, &model.UserGroup{}, &model.UserGroupChannel{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Create(&model.User{ID: "quote-user", Username: "quote-user", Role: model.UserRoleUser, Status: model.UserStatusActive}).Error; err != nil {
+	if err := db.Create(&model.User{ID: "quote-user", Username: "quote-user", Status: model.UserStatusActive}).Error; err != nil {
 		t.Fatal(err)
 	}
 	account := model.CreditAccount{UserID: "quote-user", AvailableMicrocredits: 10_000_000, ReservedMicrocredits: 250_000, Version: 7}

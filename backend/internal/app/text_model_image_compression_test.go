@@ -12,11 +12,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"yingce/backend/internal/testdb"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	_ "modernc.org/sqlite"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 )
@@ -137,11 +136,10 @@ func TestCompressImageForTextModelLeavesUnknownCodecAlone(t *testing.T) {
 	}
 }
 
-// textModelTestService 用纯 Go 的 modernc 驱动起服务：本机 CI 容器可能没有 C 编译器，
-// cgo 版 go-sqlite3 在这些机器上起不来，而这里只验证资源读取与压缩交付。
+// textModelTestService 使用独立 PostgreSQL schema 验证资源读取与压缩交付。
 func textModelTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := testdb.Open(t, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}

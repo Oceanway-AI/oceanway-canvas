@@ -39,7 +39,7 @@ type EcommerceKnowledgeSource struct {
 }
 
 // EcommerceKnowledgeEntry is a small, searchable, normalized knowledge unit.
-// JSON columns are deliberately stored as text so SQLite and PostgreSQL share the same contract.
+// JSON documents retain their serialized text representation.
 type EcommerceKnowledgeEntry struct {
 	ID       string `json:"id" gorm:"primaryKey;size:80"`
 	SourceID string `json:"sourceId" gorm:"size:80;not null;index"`

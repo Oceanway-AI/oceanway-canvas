@@ -76,7 +76,10 @@ func TestStudioMediaPreviewBindsAccountAndCommandBeforeCreation(t *testing.T) {
 			t.Fatal("missing explicit re-preview reason")
 		}
 	}
-	for _, table := range []any{&model.Task{}, &model.StudioExecution{}, &model.BillingOrder{}} {
+	if f.db.Migrator().HasTable(&model.BillingOrder{}) {
+		t.Fatal("Studio created local billing")
+	}
+	for _, table := range []any{&model.Task{}, &model.StudioExecution{}} {
 		var count int64
 		if err := f.db.Model(table).Count(&count).Error; err != nil || count != 0 {
 			t.Fatalf("stale confirmation wrote %T count=%d err=%v", table, count, err)

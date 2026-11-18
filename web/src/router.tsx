@@ -1,6 +1,5 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, Outlet, useLocation } from "react-router";
-import { lazyAdminPage } from "@/pages/admin/admin-page-loader";
 
 import { RequireAuth } from "@/components/auth/require-auth";
 import { StudioRouteBoundary } from "@/components/auth/studio-route-boundary";
@@ -13,44 +12,6 @@ import RouteErrorPage from "@/pages/route-error";
 import { isGuestWorkspacePath } from "@/lib/guest-workspace";
 import { appBasePath } from "@/lib/app-path";
 
-const AdminPage = lazy(() => import("@/pages/admin"));
-const EcommerceManagementPage = lazyAdminPage(() => import("@/pages/admin/ecommerce-management-page"));
-const EcommerceAgentConfigPage = lazyAdminPage(() => import("@/pages/admin/ecommerce-agent-config-page"));
-const AnalyticsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.AnalyticsPage })));
-const AnnouncementsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.AnnouncementsPage })));
-const BannerAnnouncementsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.BannerAnnouncementsPage })));
-const StorageResourcesPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.StorageResourcesPage })));
-const CreditOperationsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.CreditOperationsPage })));
-const AccessSettingsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.AccessSettingsPage })));
-const EmailSettingsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.EmailSettingsPage })));
-const FeatureAvailabilityPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.FeatureAvailabilityPage })));
-const AgentLessonsPage = lazyAdminPage(() => import("@/pages/admin/admin-route-pages").then((module) => ({ default: module.AgentLessonsPage })));
-const ChannelsPage = lazyAdminPage(() => import("@/pages/admin/channels/channels-page"));
-const LogicalModelsPage = lazyAdminPage(() => import("@/pages/admin/logical-models/logical-models-page"));
-const AdminPluginsPage = lazyAdminPage(() => import("@/pages/admin/plugins/plugins-page"));
-const SkillCurationPage = lazyAdminPage(() => import("@/pages/admin/skill-curation-page"));
-const AdminSkillsPage = lazyAdminPage(() => import("@/pages/admin/skills/skills-page"));
-const AdminSkillWorkbenchPage = lazyAdminPage(() => import("@/pages/admin/skills/admin-skill-workbench-page"));
-const AdminPaymentsPage = lazyAdminPage(() => import("@/pages/admin/payments/payments-page"));
-const LogsPage = lazyAdminPage(() => import("@/pages/admin/logs/logs-page"));
-const LoginLogsPage = lazyAdminPage(() => import("@/pages/admin/login-logs/login-logs-page"));
-const EmailLogsPage = lazyAdminPage(() => import("@/pages/admin/email-logs/email-logs-page"));
-const RedemptionCodesPage = lazyAdminPage(() => import("@/pages/admin/redemption-codes/redemption-codes-page"));
-const RuntimePolicySettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/runtime-policy-settings-page"));
-const AppearanceSettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/appearance-settings-page"));
-const DrawingEngineSettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/drawing-engine-settings-page"));
-const StorageSettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/storage-settings-page"));
-const ArkPrivateAssetsSettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/ark-private-assets-settings-page"));
-const ResponseInterceptionSettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/response-interception-settings-page"));
-const ThirdPartySettingsPage = lazyAdminPage(() => import("@/pages/admin/settings/libtv-settings-page"));
-const WorkbenchToolsPage = lazyAdminPage(() => import("@/pages/admin/workbench-tools/workbench-tools-page"));
-const PoseLibraryAdminPage = lazyAdminPage(() => import("@/pages/admin/pose-library/pose-library-page"));
-const SystemUpdatePage = lazyAdminPage(() => import("@/pages/admin/settings/system-update-page"));
-const SystemPerformancePage = lazyAdminPage(() => import("@/pages/admin/settings/system-performance-page"));
-const StoryboardPromptsPage = lazyAdminPage(() => import("@/pages/admin/storyboard-prompts/storyboard-prompts-page"));
-const AdminFeedbacksPage = lazyAdminPage(() => import("@/pages/admin/feedbacks/feedbacks-page"));
-const UsersPage = lazyAdminPage(() => import("@/pages/admin/users/users-page"));
-const UserGroupsPage = lazyAdminPage(() => import("@/pages/admin/user-groups/user-groups-page"));
 const AssetsPage = workspaceRoutePages.assets;
 const LoginPage = lazy(() => import("@/pages/auth/login"));
 const PlatformLoginComplete = lazy(() => import("@/pages/auth/platform-login-complete"));
@@ -72,8 +33,6 @@ const ProjectsPage = workspaceRoutePages.projects;
 const ProjectDetailPage = workspaceRoutePages.projectDetail;
 const ProjectCreatePage = workspaceRoutePages.projectCreate;
 const SettingsPage = workspaceRoutePages.settings;
-const ReferralPage = workspaceRoutePages.referral;
-const AdminReferralPage = lazyAdminPage(() => import("@/pages/admin/referral/referral-admin-page"));
 const TestVoiceRecording = lazy(() => import("@/pages/test-voice-recording"));
 const UserLayout = lazy(() => import("@/layouts/user-layout"));
 
@@ -189,7 +148,7 @@ export const router = createBrowserRouter(
                     element: <RequireAuth>{null}</RequireAuth>,
                 },
                 { path: "/settings", element: <RequireAuth>{deferred(<SettingsPage />)}</RequireAuth> },
-                { path: "/referral", element: <RequireAuth>{deferred(<ReferralPage />)}</RequireAuth> },
+                { path: "/referral", element: null },
                 { path: "/test-voice-recording", element: <RequireAuth>{deferred(<TestVoiceRecording />)}</RequireAuth> },
                 {
                     path: "/projects",
@@ -233,64 +192,7 @@ export const router = createBrowserRouter(
                         </RequireAuth>
                     ),
                 },
-                {
-                    path: "/admin",
-                    element: <RequireAuth>{deferred(<AdminPage />)}</RequireAuth>,
-                    children: [
-                        { index: true, element: <AnalyticsPage /> },
-                        { path: "users", element: <UsersPage /> },
-                        { path: "user-groups", element: <UserGroupsPage /> },
-                        { path: "login-logs", element: <LoginLogsPage /> },
-                        { path: "email-logs", element: <EmailLogsPage /> },
-                        { path: "feedbacks", element: <AdminFeedbacksPage /> },
-                        { path: "channels", element: <ChannelsPage /> },
-                        // 关闭前台模型只影响用户端模型来源；后台仍可进入，便于开启前先配置。
-                        { path: "models", element: <LogicalModelsPage /> },
-                        { path: "ecommerce", element: <Navigate to="/admin/ecommerce/agent" replace /> },
-                        { path: "ecommerce/agent", element: <EcommerceAgentConfigPage /> },
-                        { path: "ecommerce/library", element: <EcommerceManagementPage /> },
-                        { path: "ecommerce/library/skills", element: <EcommerceManagementPage /> },
-                        { path: "ecommerce/library/categories", element: <EcommerceManagementPage /> },
-                        // 旧地址：知识库、Skills、品类并入「知识与技能」，小夜设置并入「电商 Agent 配置」
-                        { path: "ecommerce/skills", element: <Navigate to="/admin/ecommerce/library/skills" replace /> },
-                        { path: "ecommerce/categories", element: <Navigate to="/admin/ecommerce/library/categories" replace /> },
-                        { path: "ecommerce-knowledge", element: <Navigate to="/admin/ecommerce/library" replace /> },
-                        { path: "ecommerce-skills", element: <Navigate to="/admin/ecommerce/library/skills" replace /> },
-                        { path: "ecommerce-categories", element: <Navigate to="/admin/ecommerce/library/categories" replace /> },
-                        { path: "plugins", element: <AdminPluginsPage /> },
-                        { path: "workbench-tools", element: <WorkbenchToolsPage /> },
-                        { path: "pose-library", element: <PoseLibraryAdminPage /> },
-                        { path: "skills", element: <AdminSkillsPage /> },
-                        { path: "skills/:skillId/edit", element: <AdminSkillWorkbenchPage /> },
-                        { path: "skill-curation", element: <SkillCurationPage /> },
-                        { path: "payments", element: <AdminPaymentsPage /> },
-                        { path: "prompt-templates", element: <StoryboardPromptsPage /> },
-                        { path: "storyboard-prompts", element: <Navigate to="/admin/prompt-templates" replace /> },
-                        { path: "announcements", element: <AnnouncementsPage /> },
-                        { path: "banner-announcements", element: <BannerAnnouncementsPage /> },
-                        { path: "agent-lessons", element: <AgentLessonsPage /> },
-                        { path: "resources", element: <StorageResourcesPage /> },
-                        { path: "credit-operations", element: <CreditOperationsPage /> },
-                        { path: "redemption-codes", element: <RedemptionCodesPage /> },
-                        { path: "referral", element: <AdminReferralPage /> },
-                        { path: "logs", element: <LogsPage /> },
-                        { path: "settings", element: <Navigate to="runtime-policy" replace /> },
-                        { path: "settings/appearance", element: <AppearanceSettingsPage /> },
-                        { path: "settings/drawing-engine", element: <DrawingEngineSettingsPage /> },
-                        { path: "settings/concurrency", element: <Navigate to="/admin/settings/runtime-policy" replace /> },
-                        { path: "settings/runtime-policy", element: <RuntimePolicySettingsPage /> },
-                        { path: "settings/features", element: <FeatureAvailabilityPage /> },
-                        { path: "settings/access", element: <AccessSettingsPage /> },
-                        { path: "settings/email", element: <EmailSettingsPage /> },
-                        { path: "settings/storage", element: <StorageSettingsPage /> },
-                        { path: "settings/ark-private-assets", element: <ArkPrivateAssetsSettingsPage /> },
-                        { path: "settings/response-interception", element: <ResponseInterceptionSettingsPage /> },
-                        { path: "settings/third-party", element: <ThirdPartySettingsPage /> },
-                        { path: "settings/system-update", element: <SystemUpdatePage /> },
-                        { path: "settings/system-performance", element: <SystemPerformancePage /> },
-                        { path: "settings/libtv", element: <Navigate to="/admin/settings/third-party" replace /> },
-                    ],
-                },
+                { path: "/admin/*", element: null },
             ],
         },
         { path: "*", element: fullScreenDeferred(<NotFound />) },

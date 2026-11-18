@@ -2,69 +2,21 @@ package repository
 
 import (
 	"errors"
-	"fmt"
-	"net/url"
-	"os"
-	"path/filepath"
 	"testing"
-	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 func TestCreateProjectReturnsConflictForDuplicateUserName(t *testing.T) {
-	t.Run("sqlite", func(t *testing.T) {
-		db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "projects.db")), &gorm.Config{
-			Logger: logger.Default.LogMode(logger.Silent),
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		closeTestDatabase(t, db)
-		testCreateProjectNameConflict(t, db)
-	})
-
-	t.Run("postgres", func(t *testing.T) {
-		dsn := os.Getenv("CANVAS_TEST_POSTGRES_DSN")
-		if dsn == "" {
-			t.Skip("set CANVAS_TEST_POSTGRES_DSN to an isolated test database")
-		}
-		config := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
-		admin, err := gorm.Open(postgres.Open(dsn), config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		closeTestDatabase(t, admin)
-
-		schema := fmt.Sprintf("project_name_conflict_%d", time.Now().UnixNano())
-		if err := admin.Exec("CREATE SCHEMA " + schema).Error; err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() {
-			if err := admin.Exec("DROP SCHEMA " + schema + " CASCADE").Error; err != nil {
-				t.Errorf("drop test schema: %v", err)
-			}
-		})
-
-		parsed, err := url.Parse(dsn)
-		if err != nil {
-			t.Fatal(err)
-		}
-		query := parsed.Query()
-		query.Set("search_path", schema)
-		parsed.RawQuery = query.Encode()
-		db, err := gorm.Open(postgres.Open(parsed.String()), config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		closeTestDatabase(t, db)
-		testCreateProjectNameConflict(t, db)
-	})
+	db, err := testdb.Open(t, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	testCreateProjectNameConflict(t, db)
 }
 
 // testCreateProjectNameConflict 验证名称冲突按用户区分，且不误判项目 ID 冲突。

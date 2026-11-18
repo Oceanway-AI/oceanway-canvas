@@ -27,9 +27,9 @@ func (r *Repository) requireLocalResourceDeletionIDs(ids []string) error {
 	}
 	var resources []model.Resource
 	query := r.db.Select("id", "provider").Where("id IN ?", ids).Order("id")
-	if r.Dialect() == "postgres" {
-		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
-	}
+
+	query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+
 	if err := query.Find(&resources).Error; err != nil {
 		return err
 	}

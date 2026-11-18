@@ -162,7 +162,7 @@ func validatePluginPackageRuntime(manifest Manifest, files map[string][]byte) er
 			return fmt.Errorf("manifest.runtime.backendEntry must point inside backend/")
 		}
 		if backend == "rpc" {
-			if !HasAnyPaymentRPCBackend(entry, files) {
+			if !HasAnyRPCBackend(entry, files) {
 				return fmt.Errorf("manifest runtime backend entry %q is missing a host-executable artifact", entry)
 			}
 		} else if _, ok := files[entry]; !ok {

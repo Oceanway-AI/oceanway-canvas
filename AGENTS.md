@@ -1,5 +1,7 @@
 # AGENTS.md
 
+2026-11-18 WP-STUDIO-020 实施更新。用户明确退出 SQLite 兼容，开发、测试和部署统一为 PostgreSQL 与 Redis。必须显式设置 `DATABASE_URL`、`REDIS_URL` 及 `STUDIO_*`，采用 Studio v98 schema。下文历史 SQLite 结果保留原验收范围，新测试使用 `CANVAS_TEST_POSTGRES_DSN` 的独立 schema。身份直接使用 Platform 数字 ID，旧数据清理先释放 Studio 引用。当前执行进度以工作包与实际验证记录为准。
+
 2026-11-09 模型供给交接续记：提供方会话已完成，模型设置本地提交b20e4715b999df4ee1cedb9704f3f4f33e650347，固定验收树与提交仅差验收JSON；207前端/28顶层后端专项通过。原冻结样例未重新导出，7/8抽查契约源码相同、media_configuration有差异，不能改标最终双仓已联验。共享Platform仍有其他会话dirty，须独立检出；未push/合并/部署/收费。本轮仅文档与证据，交接docs/verification/model-supply-joint-20261109/README.md及Docs PROC-02-067已补当前版本和接手顺序；后续固定版本复验→尺寸→参考→变体/Agent，A3未完。下方未提交表述为历史。
 
 2026-11-09 模型供给联合首批：与会话01a1bbad-1640-7ac3-8c82-ae59a56fae48协作；Docs计划f1fa61d0、Studio合同13ab270/RED2b25b89/实现f210dfa。修multipleOf零起点范围、audio别名和原控件；提供方隔离HTTP发布/PG预览合成样例经正式rc.6→Studio→前端同源golden验收。图片output_mapping_unverified保留为拒绝用例，视频只代表免费预览就绪。99前端431断言、Go race24顶层＋40子例/3包、type/lint/build/vet/格式/Docs通过；旧视频2测试补显式预算确认，产品门禁不变。证据docs/verification/model-supply-joint-20261109、全局PROC-02-067；Platform候选仍未提交，以源码集合摘要追踪，不能只用HEAD7401e5cf重现。无push/部署/付费/旧任务重试。size_presets/x-size-constraints、参考依赖/总数/首尾帧、变体UI/Agent扩展参数及A3余项未完；非浏览器/真实云或生产供给验收。
@@ -35,7 +37,7 @@
 | 单元 | 技术栈 | 入口 | 责任 |
 | --- | --- | --- | --- |
 | `web/` | Vite、React 19、TypeScript、React Router、Ant Design、Tailwind、Zustand、TanStack Query | `web/src/application.tsx`、`web/src/router.tsx` | 工作区 UI、画布交互、浏览器缓存、API 调用和模型协议适配 |
-| `backend/` | Go 1.25、Gin、GORM、SQLite/PostgreSQL、Redis 协调 | `backend/cmd/server/main.go` | 登录、权限、业务 API、任务队列、资源、模型中转和后台管理 |
+| `backend/` | Go 1.25、Gin、GORM、PostgreSQL、Redis 协调 | `backend/cmd/server/main.go` | 登录、权限、业务 API、任务队列、资源、模型中转和后台管理 |
 | `docs/` | Next.js、Fumadocs、MDX | `docs/content/docs/` | 面向用户和开发者的专题文档；构建配置见 `docs/source.config.ts` |
 
 根目录的 `Dockerfile` 构建前端静态镜像；`nginx.conf` 托管 SPA 并代理后端。`docker-compose.dev.yml` 是源码热更新开发编排，根 `docker-compose.yml` 和 `docker-compose.local.yml` 是本地构建运行。服务器默认使用官方 Release 镜像、`docker-compose.deploy.yml`（PostgreSQL、Redis、独立 Agent、迁移服务）和宿主机 Host Updater，详细说明见 [Docker 部署](docs/content/docs/overview/docker.mdx)。
@@ -91,7 +93,7 @@ cd web && bun run dev
 
 - `backend/internal/handler/`：HTTP 入参、鉴权上下文、调用 service、返回统一响应；不放业务判断和数据库查询。
 - `backend/internal/service/`：稳定导入面。只再导出 `internal/app` 的类型、常量和包级函数（`aliases_*.go`）。handler/cmd 继续 import 本包。
-- `backend/internal/app/`：HTTP 组合根和尚未拆出的业务实现。校验、权限、跨域编排从这里进入。画布生成调度仍主要在 `provider.go`；文本 / 图片 / 视频遗留 / 音频 / HTTP / 声明式协议分别在 `provider_text.go`、`provider_image.go`、`provider_video.go`、`provider_audio.go`、`provider_http_client.go`、`provider_protocol.go`。技能库在 `internal/skills`，提示词与风格在 `internal/prompts`，登录注册在 `internal/auth`，画布分享在 `internal/canvas`，资源引用解析在 `internal/assets`，运行时策略/限流/worker 在 `internal/platform`，错误码与通用工具在 `internal/kernel`，出站 SSRF 在 `internal/outbound`，Agent 上下文检查点契约在 `internal/agentcontext`。域包不得 import `internal/service` 或 `internal/app`。
+- `backend/internal/app/`：HTTP 组合根和尚未拆出的业务实现。校验、权限、跨域编排从这里进入。画布生成调度仍主要在 `provider.go`；文本 / 图片 / 视频遗留 / 音频 / HTTP / 声明式协议分别在 `provider_text.go`、`provider_image.go`、`provider_video.go`、`provider_audio.go`、`provider_http_client.go`、`provider_protocol.go`。技能库在 `internal/skills`，提示词与风格在 `internal/prompts`，第三方画布导入在 `internal/canvasimport`，画布分享在 `internal/canvas`，资源引用解析在 `internal/assets`，运行时策略/限流/worker 在 `internal/platform`，错误码与通用工具在 `internal/kernel`，出站 SSRF 在 `internal/outbound`，Agent 上下文检查点契约在 `internal/agentcontext`。域包不得 import `internal/service` 或 `internal/app`。
 - `backend/internal/repository/`：GORM 查询和持久化；不承载业务策略。
 - `backend/internal/model/`：结构、枚举和简单模型方法；不调用外部服务。
 - `backend/internal/provider/`：模型供应商能力和协议实现。

@@ -11,7 +11,7 @@ import (
 	"yingce/backend/internal/model"
 )
 
-func TestPostgresAssetIDMigration(t *testing.T) {
+func TestPostgresStudioAssetIDs(t *testing.T) {
 	dsn := strings.TrimSpace(os.Getenv("CANVAS_TEST_POSTGRES_DSN"))
 	if dsn == "" {
 		t.Skip("CANVAS_TEST_POSTGRES_DSN is not configured")
@@ -51,32 +51,8 @@ func TestPostgresAssetIDMigration(t *testing.T) {
 	}
 	defer dbSQL.Close()
 
-	for _, statement := range []string{
-		`CREATE TABLE assets (id varchar(36) PRIMARY KEY)`,
-		`CREATE TABLE project_asset_links (id varchar(36) PRIMARY KEY, asset_id varchar(36))`,
-		`CREATE TABLE project_asset_candidates (id varchar(36) PRIMARY KEY, resolved_asset_id varchar(36))`,
-		`CREATE TABLE asset_versions (id varchar(36) PRIMARY KEY, asset_id varchar(36))`,
-	} {
-		if err := db.Exec(statement).Error; err != nil {
-			t.Fatalf("create legacy table: %v", err)
-		}
-	}
-	if err := MigrateSchema(db); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
-
-	for _, migration := range assetIDColumnMigrations {
-		var length int64
-		if err := db.Raw(
-			"SELECT character_maximum_length FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?",
-			migration.table,
-			migration.column,
-		).Scan(&length).Error; err != nil {
-			t.Fatalf("read migrated column %s.%s: %v", migration.table, migration.column, err)
-		}
-		if length != model.AssetIDMaxLength {
-			t.Fatalf("%s.%s length = %d, want %d", migration.table, migration.column, length, model.AssetIDMaxLength)
-		}
+	if err := MigrateStudioSchema(db); err != nil {
+		t.Fatal(err)
 	}
 
 	assetID := "generation_" + strings.Repeat("a", 64)

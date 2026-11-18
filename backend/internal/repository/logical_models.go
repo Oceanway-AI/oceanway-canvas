@@ -473,9 +473,9 @@ func (r *Repository) ArchiveLogicalModel(id string, audit *model.AdminAuditEvent
 		// PostgreSQL 下锁定主体，使任务创建与归档在同一行上串行，避免检查后仍写入新任务。
 		var item model.LogicalModel
 		query := tx.Where("id = ? AND archived_at IS NULL", id)
-		if r.Dialect() == "postgres" {
-			query = query.Clauses(clause.Locking{Strength: "UPDATE"})
-		}
+
+		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+
 		if err := query.First(&item).Error; err != nil {
 			return err
 		}
@@ -518,9 +518,9 @@ func (r *Repository) requireActiveLogicalModelForTask(tx *gorm.DB, task *model.T
 		true,
 		task.LogicalModelRevisionID,
 	)
-	if r.Dialect() == "postgres" {
-		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
-	}
+
+	query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+
 	if err := query.First(&item).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrLogicalModelUnavailable

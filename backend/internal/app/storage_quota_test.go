@@ -3,11 +3,11 @@ package app
 import (
 	"errors"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -46,7 +46,7 @@ func TestValidateTaskStorageQuotaRejectsHistoryGrowth(t *testing.T) {
 }
 
 func TestUserStorageUsageCountsPersistedPayloads(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestUserStorageUsageCountsPersistedPayloads(t *testing.T) {
 }
 
 func TestSaveTaskCompletionPersistsRelatedRowsTogether(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,66 +3,23 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"net/url"
-	"os"
-	"path/filepath"
 	"sync"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 func TestCanvasRevision(t *testing.T) {
-	t.Run("sqlite", func(t *testing.T) {
-		db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "canvas.db")), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
-		if err != nil {
-			t.Fatal(err)
-		}
-		sqlDB, _ := db.DB()
-		sqlDB.SetMaxOpenConns(1)
-		t.Cleanup(func() { _ = sqlDB.Close() })
-		testCanvasRevision(t, db)
-	})
-	t.Run("postgres", func(t *testing.T) {
-		dsn := os.Getenv("CANVAS_TEST_POSTGRES_DSN")
-		if dsn == "" {
-			t.Skip("set CANVAS_TEST_POSTGRES_DSN to an isolated test database")
-		}
-		config := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
-		admin, err := gorm.Open(postgres.Open(dsn), config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		schema := fmt.Sprintf("canvas_revision_%d", time.Now().UnixNano())
-		if err := admin.Exec("CREATE SCHEMA " + schema).Error; err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() {
-			_ = admin.Exec("DROP SCHEMA " + schema + " CASCADE").Error
-			connection, _ := admin.DB()
-			_ = connection.Close()
-		})
-		parsed, err := url.Parse(dsn)
-		if err != nil {
-			t.Fatal(err)
-		}
-		query := parsed.Query()
-		query.Set("search_path", schema)
-		parsed.RawQuery = query.Encode()
-		db, err := gorm.Open(postgres.Open(parsed.String()), config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		connection, _ := db.DB()
-		t.Cleanup(func() { _ = connection.Close() })
-		testCanvasRevision(t, db)
-	})
+	db, err := testdb.Open(t, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	testCanvasRevision(t, db)
 }
 
 func testCanvasRevision(t *testing.T, db *gorm.DB) {

@@ -242,10 +242,7 @@ func TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant(t *testing.T
 	if issues != 0 {
 		t.Fatal("identity read issued a material grant")
 	}
-	var user model.User
-	if err := f.db.First(&user).Error; err != nil {
-		t.Fatal(err)
-	}
+	user := f.user(t, "alice")
 	if err := f.db.Create(&model.Resource{ID: "resource_file", UserID: user.ID, Kind: "video", Provider: "platform", Status: model.ResourceStatusReady}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -297,9 +294,7 @@ func TestStudioMaterialFileWithoutOriginUsesSessionBoundWorkerGrant(t *testing.T
 
 func TestStudioCanvasAcceptsOnlyOwnedBoundPlatformResources(t *testing.T) {
 	f := newStudioFixture(t)
-	f.request(t, "GET", "/api/auth/session", "platform_session=alice", "", 200)
-	var user model.User
-	f.db.First(&user)
+	user := f.user(t, "alice")
 	if err := f.db.Create(&model.Resource{ID: "bound-resource", UserID: user.ID, Provider: "platform", Status: model.ResourceStatusReady, Kind: "video"}).Error; err != nil {
 		t.Fatal(err)
 	}

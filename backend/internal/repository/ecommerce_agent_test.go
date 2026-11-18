@@ -5,16 +5,15 @@ import (
 	"fmt"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	_ "modernc.org/sqlite"
 	"yingce/backend/internal/model"
 )
 
 func ecommerceAgentTestRepository(t *testing.T) *Repository {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Dialector{DriverName: "sqlite", DSN: "file:" + t.Name() + "?mode=memory&cache=shared"}, &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,6 +33,7 @@ func TestLatestEcommerceAgentRunByProjectIsOwnerScoped(t *testing.T) {
 		{ID: "latest", UserID: "owner", ProjectID: "project", IdempotencyKey: "latest", Status: "completed", CreatedAt: time.Now()},
 		{ID: "other-project", UserID: "owner", ProjectID: "elsewhere", IdempotencyKey: "elsewhere", Status: "completed", CreatedAt: time.Now().Add(time.Hour)},
 	} {
+		run.CanvasJSON = "{}"
 		if err := repo.db.Create(&run).Error; err != nil {
 			t.Fatal(err)
 		}

@@ -1,12 +1,12 @@
 # 贡献指南
 
-感谢参与 Open AI Canvas。提交改动前，请先确认相关 Issue 或用简短说明描述问题、目标和外部行为变化。
+感谢参与 OceanWay Studio。提交改动前，请先确认相关 Issue 或用简短说明描述问题、目标和外部行为变化。
 
 ## 开发环境
 
 - 前端：Bun、Vite、React、TypeScript。
-- 后端：Go、Gin、GORM、SQLite。
-- 本地全栈：`docker compose up -d --build`。
+- 后端：Go、Gin、GORM、PostgreSQL 与 Redis。
+- 本地全栈：先配置 `.env.example` 中的 PostgreSQL、Redis 和 `STUDIO_*`，再执行 `docker compose up -d --build`。
 
 不要提交 `.env`、数据库、数据目录、生成产物、编辑器配置或真实 API/OSS 密钥。新增配置项时只在 `.env.example` 中提供无敏感信息的说明。
 
@@ -26,6 +26,6 @@
 - 后端在 `backend/` 下运行 `gofmt -l .` 并修复列出的文件，再运行 `go test -json -timeout=20m ./...`。完整测试需要 Node 22.19.0、`backend/agent-runtime/pi/` 中的 `npm ci --omit=dev --ignore-scripts`、`redis-server` 和独立的 PostgreSQL 测试库；连接通过 `CANVAS_TEST_POSTGRES_DSN` 提供。缺少服务导致用例跳过时，不能声称与 Backend checks 等价。
 - CSS、组件结构、路由或协议变动时，同时核对相邻回归测试。测试应表达当前约定；不要为了通过旧断言恢复已修复的行为，也不要直接跳过失败用例。
 - 合并、解决冲突或同步主干后，针对最终代码重新验证。先确认 `git status` 无未解决冲突、`git diff --check` 通过，再查看该提交的 CI 结果；旧提交的成功不能代表新提交通过。
-- Web checks、Backend checks 或 Payment plugin artifacts 失败时，先定位并修复。即使失败来自主干遗留问题，也不能将红色检查视为可忽略的背景噪声。
+- Web checks 或 Backend checks 失败时，先定位并修复。即使失败来自主干遗留问题，也不能将红色检查视为可忽略的背景噪声。
 
 Pull Request 应包含改动摘要、风险、验证方式和必要截图，并分别写明已执行、未执行或因环境跳过的检查。提交即表示你有权按本项目 MIT 许可证贡献相关代码或素材，并保留已有上游署名和许可证通知。

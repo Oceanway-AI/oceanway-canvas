@@ -5,12 +5,11 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"yingce/backend/internal/testdb"
 
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -83,7 +82,7 @@ func TestCancelCloudAgentAuthorizesBeforeStoppingPiRunner(t *testing.T) {
 
 func cancelAuthorizationFixture(t *testing.T) (*Service, *gorm.DB, *model.Task) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +91,7 @@ func cancelAuthorizationFixture(t *testing.T) (*Service, *gorm.DB, *model.Task) 
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := db.AutoMigrate(database.Models()...); err != nil {
+	if err := db.AutoMigrate(testdb.DomainModels()...); err != nil {
 		t.Fatal(err)
 	}
 	req := agentTestRequest()
@@ -118,7 +117,7 @@ func cancelAuthorizationFixture(t *testing.T) (*Service, *gorm.DB, *model.Task) 
 func TestTaskCancelAndRetryRejectForeignInput(t *testing.T) {
 	for _, action := range []string{"cancel", "retry"} {
 		t.Run(action, func(t *testing.T) {
-			db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+			db, err := testdb.Open(t, &gorm.Config{})
 			if err != nil {
 				t.Fatal(err)
 			}

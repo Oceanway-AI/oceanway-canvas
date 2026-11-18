@@ -29,10 +29,14 @@ RUN bun --bun ./node_modules/vite/bin/vite.js build
 # 运行镜像：nginx 托管静态前端，并在 Compose 中把 /api 转发到后端服务。
 FROM nginx:1.27-alpine
 
+ARG VITE_APP_BASE_PATH=/
+
 COPY --from=web-build /app/web/dist /opt/canvas-release
 COPY docker/canvas-web-entrypoint.sh /usr/local/bin/canvas-web-entrypoint
 RUN chmod +x /usr/local/bin/canvas-web-entrypoint
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/configure-studio-base-path.sh /usr/local/bin/configure-studio-base-path
+RUN sh /usr/local/bin/configure-studio-base-path "$VITE_APP_BASE_PATH"
 
 ENTRYPOINT ["/usr/local/bin/canvas-web-entrypoint"]
 

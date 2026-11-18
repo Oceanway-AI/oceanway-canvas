@@ -3,6 +3,12 @@ param()
 
 $ErrorActionPreference = "Stop"
 
+foreach ($setting in @("DATABASE_URL", "REDIS_URL", "STUDIO_PLATFORM_ORIGIN", "STUDIO_PLATFORM_PRODUCT_KEY", "STUDIO_PUBLIC_ORIGIN", "STUDIO_PLATFORM_SESSION_HOSTS", "STUDIO_PLATFORM_ALLOWED_ORIGINS")) {
+    if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($setting))) {
+        throw "必须先配置 $setting，详见 .env.example。"
+    }
+}
+
 . (Join-Path $PSScriptRoot "windows-proxy.ps1")
 Import-CanvasWindowsProxy
 

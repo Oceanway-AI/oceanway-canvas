@@ -32,14 +32,6 @@ describe("media fallback", () => {
         expect(detail.match(/<MediaPreview/g)).toHaveLength(1);
         expect(detail).toContain('fallbackClassName="task-detail-stage-unavailable"');
     });
-
-    test("uses the fallback in admin log thumbnails and enlarged previews", () => {
-        const page = source("../src/pages/admin/logs/logs-page.tsx");
-
-        expect(page.match(/<MediaPreview/g)).toHaveLength(2);
-        expect(page).toContain("disabled={previewUnavailable}");
-        expect(page).toContain("onUnavailable={() => setUnavailableUrl(url)}");
-    });
 });
 
 describe("task cancellation policy", () => {

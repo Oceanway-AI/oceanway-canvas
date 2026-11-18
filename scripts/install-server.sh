@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-REPOSITORY_URL="${REPOSITORY_URL:-https://github.com/ddcat-ai/open-ai-canvas.git}"
+REPOSITORY_URL="${REPOSITORY_URL:-https://github.com/Oceanway-AI/oceanway-canvas.git}"
 REPOSITORY_REF="${REPOSITORY_REF:-main}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/open-ai-canvas}"
 CANVAS_HTTP_PORT="${CANVAS_HTTP_PORT:-3000}"
@@ -109,11 +109,25 @@ CANVAS_BACKEND_IMAGE=open-ai-canvas-backend:server
 CANVAS_WEB_IMAGE=open-ai-canvas-web:server
 CANVAS_YINGCE_AGENT_IMAGE=open-ai-canvas-yingce-agent:server
 YINGCE_AGENT_TOKEN=$(openssl rand -hex 32)
-CANVAS_REGISTRATION_ENABLED=false
 CANVAS_ALLOW_PRIVATE_UPSTREAMS=false
 CANVAS_ALLOWED_PRIVATE_UPSTREAM_HOSTS=
 CANVAS_CORS_ORIGINS=
 EOF
+}
+
+configure_studio() {
+    local key value
+    for key in STUDIO_PLATFORM_ORIGIN STUDIO_PLATFORM_BROWSER_ORIGIN STUDIO_PLATFORM_PRODUCT_KEY STUDIO_PUBLIC_ORIGIN STUDIO_PUBLIC_BASE_PATH STUDIO_PLATFORM_SESSION_HOSTS STUDIO_PLATFORM_ALLOWED_ORIGINS; do
+        value="${!key:-}"
+        if [[ -n "$value" ]] && ! grep -Eq "^${key}=.+$" .env; then
+            [[ "$value" != *$'\n'* && "$value" != *$'\r'* && "$value" != *"'"* ]] || fail "${key} 必须为单行配置"
+            printf "%s='%s'\n" "$key" "$value" >> .env
+        fi
+    done
+    for key in STUDIO_PLATFORM_ORIGIN STUDIO_PLATFORM_PRODUCT_KEY STUDIO_PUBLIC_ORIGIN STUDIO_PLATFORM_SESSION_HOSTS STUDIO_PLATFORM_ALLOWED_ORIGINS; do
+        grep -Eq "^${key}=.+$" .env || fail "请在 ${INSTALL_DIR}/.env 中填写 ${key} 后重新运行"
+    done
+    chmod 600 .env
 }
 
 start_services() {
@@ -134,7 +148,7 @@ print_result() {
     printf '访问地址：http://%s:%s\n' "$local_ip" "$CANVAS_HTTP_PORT"
     printf '安装目录：%s\n' "$INSTALL_DIR"
     printf '查看状态：cd %q && docker compose --env-file .env -f %s -f %s ps\n' "$INSTALL_DIR" "$COMPOSE_FILE" "$BUILD_COMPOSE_FILE"
-    printf '\n首次打开后注册的第一个账号会自动成为管理员。公网长期使用前请配置 HTTPS。\n'
+    printf '\n请通过已登记的 Studio HTTPS 地址访问并使用 OceanWay 账号登录。\n'
 }
 
 main() {
@@ -144,6 +158,7 @@ main() {
     install_docker
     sync_source
     prepare_environment
+    configure_studio
     start_services
     print_result
 }

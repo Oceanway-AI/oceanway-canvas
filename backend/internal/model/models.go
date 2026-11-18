@@ -6,7 +6,6 @@ import (
 
 type TaskStatus string
 type ProviderCancelStatus string
-type UserRole string
 type UserStatus string
 type ChannelScope string
 type ChannelInterfaceType string
@@ -15,7 +14,6 @@ type ResourceStatus string
 type ResourceDeletionStatus string
 type BillingStatus string
 type CreditLedgerType string
-type RedeemCodeStatus string
 type AnnouncementStatus string
 type AnnouncementLevel string
 type ProjectStatus string
@@ -48,9 +46,6 @@ const (
 	// 前端直连模型流式生成，把增量 POST 到 /tasks/:id/text-deltas 存档，
 	// 完成后调用 /tasks/:id/text-replay-complete 归并为最终正文。
 	TaskStatusTextReplay TaskStatus = "text_replay"
-
-	UserRoleAdmin UserRole = "admin"
-	UserRoleUser  UserRole = "user"
 
 	UserStatusActive   UserStatus = "active"
 	UserStatusDisabled UserStatus = "disabled"
@@ -122,10 +117,6 @@ const (
 	CreditLedgerCheckinBonus CreditLedgerType = "checkin_bonus"
 	CreditLedgerPaymentTopup CreditLedgerType = "payment_topup"
 	CreditLedgerReferral     CreditLedgerType = "referral_commission"
-
-	RedeemCodeUnused   RedeemCodeStatus = "unused"
-	RedeemCodeRedeemed RedeemCodeStatus = "redeemed"
-	RedeemCodeDisabled RedeemCodeStatus = "disabled"
 
 	AnnouncementStatusActive AnnouncementStatus = "active"
 	AnnouncementStatusClosed AnnouncementStatus = "closed"

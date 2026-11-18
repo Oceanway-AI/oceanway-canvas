@@ -12,12 +12,12 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/protocol"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -116,7 +116,7 @@ func TestPrepareOfficialGeminiAgentCacheCreatesAndReusesStablePrefix(t *testing.
 	}))
 	defer server.Close()
 
-	db, err := gorm.Open(sqlite.Open("file:gemini-cache-test?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

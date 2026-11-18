@@ -3,30 +3,26 @@ import { describe, expect, test } from "bun:test";
 import { taskBillingDisplay, taskBillingLabel } from "@/lib/generation-task-billing";
 import type { GenerationTask } from "@/services/api/task-center";
 
-type Billing = NonNullable<GenerationTask["billing"]>;
+type Billing = NonNullable<GenerationTask["platformBilling"]>;
+const receipt: Billing = { fundsState: "settled", stateAvailable: true, summary: "" };
 
-const hold = { amountMicrocredits: 1_000_000, reservedMicrocredits: 1_000_000, refundedMicrocredits: 0 };
-
-describe("task billing display", () => {
-    test("settled shows the charged amount, not the hold, with the difference refund", () => {
-        const billing: Billing = { ...hold, status: "settled", chargedMicrocredits: 600_000, refundedMicrocredits: 400_000 };
-        expect(taskBillingDisplay(billing)).toEqual({ amount: "0.6", note: "已结算", refundNote: "退回 0.4", tone: "settled" });
-        expect(taskBillingLabel(billing)).toBe("已结算 0.6 积分 · 退回 0.4");
-    });
-
-    test("settled without a refund has no refund note", () => {
-        const billing: Billing = { ...hold, status: "settled", chargedMicrocredits: 1_000_000 };
-        expect(taskBillingLabel(billing)).toBe("已结算 1 积分");
-    });
-
-    test("reserved and running show the hold as frozen", () => {
-        for (const status of ["reserved", "running"] as const) {
-            expect(taskBillingLabel({ ...hold, status })).toBe("冻结 1 积分");
+describe("Platform task funds", () => {
+    test("preserves exact decimal settlement and an explicit zero", () => {
+        for (const settledPoints of ["0", "0.000000000000000001", "9007199254740993.123456789012345678"]) {
+            expect(taskBillingLabel({ ...receipt, settledPoints })).toBe(`平台已结算 ${settledPoints} 积分`);
         }
     });
 
-    test("refunded and uncertain keep their own labels", () => {
-        expect(taskBillingDisplay({ ...hold, status: "refunded", refundedMicrocredits: 1_000_000 })).toMatchObject({ note: "已退回", amount: "1", tone: "refunded" });
-        expect(taskBillingDisplay({ ...hold, status: "uncertain" })).toMatchObject({ note: "待核对", tone: "uncertain" });
+    test("missing or malformed settlement cannot become a zero charge", () => {
+        for (const settledPoints of [undefined, "", "NaN", "-1", "1e3", "01", "1".repeat(129)]) {
+            expect(taskBillingDisplay({ ...receipt, settledPoints })).toEqual({ amount: null, note: "平台已结算，金额待确认", tone: "uncertain" });
+        }
+        expect(taskBillingDisplay({ ...receipt, settledPoints: "0", stateAvailable: false }).amount).toBeNull();
+    });
+
+    test("reservation and release have no invented money amount", () => {
+        expect(taskBillingLabel({ ...receipt, fundsState: "reserved" })).toBe("平台资金已预留");
+        expect(taskBillingLabel({ ...receipt, fundsState: "released" })).toBe("平台资金已释放");
+        expect(taskBillingLabel({ ...receipt, fundsState: "new-platform-state" })).toBe("平台费用状态待确认");
     });
 });

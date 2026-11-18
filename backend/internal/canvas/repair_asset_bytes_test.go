@@ -7,15 +7,16 @@ import (
 	"os"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
+
 	"gorm.io/gorm"
 	"yingce/backend/internal/model"
 )
 
 func TestRepairAssetBytes(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

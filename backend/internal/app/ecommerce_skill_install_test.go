@@ -92,8 +92,8 @@ func ecommerceTestUpload(t *testing.T, name, body string) *multipart.FileHeader 
 func TestEcommerceInstalledSkillPermissionsRoutingRenameAndSwitch(t *testing.T) {
 	svc, _ := knowledgeTestService(t)
 	svc.dataDir = t.TempDir()
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
-	user := &model.User{ID: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
+	user := &model.User{ID: "user", Status: model.UserStatusActive}
 	upload := ecommerceTestUpload(t, "coffee.md", "---\nname: 咖啡策划\ndescription: 咖啡产品场景与咖啡详情设计\n---\n依据咖啡产品证据安排细节，不虚构卖点。")
 	if err := svc.InstallEcommerceSkillUpload(user, upload); err == nil {
 		t.Fatal("non-admin installed")

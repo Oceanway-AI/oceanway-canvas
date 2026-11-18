@@ -32,14 +32,8 @@ func (s *Service) curationActor(actor *model.User, admin bool) error {
 	if actor == nil || actor.ID == "" {
 		return kernel.Unauthorized("请先登录")
 	}
-	if admin {
-		current, err := s.repo.User(actor.ID)
-		if err != nil {
-			return err
-		}
-		if current.Role != model.UserRoleAdmin || current.Status != model.UserStatusActive {
-			return kernel.Forbidden("需要管理员权限")
-		}
+	if admin && !actor.CanStudio(model.StudioCurateSkills) {
+		return kernel.Forbidden("需要当前 Platform 内容治理授权")
 	}
 	return nil
 }

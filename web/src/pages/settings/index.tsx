@@ -1,52 +1,26 @@
 import { App, Button } from "antd";
-import { ArrowLeft, Boxes, Bug, Cloud, Inbox, MessageSquareText, RadioTower, ShieldCheck, SlidersHorizontal, UserRound, Workflow, BookMarked } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { ArrowLeft, Boxes, Cloud, SlidersHorizontal, UserRound } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 
 import { PlatformStoragePane } from "./platform-storage-pane";
-import { studioSettingsSectionAvailable } from "@/lib/studio-release-surface";
-import { secretKeyProtocolIds, useUserProtocolCatalog } from "@/hooks/use-user-protocol-catalog";
 import { refreshSystemChannels } from "@/lib/user-session";
 import { useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { useUserStore } from "@/stores/use-user-store";
-import { ChannelSettingsPane, channelValidationError, focusInvalidChannelField, isChannelReady } from "./channel-settings-pane";
 import { ModelDefaultGrid } from "./model-default-grid";
-import { PromptPreferencesPane } from "./prompt-preferences-pane";
-import DiagnosticsPanel from "./diagnostics-panel";
-import AgentMemoryPane from "./agent-memory-pane";
-import { RunningHubSettingsPane } from "./runninghub-settings-pane";
-import { RUNNINGHUB_PLUGIN_ID } from "@/lib/plugins/builtin/workflows";
-import { usePluginStore } from "@/stores/use-plugin-store";
 import { ProfilePane } from "./profile-pane";
-import { FeedbackInboxPane } from "./feedback-inbox-pane";
-import { ArkAssetsPane } from "./ark-assets-pane";
 import { PreferencesPane } from "./preferences-pane";
-import { arkPortraitOverviewQueryKey, getArkPortraitOverview } from "@/services/api/ark-portraits";
 import "./settings-page.css";
 
-type ConfigSectionKey = "profile" | "channels" | "models" | "runninghub" | "preferences" | "prompts" | "agent-memory" | "storage" | "ark-assets" | "diagnostics" | "feedbacks";
-type ConfigSectionGroup = "general" | "creation" | "integrations" | "support";
-
-const configSectionGroups: ConfigSectionGroup[] = ["general", "creation", "integrations", "support"];
-
-/**
- * 分类按用途分组：账户与通用 → 创作 → 渠道与存储 → 帮助与反馈。
- * 分组名在 settings.groups.<group>，分类名称与说明在 settings.sections.<key>。
- */
+type ConfigSectionKey = "profile" | "models" | "preferences" | "storage";
+type ConfigSectionGroup = "general" | "creation";
+const configSectionGroups: ConfigSectionGroup[] = ["general", "creation"];
 const configSections: Array<{ key: ConfigSectionKey; group: ConfigSectionGroup; icon: ReactNode }> = [
     { key: "profile", group: "general", icon: <UserRound className="size-4" /> },
     { key: "preferences", group: "general", icon: <SlidersHorizontal className="size-4" /> },
     { key: "models", group: "creation", icon: <Boxes className="size-4" /> },
-    { key: "prompts", group: "creation", icon: <MessageSquareText className="size-4" /> },
-    { key: "agent-memory", group: "creation", icon: <BookMarked className="size-4" /> },
-    { key: "channels", group: "integrations", icon: <RadioTower className="size-4" /> },
-    { key: "runninghub", group: "integrations", icon: <Workflow className="size-4" /> },
-    { key: "storage", group: "integrations", icon: <Cloud className="size-4" /> },
-    { key: "ark-assets", group: "integrations", icon: <ShieldCheck className="size-4" /> },
-    { key: "feedbacks", group: "support", icon: <Inbox className="size-4" /> },
-    { key: "diagnostics", group: "support", icon: <Bug className="size-4" /> },
+    { key: "storage", group: "creation", icon: <Cloud className="size-4" /> },
 ];
 
 export function isConfigSection(value: string | null): value is ConfigSectionKey {
@@ -59,41 +33,15 @@ export default function SettingsPage() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const requestedSection = searchParams.get("section");
-    const customChannelsEnabled = useUserStore((state) => state.features.customChannelsEnabled);
-    const runtimeStatuses = usePluginStore((state) => state.runtimeStatuses);
-    const runningHubPluginEnabled = runtimeStatuses[RUNNINGHUB_PLUGIN_ID] === "enabled";
-    const requestedSectionEnabled = requestedSection !== null && studioSettingsSectionAvailable(requestedSection) && (requestedSection !== "runninghub" || runningHubPluginEnabled);
-    const initialSection = isConfigSection(requestedSection) && requestedSectionEnabled ? requestedSection : "profile";
-    const [activeTab, setActiveTab] = useState<ConfigSectionKey>(initialSection === "channels" && !customChannelsEnabled ? "models" : initialSection);
-    const config = useConfigStore((state) => state.config);
+    const [activeTab, setActiveTab] = useState<ConfigSectionKey>(isConfigSection(requestedSection) ? requestedSection : "profile");
     const effectiveConfig = useEffectiveConfig();
     const updateConfig = useConfigStore((state) => state.updateConfig);
     const shouldPromptContinue = searchParams.get("continue") === "1";
     const userId = useUserStore((state) => state.user?.id);
-    const userChannels = config.channels.filter((channel) => channel.scope !== "system");
-    const protocolCatalog = useUserProtocolCatalog(customChannelsEnabled);
-    const secretKeyProtocols = useMemo(() => secretKeyProtocolIds(protocolCatalog), [protocolCatalog]);
-    // 方舟素材库只在管理员开放后显示；读取中或读取失败时，仅在链接直达该分类时保留入口，由分类内展示加载与重试。
-    const arkOverviewQuery = useQuery({ queryKey: arkPortraitOverviewQueryKey, queryFn: ({ signal }) => getArkPortraitOverview(signal), enabled: studioSettingsSectionAvailable("ark-assets") && Boolean(userId), staleTime: 60_000 });
-    const arkAssetsVisible = arkOverviewQuery.data ? arkOverviewQuery.data.enabled : requestedSection === "ark-assets";
-    const visibleConfigSections = useMemo(
-        () =>
-            (customChannelsEnabled ? configSections : configSections.filter((section) => section.key !== "channels"))
-                .filter((section) => studioSettingsSectionAvailable(section.key))
-                .filter((section) => section.key !== "runninghub" || runningHubPluginEnabled)
-                .filter((section) => section.key !== "ark-assets" || arkAssetsVisible),
-        [arkAssetsVisible, customChannelsEnabled, runningHubPluginEnabled],
-    );
-
-    const isVisibleConfigSection = (value: string | null): value is ConfigSectionKey => isConfigSection(value) && visibleConfigSections.some((section) => section.key === value);
 
     useEffect(() => {
-        if (isVisibleConfigSection(requestedSection)) {
-            setActiveTab(requestedSection);
-            return;
-        }
-        setActiveTab(requestedSection === "channels" && !customChannelsEnabled ? "models" : "profile");
-    }, [customChannelsEnabled, requestedSection, visibleConfigSections]);
+        setActiveTab(isConfigSection(requestedSection) ? requestedSection : "profile");
+    }, [requestedSection]);
 
     useEffect(() => {
         if (!userId) return;
@@ -107,7 +55,6 @@ export default function SettingsPage() {
     }, [message, t, userId]);
 
     const selectSection = (section: ConfigSectionKey) => {
-        if (section === "runninghub" && !runningHubPluginEnabled) return;
         setActiveTab(section);
         const next = new URLSearchParams(searchParams);
         next.set("section", section);
@@ -115,17 +62,9 @@ export default function SettingsPage() {
     };
 
     const finishConfig = () => {
-        const invalidChannel = customChannelsEnabled ? userChannels.find((channel) => channelValidationError(channel, secretKeyProtocols)) : undefined;
-        if (invalidChannel) {
-            selectSection("channels");
-            message.warning(t("account.settings.channelError", { name: invalidChannel.name || t("account.settings.channels.unnamed"), error: channelValidationError(invalidChannel, secretKeyProtocols) }));
-            focusInvalidChannelField(invalidChannel, secretKeyProtocols);
-            return;
-        }
-        const workflowReady = Boolean(runningHubPluginEnabled && config.runningHub.enabled && config.runningHub.workflowId.trim() && config.runningHub.baseUrl.trim() && config.runningHub.apiKey.trim());
-        if (!effectiveConfig.channels.some((channel) => isChannelReady(channel, secretKeyProtocols)) && !workflowReady) {
-            selectSection(customChannelsEnabled ? "channels" : "models");
-            message.error(customChannelsEnabled ? (shouldPromptContinue ? t("account.settings.needChannel") : t("account.settings.noChannel")) : t("account.settings.noSystemModel"));
+        if (effectiveConfig.models.length === 0) {
+            selectSection("models");
+            message.error(t("account.settings.noSystemModel"));
             return;
         }
         message.success(t("account.settings.saved"));
@@ -138,9 +77,9 @@ export default function SettingsPage() {
                 <ProfilePane key={userId} />
             </SettingsPane>
         ),
-        channels: (
+        preferences: (
             <SettingsPane>
-                <ChannelSettingsPane onOpenModels={() => selectSection("models")} onOpenRunningHub={runningHubPluginEnabled ? () => selectSection("runninghub") : undefined} />
+                <PreferencesPane />
             </SettingsPane>
         ),
         models: (
@@ -156,54 +95,11 @@ export default function SettingsPage() {
                 </div>
             </SettingsPane>
         ),
-        runninghub: (
-            <SettingsPane>
-                <RunningHubSettingsPane />
-            </SettingsPane>
-        ),
-        preferences: (
-            <SettingsPane>
-                <PreferencesPane />
-            </SettingsPane>
-        ),
-        prompts: (
-            <SettingsPane fill>
-                <PromptPreferencesPane />
-            </SettingsPane>
-        ),
-        "agent-memory": (
-            <SettingsPane>
-                <div className="settings-pane-header">
-                    <div className="min-w-0">
-                        <h2>{t("settings.sections.agent-memory.label")}</h2>
-                        <p>{t("account.settings.agentMemoryDescription")}</p>
-                    </div>
-                </div>
-                <div className="settings-section">
-                    <AgentMemoryPane />
-                </div>
-            </SettingsPane>
-        ),
-        diagnostics: (
-            <SettingsPane>
-                <DiagnosticsPanel taskId={searchParams.get("taskId") || undefined} projectId={searchParams.get("projectId") || undefined} />
-            </SettingsPane>
-        ),
         storage: (
             <SettingsPane>
                 <div className="settings-section">
                     <PlatformStoragePane />
                 </div>
-            </SettingsPane>
-        ),
-        "ark-assets": (
-            <SettingsPane>
-                <ArkAssetsPane />
-            </SettingsPane>
-        ),
-        feedbacks: (
-            <SettingsPane>
-                <FeedbackInboxPane />
             </SettingsPane>
         ),
     };
@@ -226,7 +122,7 @@ export default function SettingsPage() {
                 <aside className="settings-nav-panel w-full shrink-0 md:w-[200px]">
                     <nav className="thin-scrollbar flex gap-1 overflow-x-auto p-2 md:block md:p-2" aria-label={t("settings.nav")}>
                         {configSectionGroups.map((group) => {
-                            const items = visibleConfigSections.filter((section) => section.group === group);
+                            const items = configSections.filter((section) => section.group === group);
                             if (!items.length) return null;
                             return (
                                 <div key={group} className="settings-nav-group contents md:block md:space-y-1" role="group" aria-labelledby={`settings-nav-group-${group}`}>
@@ -258,7 +154,7 @@ export default function SettingsPage() {
                 </aside>
                 <section className="settings-content flex min-h-0 min-w-0 flex-1 flex-col">
                     <div className="app-workspace-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 md:px-6 md:py-5">
-                        <div className={`settings-pane-root ${activeTab === "prompts" ? "h-full w-full" : "mx-auto w-full max-w-none"}`}>{panes[activeTab]}</div>
+                        <div className="settings-pane-root mx-auto w-full max-w-none">{panes[activeTab]}</div>
                     </div>
                 </section>
             </div>

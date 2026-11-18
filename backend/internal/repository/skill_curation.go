@@ -89,13 +89,6 @@ func (r *Repository) UpdateSkillCuration(actorID string, revision int64, request
 		if result.RowsAffected != 1 {
 			return kernel.NewAppError(409, "分类版本已更新，请重新加载")
 		}
-		var actor model.User
-		if err := tx.First(&actor, "id = ?", actorID).Error; err != nil {
-			return err
-		}
-		if actor.Role != model.UserRoleAdmin || actor.Status != model.UserStatusActive {
-			return kernel.Forbidden("需要管理员权限")
-		}
 		repo := New(tx)
 		before, err := repo.SkillCuration(true)
 		if err != nil {

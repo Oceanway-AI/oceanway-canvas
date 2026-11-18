@@ -58,16 +58,16 @@ func TestEcommerceCreativeDirectionsAreDynamicAndStable(t *testing.T) {
 	if _, err := svc.SelectEcommerceCreativeDirection("user", tech.RecommendationID, tech.Directions[0].ID); err == nil {
 		t.Fatal("a selected direction was overwritten")
 	}
-	if _, err := svc.SyncEcommerceKnowledge(context.Background(), &model.User{ID: "user", Role: model.UserRoleUser}); err == nil {
+	if _, err := svc.SyncEcommerceKnowledge(context.Background(), &model.User{ID: "user"}); err == nil {
 		t.Fatal("ordinary user started a knowledge sync")
 	}
-	if err := svc.ReviewEcommerceKnowledgeEntry(&model.User{ID: "user", Role: model.UserRoleUser}, entry.ID, "rejected"); err == nil {
+	if err := svc.ReviewEcommerceKnowledgeEntry(&model.User{ID: "user"}, entry.ID, "rejected"); err == nil {
 		t.Fatal("ordinary user reviewed knowledge")
 	}
-	if err := svc.SetEcommerceKnowledgeSourceEnabled(&model.User{ID: "user", Role: model.UserRoleUser}, source.ID, false); err == nil {
+	if err := svc.SetEcommerceKnowledgeSourceEnabled(&model.User{ID: "user"}, source.ID, false); err == nil {
 		t.Fatal("ordinary user disabled a knowledge source")
 	}
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin}
+	admin := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if err := svc.SetEcommerceKnowledgeSourceEnabled(admin, source.ID, false); err != nil {
 		t.Fatal(err)
 	}
@@ -281,7 +281,7 @@ func TestEcommerceKnowledgeLiveSync(t *testing.T) {
 		t.Skip("explicit live read-only source sync")
 	}
 	svc, _, _, _ := ecommerceCreationTestService(t)
-	actor := &model.User{ID: "admin", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	result, err := svc.SyncEcommerceKnowledge(context.Background(), actor)
 	if err != nil {
 		t.Fatal(err)

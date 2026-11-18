@@ -40,7 +40,7 @@ func TestEcommerceUpgradeShipsKnowledgeSkillsAndIndustryWithoutModels(t *testing
 	if err != nil || coverage["indexedNodes"] != int64(ecommercecatalog.Metadata().Nodes) {
 		t.Fatalf("industry data incomplete: %+v %v", coverage, err)
 	}
-	items, err := svc.EcommerceManagedSkills(&model.User{ID: "admin", Role: model.UserRoleAdmin})
+	items, err := svc.EcommerceManagedSkills(&model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}})
 	if err != nil || len(items) != len(ecommerceskills.ManagedCatalog()) {
 		t.Fatalf("skills missing: %d, %v", len(items), err)
 	}

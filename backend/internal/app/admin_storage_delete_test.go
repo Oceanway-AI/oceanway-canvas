@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
+	"yingce/backend/internal/testdb"
 
 	"gorm.io/gorm"
 )
@@ -131,7 +131,7 @@ func TestDeleteAdminResourcesRollsBackWhenAuditInsertFails(t *testing.T) {
 	if err := db.Create(&draft).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Exec("CREATE TRIGGER fail_resource_audit BEFORE INSERT ON admin_audit_events WHEN NEW.action = 'resource.delete' BEGIN SELECT RAISE(ABORT, 'forced audit failure'); END;").Error; err != nil {
+	if err := db.Exec("CREATE FUNCTION fail_resource_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'forced audit failure'; END $$; CREATE TRIGGER fail_resource_audit BEFORE INSERT ON admin_audit_events FOR EACH ROW WHEN (NEW.action = 'resource.delete') EXECUTE FUNCTION fail_resource_audit()").Error; err != nil {
 		t.Fatal(err)
 	}
 
@@ -146,7 +146,7 @@ func TestDeleteAdminResourcesRollsBackWhenAuditInsertFails(t *testing.T) {
 
 func TestDeleteAdminResourcesRejectsNonAdminAndOversizedBatch(t *testing.T) {
 	svc := &Service{}
-	user := &model.User{ID: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}
+	user := &model.User{ID: "user", Status: model.UserStatusActive}
 	if _, err := svc.DeleteAdminResources(user, AdminResourceDeleteRequest{ResourceIDs: []string{"resource-1"}}); err == nil {
 		t.Fatal("expected non-admin rejection")
 	}
@@ -161,11 +161,11 @@ func TestDeleteAdminResourcesRejectsNonAdminAndOversizedBatch(t *testing.T) {
 
 func newAdminStorageDeleteTestService(t *testing.T) (*Service, *gorm.DB, string, *model.User) {
 	t.Helper()
-	db := newSQLiteTestDB(t)
-	if err := database.MigrateSchema(db); err != nil {
+	db := newPostgresTestDB(t)
+	if err := testdb.MigrateDomainSchema(db); err != nil {
 		t.Fatal(err)
 	}
-	admin := &model.User{ID: "admin", Username: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Username: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if err := db.Create(admin).Error; err != nil {
 		t.Fatal(err)
 	}

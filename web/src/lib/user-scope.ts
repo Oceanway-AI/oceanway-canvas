@@ -1,4 +1,6 @@
-export const ACTIVE_USER_SCOPE_KEY = "yingce:active-user-scope";
+import { STUDIO_STORAGE_NAME } from "@/lib/studio-identity";
+
+export const ACTIVE_USER_SCOPE_KEY = `${STUDIO_STORAGE_NAME}:active-user-scope`;
 const GUEST_SCOPE = "guest";
 // Only this tab’s authenticated session may switch its persistence namespace.
 let tabUserScope: string | undefined;
@@ -29,7 +31,7 @@ export function setActiveUserScope(userId?: string | null) {
 }
 
 export function scopedStorageKey(name: string, scope = getActiveUserScope()) {
-    return `${name}:user:${scope}`;
+    return `${STUDIO_STORAGE_NAME}:${name}:user:${scope}`;
 }
 
 export const scopedLocalStorage = {

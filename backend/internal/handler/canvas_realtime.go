@@ -109,10 +109,6 @@ func RegisterCanvasRealtimeRoutes(r *gin.RouterGroup, svc *service.Service) {
 }
 
 func revalidateCanvasSession(ctx context.Context, c *gin.Context, svc *service.Service, userID string) error {
-	if !svc.UsesPlatformIdentity() {
-		_, err := svc.CurrentUser(sessionCookie(c))
-		return err
-	}
 	user, response, err := svc.StudioCurrentUser(ctx, platformintegration.Session(c.Request))
 	if err != nil {
 		return err

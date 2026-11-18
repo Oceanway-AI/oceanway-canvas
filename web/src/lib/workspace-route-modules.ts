@@ -20,7 +20,6 @@ export const workspaceRoutePages = {
     eagleLibrary: preloadableLazy(() => import("@/pages/plugins/eagle")),
     tasks: preloadableLazy(() => import("@/pages/tasks")),
     settings: preloadableLazy(() => import("@/pages/settings")),
-    referral: preloadableLazy(() => import("@/pages/referral")),
 };
 
 export const loadCanvasProjectPage = workspaceRoutePages.canvasProject.preload;
@@ -46,7 +45,6 @@ const workspaceRouteSlugs: Record<string, keyof typeof workspaceRoutePages> = {
     skills: "skills",
     plugins: "plugins",
     settings: "settings",
-    referral: "referral",
     ecommerce: "ecommerce",
 };
 

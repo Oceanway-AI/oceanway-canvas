@@ -26,7 +26,7 @@ func newCurationTest(t *testing.T) (*Service, *gorm.DB, *model.User) {
 	if err := db.Create(&model.SkillCurationSetting{ID: 1}).Error; err != nil {
 		t.Fatal(err)
 	}
-	actor := &model.User{ID: "curator", Role: model.UserRoleAdmin, Status: model.UserStatusActive, Username: "curator"}
+	actor := &model.User{ID: "101", PlatformAuthenticated: true, PlatformSessionID: "test", Status: model.UserStatusActive, Username: "curator", StudioPermissions: []model.StudioPermission{model.StudioCurateSkills}}
 	if err := db.Create(actor).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -123,8 +123,8 @@ func TestSkillCurationLifecycleAndGuards(t *testing.T) {
 	if err != nil || list.TotalCount != 2 {
 		t.Fatalf("disabled switch must ignore filters: %#v %v", list, err)
 	}
-	// A stale in-memory administrator cannot keep writing after revocation.
-	db.Model(&model.User{}).Where("id = ?", actor.ID).Update("role", model.UserRoleUser)
+	// The next request projects the revoked Platform permission.
+	actor.StudioPermissions = nil
 	if _, err := svc.UpdateSkillCuration(actor, SkillCurationUpdate{ExpectedRevision: &state.Revision, Enabled: &on}, ""); appErrorStatus(err) != 403 {
 		t.Fatalf("revoked administrator: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestSkillCurationLifecycleAndGuards(t *testing.T) {
 
 func TestSkillCurationAuditFailureRollsBack(t *testing.T) {
 	svc, db, actor := newCurationTest(t)
-	if err := db.Exec(`CREATE TRIGGER reject_curation_audit BEFORE INSERT ON admin_audit_events BEGIN SELECT RAISE(ABORT, 'audit unavailable'); END`).Error; err != nil {
+	if err := db.Exec(`CREATE FUNCTION reject_curation_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'audit unavailable'; END $$; CREATE TRIGGER reject_curation_audit BEFORE INSERT ON admin_audit_events FOR EACH ROW EXECUTE FUNCTION reject_curation_audit()`).Error; err != nil {
 		t.Fatal(err)
 	}
 	revision := int64(0)

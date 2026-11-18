@@ -5,12 +5,12 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/kernel"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -55,7 +55,7 @@ func TestBuiltinSkillPackageBoundsMetadata(t *testing.T) {
 
 func TestEnsureSkillPackagesBoundsLegacyFallbackMetadata(t *testing.T) {
 	for _, source := range []int{3, skillSourceUser} {
-		db, err := gorm.Open(sqlite.Open("file:"+kernel.NewID()+"?mode=memory&cache=shared"), &gorm.Config{})
+		db, err := testdb.Open(t, &gorm.Config{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -68,6 +68,10 @@ func TestEnsureSkillPackagesBoundsLegacyFallbackMetadata(t *testing.T) {
 			t.Fatal(err)
 		}
 		svc := New(repository.New(db), t.TempDir(), nil)
+		// This fixture models the earlier unbounded metadata columns.
+		if err := db.Exec("ALTER TABLE skills ALTER COLUMN name TYPE text, ALTER COLUMN description TYPE text").Error; err != nil {
+			t.Fatal(err)
+		}
 		skill := model.Skill{ID: kernel.NewID(), Name: strings.Repeat("名", 81), Description: strings.Repeat("文", 503), Instruction: "## 旧技能\n", Status: skillStatusEnabled, Source: source}
 		if err := db.Create(&skill).Error; err != nil {
 			t.Fatal(err)
@@ -193,7 +197,7 @@ func TestParseGitHubSkillURL(t *testing.T) {
 }
 
 func TestEnsureSkillPackagesMigratesAndRefreshesBuiltinSkills(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:"+kernel.NewID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

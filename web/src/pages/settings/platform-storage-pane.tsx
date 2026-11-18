@@ -38,7 +38,7 @@ export function PlatformStoragePane({ compact = false }: { compact?: boolean }) 
                     <p>
                         上传预留 {bytes(query.data.reserved_bytes)} · 剩余 {bytes(query.data.remaining_bytes)}
                     </p>
-                    {query.data.over_limit ? <p role="alert">素材空间已满，请在账户中心管理容量。</p> : null}
+                    {query.data.over_limit ? <p role="alert">素材空间已满。容量扩容办理暂未开放，请先整理已有素材。</p> : null}
                 </>
             ) : null}
         </section>

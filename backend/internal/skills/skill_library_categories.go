@@ -78,7 +78,7 @@ func (s *Service) CreateSkillLibraryCategory(actor *model.User, req SkillLibrary
 	if scope != skillLibraryCategoryPersonal && scope != skillLibraryCategoryPlatform {
 		return nil, kernel.BadAuthRequest("分类范围必须是 personal 或 platform")
 	}
-	if scope == skillLibraryCategoryPlatform && actor.Role != model.UserRoleAdmin {
+	if scope == skillLibraryCategoryPlatform && !actor.CanStudio(model.StudioManageSkillCategories) {
 		return nil, kernel.Forbidden("只有管理员可以创建平台分类")
 	}
 	category := &model.SkillLibraryCategory{
@@ -113,7 +113,7 @@ func (s *Service) DeleteSkillLibraryCategory(actor *model.User, id string) error
 		return err
 	}
 	if category.Scope == skillLibraryCategoryPlatform {
-		if actor.Role != model.UserRoleAdmin {
+		if !actor.CanStudio(model.StudioManageSkillCategories) {
 			return kernel.Forbidden("只有管理员可以删除平台分类")
 		}
 	} else if category.Scope != skillLibraryCategoryPersonal || category.OwnerID != actor.ID {

@@ -123,7 +123,7 @@ func TestAgentAvatarBundleUploadEnableAndReferenceProtection(t *testing.T) {
 	appearance.Canvas.AvatarClipStates = map[string]string{
 		"idle": "idle", "running": "idle", "waiting_approval": "idle", "completed": "wave", "failed": "idle",
 	}
-	other := &model.User{ID: "other-avatar-admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	other := &model.User{ID: "other-avatar-admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if _, err := svc.UpdateAppearance(other, appearance.AppearanceSetting); err == nil {
 		t.Fatal("another administrator enabled an unowned bundle")
 	}

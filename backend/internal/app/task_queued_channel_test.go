@@ -35,7 +35,7 @@ func TestQueuedCustomChannelRecheck(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s, db := newMediaRecoveryTestService(t)
-			actor := &model.User{ID: "admin", Role: "admin"}
+			actor := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 			features := FeatureAvailability{CustomChannelsEnabled: true, TaskCenterEnabled: true, CreditsEnabled: true}
 			if _, err := s.UpdateFeatureAvailability(actor, features); err != nil {
 				t.Fatal(err)

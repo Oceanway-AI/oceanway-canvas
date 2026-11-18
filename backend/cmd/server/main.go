@@ -50,7 +50,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 	db, err := database.Open(database.Config{
-		Driver:  env("CANVAS_DATABASE_DRIVER", "sqlite"),
+		Driver:  env("CANVAS_DATABASE_DRIVER", "postgres"),
 		DSN:     os.Getenv("DATABASE_URL"),
 		DataDir: dataDir,
 	})
@@ -70,15 +70,15 @@ func run(ctx context.Context) error {
 		return err
 	}
 	if autoMigrate {
-		err = database.MigrateSchema(db)
+		err = database.MigrateStudioSchema(db)
 	} else {
-		err = database.RequireSchemaVersion(db)
+		err = database.RequireStudioSchemaVersion(db)
 	}
 	if err != nil {
 		return err
 	}
 
-	repo := repository.New(db)
+	repo := repository.NewStudio(db)
 	addr := env("CANVAS_BACKEND_ADDR", ":8080")
 	svc, err := service.NewStudio(repo, dataDir, gateway)
 	if err != nil {
@@ -238,7 +238,7 @@ func envDuration(key string, fallback time.Duration) (time.Duration, error) {
 	return parsed, nil
 }
 
-const corsAllowedHeaders = "Accept, Content-Type, Authorization, X-Requested-With, X-Canvas-Scene, X-Idempotency-Key, X-Canvas-Trace-ID, X-Canvas-Upstream-URL, X-Canvas-Upstream-Format, X-Canvas-Upstream-Base-URL"
+const corsAllowedHeaders = "Accept, Content-Type, Authorization, X-Requested-With, X-Canvas-Scene, X-Idempotency-Key, X-Canvas-Trace-ID, X-Studio-Identity-Version, X-Studio-Actor-ID"
 
 const corsAllowedMethods = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
 

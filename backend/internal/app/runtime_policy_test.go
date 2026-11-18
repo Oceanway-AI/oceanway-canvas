@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
-	"yingce/backend/internal/kernel"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -151,7 +150,7 @@ func TestResumableImageProviderDeadlineOnlyForAsyncProtocols(t *testing.T) {
 }
 
 func TestResumableVideoDeadlineUsesResolvedSystemChannelProtocol(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:"+kernel.NewID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +209,7 @@ func TestRuntimePolicyRejectsSingleFileAboveAccountCapacity(t *testing.T) {
 }
 
 func TestRuntimePolicySaveAndResetTakeEffectImmediately(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +217,7 @@ func TestRuntimePolicySaveAndResetTakeEffectImmediately(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := New(repository.New(db), t.TempDir())
-	actor := &model.User{ID: "admin", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	policy := defaultRuntimePolicy()
 	policy.Task.ActiveTaskLimit = 17
 	if _, err := svc.UpdateRuntimePolicySetting(actor, policy); err != nil {
@@ -238,7 +237,7 @@ func TestRuntimePolicySaveAndResetTakeEffectImmediately(t *testing.T) {
 }
 
 func TestRuntimePolicyBackfillsRecycleBinRetentionForLegacyJSON(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

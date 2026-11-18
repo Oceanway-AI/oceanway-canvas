@@ -27,7 +27,7 @@ description: 电商创作工作流、阶段模型和知识来源管理
 
 服务首次启动自动在一个事务内初始化离线数据，无需先访问 GitHub。安装摘要保存在 `system_settings` 的 `ecommerce_knowledge_bundle_receipt`；相同包再次启动直接跳过。版本变化时只合并缺失行，已有管理员修改、审核状态和停用设置保留。数据与安装记录一起提交或回滚，避免导入一半却被标记为完成。
 
-维护命令在显式配置数据库位置后执行：`go run ./cmd/ecommerce-knowledge -bootstrap-bundled -admin <已有管理员ID>`。内置 KB01–KB10 的升级使用 `-bootstrap-builtin`，第三方固定来源在线同步使用 `-sync`。这些写操作需要已有管理员。数据包不包含具体部署的模型渠道绑定或凭据；部署后在四阶段配置中选择自己的模型。
+维护命令使用 Studio PostgreSQL 基线和完整 `STUDIO_*` 配置。运行 `go run ./cmd/ecommerce-knowledge -bootstrap-bundled -session-file <私密会话文件>`，文件只保存当前 Platform 会话 Cookie。写入前由 Platform 校验会话并检查 Studio 内容管理权限。内置 KB01–KB10 的升级使用 `-bootstrap-builtin`，第三方固定来源在线同步使用 `-sync`。维护命令读取随程序交付的知识包，模型选择沿 Platform 发布目录。
 
 HTTP 路由由 `backend/internal/handler/ecommerce.go` 和 `ecommerce_agent.go` 注册，业务在 `internal/app/ecommerce*`，持久化在 `internal/repository/ecommerce*`，领域契约与提示方法在 `internal/ecommerceagent` 和 `internal/ecommerceskills`。
 

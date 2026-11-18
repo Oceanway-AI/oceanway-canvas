@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import localforage from "localforage";
-import { setActiveUserScope } from "@/lib/user-scope";
+import { ACTIVE_USER_SCOPE_KEY, scopedStorageKey, setActiveUserScope } from "@/lib/user-scope";
 
 import { apiClient } from "@/services/api/request";
 import { materializeGenerationTaskAssets } from "@/services/project-asset-sync";
@@ -43,7 +43,7 @@ const task = {
 };
 
 function scopeStorageKey(name: string) {
-    return `${name}:user:${scope}`;
+    return scopedStorageKey(name, scope);
 }
 
 function installStorage() {
@@ -60,7 +60,7 @@ function installStorage() {
         configurable: true,
         value: {
             localStorage: {
-                getItem: (key: string) => (key === "yingce:active-user-scope" ? scope : null),
+                getItem: (key: string) => (key === ACTIVE_USER_SCOPE_KEY ? scope : null),
                 setItem: () => undefined,
                 removeItem: () => undefined,
             },

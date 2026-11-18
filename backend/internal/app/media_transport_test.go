@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"strings"
 	"testing"
 
-	"gorm.io/gorm"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/protocol"
 )
@@ -35,66 +33,17 @@ func TestReferenceTransportInheritanceAndValidation(t *testing.T) {
 	}
 }
 
-func TestReferenceTransportChannelPersistenceAtomicityAndAdminAuthority(t *testing.T) {
-	s, db := newChannelModelTestService(t)
-	s.dataDir = t.TempDir()
-	admin := &model.User{ID: "synthetic-admin", Role: model.UserRoleAdmin}
-	channel, err := s.CreateSystemChannel(admin, ChannelRequest{Name: "Synthetic transport", BaseURL: "https://8.8.8.8/v1", APIKey: "synthetic-key", MediaTransport: &ReferenceMediaTransport{Image: "url", Audio: "base64"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if channel.MediaTransport == nil || channel.MediaTransport.Image != "url" {
-		t.Fatal("created response lost policy")
-	}
-	if _, err = s.UpdateSystemChannel(admin, channel.ID, ChannelRequest{Name: "Synthetic renamed"}); err != nil {
-		t.Fatal(err)
-	}
-	value, err := s.channelMediaTransport(channel.ID)
-	if err != nil || value.Image != "url" {
-		t.Fatal("unrelated edit cleared policy", err)
-	}
-	if _, err = s.UpdateSystemChannel(&model.User{ID: "synthetic-user", Role: model.UserRoleUser}, channel.ID, ChannelRequest{MediaTransport: &ReferenceMediaTransport{Image: "base64"}}); err == nil {
-		t.Fatal("non-admin changed policy")
-	}
-	duplicate, err := s.DuplicateSystemChannel(admin, channel.ID)
-	if err != nil || duplicate.MediaTransport.Image != "url" {
-		t.Fatal("duplicate lost policy", err)
-	}
-	exported, err := s.ExportSystemChannels(admin, []string{channel.ID})
-	if err != nil || exported.Channels[0].MediaTransport.Audio != "base64" {
-		t.Fatal("export lost policy", err)
-	}
-	marker := errors.New("synthetic policy persistence failure")
-	if err = db.Callback().Update().Before("gorm:update").Register("synthetic:transport-failure", func(tx *gorm.DB) {
-		if tx.Statement.Table == "system_settings" {
-			tx.AddError(marker)
-		}
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = s.UpdateSystemChannel(admin, channel.ID, ChannelRequest{Name: "Must roll back", MediaTransport: &ReferenceMediaTransport{Image: "base64"}}); !errors.Is(err, marker) {
-		t.Fatal("expected transactional error", err)
-	}
-	db.Callback().Update().Remove("synthetic:transport-failure")
-	stored, err := s.repo.AdminSystemChannel(channel.ID)
-	if err != nil || stored.Name != "Synthetic renamed" {
-		t.Fatal("channel changed without its policy", err)
-	}
-	if _, err = s.UpdateSystemChannel(admin, channel.ID, ChannelRequest{MediaTransport: &ReferenceMediaTransport{}}); err != nil {
-		t.Fatal(err)
-	}
-	value, err = s.channelMediaTransport(channel.ID)
-	if err != nil || *value != (ReferenceMediaTransport{}) {
-		t.Fatal("explicit reset failed", err)
-	}
-}
-
 func TestReferenceTransportResolutionDoesNotTrustTaskConfig(t *testing.T) {
 	s, _ := newChannelModelTestService(t)
 	s.dataDir = t.TempDir()
-	admin := &model.User{ID: "synthetic-admin", Role: model.UserRoleAdmin}
-	channelID := seedTransferChannel(t, s, admin)
-	if _, err := s.UpdateSystemChannel(admin, channelID, ChannelRequest{MediaTransport: &ReferenceMediaTransport{Image: "url", Audio: "base64"}}); err != nil {
+	channelID := "synthetic-channel"
+	if err := s.repo.Create(&model.ModelChannel{ID: channelID, Scope: model.ChannelScopeSystem, Enabled: true, BaseURL: "https://8.8.8.8/v1", APIKey: "fixture-key"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.repo.Create(&model.ChannelModel{ID: "transport-model", ChannelID: channelID, ModelKey: "gpt-test", Capability: "image", Protocol: "openai-image", Enabled: true}); err != nil {
+		t.Fatal(err)
+	}
+	if err := saveChannelMediaTransport(s.repo, channelID, "101", &ReferenceMediaTransport{Image: "url", Audio: "base64"}); err != nil {
 		t.Fatal(err)
 	}
 	config := providerConfig{ChannelID: channelID, Model: "gpt-test", CapabilityConfig: &ModelCapabilityConfig{MediaTransport: &ReferenceMediaTransport{Image: "base64"}}}

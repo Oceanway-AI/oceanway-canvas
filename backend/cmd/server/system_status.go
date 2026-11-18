@@ -55,7 +55,7 @@ func (s *systemStatus) snapshot(ctx context.Context) systemStatusSnapshot {
 		Started:  s.started.Load(),
 		Draining: s.draining.Load(),
 		Build:    buildinfo.Current(),
-		Schema:   database.SchemaStatus{Expected: database.CurrentSchemaVersion},
+		Schema:   database.SchemaStatus{Expected: database.CurrentStudioSchemaVersion},
 	}
 	if s.service != nil {
 		snapshot.ActiveWorkerTasks = s.service.ActiveWorkerTasks()
@@ -63,7 +63,7 @@ func (s *systemStatus) snapshot(ctx context.Context) systemStatusSnapshot {
 	}
 	if s.db != nil {
 		snapshot.Checks.Database = s.db.WithContext(ctx).Exec("SELECT 1").Error == nil
-		if schema, err := database.ReadSchemaStatus(s.db); err == nil {
+		if schema, err := database.ReadStudioSchemaStatus(s.db); err == nil {
 			snapshot.Schema = schema
 			snapshot.Checks.Schema = schema.Ready
 		}

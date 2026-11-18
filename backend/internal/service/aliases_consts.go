@@ -51,17 +51,12 @@ const (
 	FeatureEcommerce                   = app.FeatureEcommerce
 	FeatureEcommerceVideo              = app.FeatureEcommerceVideo
 	ModelCatalogSourceSystem           = app.ModelCatalogSourceSystem
-	PaymentPluginAlipayPage            = app.PaymentPluginAlipayPage
-	PaymentPluginWeChatNative          = app.PaymentPluginWeChatNative
-	PaymentProviderAlipay              = app.PaymentProviderAlipay
-	PaymentProviderWeChat              = app.PaymentProviderWeChat
 	PluginAIArtCritique                = app.PluginAIArtCritique
 	PluginConfigurationNone            = app.PluginConfigurationNone
 	PluginConfigurationSystem          = app.PluginConfigurationSystem
 	PluginConfigurationUser            = app.PluginConfigurationUser
 	PluginEagleAssetConnector          = app.PluginEagleAssetConnector
 	PluginKindApplication              = app.PluginKindApplication
-	PluginKindPayment                  = app.PluginKindPayment
 	PluginKindProtocol                 = app.PluginKindProtocol
 	PluginMediaConversion              = app.PluginMediaConversion
 	PluginOriginOfficial               = app.PluginOriginOfficial
@@ -85,7 +80,6 @@ const (
 	ReasonTimeout                      = app.ReasonTimeout
 	ReasonUnauthorized                 = app.ReasonUnauthorized
 	ReasonUnavailable                  = app.ReasonUnavailable
-	SessionCookieName                  = app.SessionCookieName
 	SkillPackageUploadMaxBytes         = app.SkillPackageUploadMaxBytes
 	SkillPackageEditMaxBytes           = app.SkillPackageEditMaxBytes
 	WorkflowPluginRunningHub           = app.WorkflowPluginRunningHub

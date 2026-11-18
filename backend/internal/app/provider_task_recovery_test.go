@@ -106,7 +106,7 @@ func TestAdminVideoRecoveryRequiresAdmin(t *testing.T) {
 	}
 	actors := map[string]*model.User{
 		"anonymous":     nil,
-		"ordinary user": {Role: model.UserRoleUser},
+		"ordinary user": {},
 	}
 	for actorName, actor := range actors {
 		for methodName, invoke := range methods {

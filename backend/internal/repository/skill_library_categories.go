@@ -35,19 +35,8 @@ func (r *Repository) CreateSkillLibraryCategoryIfAvailable(userID string, catego
 	}
 	created := false
 	err := r.db.Transaction(func(tx *gorm.DB) error {
-		switch tx.Dialector.Name() {
-		case "postgres":
-			if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtext(?)::bigint)", category.NormalizedName).Error; err != nil {
-				return err
-			}
-		case "sqlite":
-			// SQLite has no advisory locks. Begin with a write statement so
-			// concurrent name checks cannot both pass before either insert.
-			if err := tx.Exec("UPDATE skill_library_categories SET updated_at = updated_at WHERE 1 = 0").Error; err != nil {
-				return err
-			}
-		default:
-			return gorm.ErrInvalidData
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtext(?)::bigint)", category.NormalizedName).Error; err != nil {
+			return err
 		}
 
 		query := tx.Model(&model.SkillLibraryCategory{}).Where("normalized_name = ?", category.NormalizedName)

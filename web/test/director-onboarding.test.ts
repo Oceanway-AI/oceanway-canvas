@@ -1,3 +1,4 @@
+import { scopedStorageKey } from "../src/lib/user-scope";
 import { describe, expect, test } from "bun:test";
 import { zhCN as canvasCZh } from "../src/i18n/messages/areas/canvasC/zh-CN";
 import { readFileSync } from "node:fs";
@@ -107,7 +108,7 @@ describe("用户隔离", () => {
             await savePrevisOnboardingProgress("user-a", progressAt("pose"));
             await savePrevisOnboardingProgress("user-b", progressAt("apply", "completed"));
 
-            expect([...harness.durable.keys()].sort()).toEqual([`${PREVIS_ONBOARDING_KEY}:user:user-a`, `${PREVIS_ONBOARDING_KEY}:user:user-b`]);
+            expect([...harness.durable.keys()].sort()).toEqual([scopedStorageKey(PREVIS_ONBOARDING_KEY, "user-a"), scopedStorageKey(PREVIS_ONBOARDING_KEY, "user-b")]);
             expect(await loadPrevisOnboardingProgress("user-a")).toEqual(progressAt("pose"));
             expect(await loadPrevisOnboardingProgress("user-b")).toEqual(progressAt("apply", "completed"));
             // 没写过的账号拿到初始进度，而不是继承别人的已完成状态。
@@ -174,7 +175,7 @@ describe("版本失效与脏数据", () => {
     test("脏持久值经由真实读路径也只会得到初始进度", async () => {
         const harness = localforageHarness();
         try {
-            harness.durable.set(`${PREVIS_ONBOARDING_KEY}:user:user-a`, "{ broken");
+            harness.durable.set(scopedStorageKey(PREVIS_ONBOARDING_KEY, "user-a"), "{ broken");
             expect(await loadPrevisOnboardingProgress("user-a")).toEqual(ACTIVE);
         } finally {
             harness.restore();
@@ -316,7 +317,7 @@ describe("scope 归一化与并发写锁", () => {
         const harness = localforageHarness();
         try {
             await savePrevisOnboardingProgress(" user-a ", progressAt("pose"));
-            expect([...harness.durable.keys()]).toEqual([`${PREVIS_ONBOARDING_KEY}:user:user-a`]);
+            expect([...harness.durable.keys()]).toEqual([scopedStorageKey(PREVIS_ONBOARDING_KEY, "user-a")]);
             expect(await loadPrevisOnboardingProgress("user-a")).toEqual(progressAt("pose"));
             expect(await loadPrevisOnboardingProgress("  user-a")).toEqual(progressAt("pose"));
             expect(await loadPrevisOnboardingProgress("user-a\t")).toEqual(progressAt("pose"));

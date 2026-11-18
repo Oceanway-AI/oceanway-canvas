@@ -26,11 +26,11 @@ func TestOrchestrationCatalogRejectsMissingVisionAndPrivateModel(t *testing.T) {
 
 func TestOrchestrationSettingSaveIsAdminOnlyAndRequiresImageModels(t *testing.T) {
 	svc, db, _, _ := creationTestService(t)
-	admin := &model.User{ID: "admin", Username: "admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	admin := &model.User{ID: "admin", Username: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if err := db.Create(admin).Error; err != nil {
 		t.Fatal(err)
 	}
-	ordinary := &model.User{ID: "user", Role: model.UserRoleUser}
+	ordinary := &model.User{ID: "user"}
 	profile := DefaultModelCapabilityConfigForModel(string(model.ChannelInterfaceChatCompletion), "text-test")
 	profile.Text.References.MaxImages = 1
 	if err := db.Model(&model.ChannelModel{}).Where("id = ?", "cm").Update("capability_config_json", mustEncodeModelCapabilityConfig(t, profile)).Error; err != nil {

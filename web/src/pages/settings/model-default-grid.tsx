@@ -4,10 +4,9 @@ import { useTranslation } from "react-i18next";
 import { ModelIcon } from "@/components/model-picker";
 import { isDirectSystemModel, modelChannelLabel } from "@/lib/model-picker-groups";
 import { configuredModelDisplayName } from "@/lib/model-selection";
-import { currentLocale } from "@/i18n";
+import { platformModelPriceLabel } from "@/lib/platform-models";
 import { cn } from "@/lib/utils";
 import { filterModelsByCapability, modelOptionName, resolveModelChannel, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
-import { useUserStore } from "@/stores/use-user-store";
 
 type DefaultModelKey = "imageModel" | "videoModel" | "textModel" | "audioModel";
 
@@ -24,7 +23,6 @@ const groups: Array<{
 
 export function ModelDefaultGrid({ config, onChange }: { config: AiConfig; onChange: (key: DefaultModelKey, model: string) => void }) {
     const { t } = useTranslation();
-    const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
     return (
         <div className="space-y-1">
             {groups.map((group) => {
@@ -82,12 +80,7 @@ export function ModelDefaultGrid({ config, onChange }: { config: AiConfig; onCha
                                                     <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[var(--fs-tiny)] text-foreground/45">
                                                         <span className="max-w-full truncate">{channel.scope === "system" ? t("account.settings.models.systemModel") : channel.name || t("account.settings.channels.unnamed")}</span>
                                                         <span className="model-default-option-scope">{channel.scope === "system" ? t("account.settings.models.scopeSystem") : t("account.settings.models.scopeCustom")}</span>
-                                                        {creditsEnabled && cost ? (
-                                                            <span className="model-default-price">
-                                                                {formatPrice(cost.billingMode === "token" ? cost.outputTokenPriceMicrocredits || 0 : cost.unitPriceMicrocredits)} /
-                                                                {cost.billingMode === "token" ? t("account.settings.models.unitToken") : cost.billingMode === "per_second" ? t("account.settings.models.unitSecond") : t("account.settings.models.unitCall")}
-                                                            </span>
-                                                        ) : null}
+                                                        {cost?.platform ? <span className="model-default-price">{platformModelPriceLabel(cost.platform)}</span> : null}
                                                     </span>
                                                 </span>
                                                 <span className={cn("model-default-option-check grid size-5 shrink-0 place-items-center rounded-full", selected ? "is-selected" : "text-transparent")}>
@@ -106,8 +99,4 @@ export function ModelDefaultGrid({ config, onChange }: { config: AiConfig; onCha
             })}
         </div>
     );
-}
-
-function formatPrice(microcredits: number) {
-    return (microcredits / 1_000_000).toLocaleString(currentLocale(), { maximumFractionDigits: 6 });
 }

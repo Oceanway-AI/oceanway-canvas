@@ -46,9 +46,7 @@ func (r *Repository) UpsertBuiltinTools(tools []model.Tool) error {
 		}
 		// 内置工具显式写入自增主键，PostgreSQL 的序列不会自动前移；这里同步到当前最大值，
 		// 避免用户自建工具从 1 重新分配而与内置工具主键冲突。
-		if r.Dialect() != "postgres" {
-			return nil
-		}
+
 		return tx.Exec("SELECT setval(pg_get_serial_sequence('tools', 'id'), (SELECT COALESCE(MAX(id), 1) FROM tools), true)").Error
 	})
 }

@@ -7,15 +7,15 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 )
 
 func TestCachedTextReplayIsolatesUsersCursorsAndCopies(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:"+newID()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestCachedTextReplayIsolatesUsersCursorsAndCopies(t *testing.T) {
 }
 
 func TestRuntimeConcurrencyCacheCachesAuthoritativePolicy(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestRuntimeConcurrencyCacheCachesAuthoritativePolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := &Service{repo: repository.New(db)}
-	actor := &model.User{ID: "admin", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	var queries atomic.Int32
 	if err := db.Callback().Query().Before("gorm:query").Register("policy-count", func(*gorm.DB) { queries.Add(1) }); err != nil {
 		t.Fatal(err)
@@ -123,7 +123,7 @@ func TestRuntimeConcurrencyCacheCachesAuthoritativePolicy(t *testing.T) {
 }
 
 func TestRouteCatalogFailureStormAndInvalidatedStaleSnapshot(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

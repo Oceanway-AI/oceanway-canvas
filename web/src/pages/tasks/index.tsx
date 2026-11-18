@@ -17,19 +17,7 @@ import { formatTaskKind, operationOptions, generationTaskRecoveryAction } from "
 import { buildVideoOperationPrompt } from "@/lib/prompts";
 import { backendProviderConfig, logicalModelIDForConfig } from "@/services/api/generation-task";
 
-import {
-    createGenerationTask,
-    listGenerationTasks,
-    listTaskLogs,
-    queryFailedVideoProviderTask,
-    queryGenerationTask,
-    subscribeGenerationTasks,
-    retryGenerationTask,
-    recoverGenerationTaskMedia,
-    type CreateTaskInput,
-    type GenerationTask,
-    type TaskLog,
-} from "@/services/api/task-center";
+import { createGenerationTask, listGenerationTasks, listTaskLogs, queryGenerationTask, subscribeGenerationTasks, retryGenerationTask, recoverGenerationTaskMedia, type CreateTaskInput, type GenerationTask, type TaskLog } from "@/services/api/task-center";
 import { syncGenerationTaskToCanvasStore } from "@/lib/canvas/canvas-generation-task-sync";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { resolveModelRequestConfig, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
@@ -86,7 +74,6 @@ export default function TasksPage() {
     const isAiConfigReady = useConfigStore((state) => state.isAiConfigReady);
     const projects = useCanvasStore((state) => state.projects);
     const shortDramaEnabled = useUserStore((state) => state.features.shortDramaEnabled);
-    const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
     const [form] = Form.useForm<CreateTaskInput & { operation: string }>();
     const { view: viewPreferenceKey, group: groupPreferenceKey } = preferenceKeys();
     const [domainProjects, setDomainProjects] = useState<ProjectSummary[]>([]);
@@ -199,7 +186,6 @@ export default function TasksPage() {
             canvasById={canvasById}
             projectNameById={domainProjectNameById}
             effectiveConfig={effectiveConfig}
-            creditsEnabled={creditsEnabled}
             actingId={actingId}
             onOpen={() => void openTaskDetail(task)}
             onRetry={() => void runAction(task.id)}
@@ -368,30 +354,6 @@ export default function TasksPage() {
         }
     };
 
-    const queryProviderTask = async (task: GenerationTask) => {
-        setActingId(task.id);
-        try {
-            const result = await queryFailedVideoProviderTask(task.id);
-            if (!result.recovered) {
-                setTaskLogs(await listTaskLogs(task.id));
-                message.info(result.providerStatus ? t("library.tasks.page.upstreamPendingWithStatus", { status: result.providerStatus }) : t("library.tasks.page.upstreamPending"));
-                return;
-            }
-            setDetailTask(result.task);
-            setTasks((items) => items.map((item) => (item.id === task.id ? { ...item, ...result.task } : item)));
-            setTaskLogs(await listTaskLogs(task.id));
-            await syncGenerationTaskToCanvasStore(result.task);
-            window.dispatchEvent(new CustomEvent("wallet:updated"));
-            void loadTasks(false);
-            if (result.billingSettled) message.success(t("library.tasks.page.upstreamRecoveredSettled"));
-            else message.warning(t("library.tasks.page.upstreamRecoveredUnsettled"));
-        } catch (error) {
-            message.error(error instanceof Error ? error.message : t("library.tasks.page.upstreamQueryFailed"));
-        } finally {
-            setActingId("");
-        }
-    };
-
     const submitTask = async () => {
         const values = await form.validateFields();
         setCreating(true);
@@ -446,7 +408,7 @@ export default function TasksPage() {
         setPage(1);
     };
     const renderTaskList = (items: GenerationTask[]) => (
-        <div className="task-center-list" data-billing={creditsEnabled || undefined}>
+        <div className="task-center-list" data-billing>
             {items.map(renderTaskRow)}
         </div>
     );
@@ -617,10 +579,8 @@ export default function TasksPage() {
                 actingId={actingId}
                 canvasName={detailContext ? (detailContext.projectName ? `${detailContext.canvasName} · ${detailContext.projectName}` : detailContext.canvasName) : ""}
                 modelName={detailTask ? formatModelName(effectiveConfig, detailTask) : ""}
-                creditsEnabled={creditsEnabled}
                 onClose={() => setDetailTask(null)}
                 onRetry={(task) => void runAction(task.id)}
-                onQueryProvider={(task) => void queryProviderTask(task)}
                 onExportDiagnostics={(task) => navigate(`/settings?section=diagnostics&taskId=${encodeURIComponent(task.id)}${task.projectId ? `&projectId=${encodeURIComponent(task.projectId)}` : ""}`)}
                 onPreviewMedia={setMediaPreview}
             />
@@ -693,10 +653,9 @@ function reconcileTaskSummaries(current: GenerationTask[], next: GenerationTask[
             previous.previewUrl === task.previewUrl &&
             previous.previewPosterUrl === task.previewPosterUrl &&
             JSON.stringify(previous.earlyPreviews) === JSON.stringify(task.earlyPreviews) &&
-            previous.billing?.status === task.billing?.status &&
-            previous.billing?.amountMicrocredits === task.billing?.amountMicrocredits &&
-            previous.billing?.chargedMicrocredits === task.billing?.chargedMicrocredits &&
-            previous.billing?.refundedMicrocredits === task.billing?.refundedMicrocredits
+            previous.platformBilling?.fundsState === task.platformBilling?.fundsState &&
+            previous.platformBilling?.settledPoints === task.platformBilling?.settledPoints &&
+            previous.platformBilling?.stateAvailable === task.platformBilling?.stateAvailable
         )
             return previous;
         changed = true;

@@ -114,9 +114,7 @@ func TestStudioTextExecutionRecoversOriginalWithoutResubmission(t *testing.T) {
 			}
 			f.request(t, "GET", "/api/tasks/by-command/intent-1", "platform_session=alice", "", 200)
 			f.request(t, "GET", "/api/tasks/by-command/intent-1", "platform_session=bob", "", 404)
-			var count int64
-			f.db.Model(&model.BillingOrder{}).Count(&count)
-			if count != 0 {
+			if f.db.Migrator().HasTable(&model.BillingOrder{}) {
 				t.Fatal("created local billing order")
 			}
 		})

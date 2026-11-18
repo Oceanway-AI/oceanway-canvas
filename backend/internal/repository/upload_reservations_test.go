@@ -3,27 +3,26 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"sync"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"yingce/backend/internal/model"
 )
 
 func uploadReservationTestDB(t *testing.T) (*gorm.DB, *Repository, *Repository) {
 	t.Helper()
-	dsn := filepath.Join(t.TempDir(), "uploads.db") + "?_busy_timeout=5000&_journal_mode=WAL"
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := db.AutoMigrate(&model.UploadReservation{}, &model.UserDailyUploadUsage{}, &model.Resource{}); err != nil {
 		t.Fatal(err)
 	}
-	peer, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	peer, err := testdb.Reopen(t, db, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -54,9 +54,9 @@ func (r *Repository) DeleteAdminResources(resources []model.Resource, deletionJo
 		}
 		var current []model.Resource
 		query := tx.Where("id IN ?", resourceIDs)
-		if r.Dialect() == "postgres" {
-			query = query.Clauses(clause.Locking{Strength: "UPDATE"})
-		}
+
+		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+
 		if err := query.Find(&current).Error; err != nil {
 			return err
 		}

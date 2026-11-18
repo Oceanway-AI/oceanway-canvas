@@ -3,6 +3,7 @@ import { translate } from "@/i18n";
 import { nanoid } from "nanoid";
 
 import { getActiveUserScope } from "@/lib/user-scope";
+import { STUDIO_STORAGE_NAME } from "@/lib/studio-identity";
 import { captureVideoPoster, detectVideoAudioTrackFromBlob } from "@/lib/video-poster";
 import { getResourceAccess, resolveResourceAccessURL, resourceFileUrl, resourceIdFromStorageKey, resourceStorageKey, ResourceUploadError, uploadResourceFile, type ResourceAccessVariant } from "@/services/api/resources";
 import { uploadImage, type UploadedImage } from "@/services/image-storage";
@@ -27,7 +28,7 @@ export type UploadedFile = {
     remoteUploadError?: string;
 };
 
-const store = localforage.createInstance({ name: "yingce", storeName: "media_files" });
+const store = localforage.createInstance({ name: STUDIO_STORAGE_NAME, storeName: "media_files" });
 const objectUrls = new Map<string, string>();
 
 export async function uploadMediaFile(input: Blob, prefix = "file", onProgress?: (uploadedBytes: number, totalBytes: number) => void, uploadIdentity?: string): Promise<UploadedFile> {

@@ -15,6 +15,7 @@ import (
 	"yingce/backend/internal/ecommerceagent"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platform"
+	"yingce/backend/internal/testdb"
 )
 
 func TestEcommerceWorkbenchDirectionsWithBuiltinKnowledge(t *testing.T) {
@@ -65,8 +66,8 @@ func TestEcommerceWorkbenchDirectionsTaskSnapshotReceiptAndOwner(t *testing.T) {
 	if err := db.AutoMigrate(&model.EcommerceCreativeRecommendation{}); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("REDIS_URL", "")
-	svc.coordinator, _ = platform.NewCoordinator("sqlite")
+	testdb.UseRedis(t)
+	svc.coordinator, _ = platform.NewCoordinator()
 	svc.platform = platform.New(svc.repo, svc.coordinator, platformHost{svc: svc})
 	calls := 0
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -297,8 +298,8 @@ func TestEcommerceWorkbenchPlanningUsesSharedTaskAndSingleOrder(t *testing.T) {
 	t.Setenv("TEXT_API_KEY", "")
 	t.Setenv("CANVAS_ALLOWED_PRIVATE_UPSTREAM_HOSTS", "127.0.0.1")
 	svc, db, _, _ := ecommerceCreationTestService(t)
-	t.Setenv("REDIS_URL", "")
-	svc.coordinator, _ = platform.NewCoordinator("sqlite")
+	testdb.UseRedis(t)
+	svc.coordinator, _ = platform.NewCoordinator()
 	svc.platform = platform.New(svc.repo, svc.coordinator, platformHost{svc: svc})
 	calls := 0
 	plan := model.EcommercePlan{ProductSummary: "蓝色耳机", VisualStrategy: "自然光系列", ConfirmedFacts: []string{}, UncertainFacts: []string{}, QualityChecks: []string{"商品一致"}, Images: []model.EcommercePlanTask{{ID: "image-1", ImageType: "detail", Platform: "taobao", Language: "zh-CN", Goal: "查看外观", Theme: "外观", Composition: "平视", MainVisual: "耳机", Fidelity: "真实外观", Prompt: "blue headphones on a desk", PerformanceAngle: "可见设计｜围绕可见佩戴结构说明日常使用体验", InformationComponent: "标题导语｜左上标题与短说明，采用两级字号和24px安全边距", Copy: "看见设计", ImageModel: "image-model", Ratio: "1:1", Resolution: "2K"}}}

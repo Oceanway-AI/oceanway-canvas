@@ -2,8 +2,8 @@ package database
 
 import (
 	"math"
-	"path/filepath"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 
@@ -12,7 +12,7 @@ import (
 
 func prefixedIDTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	db, err := Open(Config{Driver: "sqlite", DSN: filepath.Join(t.TempDir(), "ids.db")})
+	db, err := testdb.Open(t)
 	if err != nil {
 		t.Fatal(err)
 	}

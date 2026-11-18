@@ -50,10 +50,6 @@ func (w *taskWorkerCoordinator) start(ctx context.Context) {
 	s := w.service
 	s.startTextReplayCleanup(ctx)
 	s.startCanvasMutationReceiptCleanup(ctx)
-	if !s.UsesPlatformIdentity() {
-		s.startProviderCancellationReconciliation(ctx)
-		s.startBillingReviewAudit(ctx)
-	}
 	s.runWorkerLoop(func(ctx context.Context) {
 		slots := make(chan struct{}, maxChannelConcurrencyLimit)
 		dispatch := func() {
@@ -133,7 +129,6 @@ func (w *taskWorkerCoordinator) processNextTask() error {
 
 func (w *taskWorkerCoordinator) processClaimedTask(task *model.Task, globalSlot *platform.SlotLease) error {
 	s := w.service
-	terminal := s.terminalCoordinator()
 	policyCtx, cancelPolicy := context.WithTimeout(context.Background(), 3*time.Second)
 	reader := &Service{repo: s.repo.WithContext(policyCtx)}
 	policy, err := reader.RuntimePolicy()
@@ -181,6 +176,7 @@ func (w *taskWorkerCoordinator) processClaimedTask(task *model.Task, globalSlot 
 	if s.UsesPlatformIdentity() {
 		return s.processStudioTask(ctx, task)
 	}
+	terminal := s.terminalCoordinator()
 	// 取消请求可能在任务领取和注册 worker context 之间到达；再次读取终态
 	// 可以避免这种极窄窗口仍然向上游发起调用。
 	if latest, latestErr := s.repo.Task(task.ID); latestErr == nil && latest.Status == model.TaskStatusCancelled {

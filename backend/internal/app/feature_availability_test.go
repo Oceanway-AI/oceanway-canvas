@@ -3,13 +3,13 @@ package app
 import (
 	"errors"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platform"
 	"yingce/backend/internal/protocol"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -55,7 +55,7 @@ func TestFeatureAvailabilityLegacySettingKeepsCustomChannelsEnabled(t *testing.T
 
 func TestWelcomeAvailabilityCanBeDisabledAndReenabled(t *testing.T) {
 	svc, _ := newFeatureAvailabilityTestService(t)
-	actor := &model.User{ID: "admin-welcome", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin-welcome", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	for _, enabled := range []bool{false, true} {
 		value := platform.DefaultFeatureAvailability()
 		value.WelcomeEnabled = enabled
@@ -74,7 +74,7 @@ func TestWelcomeAvailabilityCanBeDisabledAndReenabled(t *testing.T) {
 
 func TestUpdateFeatureAvailabilityPersistsAndAudits(t *testing.T) {
 	svc, db := newFeatureAvailabilityTestService(t)
-	actor := &model.User{ID: "admin-1", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	want := FeatureAvailability{ShortDramaEnabled: false, TaskCenterEnabled: true, CreditsEnabled: false, CustomChannelsEnabled: true, PluginCenterEnabled: false, SystemPluginsVisibleToUsers: false}
 
 	setting, err := svc.UpdateFeatureAvailability(actor, want)
@@ -106,7 +106,7 @@ func TestUpdateFeatureAvailabilityPersistsAndAudits(t *testing.T) {
 
 func TestPluginsForUserKeepsOfficialApplicationsAndHidesManagedPlugins(t *testing.T) {
 	svc, _ := newFeatureAvailabilityTestService(t)
-	admin := &model.User{ID: "admin-1", Role: model.UserRoleAdmin}
+	admin := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if _, err := svc.UpdateFeatureAvailability(admin, FeatureAvailability{
 		ShortDramaEnabled: true, TaskCenterEnabled: true, CreditsEnabled: true,
 		CustomChannelsEnabled: true, PluginCenterEnabled: true, SystemPluginsVisibleToUsers: false,
@@ -119,7 +119,7 @@ func TestPluginsForUserKeepsOfficialApplicationsAndHidesManagedPlugins(t *testin
 		"app":      {Source: "bundled", Metadata: protocol.Metadata{ID: WorkflowPluginRunningHub, Name: "官方应用", Version: "1"}},
 	}}
 
-	visibleToUser, err := svc.PluginsForUser(&model.User{ID: "user-1", Role: model.UserRoleUser})
+	visibleToUser, err := svc.PluginsForUser(&model.User{ID: "user-1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestPluginsForUserKeepsOfficialApplicationsAndHidesManagedPlugins(t *testin
 
 func TestCustomChannelTaskInputRequiresFeature(t *testing.T) {
 	svc, _ := newFeatureAvailabilityTestService(t)
-	actor := &model.User{ID: "admin-1", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if _, err := svc.UpdateFeatureAvailability(actor, FeatureAvailability{ShortDramaEnabled: true, TaskCenterEnabled: true, CreditsEnabled: true, CustomChannelsEnabled: false}); err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +167,7 @@ func TestCustomChannelTaskInputRequiresFeature(t *testing.T) {
 
 func TestCreateTaskDoesNotClassifyCustomChannelAsMissingSystemModel(t *testing.T) {
 	svc, _ := newFeatureAvailabilityTestService(t)
-	actor := &model.User{ID: "admin-1", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if _, err := svc.UpdateFeatureAvailability(actor, FeatureAvailability{ShortDramaEnabled: true, TaskCenterEnabled: true, CreditsEnabled: true, CustomChannelsEnabled: false, FrontendModelsEnabled: true}); err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +191,7 @@ func TestCreateTaskDoesNotClassifyCustomChannelAsMissingSystemModel(t *testing.T
 
 func TestTaskBillingOrderSkipsPricingWhenCreditsDisabled(t *testing.T) {
 	svc, _ := newFeatureAvailabilityTestService(t)
-	actor := &model.User{ID: "admin-1", Role: model.UserRoleAdmin}
+	actor := &model.User{ID: "admin-1", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if _, err := svc.UpdateFeatureAvailability(actor, FeatureAvailability{ShortDramaEnabled: true, TaskCenterEnabled: true, CreditsEnabled: false, CustomChannelsEnabled: true}); err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +207,7 @@ func TestTaskBillingOrderSkipsPricingWhenCreditsDisabled(t *testing.T) {
 
 func newFeatureAvailabilityTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

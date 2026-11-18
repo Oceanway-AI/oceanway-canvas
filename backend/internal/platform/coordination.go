@@ -84,14 +84,11 @@ redis.call('PEXPIRE', KEYS[1], math.max(tonumber(ARGV[5]), tonumber(latest[2]) -
 return 1
 `)
 
-func NewCoordinator(dialect string) (*Coordinator, error) {
+func NewCoordinator() (*Coordinator, error) {
 	coordinator := &Coordinator{instanceID: kernel.NewID(), localRate: map[string]localRateEntry{}, localSlots: map[string]map[string]time.Time{}}
 	redisURL := strings.TrimSpace(os.Getenv("REDIS_URL"))
 	if redisURL == "" {
-		if dialect == "postgres" {
-			return coordinator, errors.New("PostgreSQL 多实例模式必须配置 REDIS_URL，用于限流、并发和熔断协调")
-		}
-		return coordinator, nil
+		return coordinator, errors.New("必须配置 REDIS_URL，用于限流、并发和熔断协调")
 	}
 	options, err := redis.ParseURL(redisURL)
 	if err != nil {

@@ -50,7 +50,7 @@ type TaskSummary struct {
 	CompletedAt               *time.Time                     `json:"completedAt"`
 	CreatedAt                 time.Time                      `json:"createdAt"`
 	UpdatedAt                 time.Time                      `json:"updatedAt"`
-	Billing                   *TaskBillingSummary            `json:"billing,omitempty"`
+	PlatformBilling           *model.StudioTaskFunds         `json:"platformBilling,omitempty"`
 	ClientContext             *TaskClientContext             `json:"clientContext,omitempty"`
 }
 
@@ -69,63 +69,12 @@ type TaskClientContext struct {
 	ArtifactType     string `json:"artifactType,omitempty"`
 }
 
-// TaskBillingSummary 是任务列表展示的计费摘要。冻结额与实收分列：只有已结算订单才有实收。
-type TaskBillingSummary struct {
-	// AmountMicrocredits 是下单时的冻结额（预授权），不是实际扣费；与 ReservedMicrocredits 相同。
-	AmountMicrocredits   int64 `json:"amountMicrocredits"`
-	ReservedMicrocredits int64 `json:"reservedMicrocredits"`
-	// ChargedMicrocredits 只在订单已结算（settled）时给出，是扣除差额退回后的实收。
-	ChargedMicrocredits *int64 `json:"chargedMicrocredits,omitempty"`
-	// RefundedMicrocredits 是已退回的金额：结算时的差额退回，或失败后整笔退回。
-	RefundedMicrocredits int64               `json:"refundedMicrocredits"`
-	Status               model.BillingStatus `json:"status"`
-}
-
-func taskBillingSummary(order model.BillingOrder) *TaskBillingSummary {
-	summary := &TaskBillingSummary{
-		AmountMicrocredits: order.AmountMicrocredits, ReservedMicrocredits: order.AmountMicrocredits,
-		RefundedMicrocredits: order.RefundedAmountMicrocredits, Status: order.Status,
-	}
-	if order.Status == model.BillingStatusSettled {
-		charged := order.ActualAmountMicrocredits
-		summary.ChargedMicrocredits = &charged
-	}
-	return summary
-}
-
 func taskSummariesForOutput(tasks []model.Task) []TaskSummary {
-	return taskSummariesForOutputWithBilling(tasks, nil)
-}
-
-func taskSummariesForOutputWithBilling(tasks []model.Task, orders map[string]model.BillingOrder) []TaskSummary {
 	result := make([]TaskSummary, 0, len(tasks))
 	for _, task := range tasks {
-		summary := taskSummaryForOutput(task)
-		if order, ok := orders[task.ID]; ok {
-			summary.Billing = taskBillingSummary(order)
-			if summary.ProviderRequestID == "" {
-				summary.ProviderRequestID = order.ProviderRequestID
-			}
-		}
-		result = append(result, summary)
+		result = append(result, taskSummaryForOutput(task))
 	}
 	return result
-}
-
-func taskBillingTaskIDs(tasks []model.Task) []string {
-	ids := make([]string, 0, len(tasks))
-	seen := map[string]struct{}{}
-	for _, task := range tasks {
-		if task.BillingOrderID == "" {
-			continue
-		}
-		if _, ok := seen[task.ID]; ok {
-			continue
-		}
-		seen[task.ID] = struct{}{}
-		ids = append(ids, task.ID)
-	}
-	return ids
 }
 
 func taskSummaryForOutput(task model.Task) TaskSummary {
@@ -138,7 +87,7 @@ func taskSummaryForOutput(task model.Task) TaskSummary {
 		errorCode = contentModerationErrorCode
 	}
 	previewURL, previewKind, previewPosterURL := taskMediaPreviewWithPoster(task.ResultJSON, task.Type)
-	return TaskSummary{EarlyPreviews: studioGenerationPreviewSlots(task), PlatformGenerationRequest: task.PlatformGenerationRequest, PlatformRevision: task.PlatformRevision, PlatformRetryAfterMS: task.PlatformRetryAfterMS,
+	return TaskSummary{PlatformBilling: studioTaskFunds(task), EarlyPreviews: studioGenerationPreviewSlots(task), PlatformGenerationRequest: task.PlatformGenerationRequest, PlatformRevision: task.PlatformRevision, PlatformRetryAfterMS: task.PlatformRetryAfterMS,
 		Diagnostic:                taskExecutionDiagnostic(&task),
 		ID:                        task.ID,
 		AgentRunID:                task.AgentRunID,
@@ -343,6 +292,7 @@ func truncateRunes(value string, limit int) string {
 }
 
 func taskForOutput(task model.Task) *model.Task {
+	task.PlatformBilling = studioTaskFunds(task)
 	task.EarlyPreviews = studioGenerationPreviewSlots(task)
 	task.CanRecoverMedia = canRecoverTaskMedia(task)
 	task.Diagnostic = taskExecutionDiagnostic(&task)

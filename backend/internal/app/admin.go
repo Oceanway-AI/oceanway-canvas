@@ -9,38 +9,6 @@ import (
 	"yingce/backend/internal/model"
 )
 
-type CreateAdminUserRequest struct {
-	Username    string           `json:"username"`
-	DisplayName string           `json:"displayName"`
-	Email       string           `json:"email"`
-	Password    string           `json:"password"`
-	Role        model.UserRole   `json:"role"`
-	Status      model.UserStatus `json:"status"`
-	// UserGroup 为空表示默认分组。
-	UserGroup string `json:"userGroup"`
-}
-
-type UpdateUserRequest struct {
-	DisplayName string           `json:"displayName"`
-	Email       string           `json:"email"`
-	Password    string           `json:"password"`
-	Role        model.UserRole   `json:"role"`
-	Status      model.UserStatus `json:"status"`
-	// IsPromoter 为空表示不修改推广人标记。
-	IsPromoter *bool `json:"isPromoter"`
-	// UserGroup 为空指针表示不修改分组；空串或 default 表示默认分组。
-	UserGroup *string `json:"userGroup"`
-}
-
-type BulkDisableUsersRequest struct {
-	UserIDs []string `json:"userIds"`
-}
-
-type BulkDisableUsersResult struct {
-	Users         []model.User `json:"users"`
-	DisabledCount int          `json:"disabledCount"`
-}
-
 type AdminListQuery struct {
 	Keyword string
 	Status  string
@@ -48,48 +16,6 @@ type AdminListQuery struct {
 	Group   string
 	Page    int
 	Limit   int
-}
-
-type AdminUserPage struct {
-	Users []AdminUser `json:"users"`
-	Total int64       `json:"total"`
-	Page  int         `json:"page"`
-	Limit int         `json:"pageSize"`
-}
-
-type AdminUser struct {
-	model.User
-	AvailableMicrocredits int64 `json:"availableMicrocredits"`
-	ReservedMicrocredits  int64 `json:"reservedMicrocredits"`
-	// 仅列表接口填充：累计充值到账积分与累计已结算消耗。
-	RechargedMicrocredits int64 `json:"rechargedMicrocredits"`
-	ConsumedMicrocredits  int64 `json:"consumedMicrocredits"`
-}
-
-type AdminChannelPage struct {
-	Channels []PublicModelChannel `json:"channels"`
-	Total    int64                `json:"total"`
-	Page     int                  `json:"page"`
-	Limit    int                  `json:"pageSize"`
-}
-
-type AdminUserReference struct {
-	ID          string `json:"id"`
-	Username    string `json:"username"`
-	DisplayName string `json:"displayName"`
-}
-
-type AdminChannelReference struct {
-	ID                string   `json:"id"`
-	Name              string   `json:"name"`
-	Enabled           bool     `json:"enabled"`
-	Models            []string `json:"models"`
-	ModelDisplayNames []string `json:"modelDisplayNames"`
-}
-
-type AdminReferenceData struct {
-	Users    []AdminUserReference    `json:"users"`
-	Channels []AdminChannelReference `json:"channels"`
 }
 
 type ChannelRequest struct {
@@ -110,6 +36,13 @@ type ChannelRequest struct {
 	ProxyURL *string `json:"proxyUrl"`
 }
 
+type AdminChannelPage struct {
+	Channels []PublicModelChannel `json:"channels"`
+	Total    int64                `json:"total"`
+	Page     int                  `json:"page"`
+	Limit    int                  `json:"pageSize"`
+}
+
 type PublicModelChannel struct {
 	MediaTransport   *ReferenceMediaTransport  `json:"mediaTransport,omitempty"`
 	ID               string                    `json:"id"`
@@ -128,7 +61,6 @@ type PublicModelChannel struct {
 	Headers          []OutboundHeader          `json:"headers,omitempty"`
 	HasAPIKey        bool                      `json:"hasApiKey"`
 	HasSecretKey     bool                      `json:"hasSecretKey"`
-	CatalogProvider  string                    `json:"catalogProviderId,omitempty"`
 	CreatedAt        time.Time                 `json:"createdAt"`
 	UpdatedAt        time.Time                 `json:"updatedAt"`
 }
@@ -298,7 +230,6 @@ func publicChannel(channel model.ModelChannel, admin bool, channelModels []model
 		Headers:          headers,
 		HasAPIKey:        strings.TrimSpace(channel.APIKey) != "",
 		HasSecretKey:     strings.TrimSpace(channel.SecretKey) != "",
-		CatalogProvider:  catalogProviderForAdmin(channel, admin),
 		CreatedAt:        channel.CreatedAt,
 		UpdatedAt:        channel.UpdatedAt,
 	}

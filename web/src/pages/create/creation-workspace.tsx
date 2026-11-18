@@ -26,7 +26,7 @@ import { HoverBorderGradient } from "@/components/ui/aceternity/hover-border-gra
 import { SpotlightSurface } from "@/components/ui/aceternity/spotlight-surface";
 import { ModelPicker } from "@/components/model-picker";
 import { aceternityMotion } from "@/lib/aceternity-motion";
-import { CreditSymbol, requestCreditCost } from "@/constant/credits";
+import { CreditSymbol } from "@/constant/credits";
 import { ASSET_CATEGORY_LABELS } from "@/lib/asset-category";
 import { formatShotOrdinal } from "@/lib/shot-label";
 import { buildImageResolutionOptions, formatImageResolutionSize, supportsImageResolutionPresets } from "@/lib/image-resolution-tiers";
@@ -34,10 +34,7 @@ import { normalizeVideoValue, videoDurationOptions, videoDurationRange, type Ima
 import { mergedImageCapabilityConfig, type ModelRequirements } from "@/lib/model-selection";
 import { imageQualityLabel } from "@/lib/image-quality";
 import { useStudioMediaPrice } from "@/services/studio-media-price";
-import { modelQuoteDescription, modelQuoteRequest } from "@/lib/model-pricing";
-import { quoteModel, type LogicalModelQuote } from "@/services/api/logical-models";
 import { modelOptionName, resolveModelChannel, type AiConfig } from "@/stores/use-config-store";
-import { useUserStore } from "@/stores/use-user-store";
 import type { PromptOptimizerProvider } from "@/lib/plugins/plugin-types";
 import { type CreationReference } from "./creation-references";
 import { creationAttachmentKind, type CreationAttachment, type CreationMode } from "./creation-assets";
@@ -235,54 +232,16 @@ export function CreationComposer(props: ComposerProps) {
     const catalogLoading = useModelCatalogStore((state) => state.status === "loading");
     const modelAvailable = !modelDetailPending && Boolean(props.model && (props.mode === "image" ? props.imageProfile : props.mode === "video" ? props.videoProfile : true));
     const canSubmit = modelAvailable && Boolean(props.prompt.trim()) && !props.missingReferenceImages && !interactionBusy;
-    const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
     const priceChannel = resolveModelChannel(props.config, props.model);
-    const quoteRequest = useMemo(() => modelQuoteRequest(props.config, props.model, props.mode, props.modelRequirements), [props.config, props.mode, props.model, props.modelRequirements]);
-    const [routeQuote, setRouteQuote] = useState<LogicalModelQuote | null>(null);
     const canOptimizePrompt = Boolean(props.promptOptimizerProvider) && (props.mode === "image" || props.mode === "video");
     const optimizerReferences = props.references.filter((reference) => reference.active && reference.kind !== "skill");
-    const credits = requestCreditCost({
-        channelMode: priceChannel.scope === "system" ? "remote" : "local",
-        modelCosts: priceChannel.modelCosts,
-        model: modelOptionName(props.model),
-        count: props.mode === "image" ? props.count : 1,
-        seconds: props.mode === "video" ? props.seconds : 1,
-        capability: props.mode,
-        config: props.config,
-        requirements: props.modelRequirements,
-    });
-    useEffect(() => {
-        if (!creditsEnabled || !quoteRequest) {
-            setRouteQuote(null);
-            return;
-        }
-        const controller = new AbortController();
-        setRouteQuote(null);
-        quoteModel(quoteRequest, controller.signal)
-            .then(({ quote }) => setRouteQuote(quote))
-            .catch(() => {
-                if (!controller.signal.aborted) setRouteQuote(null);
-            });
-        return () => controller.abort();
-    }, [creditsEnabled, quoteRequest]);
     const standardPrice = useStudioMediaPrice(
         props.config,
         props.mode,
         props.prompt,
         props.attachments.map((item) => ({ kind: creationAttachmentKind(item), storageKey: item.storageKey, role: props.frameSlots?.find((slot) => slot.attachment?.id === item.id)?.role })),
     );
-    const generationCredits = routeQuote ? routeQuote.amountMicrocredits / 1_000_000 : credits;
-    const showCost = Boolean(standardPrice) || (creditsEnabled && generationCredits !== null && generationCredits !== undefined);
-    const formattedCredits = generationCredits?.toLocaleString("zh-CN", { maximumFractionDigits: 6 });
-    const actionLabel = props.referenceReplacementBusy
-        ? "正在替换参考图"
-        : interactionBusy || (props.generationActive && !canSubmit)
-          ? "生成中"
-          : standardPrice
-            ? `${standardPrice}，发送`
-            : showCost
-              ? `${routeQuote?.estimated ? "预估" : "消耗"} ${formattedCredits} 积分，发送`
-              : "发送";
+    const actionLabel = props.referenceReplacementBusy ? "正在替换参考图" : interactionBusy || (props.generationActive && !canSubmit) ? "生成中" : standardPrice ? `${standardPrice}，发送` : "发送";
     // Send-button working state must span the WHOLE generation (not just the
     // submit-lock window): spinner + glow stay while a message is pending and
     // the composer is empty; typing a next prompt returns the arrow so the
@@ -617,7 +576,7 @@ export function CreationComposer(props: ComposerProps) {
                 </div>
                 <Button
                     type="text"
-                    className={`creation-submit ${showCost ? "has-cost" : ""}`}
+                    className={`creation-submit ${standardPrice ? "has-cost" : ""}`}
                     disabled={interactionBusy || !canSubmit}
                     style={
                         {
@@ -642,10 +601,10 @@ export function CreationComposer(props: ComposerProps) {
                     }
                 >
                     {showWorkingGlow ? <WorkingGlow active color="var(--creation-text)" radius="var(--button-radius)" /> : null}
-                    {showCost ? (
-                        <span className="creation-submit-cost" title={routeQuote ? modelQuoteDescription(routeQuote) : undefined}>
+                    {standardPrice ? (
+                        <span className="creation-submit-cost">
                             <CreditSymbol />
-                            <span>{standardPrice || (routeQuote?.estimated ? `预估:${formattedCredits}` : formattedCredits)}</span>
+                            <span>{standardPrice}</span>
                         </span>
                     ) : null}
                     <span className="creation-submit-action" aria-hidden>

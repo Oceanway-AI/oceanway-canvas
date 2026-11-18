@@ -641,14 +641,6 @@ func TestCloudAgentImageCatalogTreatsUnselectedPricedOptionsAsCandidates(t *test
 		t.Fatalf("unselected image options should expose the priced candidate and all 9 tiers: %#v", models)
 	}
 
-	adminModels, err := s.AdminLogicalModels(&model.User{ID: "admin", Role: model.UserRoleAdmin})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(adminModels) != 1 || len(adminModels[0].PriceTiers) != 9 {
-		t.Fatalf("admin projection should expose the route's 9 configured tiers: %#v", adminModels)
-	}
-
 	catalog, err := s.cloudAgentModelList(testGroupUserID(s), &intent)
 	if err != nil {
 		t.Fatal(err)

@@ -7,16 +7,16 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func TestAdminStorageListStatsAndPreview(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,8 +29,8 @@ func TestAdminStorageListStatsAndPreview(t *testing.T) {
 		t.Fatal(err)
 	}
 	users := []model.User{
-		{ID: "admin", Username: "admin", DisplayName: "管理员", Role: model.UserRoleAdmin, Status: model.UserStatusActive},
-		{ID: "user-1", Username: "creator", Email: "creator@example.com", DisplayName: "创作者", Role: model.UserRoleUser, Status: model.UserStatusActive},
+		{ID: "admin", Username: "admin", DisplayName: "管理员", Status: model.UserStatusActive},
+		{ID: "user-1", Username: "creator", Email: "creator@example.com", DisplayName: "创作者", Status: model.UserStatusActive},
 	}
 	if err := db.Create(&users).Error; err != nil {
 		t.Fatal(err)
@@ -55,6 +55,9 @@ func TestAdminStorageListStatsAndPreview(t *testing.T) {
 	}
 	svc := New(repository.New(db), dataDir)
 	admin := &users[0]
+	admin.PlatformAuthenticated = true
+	admin.PlatformSessionID = "fixture"
+	admin.StudioPermissions = []model.StudioPermission{model.StudioManageCreativeContent}
 
 	page, err := svc.AdminResourcePage(admin, AdminResourceQuery{Kind: "image", Provider: "local", Page: 1, Limit: 20})
 	if err != nil {
@@ -116,7 +119,7 @@ func TestAdminStorageListStatsAndPreview(t *testing.T) {
 
 func TestAdminStorageRejectsNonAdminAndInvalidFilters(t *testing.T) {
 	svc := &Service{}
-	user := &model.User{ID: "user", Role: model.UserRoleUser, Status: model.UserStatusActive}
+	user := &model.User{ID: "user", Status: model.UserStatusActive}
 	if _, err := svc.AdminResourcePage(user, AdminResourceQuery{}); err == nil {
 		t.Fatal("expected non-admin resource list to be rejected")
 	}

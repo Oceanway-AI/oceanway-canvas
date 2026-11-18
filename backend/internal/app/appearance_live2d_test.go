@@ -176,7 +176,7 @@ func TestLive2DAppearanceImportPublishAndDetach(t *testing.T) {
 	if body, mime, err := svc.Live2DAsset(admin, imported.ResourceID, imported.Entry); err != nil || mime != "application/json" || len(body) == 0 {
 		t.Fatalf("preview failed: %s %v", mime, err)
 	}
-	other := &model.User{ID: "other-admin", Role: model.UserRoleAdmin, Status: model.UserStatusActive}
+	other := &model.User{ID: "other-admin", Status: model.UserStatusActive, PlatformAuthenticated: true, PlatformSessionID: "fixture-session", StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent, model.StudioDeleteBuiltinSkill, model.StudioManageSkillCategories, model.StudioCurateSkills}}
 	if _, _, err := svc.Live2DAsset(other, imported.ResourceID, imported.Entry); err == nil {
 		t.Fatal("other admin previewed draft")
 	}

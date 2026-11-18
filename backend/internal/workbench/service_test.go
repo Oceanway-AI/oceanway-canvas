@@ -2,20 +2,19 @@ package workbench
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 type allowAdmin struct{ audited int }
 
 func (a *allowAdmin) RequireAdmin(user *model.User) error {
-	if user == nil || user.Role != model.UserRoleAdmin {
+	if !user.CanStudio(model.StudioManageCreativeContent) {
 		return gorm.ErrInvalidData
 	}
 	return nil
@@ -33,8 +32,8 @@ func (resourceAccessStub) WorkbenchResourceAccess(id string) (string, error) {
 
 func newWorkbenchTest(t *testing.T) (*Service, *gorm.DB, *allowAdmin) {
 	t.Helper()
-	dsn := "file:workbench-tests-" + strings.ReplaceAll(t.Name(), "/", "_") + "?mode=memory&cache=shared"
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +51,7 @@ func newWorkbenchTest(t *testing.T) (*Service, *gorm.DB, *allowAdmin) {
 
 func TestWorkbenchAdminCRUDAuditsAndPublishesSafeDirectory(t *testing.T) {
 	s, db, audit := newWorkbenchTest(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin}
+	admin := &model.User{ID: "admin", PlatformAuthenticated: true, PlatformSessionID: "fixture", Status: model.UserStatusActive, StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent}}
 	resource := model.Resource{ID: "icon", UserID: "admin", Kind: "image", Status: model.ResourceStatusReady}
 	if err := db.Create(&resource).Error; err != nil {
 		t.Fatal(err)
@@ -82,7 +81,7 @@ func TestWorkbenchAdminCRUDAuditsAndPublishesSafeDirectory(t *testing.T) {
 
 func TestWorkbenchRejectsNonAdminResourcesAndInvalidPresetParent(t *testing.T) {
 	s, db, _ := newWorkbenchTest(t)
-	admin := &model.User{ID: "admin", Role: model.UserRoleAdmin}
+	admin := &model.User{ID: "admin", PlatformAuthenticated: true, PlatformSessionID: "fixture", Status: model.UserStatusActive, StudioPermissions: []model.StudioPermission{model.StudioManageCreativeContent}}
 	resource := model.Resource{ID: "private-icon", UserID: "other", Kind: "image", Status: model.ResourceStatusReady}
 	if err := db.Create(&resource).Error; err != nil {
 		t.Fatal(err)
@@ -93,7 +92,7 @@ func TestWorkbenchRejectsNonAdminResourcesAndInvalidPresetParent(t *testing.T) {
 	if _, err := s.CreatePreset(admin, PresetInput{ToolID: "missing", Name: "Preset", PromptTemplate: "prompt"}); err == nil {
 		t.Fatal("expected missing tool rejection")
 	}
-	if _, err := s.CreateTool(&model.User{ID: "user", Role: model.UserRoleUser}, ToolInput{Kind: KindImage, Name: "No"}); err == nil {
+	if _, err := s.CreateTool(&model.User{ID: "user"}, ToolInput{Kind: KindImage, Name: "No"}); err == nil {
 		t.Fatal("expected non-admin rejection")
 	}
 }

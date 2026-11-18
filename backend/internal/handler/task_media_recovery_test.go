@@ -5,30 +5,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
-	"yingce/backend/internal/auth"
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/repository"
-	"yingce/backend/internal/service"
 )
 
 func TestTaskMediaRecoveryHTTPAuthenticationAndOwnership(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	db, err := database.Open(database.Config{Driver: "sqlite", DSN: ":memory:"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB, _ := db.DB()
-	sqlDB.SetMaxOpenConns(1)
-	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := database.MigrateSchema(db); err != nil {
-		t.Fatal(err)
-	}
+	f := newStudioFixture(t)
+	db := f.db
 	for _, item := range []any{
-		&model.User{ID: "media-user", Username: "media-user", Email: "media@example.invalid", Role: model.UserRoleUser, Status: model.UserStatusActive},
-		&model.AuthSession{ID: "media-session", UserID: "media-user", TokenHash: auth.HashToken("test-token"), ExpiresAt: time.Now().Add(time.Hour)},
-		&model.Task{ID: "legacy-task", UserID: "media-user", Status: model.TaskStatusFailed},
+		&model.Task{ID: "legacy-task", UserID: "101", Status: model.TaskStatusFailed},
 		&model.Task{ID: "foreign-task", UserID: "other-user", Status: model.TaskStatusFailed},
 	} {
 		if err := db.Create(item).Error; err != nil {
@@ -36,11 +20,7 @@ func TestTaskMediaRecoveryHTTPAuthenticationAndOwnership(t *testing.T) {
 		}
 	}
 	router := gin.New()
-	svc := service.New(repository.New(db), t.TempDir())
-	previous := runtimeService
-	ConfigureRuntime(svc)
-	t.Cleanup(func() { ConfigureRuntime(previous) })
-	RegisterTaskRoutes(router.Group("/api"), svc)
+	RegisterTaskRoutes(router.Group("/api"), f.svc)
 	for _, tc := range []struct {
 		id   string
 		auth bool
@@ -53,8 +33,12 @@ func TestTaskMediaRecoveryHTTPAuthenticationAndOwnership(t *testing.T) {
 	} {
 		r := httptest.NewRequest(http.MethodPost, "/api/tasks/"+tc.id+"/recover-media", nil)
 		if tc.auth {
-			r.AddCookie(&http.Cookie{Name: service.SessionCookieName, Value: "media-session.test-token"})
+			r.AddCookie(&http.Cookie{Name: "platform_session", Value: "alice"})
 		}
+		r.Host = "studio.example.test"
+		r.Header.Set("Origin", "https://studio.example.test")
+		r.Header.Set("X-Studio-Identity-Version", "platform-id-v1")
+		r.Header.Set("X-Studio-Actor-ID", "101")
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, r)
 		if w.Code != tc.want {

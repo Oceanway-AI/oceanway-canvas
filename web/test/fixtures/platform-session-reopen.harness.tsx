@@ -32,7 +32,7 @@ const { apiClient } = await import("@/services/api/request");
 const { invalidateAuthSessionCache } = await import("@/services/api/auth");
 const { useUserStore } = await import("@/stores/use-user-store");
 const { useCreationPreferencesStore, CREATION_PREFERENCES_STORE_KEY } = await import("@/stores/use-creation-preferences-store");
-const { setActiveUserScope, getActiveUserScope, scopedLocalStorage } = await import("@/lib/user-scope");
+const { ACTIVE_USER_SCOPE_KEY, scopedStorageKey, setActiveUserScope, getActiveUserScope, scopedLocalStorage } = await import("@/lib/user-scope");
 // Load the real hydration implementation before the deferred response so act
 // can observe all subsequent storage and React updates in this isolated realm.
 await import("@/lib/user-session");
@@ -151,10 +151,10 @@ test("a visible Studio window confirms focus against the live session and never 
         await flush();
         expect(getActiveUserScope()).toBe(alice.id);
         actual = bob;
-        window.localStorage.setItem("yingce:active-user-scope", bob.id);
+        window.localStorage.setItem(ACTIVE_USER_SCOPE_KEY, bob.id);
         expect(getActiveUserScope()).toBe(alice.id);
         scopedLocalStorage.setItem("draft-ownership", "belongs-to-alice");
-        expect(window.localStorage.getItem("draft-ownership:user:" + bob.id)).toBeNull();
+        expect(window.localStorage.getItem(scopedStorageKey("draft-ownership", bob.id))).toBeNull();
         await act(async () => {
             window.dispatchEvent(new dom.Event("focus"));
             window.dispatchEvent(new dom.Event("pageshow"));
@@ -183,7 +183,7 @@ test("a visible Studio window confirms focus against the live session and never 
         });
         expect(started).toBe(true);
         await act(async () => {
-            window.dispatchEvent(new dom.StorageEvent("storage", { key: "yingce:active-user-scope", newValue: bob.id }));
+            window.dispatchEvent(new dom.StorageEvent("storage", { key: ACTIVE_USER_SCOPE_KEY, newValue: bob.id }));
         });
         await flush();
         releaseLate();

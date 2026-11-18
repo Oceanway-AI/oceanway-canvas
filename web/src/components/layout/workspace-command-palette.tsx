@@ -6,7 +6,6 @@ import { useNavigate } from "react-router";
 import { navigationTools } from "@/constant/navigation-tools";
 import { Kbd } from "@/components/ui/base/kbd";
 import { cn } from "@/lib/utils";
-import { openWorkspaceWallet } from "@/lib/workspace-wallet";
 import { useUserStore } from "@/stores/use-user-store";
 import { useTranslation } from "react-i18next";
 
@@ -38,7 +37,6 @@ export function WorkspaceCommandPalette({ open, onClose }: { open: boolean; onCl
             ...(features.taskCenterEnabled ? [toolEntry("tasks", "/tasks")] : []),
             toolEntry("assets", "/assets"),
             toolEntry("skills", "/skills"),
-            ...(features.creditsEnabled ? [{ ...toolEntry("wallet"), run: () => openWorkspaceWallet() }] : []),
             toolEntry("settings", "/settings"),
             // 与 ⌘/Ctrl+J 相同：打开平台 Agent 面板。
             { id: "agent", title: t("shell.palette.agent"), icon: Bot, run: () => useGlobalAgentStore.getState().openAgent() },

@@ -10,7 +10,7 @@ import { imageQualityLabel } from "@/lib/image-quality";
 import { spokenPlatformPrice, platformModelPriceLabel, platformPriceRangesLabel, platformPriceConditions, platformFeatureSummaries, platformHealthLabel, platformHealthTone, type PlatformModelHealth } from "@/lib/platform-models";
 import { canvasThemes, type CanvasTheme } from "@/lib/canvas-theme";
 import { modelCapabilityConfigFor, videoDurationOptions } from "@/lib/model-capabilities";
-import { formatPriceRange, modelQuoteDescription, modelQuoteRequest, normalizeTierResolution, priceTierSummaryLabel, priceTiersForCurrentSelection, referenceVideoBillingLabel, tokenPriceRuleDescription } from "@/lib/model-pricing";
+import { formatPriceRange, modelQuoteDescription, normalizeTierResolution, priceTierSummaryLabel, priceTiersForCurrentSelection, referenceVideoBillingLabel, tokenPriceRuleDescription } from "@/lib/model-pricing";
 import { compatibleModelInGroup, configuredModelDisplayName, modelCompatibilityError, resolveCompatibleModel, type DisplayModelGroup, type ModelRequirements } from "@/lib/model-selection";
 import { groupModelsForPicker, modelPickerKeywords, modelPickerSeries, isDirectSystemModel, modelChannelLabel, type ModelPickerGroup } from "@/lib/model-picker-groups";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ import { ensurePlatformModelDetail, refreshSystemChannels } from "@/lib/user-ses
 import { ModelLogo } from "@/components/model-logo";
 import { ModelTags } from "@/components/model-tags";
 import { referenceCapabilityTag, type ModelTag } from "@/lib/model-tags";
-import { quoteModel, type LogicalModelQuote, type PublicChannelModelAvailability } from "@/services/api/logical-models";
+import type { LogicalModelQuote, PublicChannelModelAvailability } from "@/services/api/logical-models";
 
 type ModelPickerProps = {
     config: AiConfig;
@@ -62,7 +62,6 @@ export function ModelPicker({
     modelFilter,
     modelDisabledReason,
 }: ModelPickerProps) {
-    const creditsEnabled = useUserStore((state) => state.features.creditsEnabled);
     const platformIdentity = useUserStore((state) => state.platformIdentity);
     const catalogStatus = useModelCatalogStore((state) => state.status);
     const catalogError = useModelCatalogStore((state) => state.error);
@@ -165,8 +164,6 @@ export function ModelPicker({
         [config, optionGroups],
     );
     const currentPrice = modelMenuPrice(config, current, capability, false, requirements);
-    const quoteRequest = useMemo(() => modelQuoteRequest(config, current, capability, requirements), [capability, config, current, requirements]);
-    const [routeQuote, setRouteQuote] = useState<LogicalModelQuote | undefined>();
     const creationVariant = variant === "creation";
     const currentChannel = current ? resolveModelChannel(config, current) : undefined;
     const isCurrentCustomChannel = Boolean(current && currentChannel && currentChannel.scope !== "system");
@@ -185,21 +182,6 @@ export function ModelPicker({
             window.removeEventListener("scroll", updateAvailableHeight, true);
         };
     }, [open]);
-
-    useEffect(() => {
-        if (!showSelectedPrice || !creditsEnabled || !quoteRequest) {
-            setRouteQuote(undefined);
-            return;
-        }
-        const controller = new AbortController();
-        setRouteQuote(undefined);
-        quoteModel(quoteRequest, controller.signal)
-            .then((payload) => setRouteQuote(payload.quote))
-            .catch(() => {
-                if (!controller.signal.aborted) setRouteQuote(undefined);
-            });
-        return () => controller.abort();
-    }, [creditsEnabled, quoteRequest, showSelectedPrice]);
 
     useEffect(() => {
         const closeOtherPicker = (event: Event) => {
@@ -279,7 +261,7 @@ export function ModelPicker({
                     showConfiguredModelName={showConfiguredModelName}
                     label={logicalGroup.kind === "product" ? modelGroup.label : undefined}
                     requirements={requirements}
-                    showPrice={showOptionPrices && (creditsEnabled || Boolean(platformIdentity))}
+                    showPrice={showOptionPrices}
                     disabledReason={disabledReason}
                     showDescription
                 />
@@ -405,7 +387,7 @@ export function ModelPicker({
                         </span>
                         <span className="min-w-0 flex-1 truncate">{current ? (creationVariant ? pickerModelDisplayName(config, current, showConfiguredModelName) : pickerModelOptionLabel(config, current, showConfiguredModelName)) : placeholder}</span>
                         {isCurrentCustomChannel ? <span className="shrink-0 rounded px-2 py-0.5 text-[var(--fs-label)] font-medium leading-none bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25">个人</span> : null}
-                        {showSelectedPrice && creditsEnabled ? <ModelPrice price={currentPrice} quote={routeQuote} compact /> : null}
+                        {showSelectedPrice ? <ModelPrice price={currentPrice} compact /> : null}
                     </span>
                     <ChevronDown className={cn("canvas-model-picker-chevron", open && "is-open")} aria-hidden="true" />
                 </button>

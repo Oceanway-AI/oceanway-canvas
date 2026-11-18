@@ -144,7 +144,7 @@ func testStudioPiRuntimeToolRoundTrip(t *testing.T, media bool) {
 	if _, err := agentRuntimeDirForTest(); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("REDIS_URL", "")
+
 	var mu sync.Mutex
 	var bodies []map[string]any
 	issues, releases := 0, 0

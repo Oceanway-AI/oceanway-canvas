@@ -5,45 +5,21 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
-
-	"yingce/backend/internal/auth"
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/repository"
-	"yingce/backend/internal/service"
-
-	"github.com/gin-gonic/gin"
 )
 
 func TestAgentMemoryProposalHTTPVersionAndOwnership(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	db, err := database.Open(database.Config{Driver: "sqlite", DSN: ":memory:"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB, _ := db.DB()
-	sqlDB.SetMaxOpenConns(1)
-	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := database.MigrateSchema(db); err != nil {
-		t.Fatal(err)
-	}
+	f := newStudioFixture(t)
+	db := f.db
 	for _, row := range []any{
-		&model.User{ID: "memory-user", Username: "memory-user", Role: model.UserRoleUser, Status: model.UserStatusActive},
-		&model.AuthSession{ID: "memory-session", UserID: "memory-user", TokenHash: auth.HashToken("test-token"), ExpiresAt: time.Now().Add(time.Hour)},
-		&model.AgentMemoryProposal{ID: "owned", UserID: "memory-user", Status: model.AgentMemoryProposalPending, Version: 2, InputJSON: "[]", ChangesJSON: "[]", SummaryJSON: "{}"},
+		&model.AgentMemoryProposal{ID: "owned", UserID: "101", Status: model.AgentMemoryProposalPending, Version: 2, InputJSON: "[]", ChangesJSON: "[]", SummaryJSON: "{}"},
 		&model.AgentMemoryProposal{ID: "foreign", UserID: "other", Status: model.AgentMemoryProposalPending, Version: 2, InputJSON: "[]", ChangesJSON: "[]", SummaryJSON: "{}"},
 	} {
 		if err := db.Create(row).Error; err != nil {
 			t.Fatal(err)
 		}
 	}
-	svc := service.New(repository.New(db), t.TempDir())
-	previous := runtimeService
-	ConfigureRuntime(svc)
-	t.Cleanup(func() { ConfigureRuntime(previous) })
-	router := gin.New()
-	RegisterAgentMemoryRoutes(router.Group("/api"), svc)
+	registerAgentMemoryProposalRoutes(f.router.Group("/api"), f.svc)
 	for _, tc := range []struct {
 		method, path, body string
 		authenticated      bool
@@ -63,10 +39,14 @@ func TestAgentMemoryProposalHTTPVersionAndOwnership(t *testing.T) {
 		r := httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
 		r.Header.Set("Content-Type", "application/json")
 		if tc.authenticated {
-			r.AddCookie(&http.Cookie{Name: service.SessionCookieName, Value: "memory-session.test-token"})
+			r.AddCookie(&http.Cookie{Name: "platform_session", Value: "alice"})
 		}
+		r.Host = "studio.example.test"
+		r.Header.Set("Origin", "https://studio.example.test")
+		r.Header.Set("X-Studio-Identity-Version", "platform-id-v1")
+		r.Header.Set("X-Studio-Actor-ID", "101")
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, r)
+		f.router.ServeHTTP(w, r)
 		if w.Code != tc.status {
 			t.Fatalf("%s %s: %d expected %d: %s", tc.method, tc.path, w.Code, tc.status, w.Body.String())
 		}

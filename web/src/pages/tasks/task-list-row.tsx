@@ -22,7 +22,6 @@ export function TaskListRow({
     canvasById,
     projectNameById,
     effectiveConfig,
-    creditsEnabled,
     actingId,
     onOpen,
     onRetry,
@@ -32,7 +31,6 @@ export function TaskListRow({
     canvasById: Map<string, { title: string; projectId?: string }>;
     projectNameById: Map<string, string>;
     effectiveConfig: AiConfig;
-    creditsEnabled: boolean;
     actingId: string;
     onOpen: () => void;
     onRetry: () => void;
@@ -86,11 +84,9 @@ export function TaskListRow({
             <div className="task-center-row-time">
                 <TaskDate value={task.createdAt} />
             </div>
-            {creditsEnabled ? (
-                <div className="task-center-row-billing">
-                    <TaskBilling billing={task.billing} />
-                </div>
-            ) : null}
+            <div className="task-center-row-billing">
+                <TaskBilling billing={task.platformBilling} />
+            </div>
             <div className="task-center-row-actions">
                 {failed ? (
                     <Tooltip title={retryBlocked ? t("library.tasks.row.retryBlocked") : task.canRecoverMedia ? t("library.tasks.row.retrySaveHint") : t("library.tasks.row.retryTask")}>

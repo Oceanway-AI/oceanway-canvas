@@ -31,12 +31,8 @@ export function taskAttentionReason(task: GenerationTask) {
 export function providerCancelStatusLabel(task: GenerationTask) {
     if (task.providerCancelStatus === "requested") return translate("library.tasks.cancel.requested");
     if (task.providerCancelStatus === "confirmed") return translate("library.tasks.cancel.confirmed");
-    if (task.providerCancelStatus === "uncertain") {
-        if (task.billing?.status === "settled") return translate("library.tasks.cancel.uncertainSettled");
-        if (task.billing?.status === "refunded") return translate("library.tasks.cancel.uncertainRefunded");
-        return task.providerCancelError || translate("library.tasks.cancel.uncertainPending");
-    }
-    return task.billing?.status === "refunded" ? translate("library.tasks.cancel.beforeUpstream") : translate("library.tasks.cancel.cancelled");
+    if (task.providerCancelStatus === "uncertain") return task.providerCancelError || translate("library.tasks.cancel.uncertainPending");
+    return translate("library.tasks.cancel.cancelled");
 }
 
 export function isTaskActive(task: GenerationTask) {
@@ -85,15 +81,15 @@ export function TaskDate({ value }: { value?: string }) {
     return <RelativeTime value={value} />;
 }
 
-export function TaskBilling({ billing }: { billing?: GenerationTask["billing"] }) {
+export function TaskBilling({ billing }: { billing?: GenerationTask["platformBilling"] }) {
     if (!billing) return <span className="task-center-muted">-</span>;
     const display = taskBillingDisplay(billing);
     return (
         <span className="task-center-billing" data-tone={display.tone} title={taskBillingLabel(billing)}>
             <Coins aria-hidden="true" />
             <span>
-                <strong>{display.amount}</strong>
-                <small>{display.refundNote ? `${display.note} · ${display.refundNote}` : display.note}</small>
+                {display.amount !== null ? <strong>{display.amount}</strong> : null}
+                <small>{display.note}</small>
             </span>
         </span>
     );

@@ -16,17 +16,15 @@ func (r *Repository) ClaimNextResourceDeletionJob(owner string, leaseDuration ti
 		available := "(status = ? OR (status = ? AND (lease_expires_at IS NULL OR lease_expires_at <= ?))) AND next_attempt_at <= ?"
 		query := tx.Where(available, model.ResourceDeletionStatusPending, model.ResourceDeletionStatusProcessing, now, now).
 			Order("next_attempt_at asc, created_at asc").Limit(1)
-		if r.Dialect() == "postgres" {
-			query = query.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
-		}
+
+		query = query.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
+
 		result := query.Find(&job)
 		if result.Error != nil || result.RowsAffected == 0 {
 			return result.Error
 		}
 		claim := tx.Model(&model.ResourceDeletionJob{}).Where("id = ?", job.ID)
-		if r.Dialect() != "postgres" {
-			claim = claim.Where(available, model.ResourceDeletionStatusPending, model.ResourceDeletionStatusProcessing, now, now)
-		}
+
 		updated := claim.Updates(map[string]any{
 			"status":           model.ResourceDeletionStatusProcessing,
 			"attempts":         gorm.Expr("attempts + ?", 1),

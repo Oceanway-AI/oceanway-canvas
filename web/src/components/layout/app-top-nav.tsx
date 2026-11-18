@@ -2,14 +2,12 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 
-import { BannerAnnouncementsSlider } from "@/components/layout/banner-announcements-slider";
 import { ModelSetupGuide } from "@/components/layout/model-setup-guide";
 import { WorkspaceSidebarNav } from "@/components/layout/workspace-sidebar-nav";
 import { readWorkspaceSidebarCollapsed, writeWorkspaceSidebarCollapsed } from "@/components/layout/workspace-sidebar-state";
 import { WorkspaceTopBar } from "@/components/layout/workspace-top-bar";
 import { WorkspaceTopBarExtensionProvider } from "@/components/layout/workspace-top-bar-extension";
 import { WorkspaceStorageLimitNotice } from "@/components/layout/workspace-storage-limit-notice";
-import { WorkspaceWalletHost } from "@/components/layout/workspace-wallet-modal";
 import { GenerationSuccessNotifier } from "@/components/layout/generation-success-notifier";
 import { OceanwayBackground } from "@/components/ocean/oceanway-background";
 import { useWorkspaceDocumentTitle } from "@/hooks/use-workspace-document-title";
@@ -90,8 +88,6 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
                     {!hideChrome ? <OceanwayBackground /> : null}
                     {!hideChrome && mobileSidebarExpanded ? <button type="button" className="app-workspace-sidebar-scrim lg:hidden" aria-label={t("shell.collapseSidebar")} onClick={() => setMobileSidebarExpanded(false)} /> : null}
 
-                    {showGlobalTopBar ? <BannerAnnouncementsSlider /> : null}
-
                     <div className="app-workspace-main-row flex min-h-0 min-w-0 flex-1 overflow-hidden">
                         {!hideChrome ? (
                             <aside className={cn("app-workspace-sidebar flex h-full shrink-0 flex-col overflow-hidden", mobileSidebarExpanded && "is-mobile-expanded", desktopSidebarCollapsed && "is-collapsed")}>
@@ -112,7 +108,6 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
                     ) : null}
                 </div>
             </WorkspaceTopBarExtensionProvider>
-            <WorkspaceWalletHost />
             <WorkspaceStorageLimitNotice />
             <GenerationSuccessNotifier />
             <ModelSetupGuide hidden={pathname === "/login" || pathname === "/register" || pathname.startsWith("/admin")} />

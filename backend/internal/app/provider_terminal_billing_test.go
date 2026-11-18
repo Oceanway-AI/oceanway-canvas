@@ -15,6 +15,7 @@ import (
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/platform"
 	"yingce/backend/internal/protocol"
+	"yingce/backend/internal/testdb"
 )
 
 // 上游以 HTTP 200 返回明确的失败/取消终态时，任务、调用日志和账单必须得到同一个结论：
@@ -61,9 +62,9 @@ func TestProviderTerminalStatusReleasesBillingReservation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s, db := newMediaRecoveryTestService(t)
-			// 真实上游请求要经过渠道熔断和并发槽位，单进程测试使用本地协调器。
-			t.Setenv("REDIS_URL", "")
-			coordinator, err := platform.NewCoordinator("sqlite")
+			// 真实上游请求经过独立 Redis 的渠道熔断和并发槽位。
+			testdb.UseRedis(t)
+			coordinator, err := platform.NewCoordinator()
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -2,11 +2,10 @@ package tools_test
 
 import (
 	"fmt"
-	"path/filepath"
 	"reflect"
 	"testing"
+	"yingce/backend/internal/testdb"
 
-	"yingce/backend/internal/database"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
 	"yingce/backend/internal/tools"
@@ -15,13 +14,13 @@ import (
 func TestStoryboardUpgradePreservesExistingToolsAndReferences(t *testing.T) {
 	for _, source := range []string{tools.ToolSourceUser, tools.ToolSourceBuiltin} {
 		t.Run(source, func(t *testing.T) {
-			db, err := database.Open(database.Config{Driver: "sqlite", DSN: filepath.Join(t.TempDir(), "upgrade.db")})
+			db, err := testdb.Open(t)
 			if err != nil {
 				t.Fatal(err)
 			}
 			sqlDB, _ := db.DB()
 			defer sqlDB.Close()
-			if err := database.MigrateSchema(db); err != nil {
+			if err := testdb.MigrateDomainSchema(db); err != nil {
 				t.Fatal(err)
 			}
 			repo := repository.New(db)

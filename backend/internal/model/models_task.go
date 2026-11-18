@@ -12,6 +12,7 @@ type TaskPreviewOutput struct {
 }
 
 type Task struct {
+	PlatformBilling           *StudioTaskFunds    `json:"platformBilling,omitempty" gorm:"-"`
 	EarlyPreviews             []TaskPreviewOutput `json:"earlyPreviews,omitempty" gorm:"-"`
 	PlatformGenerationRequest string              `json:"platformGenerationRequest,omitempty" gorm:"size:128;not null;default:''"`
 	PlatformWorkspaceID       string              `json:"platformWorkspaceId,omitempty" gorm:"size:128;not null;default:''"`
@@ -27,7 +28,7 @@ type Task struct {
 	AgentCleanupPending          bool                     `json:"agentCleanupPending,omitempty" gorm:"-"`
 	GenerationID                 string                   `json:"generationId,omitempty" gorm:"size:36;index"`
 	ApprovalID                   string                   `json:"approvalId,omitempty" gorm:"size:160"`
-	AuthorizedChargeMicrocredits int64                    `json:"authorizedChargeMicrocredits,omitempty"`
+	AuthorizedChargeMicrocredits int64                    `json:"-"`
 	ExecutionDiagnosticJSON      string                   `json:"-" gorm:"type:text"`
 	Diagnostic                   *TaskExecutionDiagnostic `json:"diagnostic,omitempty" gorm:"-"`
 	CancellationSource           string                   `json:"cancellationSource,omitempty" gorm:"size:40"`
@@ -54,7 +55,7 @@ type Task struct {
 	ChannelModelID               string                   `json:"channelModelId,omitempty" gorm:"size:36;index"`
 	// RouteRun 只在用户主动重试时递增；worker 租约恢复不应创建新的路由选择世代。
 	RouteRun                  int                  `json:"-" gorm:"index"`
-	BillingOrderID            string               `json:"billingOrderId,omitempty" gorm:"index;size:36"`
+	BillingOrderID            string               `json:"-" gorm:"index;size:36"`
 	ProviderRequestID         string               `json:"providerRequestId,omitempty" gorm:"index;size:160"`
 	ProviderCancelStatus      ProviderCancelStatus `json:"providerCancelStatus,omitempty" gorm:"index;size:24;index:idx_tasks_provider_cancel,priority:2"`
 	ProviderCancelError       string               `json:"providerCancelError,omitempty" gorm:"type:text"`

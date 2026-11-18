@@ -66,7 +66,10 @@ func TestStudioStandardMediaEstimateKeepsUnknownZeroAndPermissionSeparate(t *tes
 	if calls != 2 {
 		t.Fatalf("estimate calls=%d", calls)
 	}
-	for _, table := range []any{&model.Task{}, &model.StudioExecution{}, &model.BillingOrder{}} {
+	if f.db.Migrator().HasTable(&model.BillingOrder{}) {
+		t.Fatal("Studio created local billing")
+	}
+	for _, table := range []any{&model.Task{}, &model.StudioExecution{}} {
 		var rows int64
 		if err := f.db.Model(table).Count(&rows).Error; err != nil || rows != 0 {
 			t.Fatalf("standard estimate wrote %T: %d %v", table, rows, err)

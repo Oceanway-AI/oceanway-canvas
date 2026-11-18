@@ -4,7 +4,7 @@ import { CheckCircle2, Copy, ExternalLink, UserRoundPlus, X } from "lucide-react
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { PaymentCheckoutCode } from "@/components/payment-checkout-code";
+import { VerificationQRCode } from "@/components/verification-qr-code";
 import { Callout } from "@/components/ui/product/callout";
 import { formatCredits } from "@/constant/credits";
 import { useCopyText } from "@/hooks/use-copy-text";
@@ -150,7 +150,7 @@ export function ArkRealGroupComposer({ config, resume, onCancel, onVerified, onS
                 <div className="ark-session">
                     {session.h5Link ? (
                         <div className="ark-session-code">
-                            <PaymentCheckoutCode value={session.h5Link} />
+                            <VerificationQRCode value={session.h5Link} />
                         </div>
                     ) : null}
                     <div className="ark-session-copy">

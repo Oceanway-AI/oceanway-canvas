@@ -4,15 +4,15 @@ import (
 	"errors"
 	"testing"
 	"time"
+	"yingce/backend/internal/testdb"
 
 	"yingce/backend/internal/model"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func TestSwitchTaskLogicalRouteUpdatesCostWithoutChangingUnifiedSales(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestSwitchTaskLogicalRouteUpdatesCostWithoutChangingUnifiedSales(t *testing
 }
 
 func TestSaveLogicalModelBundleAllocatesMonotonicRevisionSequence(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:logical-model-revision-sequence?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestSaveLogicalModelBundleAllocatesMonotonicRevisionSequence(t *testing.T) 
 }
 
 func TestArchiveLogicalModelPreservesPublishedHistory(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:logical-model-delete-history?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestArchiveLogicalModelPreservesPublishedHistory(t *testing.T) {
 }
 
 func TestArchiveLogicalModelRejectsActiveTask(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:logical-model-delete-active-task?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func TestArchiveLogicalModelRejectsActiveTask(t *testing.T) {
 }
 
 func TestCreateTaskRejectsArchivedLogicalModel(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:logical-model-archived-task?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testdb.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

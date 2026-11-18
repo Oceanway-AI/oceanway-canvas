@@ -219,7 +219,7 @@ func studioMediaFreezesQuoteAndRecoversFixedOutput(t *testing.T, kind string) {
 		if err := f.db.First(&task, "id = ?", created.Data.ID).Error; err != nil {
 			t.Fatal(err)
 		}
-		snapshot, err := repository.New(f.db).ResourceReferenceSnapshot(task.UserID, "", []string{"retained-input"})
+		snapshot, err := repository.NewStudio(f.db).ResourceReferenceSnapshot(task.UserID, "", []string{"retained-input"})
 		if err != nil {
 			t.Fatal(err)
 		}

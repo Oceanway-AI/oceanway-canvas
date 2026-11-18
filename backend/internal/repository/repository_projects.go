@@ -184,7 +184,7 @@ func (r *Repository) CreateProjectUnit(unit *model.ProjectUnit) error {
 
 func (r *Repository) ImportProjectUnits(projectID string, units []model.ProjectUnit) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		// 分批写入仍处于同一事务，避免两千章导入超过 SQLite/PostgreSQL 单语句参数上限。
+		// 分批写入仍处于同一事务，避免两千章导入超过 PostgreSQL 单语句参数上限。
 		if err := tx.CreateInBatches(&units, 100).Error; err != nil {
 			return err
 		}

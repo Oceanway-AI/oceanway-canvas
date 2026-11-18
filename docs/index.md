@@ -4,7 +4,7 @@
 
 ## 部署与更新入口
 
-上游部署使用 Release 镜像、`docker-compose.deploy.yml` 和 Host Updater。OceanWay 改造后的发布来源须按实施计划切换到自有仓库及制品，不能直接使用未改造上游版本。本地 SQLite 构建与自定义 Compose 不属于后台在线更新管理范围。
+Studio 使用 PostgreSQL 与 Redis，发布入口为 OceanWay 自有 Release、`docker-compose.deploy.yml` 和 Host Updater。源码构建通过对应 Compose 文件运行，发布制品验收见实施计划。
 
 - [Docker 部署](content/docs/overview/docker.mdx)：默认服务器方案、Compose 选择与已有部署核对。
 - [在线更新与安全回退](content/docs/backend/system-update.mdx)：受管部署条件、安装、备份、迁移和回退。

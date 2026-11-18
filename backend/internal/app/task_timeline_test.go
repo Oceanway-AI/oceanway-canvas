@@ -6,11 +6,9 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"gorm.io/driver/sqlite"
+	"yingce/backend/internal/testdb"
 
 	"gorm.io/gorm"
-	"yingce/backend/internal/database"
 
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/repository"
@@ -18,14 +16,14 @@ import (
 
 func newTimelineTaskTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
-	// 每个测试独立的 sqlite 内存库，避免共享缓存串库。
-	dsn := fmt.Sprintf("file:%s_%d?mode=memory&cache=shared", t.Name(), time.Now().UnixNano())
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	// 每个测试使用独立 PostgreSQL schema。
+
+	db, err := testdb.Open(t, &gorm.Config{})
 	t.Helper()
 	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
+		t.Fatalf("open postgres: %v", err)
 	}
-	if err := db.AutoMigrate(database.Models()...); err != nil {
+	if err := db.AutoMigrate(testdb.DomainModels()...); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	return &Service{repo: repository.New(db)}, db

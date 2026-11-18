@@ -5,17 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"yingce/backend/internal/model"
 	"yingce/backend/internal/service"
 )
 
 func TestStudioAgentSkillsUseNativeCatalogAndAccountIsolation(t *testing.T) {
 	f := newStudioFixture(t)
-	f.request(t, "GET", "/api/auth/session", "platform_session=alice", "", 200)
-	var alice model.User
-	if err := f.db.First(&alice).Error; err != nil {
-		t.Fatal(err)
-	}
+	alice := f.user(t, "alice")
 	createBody := `{"skillName":"Private reference helper","description":"Private reference guidance","instruction":"Use the selected reference only.","tag":"creative","isPrivate":true}`
 	f.request(t, "POST", "/api/skills", "", createBody, 401)
 	created := f.request(t, "POST", "/api/skills", "platform_session=alice", createBody, 200)

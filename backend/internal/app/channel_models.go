@@ -2,14 +2,11 @@ package app
 
 import (
 	"encoding/json"
-	"errors"
 	"strings"
 	"time"
 
-	"gorm.io/gorm"
 	"yingce/backend/internal/model"
 	"yingce/backend/internal/protocol"
-	"yingce/backend/internal/repository"
 )
 
 type ChannelModelRequest struct {
@@ -38,8 +35,6 @@ type ChannelModelRequest struct {
 	ReferenceVideoBilling *bool `json:"referenceVideoBilling"`
 }
 
-const maxAdminChannelModelBatchDeleteCount = 100
-
 // ChannelModelPriceTierRequest 是系统渠道内某个规格的上游 SKU 与结算价格。
 // Resolution="*"、VideoSeconds=0 分别表示任意分辨率和任意时长。
 type ChannelModelPriceTierRequest struct {
@@ -66,20 +61,6 @@ type ChannelModelPriceTierRequest struct {
 	Enabled                                    *bool `json:"enabled"`
 }
 
-// AdminChannelModelFetchResult 是管理员从上游拉目录后的汇总：models 为去重后的标识，added 为本次新建条数。
-type AdminChannelModelFetchResult struct {
-	Models []string `json:"models"`
-	Added  int64    `json:"added"`
-}
-
-type AdminChannelModelImportRequest struct {
-	Models []string `json:"models"`
-}
-
-type AdminChannelModelTestResult struct {
-	DurationMs int64 `json:"durationMs"`
-}
-
 func (s *Service) EnsureSystemChannelModels() error {
 	channels, err := s.repo.SystemChannels(true)
 	if err != nil {
@@ -99,38 +80,6 @@ func (s *Service) EnsureSystemChannelModels() error {
 	return nil
 }
 
-func (s *Service) AdminChannelModels(actor *model.User, channelID string) ([]model.ChannelModel, error) {
-	if err := s.RequireAdmin(actor); err != nil {
-		return nil, err
-	}
-	if _, err := s.adminSystemChannel(channelID); err != nil {
-		return nil, err
-	}
-	items, err := s.ensureChannelModels(channelID, true)
-	if err != nil {
-		return nil, err
-	}
-	for index := range items {
-		if strings.TrimSpace(items[index].CapabilityConfigJSON) == "" {
-			continue
-		}
-		config, decodeErr := DecodeModelCapabilityConfig(items[index].CapabilityConfigJSON)
-		if decodeErr != nil || config == nil {
-			continue
-		}
-		normalized, normalizeErr := NormalizeModelCapabilityConfigForModel(items[index].Capability, string(items[index].Protocol), firstNonEmpty(items[index].ProviderModelKey, items[index].ModelKey), config, s.protocolRegistry())
-		if normalizeErr != nil || normalized == nil {
-			continue
-		}
-		encoded, encodeErr := json.Marshal(normalized)
-		var value map[string]any
-		if encodeErr == nil && json.Unmarshal(encoded, &value) == nil {
-			items[index].CapabilityConfig = value
-		}
-	}
-	return items, nil
-}
-
 func (s *Service) SystemChannelModel(channelID string, modelKey string) (*model.ChannelModel, error) {
 	return s.repo.ChannelModelByKey(channelID, strings.TrimPrefix(strings.TrimSpace(modelKey), "models/"))
 }
@@ -148,147 +97,6 @@ func (s *Service) SystemChannelHasProtocol(channelID string, protocol model.Chan
 		}
 	}
 	return false, nil
-}
-
-func (s *Service) SaveAdminChannelModel(actor *model.User, channelID string, id string, req ChannelModelRequest) (*model.ChannelModel, error) {
-	if err := s.RequireAdmin(actor); err != nil {
-		return nil, err
-	}
-	channelLabel := strings.TrimSpace(req.ChannelLabel)
-	tags, err := normalizeChannelModelTags(req.Tags)
-	if err != nil {
-		return nil, err
-	}
-	description := strings.TrimSpace(req.Description)
-	if len([]rune(description)) > 500 {
-		return nil, BadAuthRequest("模型描述不能超过 500 字")
-	}
-	channel, err := s.repo.AdminSystemChannel(channelID)
-	if err != nil {
-		return nil, err
-	}
-	modelKey, providerModelKey, capability, protocol, err := s.normalizeChannelModelContract(channel, req)
-	if err != nil {
-		return nil, err
-	}
-	// 空值表示跟随上游 ID；不把默认名称固化，避免上游重命名后遗留旧 ID。
-	if channelLabel == providerModelKey {
-		channelLabel = ""
-	}
-	if len([]rune(channelLabel)) > 80 {
-		return nil, BadAuthRequest("渠道展示名不能超过 80 字")
-	}
-	// 先检查同渠道重复模型，避免无关能力校验或生成无用序列号掩盖真正的冲突。
-	conflict, conflictErr := s.repo.ChannelModelByKeyIncludingDisabled(channelID, modelKey)
-	if conflictErr != nil && !errors.Is(conflictErr, gorm.ErrRecordNotFound) {
-		return nil, conflictErr
-	}
-	if conflict != nil && conflict.ID != strings.TrimSpace(id) {
-		return nil, BadAuthRequest("该渠道已存在模型 " + modelKey + "，请直接编辑已有模型")
-	}
-	if capability == "text" || capability == "image" || capability == "video" {
-		validated, validateErr := NormalizeModelCapabilityConfigForModel(capability, string(protocol), providerModelKey, req.CapabilityConfig, s.protocolRegistry())
-		if validateErr != nil {
-			return nil, validateErr
-		}
-		req.CapabilityConfig = validated
-	}
-	tiers, err := s.normalizeChannelModelPriceTiers(req, capability, protocol, providerModelKey)
-	if err != nil {
-		return nil, err
-	}
-	priceCurrency := ""
-	if req.PriceCurrency != nil {
-		if priceCurrency, err = normalizePriceCurrency(*req.PriceCurrency); err != nil {
-			return nil, err
-		}
-	}
-	modelID, err := s.repo.NextPrefixedID("MODEL")
-	if err != nil {
-		return nil, err
-	}
-	item := &model.ChannelModel{ID: modelID, ChannelID: channelID, Enabled: true, PriceVersion: 1, PriceCurrency: model.PriceCurrencyCredits}
-	previousProviderModelKey := ""
-	if id != "" {
-		item, err = s.repo.ChannelModelByID(channelID, id)
-		if err != nil {
-			return nil, err
-		}
-		previousProviderModelKey = strings.TrimPrefix(strings.TrimSpace(item.ProviderModelKey), "models/")
-		item.PriceVersion++
-	}
-	// 模型级上游键重命名时，与旧值相同的档位键属于“跟随模型默认”的隐式固化，必须级联跟随；
-	// 否则任务请求会继续把旧上游键发给供应商。管理员显式配置的其他上游 SKU 不受影响。
-	if previousProviderModelKey != "" && providerModelKey != previousProviderModelKey {
-		for index := range tiers {
-			if strings.TrimPrefix(strings.TrimSpace(tiers[index].ProviderModelKey), "models/") == previousProviderModelKey {
-				tiers[index].ProviderModelKey = providerModelKey
-			}
-		}
-	}
-	item.ModelKey = modelKey
-	item.ProviderModelKey = providerModelKey
-	item.DisplayName = strings.TrimSpace(req.DisplayName)
-	if item.DisplayName == "" {
-		item.DisplayName = "未分类"
-	}
-	item.ChannelLabel = channelLabel
-	item.Tags = tags
-	item.Description = description
-	item.Icon = strings.TrimSpace(req.Icon)
-	item.Capability = capability
-	item.Protocol = protocol
-	if priceCurrency != "" {
-		item.PriceCurrency = priceCurrency
-	} else if item.PriceCurrency == "" {
-		item.PriceCurrency = model.PriceCurrencyCredits
-	}
-	s.applyChannelModelPriceTierSummary(item, tiers)
-	if capability == "text" || capability == "image" || capability == "video" {
-		capabilityConfig, normalizeErr := NormalizeModelCapabilityConfigForModel(capability, string(protocol), providerModelKey, req.CapabilityConfig, s.protocolRegistry())
-		if normalizeErr != nil {
-			return nil, normalizeErr
-		}
-		encoded, encodeErr := json.Marshal(capabilityConfig)
-		if encodeErr != nil {
-			return nil, encodeErr
-		}
-		if item.CapabilityConfigJSON != string(encoded) {
-			item.CapabilityVersion++
-		}
-		item.CapabilityConfigJSON = string(encoded)
-	} else {
-		item.CapabilityConfigJSON = ""
-		item.CapabilityVersion = 0
-	}
-	if req.Enabled != nil {
-		item.Enabled = *req.Enabled
-	}
-	if req.ReferenceVideoBilling != nil {
-		item.ReferenceVideoBilling = *req.ReferenceVideoBilling
-	}
-	if capability != "video" {
-		item.ReferenceVideoBilling = false
-	}
-	if err := validateReferenceVideoTierPrices(item.ReferenceVideoBilling, tiers); err != nil {
-		return nil, err
-	}
-	if err := validateChannelModelTierCapabilities(tiers, item.CapabilityConfigJSON, capability, string(protocol)); err != nil {
-		return nil, err
-	}
-	// 渠道模型及所有价格档必须同时落库，不能出现“能力已开放但规格价格尚未更新”的窗口。
-	if err := s.repo.SaveChannelModelWithPriceTiers(item, tiers); err != nil {
-		return nil, err
-	}
-	item.PriceTiers = tiers
-	s.invalidateRouteCatalog()
-	if err := s.syncChannelModelNames(channel); err != nil {
-		return nil, err
-	}
-	if err := s.syncLogicalModelsFromChannelModel(actor, item); err != nil {
-		return nil, err
-	}
-	return item, nil
 }
 
 func normalizeChannelModelContract(channel *model.ModelChannel, req ChannelModelRequest) (string, string, string, model.ChannelInterfaceType, error) {
@@ -324,79 +132,6 @@ func normalizeChannelModelContractWithRegistry(registry *protocol.Registry, chan
 		return "", "", "", "", BadAuthRequest(adapter.Metadata().Name + " 协议需要先在渠道中配置 API Key 和 Secret Key")
 	}
 	return modelKey, providerModelKey, capability, protocol, nil
-}
-
-func (s *Service) DeleteAdminChannelModel(actor *model.User, channelID string, id string) error {
-	_, err := s.DeleteAdminChannelModels(actor, channelID, []string{id})
-	return err
-}
-
-// DeleteAdminChannelModels validates the complete selection before asking the
-// repository to remove it atomically. This deliberately rejects partial success:
-// administrators can safely correct an in-use model and retry the same selection.
-func (s *Service) DeleteAdminChannelModels(actor *model.User, channelID string, ids []string) (int64, error) {
-	if err := s.RequireAdmin(actor); err != nil {
-		return 0, err
-	}
-	if _, err := s.repo.AdminSystemChannel(channelID); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return 0, BadAuthRequest("系统渠道不存在或已删除")
-		}
-		return 0, err
-	}
-	modelIDs, err := normalizeAdminChannelModelDeleteIDs(ids)
-	if err != nil {
-		return 0, err
-	}
-	items, err := s.repo.ChannelModels(channelID, true)
-	if err != nil {
-		return 0, err
-	}
-	selected := make(map[string]bool, len(modelIDs))
-	for _, id := range modelIDs {
-		selected[id] = true
-	}
-	found := 0
-	for _, item := range items {
-		if selected[item.ID] {
-			found++
-		}
-	}
-	if found != len(modelIDs) {
-		return 0, BadAuthRequest("所选渠道模型中存在已删除或不属于当前渠道的记录，请刷新后重试")
-	}
-	// 删除模型与渠道的兼容模型清单必须同事务提交，避免接口报错但列表已部分变化。
-	deleted, err := s.repo.DeleteChannelModels(channelID, modelIDs, time.Now())
-	if errors.Is(err, repository.ErrChannelModelInUse) {
-		return 0, BadAuthRequest("所选渠道模型中有模型仍被前台模型供应线路或进行中任务使用，本次未删除任何模型")
-	}
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return 0, BadAuthRequest("所选渠道模型中存在已删除或不属于当前渠道的记录，请刷新后重试")
-	}
-	if err == nil {
-		s.invalidateRouteCatalog()
-	}
-	return deleted, err
-}
-
-func normalizeAdminChannelModelDeleteIDs(values []string) ([]string, error) {
-	result := make([]string, 0, len(values))
-	seen := make(map[string]bool, len(values))
-	for _, value := range values {
-		id := strings.TrimSpace(value)
-		if id == "" || seen[id] {
-			continue
-		}
-		seen[id] = true
-		result = append(result, id)
-	}
-	if len(result) == 0 {
-		return nil, BadAuthRequest("请至少选择一个要删除的渠道模型")
-	}
-	if len(result) > maxAdminChannelModelBatchDeleteCount {
-		return nil, BadAuthRequest("单次最多删除 100 个渠道模型")
-	}
-	return result, nil
 }
 
 func (s *Service) syncInitialChannelModels(channel *model.ModelChannel, names []string) error {

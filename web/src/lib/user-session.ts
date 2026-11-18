@@ -74,8 +74,6 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     useUserStore.getState().setRuntimeLimits(payload.runtimeLimits);
     useUserStore.getState().setDrawingEngine(payload.drawingEngine);
     useUserStore.getState().setFeatures(payload.features);
-    useUserStore.getState().setReferralAvailable(payload.referralAvailable);
-    useUserStore.getState().setUserGroup(payload.userGroup);
     if (payload.provider === "platform" && payload.user) {
         try {
             const context = await getStudioWorkspaceContext();
