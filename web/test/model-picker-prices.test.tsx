@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ModelLabel, ModelPicker } from "../src/components/model-picker";
 import { canvasThemes } from "../src/lib/canvas-theme";
 import { defaultModelCapabilityConfig } from "../src/lib/model-capabilities";
-import type { ModelRequirements } from "../src/lib/model-selection";
+import { modelCompatibilityError, type ModelRequirements } from "../src/lib/model-selection";
 import { createModelChannel, defaultConfig, normalizeConfigSnapshot } from "../src/stores/use-config-store";
 
 function fixture() {
@@ -110,7 +110,7 @@ test("text models without video understanding only show the image limit, and non
     expect(render()).not.toContain("图×");
 });
 
-function platformMediaFixture(capability: "image" | "video" = "video") {
+function platformMediaFixture(capability: "text" | "image" | "video" = "video") {
     const config = fixture();
     const cost = config.channels[0].modelDetails![0];
     cost.available = true;
@@ -174,7 +174,7 @@ test("platform media options show the exact display name and call ID with only c
     expect(render()).not.toContain("模型标签");
 });
 
-test.each(["image", "video"] as const)("%s variants under the same model keep separate callability and recent results", (capability) => {
+test.each(["text", "image", "video"] as const)("%s variants under the same model keep separate callability and recent results", (capability) => {
     const { channel, cost, render } = platformMediaFixture(capability);
     const sibling = structuredClone(cost);
     sibling.model = "source-b";
@@ -197,4 +197,48 @@ test.each(["image", "video"] as const)("%s variants under the same model keep se
     expect(b).toContain("不可调用；近 24 小时生成成功率：90%");
     expect(b).toContain("is-good");
     expect(b).not.toContain("is-failed");
+    expect(a).not.toContain("data-callable");
+    expect(b).not.toContain("data-callable");
+});
+
+test("text rows share the media layout and only expose cached input prices before hover", () => {
+    const { cost, render } = platformMediaFixture("text");
+    cost.platform!.presentation!.price_summary = ["input", "output", "cache_read", "cache_write_5m"].map((dimension, index) => ({
+        dimension,
+        rate_unit: "million_tokens",
+        min: String(index),
+        max: String(index),
+        conditions: [],
+    }));
+    const html = render();
+    expect(html).toContain("canvas-model-picker-media-row");
+    expect(html).toContain(">缓存读取 ✦ 2/百万 Token</span>");
+    expect(html).toContain("输入 ✦ 0/百万 Token");
+    expect(html).toContain("输出 ✦ 1/百万 Token");
+    expect(html).not.toContain("内部测试说明");
+    expect(html).not.toContain("技术细节");
+    expect(html).toContain('data-callable="true"');
+    cost.platform!.presentation!.price_summary = [];
+    expect(render()).toContain("缓存输入价未提供");
+});
+
+test("text summaries with no media variants allow plain text before detail has been loaded", () => {
+    const config = textFixture();
+    const cost = config.channels[0].modelDetails![0];
+    cost.platform = {
+        state: "summary",
+        model_name: cost.model,
+        model_type: "text",
+        price: { status: "available", version: "p1", rates: {} },
+        variants_complete: true,
+        variants: [],
+    };
+    const input = { textCount: 1, imageCount: 0, videoCount: 0, audioCount: 0, characterCount: 0 };
+    expect(modelCompatibilityError(config, config.model, { capability: "text", input })).toBe("");
+    for (const key of ["imageCount", "videoCount", "audioCount", "characterCount"] as const) {
+        expect(modelCompatibilityError(config, config.model, { capability: "text", input: { ...input, [key]: 1 } })).not.toBe("");
+    }
+    expect(modelCompatibilityError(config, config.model, { capability: "video", input })).toBe("模型与创作类型不匹配");
+    cost.platform.model_type = "video";
+    expect(modelCompatibilityError(config, config.model, { capability: "video", input })).not.toBe("");
 });
