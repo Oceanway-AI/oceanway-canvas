@@ -1,0 +1,37 @@
+{
+  "canvas": {
+    "id": "DI0iM5RR7FZpTAv8N8AAE",
+    "title": "WP-STUDIO-020 生产验收 20261118",
+    "decimal_owner": true,
+    "revision": 3,
+    "nodes": 2,
+    "connections": 0,
+    "payload_md5": "e66d5cd9d07454ae3898fb0afef5d37f"
+  },
+  "counts": {
+    "canvases": 1,
+    "assets": 0,
+    "resources": 2,
+    "references": 2,
+    "tasks": 0,
+    "executions": 0,
+    "deletion_jobs": 0
+  },
+  "references": [
+    {
+      "resource_id": "807462e1-0490-53a9-a21c-5587ab8e4baf",
+      "asset_id": "asset_d3f18f10639744c3a33d5d868e8561d281e8688d53c32634",
+      "version_id": "version_d3f18f10639744c3a33d5d868e8561d281e8688d53c32634",
+      "binding_id": "binding_fa3e49f11fe7254174fdd89da2f50659dc10a2aeb416cdea",
+      "same_owner": true
+    },
+    {
+      "resource_id": "6d4b10c8-093f-5e8e-bd09-561f593c3628",
+      "asset_id": "asset_0e68a6ef51dc6d500cc6f159228479f8ab5b68b2e74bac73",
+      "version_id": "version_0e68a6ef51dc6d500cc6f159228479f8ab5b68b2e74bac73",
+      "binding_id": "binding_5f0d69c81ead56b934e3c7f8cc05bc7fad5eb8f8a872abb4",
+      "same_owner": true
+    }
+  ],
+  "checked_at": "2026-11-18T08:37:52.261582+00:00"
+}

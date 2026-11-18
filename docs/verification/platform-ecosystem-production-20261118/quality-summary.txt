@@ -1,0 +1,29 @@
+基准 origin/main @ e7f1326a，相对基准改动 7 个文件
+▶ backend:list-app
+▶ web:test
+▶ backend:test-rest
+✓ backend:list-app 22.1s
+▶ backend:test-app-1
+✓ backend:test-rest 85.0s
+▶ backend:test-app-2
+✓ web:test 90.0s
+▶ backend:test-app-3
+✓ backend:test-app-1 268.9s
+▶ backend:test-app-4
+✓ backend:test-app-2 268.1s
+▶ web:typecheck
+✓ web:typecheck 1.2s
+▶ web:lint
+✓ web:lint 14.9s
+▶ web:format
+✓ web:format 0.3s
+▶ backend:dependency-contract
+✓ backend:dependency-contract 0.2s
+▶ backend:gofmt
+✓ backend:gofmt 0.5s
+✓ backend:test-app-3 313.2s
+✓ backend:test-app-4 181.4s
+
+共 12 项，失败 0 项，用时 472.5s（并行 3）
+  跳过：web:e2e（没有预演台相关改动；--all 可强制运行）
+  本地未覆盖：Agent 静态检查 golangci-lint v2.5.0（本机未安装；Agent 架构测试已包含在 backend:test-rest）

@@ -1,5 +1,7 @@
 # WP-STUDIO-020 本机实施与验证
 
+后续自有 v2.0.2 的 CI、生产安装、真实 Platform 浏览器验收与剩余工作，见 `../platform-ecosystem-production-20261118/README.md`。本目录保留首批本机验证的版本与环境范围。
+
 本批执行 FS-STUDIO-001 v1.2，工作包保持 doing。最终验收代码位于本地提交 `75f556e82c6df4e3ee4a60a96dc6c7a876db6707`，树为 `7d1de2940777f74bf4a3eae8947ab9d58f079240`，基线为 `63f35e9be548ed7ca4a2839147d636992929cca5`。首批实现与浏览器验收提交为 `e8df8f5562c07d72df40c5262fc767f3aa4fcc9a`。后续 f2844bb 删除未注册的存储后台查询代码并修正测试数据库隔离，75f556e 调整模型选择器测试的初始化。SDK 固定为 `platformclient v1.0.0-rc.5`。
 
 ## 实现范围

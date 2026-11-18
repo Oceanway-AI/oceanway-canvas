@@ -1,0 +1,248 @@
+{
+  "checked_at": "2026-11-18T08:27:08.647003+00:00",
+  "services": [
+    {
+      "Service": "backend",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "ghcr.io/oceanway-ai/open-ai-canvas-backend@sha256:35700444d221586da9becce7faea3cdf919c562c3b202d448e9617ba8d6f0cc2",
+      "ID": "0ffceecaa047",
+      "Ports": "8080/tcp"
+    },
+    {
+      "Service": "migrate",
+      "State": "exited",
+      "Health": "",
+      "ExitCode": 0,
+      "Image": "ghcr.io/oceanway-ai/open-ai-canvas-backend@sha256:35700444d221586da9becce7faea3cdf919c562c3b202d448e9617ba8d6f0cc2",
+      "ID": "d01ffa44c142",
+      "Ports": ""
+    },
+    {
+      "Service": "postgres",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "postgres:17-alpine",
+      "ID": "2fd34c58706e",
+      "Ports": "5432/tcp"
+    },
+    {
+      "Service": "redis",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "redis:7.4-alpine",
+      "ID": "322dad928540",
+      "Ports": "6379/tcp"
+    },
+    {
+      "Service": "web",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "ghcr.io/oceanway-ai/open-ai-canvas-web@sha256:e64fa46ff6223cad0aac7620f434ef25e9e62b71dade8fbd32dbfe83be704ae2",
+      "ID": "01fa6dfd1c59",
+      "Ports": "80/tcp, 127.0.0.1:18560->3000/tcp"
+    },
+    {
+      "Service": "yingce-agent",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Image": "ghcr.io/oceanway-ai/open-ai-canvas-yingce-agent@sha256:75c1fd4825313a6bb784352ecaf19688a18b432519f0dd6b563280a8a2db5296",
+      "ID": "7b32c4112ee1",
+      "Ports": "8081/tcp"
+    }
+  ],
+  "version": {
+    "status": 200,
+    "body": {
+      "code": 0,
+      "data": {
+        "build": {
+          "version": "v2.0.2",
+          "commit": "8d68e13422a445c73b1734ab99da6e0a81230978",
+          "buildTime": "2026-11-18T16:04:09+08:00",
+          "goVersion": "go1.25.14"
+        },
+        "schema": {
+          "current": 98,
+          "expected": 98,
+          "ready": true
+        }
+      },
+      "msg": "ok"
+    }
+  },
+  "health": {
+    "status": 200,
+    "body": {
+      "code": 0,
+      "data": {
+        "status": "ok",
+        "ready": true,
+        "started": true,
+        "draining": false,
+        "activeWorkerTasks": 0,
+        "build": {
+          "version": "v2.0.2",
+          "commit": "8d68e13422a445c73b1734ab99da6e0a81230978",
+          "buildTime": "2026-11-18T16:04:09+08:00",
+          "goVersion": "go1.25.14"
+        },
+        "schema": {
+          "current": 98,
+          "expected": 98,
+          "ready": true
+        },
+        "checks": {
+          "database": true,
+          "runtime": true,
+          "schema": true
+        }
+      },
+      "msg": "ok"
+    }
+  },
+  "anonymous_profile": {
+    "status": 401,
+    "body": {
+      "code": 401,
+      "data": null,
+      "msg": "请登录 OceanWay 账号",
+      "reason": "unauthorized"
+    }
+  },
+  "login": {
+    "status": 200,
+    "body": {
+      "code": 0,
+      "data": {
+        "url": "https://console.oceanway.tech/login?return=https%3A%2F%2Fstudio.oceanway.tech%2Fplatform%2Flogin%2Fcomplete"
+      },
+      "msg": "ok"
+    }
+  },
+  "schema": [
+    {
+      "version": 98,
+      "name": "studio_platform_identity",
+      "checksum": "sha256:studio-platform-identity-v98-20261118",
+      "applied_at": "2026-11-18T08:24:45.726316+00:00"
+    }
+  ],
+  "tables": [
+    "admin_audit_events",
+    "agent_lessons",
+    "agent_memory_document_revisions",
+    "agent_memory_documents",
+    "agent_memory_proposals",
+    "agent_memory_revisions",
+    "agent_memory_settings",
+    "agent_profiles",
+    "api_call_logs",
+    "asset_folders",
+    "asset_representations",
+    "asset_versions",
+    "assets",
+    "builtin_skill_tombstones",
+    "canvas_edit_leases",
+    "canvas_mutation_receipts",
+    "canvas_projects",
+    "canvas_shares",
+    "canvas_snapshot_resources",
+    "canvas_snapshots",
+    "canvas_unit_links",
+    "character_voice_bindings",
+    "cloud_agent_canvas_mutations",
+    "cloud_agent_event_records",
+    "cloud_agent_executions",
+    "cloud_agent_gemini_caches",
+    "cloud_agent_message_records",
+    "cloud_agent_pi_sessions",
+    "cloud_agent_resource_leases",
+    "creation_runs",
+    "creation_submissions",
+    "drama_casts",
+    "drama_episodes",
+    "drama_jobs",
+    "drama_productions",
+    "drama_segments",
+    "drama_shots",
+    "drama_takes",
+    "ecommerce_agent_analyses",
+    "ecommerce_agent_canvas_versions",
+    "ecommerce_agent_pages",
+    "ecommerce_agent_runs",
+    "ecommerce_creative_recommendations",
+    "ecommerce_knowledge_entries",
+    "ecommerce_knowledge_sources",
+    "ecommerce_projects",
+    "id_sequences",
+    "inspiration_feed_entries",
+    "pose_library_items",
+    "pose_library_sources",
+    "production_task_links",
+    "project_asset_candidates",
+    "project_asset_folders",
+    "project_asset_links",
+    "project_units",
+    "projects",
+    "prompt_templates",
+    "resource_deletion_jobs",
+    "resources",
+    "results",
+    "schema_migrations",
+    "shot_artifacts",
+    "shot_asset_references",
+    "shot_revisions",
+    "shots",
+    "skill_curation_assignments",
+    "skill_curation_categories",
+    "skill_curation_root_assignments",
+    "skill_curation_roots",
+    "skill_curation_settings",
+    "skill_files",
+    "skill_library_categories",
+    "skill_versions",
+    "skills",
+    "studio_executions",
+    "studio_material_authorities",
+    "studio_material_references",
+    "studio_material_uploads",
+    "studio_media_action_aliases",
+    "studio_media_actions",
+    "style_profiles",
+    "system_settings",
+    "task_logs",
+    "task_text_delta",
+    "tasks",
+    "tool_favorites",
+    "tools",
+    "upload_reservations",
+    "user_daily_activities",
+    "user_prompt_customizations",
+    "user_skill_states",
+    "voice_profiles",
+    "workbench_presets",
+    "workbench_tools",
+    "workflow_instances",
+    "workflow_step_instances",
+    "workflow_step_tasks",
+    "workflow_template_versions"
+  ],
+  "initial_counts": {
+    "canvases": 0,
+    "assets": 0,
+    "tasks": 0,
+    "references": 0
+  },
+  "updater": "active",
+  "backup": {
+    "name": "before-publication.dump",
+    "bytes": 8660789,
+    "sha256": "33c4f7eccf64c2877b2e0aa7cfaa993076d3ab0518eb8ecb53894138966de909"
+  }
+}
