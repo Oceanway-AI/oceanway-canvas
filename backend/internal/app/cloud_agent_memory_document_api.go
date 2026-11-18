@@ -25,13 +25,6 @@ type AgentMemoryDocumentView struct {
 	UpdatedAt    time.Time                `json:"updatedAt"`
 }
 
-type AgentMemoryDocumentAdminView struct {
-	UserID      string `json:"userId"`
-	Username    string `json:"username,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	AgentMemoryDocumentView
-}
-
 // AgentMemoryDocRevisionView 是一次修改的记录；changes 由前后快照按条目 ID 计算。
 type AgentMemoryDocRevisionView struct {
 	ID           string                 `json:"id"`
@@ -380,33 +373,4 @@ func agentMemoryConflict(err error) error {
 		return creationConflict("这条修改已经被处理，请刷新")
 	}
 	return err
-}
-
-// AdminAgentMemoryDocuments 供管理员按用户查看记忆文件正文（只读，不替用户创建或修改）。
-func (s *Service) AdminAgentMemoryDocuments(userID string, limit int) ([]AgentMemoryDocumentAdminView, error) {
-	rows, err := s.repo.AdminAgentMemoryDocuments(userID, limit)
-	if err != nil {
-		return nil, err
-	}
-	ids := make([]string, 0, len(rows))
-	for _, row := range rows {
-		ids = append(ids, row.UserID)
-	}
-	users, err := s.repo.UsersByIDs(ids)
-	if err != nil {
-		return nil, err
-	}
-	views := make([]AgentMemoryDocumentAdminView, 0, len(rows))
-	for index := range rows {
-		view, err := s.agentMemoryDocumentView(&rows[index])
-		if err != nil {
-			return nil, err
-		}
-		admin := AgentMemoryDocumentAdminView{UserID: rows[index].UserID, AgentMemoryDocumentView: view}
-		if user, ok := users[rows[index].UserID]; ok {
-			admin.Username, admin.DisplayName = user.Username, user.DisplayName
-		}
-		views = append(views, admin)
-	}
-	return views, nil
 }

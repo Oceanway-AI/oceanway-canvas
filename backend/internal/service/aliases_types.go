@@ -30,7 +30,6 @@ type (
 	AgentProfileRequest                    = app.AgentProfileRequest
 	AgentProfileView                       = app.AgentProfileView
 	AgentLessonView                        = app.AgentLessonView
-	AgentLessonAdminView                   = app.AgentLessonAdminView
 	AgentMemoryRequest                     = app.AgentMemoryRequest
 	AgentMemoryBundle                      = app.AgentMemoryBundle
 	AgentMemoryImportResult                = app.AgentMemoryImportResult

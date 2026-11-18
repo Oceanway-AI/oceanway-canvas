@@ -227,17 +227,3 @@ func (r *Repository) RejectAgentMemoryDocumentRevision(userID, id string, now ti
 	}
 	return nil
 }
-
-// AdminAgentMemoryDocuments 按最近更新排序列出记忆文件；userID 为空时列出全部。
-func (r *Repository) AdminAgentMemoryDocuments(userID string, limit int) ([]model.AgentMemoryDocument, error) {
-	if limit <= 0 || limit > 200 {
-		limit = 50
-	}
-	query := r.db.Model(&model.AgentMemoryDocument{})
-	if userID = strings.TrimSpace(userID); userID != "" {
-		query = query.Where("user_id = ?", userID)
-	}
-	var rows []model.AgentMemoryDocument
-	err := query.Order("updated_at DESC").Limit(limit).Find(&rows).Error
-	return rows, err
-}

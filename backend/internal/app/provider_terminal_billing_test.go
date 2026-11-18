@@ -18,9 +18,8 @@ import (
 	"yingce/backend/internal/testdb"
 )
 
-// 上游以 HTTP 200 返回明确的失败/取消终态时，任务、调用日志和账单必须得到同一个结论：
-// 任务失败、计费根日志失败、预留积分退回，而不是停在待核对。
-func TestProviderTerminalStatusReleasesBillingReservation(t *testing.T) {
+// HTTP 200 carrying a failed provider state still fails the task and call log.
+func TestProviderTerminalStatusRecordsFailureWithoutLocalFinance(t *testing.T) {
 	allowLoopbackProviderTest(t)
 	tests := []struct {
 		name          string
@@ -93,12 +92,11 @@ func TestProviderTerminalStatusReleasesBillingReservation(t *testing.T) {
 			}
 			expires := time.Now().Add(time.Hour)
 			task := &model.Task{ID: newID(), UserID: "billing-user", Type: tt.taskType, Status: model.TaskStatusRunning, InputJSON: string(encoded), LeaseOwner: "worker-a", LeaseExpiresAt: &expires, RouteRun: 1}
-			order := model.BillingOrder{ID: newID(), UserID: task.UserID, TaskID: task.ID, IdempotencyKey: newID(), Status: model.BillingStatusRunning, AmountMicrocredits: 100, ReservedAmountMicrocredits: 100}
-			task.BillingOrderID = order.ID
-			for _, value := range []any{task, &order, &model.CreditAccount{UserID: task.UserID, AvailableMicrocredits: 900, ReservedMicrocredits: 100}} {
-				if err := db.Create(value).Error; err != nil {
-					t.Fatal(err)
-				}
+			if err := db.Create(task).Error; err != nil {
+				t.Fatal(err)
+			}
+			if err := db.Migrator().DropTable(&model.BillingOrder{}, &model.CreditAccount{}); err != nil {
+				t.Fatal(err)
 			}
 
 			ctx := withProviderAnalytics(context.Background(), s, *task)
@@ -132,16 +130,8 @@ func TestProviderTerminalStatusReleasesBillingReservation(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			gotOrder, err := s.repo.BillingOrder(order.ID)
-			if err != nil {
-				t.Fatal(err)
-			}
-			var account model.CreditAccount
-			if err := db.First(&account, "user_id = ?", task.UserID).Error; err != nil {
-				t.Fatal(err)
-			}
-			if stored.Status != model.TaskStatusFailed || gotOrder.Status != model.BillingStatusRefunded || account.AvailableMicrocredits != 1000 || account.ReservedMicrocredits != 0 {
-				t.Fatalf("task=%s billing=%s available=%d reserved=%d, want failed task with refunded reservation", stored.Status, gotOrder.Status, account.AvailableMicrocredits, account.ReservedMicrocredits)
+			if stored.Status != model.TaskStatusFailed {
+				t.Fatalf("task=%s, want failed task", stored.Status)
 			}
 		})
 	}

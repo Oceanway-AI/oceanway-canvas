@@ -220,19 +220,19 @@ func (w *taskWorkerCoordinator) processClaimedTask(task *model.Task, globalSlot 
 			}
 			// Submitted work keeps its original polling and result-persistence path.
 			if !submitted {
-				uncertain := s.taskBilling().BillingFailureRequiresReview(task.BillingOrderID, task.ID, featureErr)
+				uncertain := task.ProviderRequestID != ""
 				if len(attempts) == 0 && task.RouteRun <= 1 && task.Attempts > 1 {
 					uncertain = true
 				}
-				return terminal.markPreparationFailure(task, "功能暂未开放", featureErr, uncertain, "功能已关闭，上游请求未发出")
+				return terminal.markPreparationFailure(task, "功能暂未开放", featureErr, uncertain)
 			}
 		}
 	}
 	if err := s.requireCustomChannelsForTaskInput(admissionInput); err != nil {
 		// A reclaimed task may already have submitted upstream. Keep the existing
-		// review path for that evidence; only an unsent reservation is refundable.
+		// reconciliation path when the original dispatch outcome is unknown.
 		attempts, readErr := s.repo.RouteAttempts(task.ID, task.RouteRun)
-		uncertain := readErr != nil || task.ProviderRequestID != "" || s.taskBilling().BillingFailureRequiresReview(task.BillingOrderID, task.ID, err)
+		uncertain := readErr != nil || task.ProviderRequestID != ""
 		for _, attempt := range attempts {
 			if attempt.DispatchState == "accepted" || attempt.DispatchState == "submission_unknown" {
 				uncertain = true
@@ -243,7 +243,7 @@ func (w *taskWorkerCoordinator) processClaimedTask(task *model.Task, globalSlot 
 		if len(attempts) == 0 && task.RouteRun <= 1 && task.Attempts > 1 {
 			uncertain = true
 		}
-		return terminal.markPreparationFailure(task, "渠道不可用", errors.Join(err, readErr), uncertain, "自定义渠道已关闭，上游请求未发出")
+		return terminal.markPreparationFailure(task, "渠道不可用", errors.Join(err, readErr), uncertain)
 	}
 
 	s.markAgentMemoryCompactRunning(*task)
@@ -268,14 +268,7 @@ func (w *taskWorkerCoordinator) processClaimedTask(task *model.Task, globalSlot 
 	}
 	routeAttempt, err := s.beginTaskRouteAttempt(task)
 	if err != nil {
-		return terminal.markPreparationFailure(task, "路由准备失败", err, isRouteDispatchUncertain(err), "路由准备失败，上游请求未发出")
-	}
-	if err := s.taskBilling().MarkBillingRunning(task.BillingOrderID); err != nil {
-		uncertain := task.ProviderRequestID != "" || s.taskBilling().BillingFailureRequiresReview(task.BillingOrderID, task.ID, err)
-		if routeAttempt != nil && (routeAttempt.DispatchState == "accepted" || routeAttempt.DispatchState == "submission_unknown") {
-			uncertain = true
-		}
-		return terminal.markPreparationFailure(task, "计费准备失败", err, uncertain, "计费准备失败，上游请求未发出")
+		return terminal.markPreparationFailure(task, "路由准备失败", err, isRouteDispatchUncertain(err))
 	}
 	routeResult, stateErr := s.routeExecutor().execute(ctx, task, routeAttempt)
 	if stateErr != nil {

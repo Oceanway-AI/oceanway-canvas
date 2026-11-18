@@ -98,29 +98,6 @@ func (r *Repository) ExpirePendingAgentLessons(userID string, createdBefore, upd
 	return update.RowsAffected, update.Error
 }
 
-func (r *Repository) AdminAgentLessons(status, userID, keyword string, limit int) ([]model.AgentLesson, error) {
-	query := r.db.Model(&model.AgentLesson{})
-	if trimmed := strings.TrimSpace(status); trimmed != "" {
-		query = query.Where("status = ?", trimmed)
-	}
-	if trimmed := strings.TrimSpace(userID); trimmed != "" {
-		query = query.Where("author_user_id = ?", trimmed)
-	}
-	if trimmed := strings.TrimSpace(keyword); trimmed != "" {
-		like := "%" + trimmed + "%"
-		query = query.Where(
-			"topic LIKE ? OR situation LIKE ? OR lesson LIKE ? OR author_user_id LIKE ? OR author_user_id IN (SELECT id FROM users WHERE username LIKE ? OR display_name LIKE ?)",
-			like, like, like, like, like, like,
-		)
-	}
-	if limit <= 0 || limit > 200 {
-		limit = 100
-	}
-	var lessons []model.AgentLesson
-	err := query.Order("updated_at DESC").Limit(limit).Find(&lessons).Error
-	return lessons, err
-}
-
 func (r *Repository) SetAgentLessonStatus(userID, id, status string) error {
 	query := r.db.Model(&model.AgentLesson{}).Where("id = ?", strings.TrimSpace(id))
 	if trimmed := strings.TrimSpace(userID); trimmed != "" {

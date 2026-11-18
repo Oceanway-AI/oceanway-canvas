@@ -18,7 +18,7 @@ import (
 )
 
 // 旧版经验库（AgentLesson）：Agent 已改用长期记忆文件（cloud_agent_memory_document.go），
-// 不再写入、注入或召回这些条目。这里只保留用户与管理员的查看、编辑、导出和删除；
+// 不再写入、注入或召回这些条目。这里保留用户本人的查看、编辑、导出和删除；
 // 已批准条目在用户第一次启用记忆文件时导入。
 
 var cloudAgentLessonLeakPatterns = []struct {
@@ -210,13 +210,6 @@ type AgentLessonView struct {
 	UpdatedAt      time.Time               `json:"updatedAt"`
 }
 
-type AgentLessonAdminView struct {
-	AgentLessonView
-	AuthorUserID      string `json:"authorUserId,omitempty"`
-	AuthorUsername    string `json:"authorUsername,omitempty"`
-	AuthorDisplayName string `json:"authorDisplayName,omitempty"`
-}
-
 type AgentMemoryRequest struct {
 	Topic     string                  `json:"topic"`
 	Category  string                  `json:"category"`
@@ -266,10 +259,6 @@ func agentLessonViewOf(lesson model.AgentLesson) AgentLessonView {
 		}
 	}
 	return view
-}
-
-func agentLessonAdminViewOf(lesson model.AgentLesson) AgentLessonAdminView {
-	return AgentLessonAdminView{AgentLessonView: agentLessonViewOf(lesson), AuthorUserID: lesson.AuthorUserID}
 }
 
 func (s *Service) UserAgentMemories(userID, status string, limit int) ([]AgentLessonView, error) {
@@ -518,45 +507,4 @@ func (s *Service) ImportUserAgentMemories(userID string, bundle AgentMemoryBundl
 		result.Imported++
 	}
 	return result, nil
-}
-
-func (s *Service) AdminAgentLessons(status, userID, keyword string, limit int) ([]AgentLessonAdminView, error) {
-	lessons, err := s.repo.AdminAgentLessons(status, userID, keyword, limit)
-	if err != nil {
-		return nil, err
-	}
-	ids := make([]string, 0, len(lessons))
-	for _, lesson := range lessons {
-		if lesson.AuthorUserID != "" {
-			ids = append(ids, lesson.AuthorUserID)
-		}
-	}
-	users, err := s.repo.UsersByIDs(ids)
-	if err != nil {
-		return nil, err
-	}
-	views := make([]AgentLessonAdminView, 0, len(lessons))
-	for _, lesson := range lessons {
-		view := agentLessonAdminViewOf(lesson)
-		if user, ok := users[lesson.AuthorUserID]; ok {
-			view.AuthorUsername = user.Username
-			view.AuthorDisplayName = user.DisplayName
-		}
-		views = append(views, view)
-	}
-	return views, nil
-}
-
-func (s *Service) AdminDeleteAgentLesson(id string) error {
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return BadAuthRequest("记忆 ID 无效")
-	}
-	if err := s.repo.DeleteAgentLesson("", id); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return kernel.NotFound("记忆不存在")
-		}
-		return err
-	}
-	return nil
 }

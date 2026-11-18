@@ -4,7 +4,6 @@ import "yingce/backend/internal/app"
 
 // 长期记忆文件与技能推荐的 HTTP 入参/出参。
 type AgentMemoryDocumentView = app.AgentMemoryDocumentView
-type AgentMemoryDocumentAdminView = app.AgentMemoryDocumentAdminView
 type AgentMemoryDocRevisionView = app.AgentMemoryDocRevisionView
 type AgentMemoryDocChange = app.AgentMemoryDocChange
 type AgentMemoryEntryInput = app.AgentMemoryEntryInput

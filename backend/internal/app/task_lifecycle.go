@@ -130,7 +130,7 @@ func (w *taskLifecycleCoordinator) cancelTaskWithIntent(_ context.Context, userI
 		return nil, fmt.Errorf("任务当前状态为 %s，无法取消", task.Status)
 	}
 
-	// 先从账单和请求日志补齐上游 ID，再做条件更新。取消与 worker 完成之间
+	// 先从请求日志补齐上游 ID，再做条件更新。取消与 worker 完成之间
 	// 以数据库终态为准，避免“用户已取消但迟到结果又把任务写成成功”。
 	s.hydrateTaskProviderRequestID(task)
 	// 用户一旦看到任务进入上游提交/生成阶段，即使 request ID 尚未来得及写回，
@@ -178,7 +178,7 @@ func (w *taskLifecycleCoordinator) cancelTaskWithIntent(_ context.Context, userI
 
 	if task.ProviderRequestID != "" {
 		// 上游取消可能需要轮询确认，不能阻塞取消接口；请求上下文也不能因
-		// 浏览器关闭而中断。后台对账会继续负责退款或费用核对。
+		// 浏览器关闭而中断。后台恢复继续查询原请求状态。
 		cancelTask := *task
 		started := s.runWorkerTask(func() {
 			requestCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -195,18 +195,6 @@ func (w *taskLifecycleCoordinator) cancelTaskWithIntent(_ context.Context, userI
 				_ = s.log(cancelTask.UserID, cancelTask.ID, "error", "发送上游取消请求失败", err.Error())
 			}
 			cancel()
-		}
-	} else {
-		var billingErr error
-		if originalStatus == model.TaskStatusQueued {
-			billingErr = s.taskBilling().RefundBilling(task.BillingOrderID, "任务取消且尚未开始执行；来源："+intent.Source)
-		} else {
-			// running 任务可能已经发起上游调用但尚未把 request ID 写回，不能
-			// 直接退款后放任上游继续生成，先冻结为待核对更安全。
-			billingErr = s.taskBilling().MarkBillingUncertain(task.BillingOrderID, "取消时上游请求 ID 尚未确认，费用待核对；来源："+intent.Source)
-		}
-		if billingErr != nil {
-			_ = s.log(task.UserID, task.ID, "error", "取消任务后处理积分失败，已保留人工核对线索", billingErr.Error())
 		}
 	}
 

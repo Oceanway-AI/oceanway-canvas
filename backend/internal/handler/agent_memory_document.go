@@ -107,25 +107,3 @@ func registerAgentMemoryDocumentRoutes(r *gin.RouterGroup, svc *service.Service)
 		ok(c, view)
 	})
 }
-
-// registerAgentMemoryDocumentAdminRoutes 让管理员按用户只读查看记忆文件正文。
-func registerAgentMemoryDocumentAdminRoutes(r *gin.RouterGroup, svc *service.Service) {
-	r.GET("/admin/agent-memory-documents", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		if err := svc.RequireAdmin(user); err != nil {
-			failService(c, err)
-			return
-		}
-		limit, _ := strconv.Atoi(c.Query("limit"))
-		documents, err := svc.AdminAgentMemoryDocuments(strings.TrimSpace(c.Query("userId")), limit)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"documents": documents})
-	})
-}

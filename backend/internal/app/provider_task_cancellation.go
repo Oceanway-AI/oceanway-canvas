@@ -72,15 +72,15 @@ func (s *Service) requestProviderCancellation(ctx context.Context, task *model.T
 		return err
 	}
 	if task.ProviderRequestID == "" {
-		return s.markProviderCancellationUncertain(task, "上游未返回任务 ID，无法发送取消请求，费用待核对")
+		return s.markProviderCancellationUncertain(task, "上游未返回任务 ID，无法发送取消请求")
 	}
 
 	input, err := s.providerCancellationInput(task)
 	if err != nil {
-		return s.markProviderCancellationUncertain(task, "读取上游取消配置失败，费用待核对："+err.Error())
+		return s.markProviderCancellationUncertain(task, "读取上游取消配置失败："+err.Error())
 	}
 	if !s.supportsProviderCancellation(input.Config.InterfaceType) {
-		return s.markProviderCancellationUncertain(task, "当前上游协议不支持取消，费用待核对")
+		return s.markProviderCancellationUncertain(task, "当前上游协议不支持取消")
 	}
 
 	requestCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
@@ -89,20 +89,19 @@ func (s *Service) requestProviderCancellation(ctx context.Context, task *model.T
 	requestTask.InputJSON = mustJSON(input)
 	requestCtx = withProviderRequestKind(withProviderAnalytics(requestCtx, s, requestTask), "cancel")
 	if err := s.cancelProviderTask(requestCtx, input, task.ProviderRequestID); err != nil {
-		return s.markProviderCancellationUncertain(task, "上游取消请求结果不明确，费用待核对："+safeProviderLogError(err))
+		return s.markProviderCancellationUncertain(task, "上游取消请求结果不明确："+safeProviderLogError(err))
 	}
 	_ = s.log(task.UserID, task.ID, "info", "已请求上游取消，等待供应商确认", task.ProviderRequestID)
 	return nil
 }
 
 func (s *Service) reconcileProviderCancellation(ctx context.Context, task *model.Task) error {
-	billing := s.taskBilling()
 	if task.ProviderCancelAttempts >= providerCancellationMaxAttempts {
-		return s.markProviderCancellationUncertain(task, "上游取消状态长时间未确认，费用待核对")
+		return s.markProviderCancellationUncertain(task, "上游取消状态长时间未确认")
 	}
 	input, err := s.providerCancellationInput(task)
 	if err != nil {
-		return s.markProviderCancellationUncertain(task, "读取上游对账配置失败，费用待核对："+err.Error())
+		return s.markProviderCancellationUncertain(task, "读取上游任务配置失败："+err.Error())
 	}
 	queryTask := *task
 	queryTask.InputJSON = mustJSON(input)
@@ -110,7 +109,7 @@ func (s *Service) reconcileProviderCancellation(ctx context.Context, task *model
 	outcome, providerStatus, err := s.queryProviderCancellation(queryCtx, input, task.ProviderRequestID)
 	if err != nil {
 		if task.ProviderCancelAttempts >= providerCancellationMaxAttempts-1 {
-			return s.markProviderCancellationUncertain(task, "连续查询上游取消状态失败，费用待核对："+safeProviderLogError(err))
+			return s.markProviderCancellationUncertain(task, "连续查询上游取消状态失败："+safeProviderLogError(err))
 		}
 		next := time.Now().Add(30 * time.Second)
 		return s.repo.UpdateTaskProviderCancellation(task.ID, model.ProviderCancelStatusRequested, model.ProviderCancelStatusRequested, safeProviderLogError(err), &next, nil)
@@ -118,36 +117,19 @@ func (s *Service) reconcileProviderCancellation(ctx context.Context, task *model
 
 	switch outcome {
 	case providerCancellationConfirmed:
-		if err := billing.RefundBilling(task.BillingOrderID, "上游已确认取消"); err != nil {
-			return s.deferProviderCancellation(task, "上游已取消，但积分退回失败："+err.Error())
-		}
 		now := time.Now()
 		if err := s.repo.UpdateTaskProviderCancellation(task.ID, model.ProviderCancelStatusRequested, model.ProviderCancelStatusConfirmed, "", nil, &now); err != nil {
 			return err
 		}
-		_ = s.log(task.UserID, task.ID, "info", "上游已确认取消，积分已退回", providerStatus)
+		_ = s.log(task.UserID, task.ID, "info", "上游已确认取消", providerStatus)
 	case providerCancellationSucceeded:
-		errorText := "取消请求发出前上游已完成，费用已结算"
-		var billingErr error
-		if err := billing.SettleBilling(task.BillingOrderID, task.ProviderRequestID); err != nil {
-			errorText = "取消请求发出前上游已完成，但费用结算失败，需人工核对：" + err.Error()
-			billingErr = fmt.Errorf("取消确认后的计费结算失败：%w", err)
-			if uncertainErr := billing.MarkBillingUncertain(task.BillingOrderID, errorText); uncertainErr != nil {
-				billingErr = errors.Join(billingErr, fmt.Errorf("记录取消确认后的计费待核对状态失败：%w", uncertainErr))
-			}
-		}
+		errorText := "取消请求发出前上游已完成"
 		if err := s.repo.UpdateTaskProviderCancellation(task.ID, model.ProviderCancelStatusRequested, model.ProviderCancelStatusUncertain, errorText, nil, nil); err != nil {
 			return err
 		}
 		_ = s.log(task.UserID, task.ID, "warn", "上游任务在取消确认前已完成", providerStatus)
-		if billingErr != nil {
-			return billingErr
-		}
 	case providerCancellationFailed:
-		errorText := "上游任务已失败，取消状态无法确认，积分已退回"
-		if err := billing.RefundBilling(task.BillingOrderID, errorText); err != nil {
-			return s.deferProviderCancellation(task, "上游任务已失败，但积分退回失败："+err.Error())
-		}
+		errorText := "上游任务已失败，取消状态无法确认"
 		if err := s.repo.UpdateTaskProviderCancellation(task.ID, model.ProviderCancelStatusRequested, model.ProviderCancelStatusUncertain, errorText, nil, nil); err != nil {
 			return err
 		}
@@ -159,18 +141,9 @@ func (s *Service) reconcileProviderCancellation(ctx context.Context, task *model
 	return nil
 }
 
-func (s *Service) deferProviderCancellation(task *model.Task, errorText string) error {
-	next := time.Now().Add(30 * time.Second)
-	return s.repo.UpdateTaskProviderCancellation(task.ID, model.ProviderCancelStatusRequested, model.ProviderCancelStatusRequested, truncateRunes(errorText, 1000), &next, nil)
-}
-
 func (s *Service) markProviderCancellationUncertain(task *model.Task, errorText string) error {
 	message := truncateRunes(errorText, 1000)
 	if err := s.repo.UpdateTaskProviderCancellation(task.ID, model.ProviderCancelStatusRequested, model.ProviderCancelStatusUncertain, message, nil, nil); err != nil {
-		return err
-	}
-	if err := s.taskBilling().MarkBillingUncertain(task.BillingOrderID, message); err != nil {
-		_ = s.log(task.UserID, task.ID, "error", "上游取消已转入人工核对，但计费状态更新失败", err.Error())
 		return err
 	}
 	_ = s.log(task.UserID, task.ID, "warn", "上游取消无法确认", message)
@@ -199,7 +172,7 @@ func supportsProviderCancellation(interfaceType string) bool {
 }
 
 // supportsProviderCancellation 在手写协议之外，也接受分离式回查且声明了 cancel 的声明式插件：
-// cancel 发出取消，poll 的状态映射确认上游是否真的取消（确认后才退积分）。
+// cancel 发出取消，poll 的状态映射确认上游是否真的取消。
 // 其他声明了 cancel 的插件（如 OpenAI Videos 的 DELETE 实为删除）语义未逐一核实，暂不启用。
 func (s *Service) supportsProviderCancellation(interfaceType string) bool {
 	if supportsProviderCancellation(interfaceType) {

@@ -7,8 +7,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"yingce/backend/internal/model"
 )
 
 func TestProviderTaskRecoveryContextSurvivesClientCancellation(t *testing.T) {
@@ -26,34 +24,6 @@ func TestProviderTaskRecoveryContextSurvivesClientCancellation(t *testing.T) {
 	}
 	if _, ok := recovery.Deadline(); !ok {
 		t.Fatal("recovery context has no bounded deadline")
-	}
-}
-
-func TestSettleRecoveredBillingIsIdempotent(t *testing.T) {
-	tests := []struct {
-		name        string
-		status      model.BillingStatus
-		wantSettle  int
-		wantRestore int
-	}{
-		{name: "settled", status: model.BillingStatusSettled},
-		{name: "running", status: model.BillingStatusRunning, wantSettle: 1},
-		{name: "refunded", status: model.BillingStatusRefunded, wantRestore: 1},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			repo := &taskBillingRepositoryStub{order: &model.BillingOrder{Status: tt.status}}
-			svc := &Service{taskBillingCoordinator: newTaskBillingCoordinator(repo)}
-			if err := svc.settleRecoveredBilling(&model.Task{BillingOrderID: "order-1"}, "provider-1"); err != nil {
-				t.Fatalf("settleRecoveredBilling() error = %v", err)
-			}
-			if got := len(repo.settleCalls); got != tt.wantSettle {
-				t.Fatalf("settle calls = %d, want %d", got, tt.wantSettle)
-			}
-			if got := len(repo.restoreCalls); got != tt.wantRestore {
-				t.Fatalf("restore calls = %d, want %d", got, tt.wantRestore)
-			}
-		})
 	}
 }
 
@@ -85,37 +55,6 @@ func TestDownloadRemoteResourceEnforcesVideoImportBounds(t *testing.T) {
 	}
 	if _, err := downloadRemoteResource("file:///tmp/video.mp4", 16); err == nil {
 		t.Fatal("downloadRemoteResource() accepted a non-http URL")
-	}
-}
-
-func TestAdminVideoRecoveryRequiresAdmin(t *testing.T) {
-	service := &Service{}
-	methods := map[string]func(*model.User) error{
-		"query": func(actor *model.User) error {
-			_, err := service.AdminQueryFailedVideoTask(context.Background(), actor, "log-1", "provider-1")
-			return err
-		},
-		"url": func(actor *model.User) error {
-			_, err := service.AdminRecoverVideoByURL(context.Background(), actor, "log-1", "https://example.com/video.mp4", "provider-1")
-			return err
-		},
-		"batch": func(actor *model.User) error {
-			_, err := service.AdminBatchQueryFailedVideoTasks(context.Background(), actor, []string{"log-1"})
-			return err
-		},
-	}
-	actors := map[string]*model.User{
-		"anonymous":     nil,
-		"ordinary user": {},
-	}
-	for actorName, actor := range actors {
-		for methodName, invoke := range methods {
-			t.Run(actorName+"/"+methodName, func(t *testing.T) {
-				if err := invoke(actor); err == nil {
-					t.Fatalf("recovery method %q accepted %s actor", methodName, actorName)
-				}
-			})
-		}
 	}
 }
 

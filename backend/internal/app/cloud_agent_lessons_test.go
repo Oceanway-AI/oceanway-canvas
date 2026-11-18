@@ -118,40 +118,6 @@ func TestAgentLessonStoresSteps(t *testing.T) {
 	}
 }
 
-func TestAgentLessonAdminViewExposesParsedSteps(t *testing.T) {
-	s, db, _, _ := creationTestService(t)
-	if sqlDB, err := db.DB(); err == nil {
-		t.Cleanup(func() { _ = sqlDB.Close() })
-	}
-	now := time.Now()
-	entry := &model.AgentLesson{
-		ID: newID(), Topic: "canvas.snapshot-hash", Category: "canvas", Situation: "连续写画布时报快照过期",
-		Lesson: "每次写成功后用返回的新 snapshotHash", StepsJSON: `[{"tool":"canvas_apply_ops","action":"写画布","note":"先读后写"}]`,
-		Status: model.AgentLessonStatusPending, AuthorUserID: "user-a",
-		LastVerifiedAt: &now, CreatedAt: now, UpdatedAt: now,
-	}
-	if err := s.repo.Create(entry); err != nil {
-		t.Fatal(err)
-	}
-	views, err := s.AdminAgentLessons("pending", "", "", 10)
-	if err != nil || len(views) != 1 {
-		t.Fatalf("管理端应看到待审条目：%+v（%v）", views, err)
-	}
-	if views[0].AuthorUserID != "user-a" {
-		t.Fatalf("管理端必须能看到作者以便追责：%+v", views[0])
-	}
-	if len(views[0].Steps) != 1 || views[0].Steps[0].Tool != "canvas_apply_ops" || views[0].Steps[0].Note != "先读后写" {
-		t.Fatalf("管理端必须能看到解析后的路线，不能被 json:\"-\" 藏掉：%+v", views[0].Steps)
-	}
-	raw, err := json.Marshal(views[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(raw), `"steps"`) || !strings.Contains(string(raw), "canvas_apply_ops") {
-		t.Fatalf("管理端 JSON 必须带 steps：%s", raw)
-	}
-}
-
 func TestAgentLessonUpsertDeduplicates(t *testing.T) {
 	repo := agentLessonTestRepo(t)
 	makeEntry := func(userID string) *model.AgentLesson {
@@ -318,42 +284,6 @@ func TestUserAgentMemoryExportImport(t *testing.T) {
 	}
 	if _, err := s.ImportUserAgentMemories("user-a", AgentMemoryBundle{Kind: "not-memories", Memories: bundle.Memories}); err == nil {
 		t.Fatal("错误 kind 必须拒绝")
-	}
-}
-
-func TestAdminAgentLessonsFiltersByUser(t *testing.T) {
-	s, db, _, _ := creationTestService(t)
-	if sqlDB, err := db.DB(); err == nil {
-		t.Cleanup(func() { _ = sqlDB.Close() })
-	}
-	now := time.Now()
-	for _, userID := range []string{"user-a", "user-b"} {
-		entry := &model.AgentLesson{
-			ID: newID(), Topic: "canvas.snapshot-hash-" + userID, Category: "canvas", Situation: "写画布时报快照过期",
-			Lesson: "用返回的新 snapshotHash", Status: model.AgentLessonStatusApproved, AuthorUserID: userID,
-			CreatedAt: now, UpdatedAt: now, LastVerifiedAt: &now,
-		}
-		if err := s.repo.Create(entry); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := s.repo.Create(&model.User{ID: "user-a", Username: "alice", DisplayName: "爱丽丝"}); err != nil {
-		t.Fatal(err)
-	}
-	filtered, err := s.AdminAgentLessons("", "user-a", "", 20)
-	if err != nil || len(filtered) != 1 || filtered[0].AuthorUserID != "user-a" {
-		t.Fatalf("应按用户筛选：%+v（%v）", filtered, err)
-	}
-	if filtered[0].AuthorUsername != "alice" {
-		t.Fatalf("管理端应带上用户名：%+v", filtered[0])
-	}
-	byName, err := s.AdminAgentLessons("", "", "alice", 20)
-	if err != nil || len(byName) != 1 || byName[0].AuthorUserID != "user-a" {
-		t.Fatalf("应按用户名搜索：%+v（%v）", byName, err)
-	}
-	all, err := s.AdminAgentLessons("", "", "", 20)
-	if err != nil || len(all) != 2 {
-		t.Fatalf("不筛选时应看到全部：%d（%v）", len(all), err)
 	}
 }
 

@@ -179,52 +179,6 @@ func RegisterAgentMemoryRoutes(r *gin.RouterGroup, svc *service.Service) {
 	})
 }
 
-func RegisterAgentLessonAdminRoutes(r *gin.RouterGroup, svc *service.Service) {
-	registerAgentMemoryDocumentAdminRoutes(r, svc)
-	admin := r.Group("/admin/agent-lessons")
-
-	admin.GET("", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		if err := svc.RequireAdmin(user); err != nil {
-			failService(c, err)
-			return
-		}
-		limit, _ := strconv.Atoi(c.Query("limit"))
-		lessons, err := svc.AdminAgentLessons(
-			strings.TrimSpace(c.Query("status")),
-			strings.TrimSpace(c.Query("userId")),
-			strings.TrimSpace(c.Query("keyword")),
-			limit,
-		)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"lessons": lessons})
-	})
-
-	admin.DELETE("/:id", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		if err := svc.RequireAdmin(user); err != nil {
-			failService(c, err)
-			return
-		}
-		if err := svc.AdminDeleteAgentLesson(c.Param("id")); err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"id": c.Param("id")})
-	})
-}
-
 func decodeAgentJSON(c *gin.Context, dest any, maxBytes int64) error {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
 	decoder := json.NewDecoder(c.Request.Body)
