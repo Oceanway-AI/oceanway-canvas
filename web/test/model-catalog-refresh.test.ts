@@ -51,6 +51,9 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
     const { setActiveUserScope, scopedLocalStorage, scopedStorageKey } = await import("@/lib/user-scope");
     const { resetRemoteUserDataSync } = await import("@/services/user-data-sync");
     const { appQueryClient } = await import("@/lib/query-client");
+    const { act, createElement } = await import("react");
+    const { createRoot } = await import("react-dom/client");
+    const { ModelPicker } = await import("@/components/model-picker");
     const user = (id: string) => ({ id, username: id, displayName: id, role: "user" as const, status: "active" as const, createdAt: "2026-11-13T00:00:00Z", updatedAt: "2026-11-13T00:00:00Z" });
     const custom = createModelChannel({ id: "custom", name: "Custom", scope: "user", baseUrl: "https://example.test", apiKey: "fixture", models: ["custom-text"] });
     const stale = createModelChannel({ id: "platform", name: "Platform", scope: "system", models: ["stale-model"] });
@@ -201,9 +204,6 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
     });
 
     test.each(["text", "video"] as const)("the mounted %s picker loads its saved selection after each refresh", async (capability) => {
-        const { act, createElement } = await import("react");
-        const { createRoot } = await import("react-dom/client");
-        const { ModelPicker } = await import("@/components/model-picker");
         const fixture = capability === "text" ? textCatalog : mediaCatalog;
         const name = `${capability}-model`;
         loadCatalog = async () => fixture(name);
@@ -265,9 +265,6 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
     });
 
     test("the picker rechecks availability after detail arrives before changing selection", async () => {
-        const { act, createElement } = await import("react");
-        const { createRoot } = await import("react-dom/client");
-        const { ModelPicker } = await import("@/components/model-picker");
         loadCatalog = async () => mediaCatalog("video-model");
         await refreshSystemChannels();
         const response = deferred<unknown>();
