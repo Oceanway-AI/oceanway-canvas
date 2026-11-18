@@ -161,7 +161,7 @@ func studioSchema98DB(t *testing.T) *gorm.DB {
 	if err := MigrateStudioSchema(db); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Delete(&schemaMigration{}, "version = 99").Error; err != nil {
+	if err := db.Delete(&schemaMigration{}, "version >= 99").Error; err != nil {
 		t.Fatal(err)
 	}
 	for _, table := range []string{"resources", "resource_deletion_jobs"} {
@@ -169,11 +169,21 @@ func studioSchema98DB(t *testing.T) *gorm.DB {
 			t.Fatal(err)
 		}
 	}
+	if err := db.Exec("ALTER TABLE ecommerce_agent_runs ADD COLUMN billing_order_id text, ADD COLUMN unit_microcredits bigint").Error; err != nil {
+		t.Fatal(err)
+	}
 	return db
 }
 
 func TestStudioSchema98StorageUpgradePreservesCreativeData(t *testing.T) {
 	db := studioSchema98DB(t)
+	run := model.EcommerceAgentRun{ID: "creative-run", UserID: "101", IdempotencyKey: "creative-run", Status: "done", PageCount: 3, SuccessPages: 2, CanvasJSON: "{}"}
+	if err := db.Create(&run).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("UPDATE ecommerce_agent_runs SET billing_order_id = 'retired-order', unit_microcredits = 42000").Error; err != nil {
+		t.Fatal(err)
+	}
 	resource := model.Resource{ID: "platform-file", UserID: "101", Provider: "platform", Status: model.ResourceStatusReady, Size: 42}
 	if err := db.Create(&resource).Error; err != nil {
 		t.Fatal(err)
@@ -196,6 +206,10 @@ func TestStudioSchema98StorageUpgradePreservesCreativeData(t *testing.T) {
 	wg.Wait()
 	if err := RequireStudioSchemaVersion(db); err != nil {
 		t.Fatal(err)
+	}
+	var storedRun model.EcommerceAgentRun
+	if err := db.First(&storedRun, "id = ?", run.ID).Error; err != nil || storedRun.Status != run.Status || storedRun.SuccessPages != run.SuccessPages || storedRun.IdempotencyKey != run.IdempotencyKey {
+		t.Fatalf("changed creative run: %#v, %v", storedRun, err)
 	}
 	var stored model.Resource
 	if err := db.First(&stored, "id = ?", resource.ID).Error; err != nil || stored.UserID != resource.UserID || stored.Size != resource.Size {

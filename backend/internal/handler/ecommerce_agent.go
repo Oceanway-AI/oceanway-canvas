@@ -19,9 +19,6 @@ func ecommerceAgentFailure(c *gin.Context, err error) {
 	var ae *app.EcommerceAgentError
 	if errors.As(err, &ae) {
 		status := http.StatusBadRequest
-		if ae.Code == "INSUFFICIENT_CREDITS" {
-			status = http.StatusPaymentRequired
-		}
 		if ae.Code == "UPSTREAM_ERROR" {
 			status = http.StatusBadGateway
 		}
@@ -39,25 +36,7 @@ func ecommerceAgentFailure(c *gin.Context, err error) {
 }
 
 func RegisterEcommerceAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
-	r.POST("/agent/quote", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 32<<10)
-		var req ecommerceagent.Request
-		if err := c.ShouldBindJSON(&req); err != nil {
-			fail(c, http.StatusBadRequest, err)
-			return
-		}
-		quote, err := svc.QuoteEcommerceAgent(user.ID, req)
-		if err != nil {
-			ecommerceAgentFailure(c, err)
-			return
-		}
-		ok(c, quote)
-	})
+	r.POST("/agent/quote", StudioUnavailableRoute)
 	r.POST("/agent/analyze", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

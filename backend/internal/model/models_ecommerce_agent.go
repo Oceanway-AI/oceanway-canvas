@@ -10,31 +10,27 @@ type EcommerceAgentAnalysis struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
-// EcommerceAgentRun is a durable, owner-scoped generation receipt. A run owns
-// its page records and one existing billing order; the idempotency key is
-// unique per user, including when the caller did not supply one.
+// EcommerceAgentRun owns persisted page results and a per-user idempotency key.
 type EcommerceAgentRun struct {
-	ID               string     `json:"id" gorm:"primaryKey;size:36"`
-	UserID           string     `json:"-" gorm:"size:36;not null;uniqueIndex:idx_ecommerce_agent_user_key,priority:1;index"`
-	IdempotencyKey   string     `json:"-" gorm:"size:160;not null;uniqueIndex:idx_ecommerce_agent_user_key,priority:2"`
-	ProjectID        string     `json:"projectId" gorm:"size:36;index"`
-	BillingOrderID   string     `json:"-" gorm:"size:36;index"`
-	Status           string     `json:"status" gorm:"size:24;index"`
-	Mode             string     `json:"mode" gorm:"size:12"`
-	Platform         string     `json:"platform" gorm:"size:48"`
-	Language         string     `json:"language" gorm:"size:48"`
-	GenerateType     int        `json:"generateType"`
-	PageCount        int        `json:"pageCount"`
-	SuccessPages     int        `json:"successPages"`
-	CancelRequested  bool       `json:"cancelRequested" gorm:"not null;default:false"`
-	UnitMicrocredits int64      `json:"unitMicrocredits"`
-	BriefJSON        string     `json:"-" gorm:"type:text"`
-	CopyJSON         string     `json:"-" gorm:"type:text"`
-	CanvasJSON       string     `json:"-" gorm:"type:jsonb"`
-	ErrorCode        string     `json:"errorCode,omitempty" gorm:"size:48"`
-	CreatedAt        time.Time  `json:"createdAt"`
-	UpdatedAt        time.Time  `json:"updatedAt"`
-	FinishedAt       *time.Time `json:"finishedAt,omitempty"`
+	ID              string     `json:"id" gorm:"primaryKey;size:36"`
+	UserID          string     `json:"-" gorm:"size:36;not null;uniqueIndex:idx_ecommerce_agent_user_key,priority:1;index"`
+	IdempotencyKey  string     `json:"-" gorm:"size:160;not null;uniqueIndex:idx_ecommerce_agent_user_key,priority:2"`
+	ProjectID       string     `json:"projectId" gorm:"size:36;index"`
+	Status          string     `json:"status" gorm:"size:24;index"`
+	Mode            string     `json:"mode" gorm:"size:12"`
+	Platform        string     `json:"platform" gorm:"size:48"`
+	Language        string     `json:"language" gorm:"size:48"`
+	GenerateType    int        `json:"generateType"`
+	PageCount       int        `json:"pageCount"`
+	SuccessPages    int        `json:"successPages"`
+	CancelRequested bool       `json:"cancelRequested" gorm:"not null;default:false"`
+	BriefJSON       string     `json:"-" gorm:"type:text"`
+	CopyJSON        string     `json:"-" gorm:"type:text"`
+	CanvasJSON      string     `json:"-" gorm:"type:jsonb"`
+	ErrorCode       string     `json:"errorCode,omitempty" gorm:"size:48"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+	FinishedAt      *time.Time `json:"finishedAt,omitempty"`
 }
 
 type EcommerceAgentPage struct {

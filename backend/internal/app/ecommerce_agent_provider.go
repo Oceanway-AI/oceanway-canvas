@@ -361,7 +361,7 @@ func (s *Service) ecommerceChatJSON(ctx context.Context, cfg ecommerceProviderCo
 	return ecommerceParseJSON(response.Choices[0].Message.Content, out)
 }
 
-func ecommerceImage(ctx context.Context, cfg ecommerceProviderConfig, taskID, prompt, ratio, mime string, reference []byte, estimatedCostMicrocredits int64) ([]byte, string, error) {
+func ecommerceImage(ctx context.Context, cfg ecommerceProviderConfig, taskID, prompt, ratio, mime string, reference []byte) ([]byte, string, error) {
 	size, err := ecommerceImageSize(cfg, ratio)
 	if err != nil {
 		return nil, "", err
@@ -425,7 +425,7 @@ func ecommerceImage(ctx context.Context, cfg ecommerceProviderConfig, taskID, pr
 	if len(response.Data) == 0 {
 		return nil, "", errors.New("图像模型未返回图片")
 	}
-	slog.Info("ecommerce agent image", "taskId", taskID, "model", cfg.ImageModel, "tokens", response.Usage.Total, "latencyMs", time.Since(start).Milliseconds(), "estimatedCostMicrocredits", estimatedCostMicrocredits)
+	slog.Info("ecommerce agent image", "taskId", taskID, "model", cfg.ImageModel, "tokens", response.Usage.Total, "latencyMs", time.Since(start).Milliseconds())
 	if response.Data[0].B64 != "" {
 		raw, err := base64.StdEncoding.DecodeString(response.Data[0].B64)
 		return raw, "", err

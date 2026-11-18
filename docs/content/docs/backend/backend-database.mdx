@@ -5,13 +5,15 @@ description: Studio PostgreSQL 业务表、Platform 主体与清理边界
 
 # 后端数据库
 
-## Studio 结构基线 v99
+## Studio 结构基线 v100
 
 开发、测试和部署统一使用 PostgreSQL。`database.Open` 默认使用 `postgres`，必须配置 `DATABASE_URL`，其他驱动直接拒绝。Redis 用于限流、并发槽位和跨实例协调，启动必须配置 `REDIS_URL`。数据目录保存技能包、临时媒体和加密设置密钥。
 
-`MigrateStudioSchema` 从空库建立 `StudioModels()` 中的业务表，登记版本 98 `studio_platform_identity` 和版本 99 `studio_platform_storage`。已发布的 v98 可通过 `migrate-schema up` 升级，迁移使用 PostgreSQL 事务与 advisory lock，重复执行校验完整版本链和 checksum。服务启动和 ready 检查要求 v99。下文旧版本编号用于字段溯源。
+`MigrateStudioSchema` 从空库建立 `StudioModels()` 中的业务表，登记版本 98 `studio_platform_identity`、版本 99 `studio_platform_storage` 和版本 100 `studio_platform_commercial_fields`。已发布的 v98 可通过 `migrate-schema up` 升级，迁移使用 PostgreSQL 事务与 advisory lock，重复执行校验完整版本链和 checksum。服务启动和 ready 检查要求 v100。下文旧版本编号用于字段溯源。
 
 v99 移除 `resources` 和 `resource_deletion_jobs` 的 `endpoint`、`bucket`、`storage_setting_id` 六列。迁移前检查独立存储 provider 和非空旧位置，发现历史对象时停止并保留整个原事务。Platform 素材继续使用固定 Resource／Binding ID，系统本地清理任务继续使用 ObjectKey。迁移失败可修复原因后重入。旧 v98 制品无法使用 v99 数据库，回退到 v98 需恢复配套备份；在线回退须选择支持 v99 的制品。
+
+v100 移除 `ecommerce_agent_runs` 的 `billing_order_id`、`unit_microcredits`。电商创作保留页结果、取消状态、画布版本和用户幂等键，费用交由 Platform。旧结构制品不能直接连接 v100 数据库，回退需采用支持 v100 的制品或恢复对应备份。
 
 | 范围 | 当前持久化边界 |
 | --- | --- |
@@ -43,7 +45,7 @@ go run ./cmd/migrate-schema reset-studio --apply
 go run ./cmd/migrate-schema status
 ```
 
-清理前停止 Studio 实例。执行顺序为读取并校验 Platform binding、释放产品引用、释放原执行授权、删除已登记的 Studio 表、建立 v99。操作只释放本产品绑定和委托，Platform 账号、账务与素材原件由 Platform 管理。
+清理前停止 Studio 实例。执行顺序为读取并校验 Platform binding、释放产品引用、释放原执行授权、删除已登记的 Studio 表、建立 v100。操作只释放本产品绑定和委托，Platform 账号、账务与素材原件由 Platform 管理。
 
 `studio_reset_releases` 记录已确认的释放项。远端响应未知或释放失败时，业务表保留，成功项提交到日志，重入继续处理剩余项。缺少有效素材委托时需原用户刷新授权，缺少原密钥时停止清理。旧 UUID 推导仅用于离线核对原数据所属 Platform Origin。
 

@@ -49,22 +49,22 @@ func TestEcommerceAgentImageEditSendsReferenceAndSupportedSize(t *testing.T) {
 	}))
 	defer server.Close()
 	cfg := ecommerceProviderConfig{ImageBaseURL: server.URL, ImageKey: "server-key", ImageModel: "gpt-image-1", ImageTimeout: time.Second}
-	got, upstreamURL, err := ecommerceImage(context.Background(), cfg, "test-task", "faithful product", "9:16", "image/png", pngBody.Bytes(), 32000)
+	got, upstreamURL, err := ecommerceImage(context.Background(), cfg, "test-task", "faithful product", "9:16", "image/png", pngBody.Bytes())
 	if err != nil || upstreamURL != "" || !bytes.Equal(got, pngBody.Bytes()) {
 		t.Fatalf("image result bytes=%d url=%q err=%v", len(got), upstreamURL, err)
 	}
 	cfg.ImageProvider = &providerConfig{BaseURL: server.URL + "/v1", APIKey: "server-key", APIFormat: "openai", Model: "gpt-image-1"}
-	got, upstreamURL, err = ecommerceImage(context.Background(), cfg, "test-task", "faithful product", "9:16", "image/png", pngBody.Bytes(), 32000)
+	got, upstreamURL, err = ecommerceImage(context.Background(), cfg, "test-task", "faithful product", "9:16", "image/png", pngBody.Bytes())
 	if err != nil || upstreamURL != "" || !bytes.Equal(got, pngBody.Bytes()) {
 		t.Fatalf("existing provider transport: bytes=%d url=%q err=%v", len(got), upstreamURL, err)
 	}
 	wantSize = "1024x1824"
 	cfg.ImageProvider.CapabilityConfig = &ModelCapabilityConfig{Image: &ImageCapabilityConfig{Size: ImageSizeConfig{Presets: []ImageSizePreset{{Tier: "1k", Ratio: "9:16", Size: wantSize, Width: 1024, Height: 1824}}, DefaultTier: "1k"}}}
-	got, upstreamURL, err = ecommerceImage(context.Background(), cfg, "test-task", "faithful product", "9:16", "image/png", pngBody.Bytes(), 32000)
+	got, upstreamURL, err = ecommerceImage(context.Background(), cfg, "test-task", "faithful product", "9:16", "image/png", pngBody.Bytes())
 	if err != nil || upstreamURL != "" || !bytes.Equal(got, pngBody.Bytes()) {
 		t.Fatalf("channel size preset: bytes=%d url=%q err=%v", len(got), upstreamURL, err)
 	}
-	if _, _, err := ecommerceImage(context.Background(), cfg, "test-task", "faithful product", "16:9", "image/png", pngBody.Bytes(), 32000); err == nil {
+	if _, _, err := ecommerceImage(context.Background(), cfg, "test-task", "faithful product", "16:9", "image/png", pngBody.Bytes()); err == nil {
 		t.Fatal("unsupported channel aspect ratio was sent upstream")
 	}
 }

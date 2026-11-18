@@ -29,13 +29,10 @@ func mockEcommerceAgentService(t *testing.T) (*Service, *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = db.AutoMigrate(&model.SystemSetting{}, &model.ModelChannel{}, &model.ChannelModel{}, &model.Resource{}, &model.CreditAccount{}, &model.CreditLedgerEntry{}, &model.BillingOrder{}, &model.EcommerceProject{}, &model.EcommerceAgentAnalysis{}, &model.EcommerceAgentRun{}, &model.EcommerceAgentPage{}, &model.EcommerceAgentCanvasVersion{}, &model.User{}, &model.UserGroup{}, &model.UserGroupChannel{}, &model.EcommerceKnowledgeSource{}, &model.EcommerceKnowledgeEntry{}); err != nil {
+	if err = db.AutoMigrate(&model.SystemSetting{}, &model.ModelChannel{}, &model.ChannelModel{}, &model.Resource{}, &model.EcommerceProject{}, &model.EcommerceAgentAnalysis{}, &model.EcommerceAgentRun{}, &model.EcommerceAgentPage{}, &model.EcommerceAgentCanvasVersion{}, &model.User{}, &model.UserGroup{}, &model.UserGroupChannel{}, &model.EcommerceKnowledgeSource{}, &model.EcommerceKnowledgeEntry{}); err != nil {
 		t.Fatal(err)
 	}
 	if err = db.Create(&model.User{ID: "owner", Username: "owner"}).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err = db.Create(&model.CreditAccount{UserID: "owner", AvailableMicrocredits: 1_000_000}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Create(&model.SystemSetting{Key: featureAvailabilitySettingKey, ValueJSON: `{"ecommerceEnabled":true,"imageWorkbenchEnabled":true}`}).Error; err != nil {
@@ -203,22 +200,14 @@ func TestEcommerceAgentMockFullChainAndReplay(t *testing.T) {
 	if images != 5 {
 		t.Fatalf("images=%d", images)
 	}
-	account, _ := svc.repo.CreditAccount("owner")
-	if account.AvailableMicrocredits != 840_000 || account.ReservedMicrocredits != 0 {
-		t.Fatalf("account=%+v", account)
-	}
 	replayed := make([]ecommerceagent.Event, 0)
 	other, err := svc.GenerateEcommerceAgent(context.Background(), "owner", req, func(e ecommerceagent.Event) error { replayed = append(replayed, e); return nil })
 	if err != nil || other.Run.ID != view.Run.ID || len(replayed) != 7 {
 		t.Fatalf("replay=%+v events=%d err=%v", other, len(replayed), err)
 	}
-	account, _ = svc.repo.CreditAccount("owner")
-	if account.AvailableMicrocredits != 840_000 {
-		t.Fatal("replay deducted credit")
-	}
 }
 
-func TestEcommerceAgentDisconnectRefundsUndeliveredPages(t *testing.T) {
+func TestEcommerceAgentDisconnectPreservesDeliveredPages(t *testing.T) {
 	svc, _ := mockEcommerceAgentService(t)
 	req := mockEcommerceRequest()
 	req.IdempotencyKey = "disconnect"
@@ -246,13 +235,9 @@ func TestEcommerceAgentDisconnectRefundsUndeliveredPages(t *testing.T) {
 	if view.Run.SuccessPages != 3 || view.Run.Status != "failed" {
 		t.Fatalf("run=%+v", view.Run)
 	}
-	account, _ := svc.repo.CreditAccount("owner")
-	if account.AvailableMicrocredits != 904_000 || account.ReservedMicrocredits != 0 {
-		t.Fatalf("partial refund=%+v", account)
-	}
 }
 
-func TestEcommerceAgentCancelRecordsRemainingPagesAndRefunds(t *testing.T) {
+func TestEcommerceAgentCancelRecordsRemainingPages(t *testing.T) {
 	svc, _ := mockEcommerceAgentService(t)
 	req := mockEcommerceRequest()
 	req.IdempotencyKey = "cancel-partial"
@@ -287,14 +272,9 @@ func TestEcommerceAgentCancelRecordsRemainingPagesAndRefunds(t *testing.T) {
 			t.Fatalf("unfinished page missing cancellation: %+v", page)
 		}
 	}
-	account, _ := svc.repo.CreditAccount("owner")
-	wantAvailable := int64(1_000_000 - view.Run.SuccessPages*32_000)
-	if account.AvailableMicrocredits != wantAvailable || account.ReservedMicrocredits != 0 {
-		t.Fatalf("partial cancellation account=%+v want available=%d", account, wantAvailable)
-	}
 }
 
-func TestEcommerceAgentTimeoutRecordsAllPagesAndRefunds(t *testing.T) {
+func TestEcommerceAgentTimeoutRecordsAllPages(t *testing.T) {
 	svc, _ := mockEcommerceAgentService(t)
 	t.Setenv("GENERATE_TIMEOUT_MS", "1000")
 	req := mockEcommerceRequest()
@@ -321,9 +301,5 @@ func TestEcommerceAgentTimeoutRecordsAllPagesAndRefunds(t *testing.T) {
 		if page.Status != "failed" || page.Error != "MODEL_TIMEOUT" {
 			t.Fatalf("unfinished page missing timeout: %+v", page)
 		}
-	}
-	account, _ := svc.repo.CreditAccount("owner")
-	if account.AvailableMicrocredits != 1_000_000 || account.ReservedMicrocredits != 0 {
-		t.Fatalf("timeout refund=%+v", account)
 	}
 }

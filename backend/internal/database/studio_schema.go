@@ -11,11 +11,16 @@ import (
 )
 
 // The Studio baseline never replays the retired account and commercial migrations.
-const CurrentStudioSchemaVersion int64 = 99
+const CurrentStudioSchemaVersion int64 = 100
 
 var studioMigrations = []migration{
 	{version: 98, name: "studio_platform_identity", checksum: "sha256:studio-platform-identity-v98-20261118"},
 	{version: 99, name: "studio_platform_storage", checksum: "sha256:studio-platform-storage-v99-20261118"},
+	{version: 100, name: "studio_platform_commercial_fields", checksum: "sha256:studio-platform-commercial-fields-v100-20261118"},
+}
+
+var retiredStudioCommercialColumns = map[string][]string{
+	"ecommerce_agent_runs": {"billing_order_id", "unit_microcredits"},
 }
 
 func StudioModels() []any {
@@ -146,6 +151,20 @@ func MigrateStudioSchema(db *gorm.DB) error {
 						return err
 					}
 				}
+				if status.Current < 100 {
+					for table, columns := range retiredStudioCommercialColumns {
+						for _, column := range columns {
+							if tx.Migrator().HasColumn(table, column) {
+								if err := tx.Migrator().DropColumn(table, column); err != nil {
+									return err
+								}
+							}
+						}
+					}
+					if err := recordStudioMigration(tx, studioMigrations[2]); err != nil {
+						return err
+					}
+				}
 				return RequireStudioSchemaVersion(tx)
 			}
 		}
@@ -249,6 +268,13 @@ func ReadStudioSchemaStatus(db *gorm.DB) (SchemaStatus, error) {
 	}
 	status.Ready = status.Current == status.Expected && len(rows) == len(studioMigrations)
 	if status.Ready {
+		for table, columns := range retiredStudioCommercialColumns {
+			for _, column := range columns {
+				if db.Migrator().HasColumn(table, column) {
+					return status, fmt.Errorf("Studio 数据库仍包含退出字段 %s.%s", table, column)
+				}
+			}
+		}
 		for _, table := range []string{"resources", "resource_deletion_jobs"} {
 			for _, column := range []string{"endpoint", "bucket", "storage_setting_id"} {
 				if db.Migrator().HasColumn(table, column) {

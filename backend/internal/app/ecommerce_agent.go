@@ -18,7 +18,6 @@ import (
 	"gorm.io/gorm"
 	"yingce/backend/internal/ecommerceagent"
 	"yingce/backend/internal/model"
-	"yingce/backend/internal/repository"
 )
 
 type EcommerceAgentTaskView struct {
@@ -254,89 +253,6 @@ func (s *Service) HelpWriteEcommerceAgent(ctx context.Context, userID, text, pla
 	return result, nil
 }
 
-func (s *Service) ecommerceAgentOrder(userID, runID, key string, req ecommerceagent.Request, cfg ecommerceProviderConfig, count int) (*model.BillingOrder, int64, error) {
-	if cfg.Mode == "mock" {
-		unit := int64(32000)
-		if req.ModelKey == "gpt-image-2-2K" {
-			unit = 61000
-		}
-		if req.Channel == "premium" {
-			unit = unit * 16 / 10
-		}
-		amount, _, _, chargeErr := ecommerceagent.Charge(unit, count, count)
-		if chargeErr != nil {
-			return nil, 0, chargeErr
-		}
-		modelKey := req.ModelKey
-		if modelKey == "" {
-			modelKey = cfg.ImageModel
-		}
-		order := &model.BillingOrder{ID: newID(), UserID: userID, TaskID: runID, IdempotencyKey: "ecommerce:" + key, Model: modelKey, Capability: "image", Scene: "ecommerce_agent", BillingMode: "fixed_request", UnitPriceMicrocredits: unit, MultiplierBasisPoints: 10000, Quantity: int64(count), AmountMicrocredits: amount, ReservedAmountMicrocredits: amount, Status: model.BillingStatusReserved}
-		return order, unit, nil
-	}
-	channel := req.Channel
-	if channel == "" {
-		channel = "promotion"
-	}
-	channelID := strings.TrimSpace(os.Getenv("ECOMMERCE_" + strings.ToUpper(channel) + "_CHANNEL_ID"))
-	if channelID == "" {
-		return nil, 0, ecommerceErr("INVALID_INPUT", "尚未配置电商出图通道")
-	}
-	modelKey := strings.TrimSpace(req.ModelKey)
-	if modelKey == "" {
-		modelKey = cfg.ImageModel
-	}
-	intent := ModelRequestIntent{Capability: "image", Operation: "image_to_image", Inputs: map[string]int{"image": 1}, Options: map[string]any{}}
-	order, err := s.newBillingOrderWithPriceTier(userID, runID, "ecommerce:"+key, channelID, modelKey, "image", "ecommerce_agent", 1, tokenBillingEstimate{}, "", intent)
-	if err != nil {
-		return nil, 0, err
-	}
-	if order.BillingMode != "fixed_request" || order.AmountMicrocredits <= 0 {
-		return nil, 0, ecommerceErr("INVALID_INPUT", "电商图像模型须配置单次固定积分价格")
-	}
-	unit := order.AmountMicrocredits
-	amount, _, _, chargeErr := ecommerceagent.Charge(unit, count, count)
-	if chargeErr != nil {
-		return nil, 0, chargeErr
-	}
-	order.Quantity = int64(count)
-	order.CostQuantity = int64(count)
-	order.AmountMicrocredits = amount
-	order.ReservedAmountMicrocredits = order.AmountMicrocredits
-	order.ChargeLimitSet = true
-	order.ChargeLimitMicrocredits = order.AmountMicrocredits
-	return order, unit, nil
-}
-
-func (s *Service) QuoteEcommerceAgent(userID string, req ecommerceagent.Request) (map[string]any, error) {
-	if err := s.RequireFeature(FeatureEcommerce); err != nil {
-		return nil, err
-	}
-	if err := s.RequireFeature(FeatureImageWorkbench); err != nil {
-		return nil, err
-	}
-	platform, err := validateEcommerceAgentRequest(req, true)
-	if err != nil {
-		return nil, err
-	}
-	cfg := ecommerceConfig()
-	if cfg.Mode == "live" {
-		cfg, err = s.ecommerceLiveImageConfig(req, cfg)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if cfg.Mode != "live" && cfg.Mode != "mock" {
-		return nil, ecommerceErr("UNAVAILABLE", "电商 Agent 出图尚未配置")
-	}
-	count := len(ecommerceagent.Plan(req.ImageCount, req.GenerateType, platform, nil, ecommerceagent.Brief{}))
-	order, unit, err := s.ecommerceAgentOrder(userID, newID(), newID(), req, cfg, count)
-	if err != nil {
-		return nil, err
-	}
-	return map[string]any{"pageCount": count, "unitMicrocredits": unit, "totalMicrocredits": order.AmountMicrocredits, "modelKey": order.Model, "channel": req.Channel}, nil
-}
-
 func (s *Service) ecommerceLiveImageConfig(req ecommerceagent.Request, cfg ecommerceProviderConfig) (ecommerceProviderConfig, error) {
 	channel := req.Channel
 	if channel == "" {
@@ -410,6 +326,9 @@ func (s *Service) ecommerceAgentGeneratedURL(userID string, data []byte, rawURL,
 }
 
 func (s *Service) GenerateEcommerceAgent(ctx context.Context, userID string, req ecommerceagent.Request, emit func(ecommerceagent.Event) error) (view *EcommerceAgentTaskView, err error) {
+	if s.UsesPlatformIdentity() {
+		return nil, NewAppError(501, "电商批量出图尚未接通平台执行授权")
+	}
 	key := strings.TrimSpace(req.IdempotencyKey)
 	if key != "" {
 		if prior, e := s.repo.EcommerceAgentRunByKey(userID, key); e == nil {
@@ -469,37 +388,11 @@ func (s *Service) GenerateEcommerceAgent(ctx context.Context, userID string, req
 		projectID = newID()
 		project = &model.EcommerceProject{ID: projectID, UserID: userID, Name: analysis.Brief.Category, Status: "draft", DraftJSON: "{}", PlanJSON: "{}", Revision: 1}
 	}
-	order, unit, err := s.ecommerceAgentOrder(userID, runID, key, req, cfg, len(pages))
-	if err != nil {
-		return nil, err
-	}
-	if cfg.Mode == "live" {
-		pricedModel, loadErr := s.repo.ChannelModel(order.ChannelModelID)
-		if loadErr != nil {
-			return nil, loadErr
-		}
-		for _, tier := range pricedModel.PriceTiers {
-			if tier.ID == order.PriceTierID && tier.ProviderModelKey != "" {
-				cfg.ImageModel = tier.ProviderModelKey
-				break
-			}
-		}
-		if cfg.ImageProvider != nil {
-			cfg.ImageProvider.Model = cfg.ImageModel
-		}
-	}
-	run := &model.EcommerceAgentRun{ID: runID, UserID: userID, IdempotencyKey: key, ProjectID: projectID, BillingOrderID: order.ID, Status: "running", Mode: cfg.Mode, Platform: req.Platform, Language: req.Language, GenerateType: req.GenerateType, PageCount: len(pages), UnitMicrocredits: unit}
-	if err = s.repo.CreateEcommerceAgentRun(run, project, order); err != nil {
+	run := &model.EcommerceAgentRun{ID: runID, UserID: userID, IdempotencyKey: key, ProjectID: projectID, Status: "running", Mode: cfg.Mode, Platform: req.Platform, Language: req.Language, GenerateType: req.GenerateType, PageCount: len(pages)}
+	if err = s.repo.CreateEcommerceAgentRun(run, project); err != nil {
 		if prior, e := s.repo.EcommerceAgentRunByKey(userID, key); e == nil {
 			return s.replayEcommerceAgent(userID, prior, emit)
 		}
-		if errors.Is(err, repository.ErrInsufficientCredits) {
-			return nil, ecommerceErr("INSUFFICIENT_CREDITS", "积分不足")
-		}
-		return nil, err
-	}
-	if err = s.repo.MarkBillingRunning(order.ID); err != nil {
-		_, _ = s.repo.FinishEcommerceAgentRun(userID, runID, "failed", "UPSTREAM_ERROR")
 		return nil, err
 	}
 	workCtx, cancel := context.WithTimeout(ctx, cfg.GenerateTimeout)
@@ -535,7 +428,7 @@ func (s *Service) GenerateEcommerceAgent(ctx context.Context, userID string, req
 			_, _ = s.repo.FinishEcommerceAgentRun(userID, runID, status, code)
 		}
 	}()
-	if err = emit(ecommerceagent.Event{Event: "workflow_started", TaskID: runID, ConversationID: projectID, Data: map[string]any{"pageCount": len(pages), "charged": float64(order.AmountMicrocredits) / float64(CreditScale), "mode": cfg.Mode}}); err != nil {
+	if err = emit(ecommerceagent.Event{Event: "workflow_started", TaskID: runID, ConversationID: projectID, Data: map[string]any{"pageCount": len(pages), "mode": cfg.Mode}}); err != nil {
 		return nil, err
 	}
 	if err = emit(ecommerceagent.Event{Event: "node_finished", Data: map[string]any{"step": map[string]string{"name": "vision", "label": "分析商品图"}, "outputs": map[string]any{"answer": analysis.Brief}}}); err != nil {
@@ -593,7 +486,7 @@ func (s *Service) GenerateEcommerceAgent(ctx context.Context, userID string, req
 			if cfg.Mode == "mock" {
 				page.URL = ecommerceagent.MockImage(page, analysis.Brief.Category)
 			} else {
-				data, upstreamURL, e := ecommerceImage(workCtx, cfg, runID, page.Prompt, page.AspectRatio, mime, reference, unit)
+				data, upstreamURL, e := ecommerceImage(workCtx, cfg, runID, page.Prompt, page.AspectRatio, mime, reference)
 				if e == nil {
 					page.URL, e = s.ecommerceAgentGeneratedURL(userID, data, upstreamURL, page.AspectRatio)
 				}
@@ -678,7 +571,7 @@ func (s *Service) GenerateEcommerceAgent(ctx context.Context, userID string, req
 	if err != nil {
 		return nil, err
 	}
-	if err = emit(ecommerceagent.Event{Event: "node_finished", Data: map[string]any{"outputs": map[string]any{"answer": "出图完成", "files": pages}, "posterCanvas": canvas, "brief": analysis.Brief, "copy": copyResult, "pages": pages, "credit": map[string]any{"charged": float64(run.UnitMicrocredits*int64(run.SuccessPages)) / float64(CreditScale)}, "projectId": projectID}}); err != nil {
+	if err = emit(ecommerceagent.Event{Event: "node_finished", Data: map[string]any{"outputs": map[string]any{"answer": "出图完成", "files": pages}, "posterCanvas": canvas, "brief": analysis.Brief, "copy": copyResult, "pages": pages, "projectId": projectID}}); err != nil {
 		return view, err
 	}
 	err = emit(ecommerceagent.Event{Event: "message", Data: map[string]any{"done": true}})
@@ -706,7 +599,7 @@ func (s *Service) replayEcommerceAgent(userID string, run *model.EcommerceAgentR
 	if err != nil {
 		return nil, err
 	}
-	if err = emit(ecommerceagent.Event{Event: "workflow_started", TaskID: run.ID, ConversationID: run.ProjectID, Data: map[string]any{"pageCount": run.PageCount, "charged": float64(run.UnitMicrocredits*int64(run.PageCount)) / float64(CreditScale), "mode": run.Mode, "replayed": true}}); err != nil {
+	if err = emit(ecommerceagent.Event{Event: "workflow_started", TaskID: run.ID, ConversationID: run.ProjectID, Data: map[string]any{"pageCount": run.PageCount, "mode": run.Mode, "replayed": true}}); err != nil {
 		return nil, err
 	}
 	for _, page := range view.Pages {
