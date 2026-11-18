@@ -125,6 +125,7 @@ if (wantWeb) {
 } else skipped.push("Web 检查（没有 web/ 改动）");
 
 if (wantBackend) {
+    tasks.push({ name: "backend:dependency-contract", cwd: ROOT, cmd: "python3", args: ["-B", ".github/scripts/test_check_dependency_tests.py"], weight: 5 });
     if (spawnSync("go", ["version"]).status !== 0) {
         console.error("✗ 有后端改动，但本机没有可用的 go；请安装 backend/go.mod 要求的 Go 版本。");
         process.exit(1);

@@ -4,7 +4,7 @@ import json
 import sys
 
 REQUIRED = {
-    ("database", "TestPostgresAssetIDMigration"),
+    ("database", "TestPostgresStudioAssetIDs"),
     ("canvas", "TestRepairAssetBytesPostgres"),
     ("repository", "TestCanvasRevision"),
     ("platform", "TestRuntimeCoordinatorRedisLeasePreservesLongestTTL"),

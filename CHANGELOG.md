@@ -1,4 +1,6 @@
 # CHANGELOG
+## v2.0.1
+- 发布检查使用当前 PostgreSQL Studio schema 用例，并在本机验证 CI 所需测试名称与源码一致。
 ## v2.0.0
 - OceanWay Studio 使用稳定的 Platform 用户 ID，账号、权限、模型授权、资金与统一素材接入 OceanWay Platform。
 - 退出旧账号、钱包充值、订阅和系统后台入口，任务费用展示 Platform 原始精确金额，账号切换后拒绝旧页面写入。

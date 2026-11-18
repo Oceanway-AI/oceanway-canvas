@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+import re
 import unittest
 
 spec = importlib.util.spec_from_file_location(
@@ -10,6 +11,12 @@ spec.loader.exec_module(check)
 
 
 class DependencyChecks(unittest.TestCase):
+    def test_required_names_exist_in_current_source(self):
+        root = Path(__file__).resolve().parents[2] / "backend" / "internal"
+        for package, name in check.REQUIRED:
+            source = "\n".join(path.read_text() for path in (root / package).glob("*_test.go"))
+            self.assertRegex(source, r"(?m)^func " + re.escape(name) + r"\(t \*testing.T\)", name)
+
     def test_requires_run_and_pass_for_every_exact_name(self):
         events = [
             {"Package": "example/internal/" + package, "Test": name, "Action": action}
