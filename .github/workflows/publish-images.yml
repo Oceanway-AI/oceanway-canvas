@@ -126,6 +126,15 @@ jobs:
         env:
           IMAGE_REF: ${{ env.IMAGE }}:sha-${{ github.sha }}-${{ matrix.arch }}
         run: bash .github/scripts/resolve-image.sh "$IMAGE_REF"
+      - name: Prepare private SDK build credential
+        if: matrix.image == 'open-ai-canvas-backend'
+        env:
+          PLATFORM_SDK_READ_TOKEN: ${{ secrets.PLATFORM_SDK_READ_TOKEN }}
+        shell: bash
+        run: |
+          test -n "$PLATFORM_SDK_READ_TOKEN" || { echo "::error::PLATFORM_SDK_READ_TOKEN is required"; exit 1; }
+          umask 077
+          printf 'machine github.com\nlogin x-access-token\npassword %s\n' "$PLATFORM_SDK_READ_TOKEN" > "$RUNNER_TEMP/github.netrc"
       - name: Build and push immutable commit image
         id: build
         # A version tag is a release boundary: rebuild its image even if a SHA tag
@@ -137,6 +146,7 @@ jobs:
           file: ${{ matrix.dockerfile }}
           platforms: ${{ matrix.platforms }}
           push: true
+          secret-files: ${{ matrix.image == 'open-ai-canvas-backend' && format('github_netrc={0}/github.netrc', runner.temp) || '' }}
           build-args: |
             BUILD_VERSION=${{ needs.prepare.outputs.version }}
             BUILD_COMMIT=${{ github.sha }}
@@ -148,6 +158,9 @@ jobs:
             org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
           cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.arch }}
+      - name: Remove private SDK build credential
+        if: always() && matrix.image == 'open-ai-canvas-backend'
+        run: rm -f "$RUNNER_TEMP/github.netrc"
       - name: Record image digest
         env:
           DIGEST: ${{ steps.existing.outputs.digest || steps.build.outputs.digest }}
@@ -221,8 +234,15 @@ jobs:
           cache-dependency-path: backend/go.sum
       - name: Build Host Updater
         working-directory: backend
+        env:
+          PLATFORM_SDK_READ_TOKEN: ${{ secrets.PLATFORM_SDK_READ_TOKEN }}
+          GOPRIVATE: github.com/Oceanway-AI/*
         shell: bash
         run: |
+          test -n "$PLATFORM_SDK_READ_TOKEN" || { echo "::error::PLATFORM_SDK_READ_TOKEN is required"; exit 1; }
+          umask 077
+          printf 'machine github.com\nlogin x-access-token\npassword %s\n' "$PLATFORM_SDK_READ_TOKEN" > "$HOME/.netrc"
+          trap 'rm -f "$HOME/.netrc"' EXIT
           mkdir -p ../dist
           for arch in amd64 arm64; do
             CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath -ldflags="-s -w" -o "../dist/open-ai-canvas-host-updater-linux-$arch" ./cmd/host-updater
