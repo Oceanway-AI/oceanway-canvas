@@ -37,10 +37,6 @@ export function StudioAccountFinance({ account, loading, retry, returnPath }: { 
             />
             <OceanCreditsCard label={balance?.kind === "member" ? "本人可用积分" : "当前空间积分"} amount={ready ? `✦ ${balance.available_points}` : "—"} details={link("wallet", "查看积分 ›", "ow-shared-account-inline")}>
                 {!ready && <span role="status">{loading ? "正在读取积分" : balance?.state === "restricted" ? "暂无查看权限" : "暂时无法读取积分"}</span>}
-                <div className="ow-shared-account-metric items-center">
-                    <span>可用权益</span>
-                    {link("subscriptions", "查看 ›", "ow-shared-account-inline")}
-                </div>
                 {account?.benefits?.state === "unavailable" && <span role="status">暂时无法读取可用权益</span>}
                 {account?.spending?.state === "ready" && decimal(account.spending.used_points) && (
                     <div className="ow-shared-account-metric">
@@ -49,7 +45,10 @@ export function StudioAccountFinance({ account, loading, retry, returnPath }: { 
                     </div>
                 )}
                 {account?.spending?.state === "unavailable" && <span role="status">暂时无法读取本人用量</span>}
-                {canPurchase && link("recharge", "充值 ›", "ow-shared-account-inline")}
+                <div className="ow-shared-account-metric items-center">
+                    <span>{canPurchase && link("recharge", "充值", "ow-shared-account-inline")}</span>
+                    {link("subscriptions", "可用权益", "ow-shared-account-inline") || <span>可用权益</span>}
+                </div>
             </OceanCreditsCard>
             {(!account || !ready || partialFailure) && (
                 <button type="button" className="ow-shared-account-inline" disabled={loading} onClick={retry}>
