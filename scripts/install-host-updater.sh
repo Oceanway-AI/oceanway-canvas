@@ -77,7 +77,7 @@ ensure_token() {
     fi
     [[ ${#token} -ge 32 ]] || fail "CANVAS_UPDATER_TOKEN 长度不足"
     umask 077
-    printf 'CANVAS_UPDATER_TOKEN=%s\nCANVAS_UPDATER_INSTALL_DIR=%s\nCANVAS_UPDATER_SOCKET=%s/updater.sock\n' "$token" "$INSTALL_DIR" "$SOCKET_DIR" > "$UPDATER_ENV"
+    printf 'CANVAS_UPDATER_TOKEN=%s\nCANVAS_UPDATER_INSTALL_DIR=%s\nCANVAS_UPDATER_SOCKET=%s/updater.sock\nCANVAS_UPDATER_BACKUP_DIR=%s/backups\n' "$token" "$INSTALL_DIR" "$SOCKET_DIR" "$INSTALL_DIR" > "$UPDATER_ENV"
 }
 
 install_service() {

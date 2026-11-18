@@ -657,7 +657,11 @@ func readEnvFile(path string) (map[string]string, error) {
 		}
 		key, value, ok := strings.Cut(line, "=")
 		if ok {
-			values[strings.TrimSpace(key)] = strings.Trim(strings.TrimSpace(value), "\"")
+			value = strings.TrimSpace(value)
+			if len(value) >= 2 && (value[0] == '\'' || value[0] == '"') && value[len(value)-1] == value[0] {
+				value = value[1 : len(value)-1]
+			}
+			values[strings.TrimSpace(key)] = value
 		}
 	}
 	return values, nil
