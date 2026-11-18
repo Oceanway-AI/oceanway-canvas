@@ -1,4 +1,6 @@
 # CHANGELOG
+## v2.0.4
+- Host Updater 将 GitHub 组织名规范为小写镜像命名空间，修复自有仓库受管升级在拉取 GHCR 镜像时失败。
 ## v2.0.3
 - 移除旧 OAC 任务账务、渠道分组、本地价格和 OSS 管理源码及其专属依赖，模型与资金通过 OceanWay Platform 读取和授权。
 - 清理本地账号仓储、积分开关及支付入口残留，技能作者搜索使用业务快照和稳定 Platform 用户 ID。

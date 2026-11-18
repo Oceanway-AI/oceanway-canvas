@@ -16,6 +16,20 @@ type recordingRunner struct {
 	calls [][]string
 }
 
+func TestImmutableImageRefsNormalizeGitHubOwner(t *testing.T) {
+	for _, repository := range []string{"Oceanway-AI/oceanway-canvas", "oceanway-ai/oceanway-canvas"} {
+		images := immutableImageRefs(repository, "v2.0.3")
+		want := deploymentImages{
+			backend: "ghcr.io/oceanway-ai/open-ai-canvas-backend:2.0.3",
+			web:     "ghcr.io/oceanway-ai/open-ai-canvas-web:2.0.3",
+			agent:   "ghcr.io/oceanway-ai/open-ai-canvas-yingce-agent:2.0.3",
+		}
+		if images != want {
+			t.Fatalf("repository %q produced %#v, want %#v", repository, images, want)
+		}
+	}
+}
+
 func (r *recordingRunner) Run(_ context.Context, _ string, args, _ []string, stdout, _ io.Writer) error {
 	r.calls = append(r.calls, append([]string(nil), args...))
 	if stdout != nil {

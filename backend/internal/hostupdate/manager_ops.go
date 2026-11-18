@@ -251,7 +251,7 @@ type deploymentImages struct {
 }
 
 func immutableImageRefs(repository, version string) deploymentImages {
-	owner := strings.SplitN(repository, "/", 2)[0]
+	owner := strings.ToLower(strings.SplitN(repository, "/", 2)[0])
 	tag := strings.TrimPrefix(version, "v")
 	return deploymentImages{
 		backend: "ghcr.io/" + owner + "/open-ai-canvas-backend:" + tag,
