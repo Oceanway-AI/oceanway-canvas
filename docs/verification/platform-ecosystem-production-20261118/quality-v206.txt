@@ -1,0 +1,21 @@
+基准 origin/main @ fe71fdfd，相对基准改动 4 个文件
+▶ backend:list-app
+▶ backend:test-rest
+▶ backend:dependency-contract
+✓ backend:dependency-contract 0.1s
+▶ backend:gofmt
+✓ backend:gofmt 0.7s
+✓ backend:list-app 4.8s
+▶ backend:test-app-1
+▶ backend:test-app-2
+✓ backend:test-rest 106.5s
+▶ backend:test-app-3
+✓ backend:test-app-1 187.8s
+▶ backend:test-app-4
+✓ backend:test-app-2 189.6s
+✓ backend:test-app-3 206.8s
+✓ backend:test-app-4 159.1s
+
+共 8 项，失败 0 项，用时 351.7s（并行 3）
+  跳过：Web 检查（没有 web/ 改动）
+  本地未覆盖：Agent 静态检查 golangci-lint v2.5.0（本机未安装；Agent 架构测试已包含在 backend:test-rest）

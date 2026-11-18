@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "schema_name": "wp020_real_platform",
+  "schema_version": 100,
+  "before": {
+    "canvases": 1,
+    "references": 3,
+    "executions": 11,
+    "unreleased": 3,
+    "authorities": 1,
+    "tasks": 11
+  },
+  "missing_key_failed_without_data_loss": true,
+  "retry_succeeded": true,
+  "after": {
+    "canvases": 0,
+    "references": 0,
+    "executions": 0,
+    "unreleased": 0,
+    "authorities": 0,
+    "tasks": 0
+  },
+  "repeat_succeeded": true,
+  "platform_binding_release_confirmed": 3,
+  "studio_owned_execution_grants_released": 1,
+  "platform_managed_generations_without_studio_grant": 2,
+  "platform_assets_preserved": 3
+}

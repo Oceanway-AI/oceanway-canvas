@@ -1,0 +1,9 @@
+{
+  "studio_stopped": true,
+  "own_test_subjects_disabled": [
+    9,
+    10
+  ],
+  "schema_reset_to": 101,
+  "physical_platform_deletions": 0
+}

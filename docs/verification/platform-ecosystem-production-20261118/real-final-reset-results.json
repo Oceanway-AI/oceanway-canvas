@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "counts": {
+    "canvases": 0,
+    "resources": 0,
+    "references": 0,
+    "tasks": 0,
+    "executions": 0,
+    "schema": 101
+  },
+  "new_binding_commands_released": 2,
+  "all_shared_objects_retained": true
+}

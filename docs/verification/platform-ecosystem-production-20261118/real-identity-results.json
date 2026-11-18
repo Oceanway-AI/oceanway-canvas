@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "checks": [
+    "same_name_distinct_platform_ids",
+    "cross_account_canvas_denied",
+    "old_tab_after_account_switch_409",
+    "old_uuid_client_write_409",
+    "current_platform_studio_role_permits_content_action",
+    "role_revocation_next_request_403",
+    "real_cookie_refresh_preserves_subject"
+  ],
+  "subject_ids": [
+    9,
+    10
+  ],
+  "canvas_id": "wp020-real-platform-canvas",
+  "generation_submissions": 0
+}

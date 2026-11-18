@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "checks": [
+    "real_upload_sealed",
+    "fixed_asset_version_adoption",
+    "duplicate_adoption_same_resource",
+    "cross_account_adoption_404",
+    "original_content_sha256_matches"
+  ],
+  "resource_id": "d6771d22-402f-5f73-8f37-409adb71a32d",
+  "asset_id": "asset_ae24f889f5fd4f42c387f1e7d480d1575f96c62b3f994771",
+  "version_id": "version_ae24f889f5fd4f42c387f1e7d480d1575f96c62b3f994771",
+  "bytes": 79,
+  "sha256": "608d6a53cc6fabca83ea642f435ffa2477dc74cfd7de8259ff90bfae4de77a0e"
+}

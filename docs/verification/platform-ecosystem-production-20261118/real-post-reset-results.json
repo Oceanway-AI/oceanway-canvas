@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "user_id": "9",
+  "canvas_id": "wp020-after-reset",
+  "new_edit_and_reopen": true,
+  "subpath_login": {
+    "code": 0,
+    "data": {
+      "url": "https://test.oceanway.tech/login?return=https%3A%2F%2Ftest.oceanway.tech%2Fstudio%2Fplatform%2Flogin%2Fcomplete"
+    },
+    "msg": "ok"
+  }
+}

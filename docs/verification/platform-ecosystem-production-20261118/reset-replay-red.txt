@@ -1,0 +1,12 @@
+--- FAIL: TestStudioResetAgentReplayCarrier (0.35s)
+    --- FAIL: TestStudioResetAgentReplayCarrier/completed (0.12s)
+        studio_reset_test.go:41: active tasks = 1, want 0, error = <nil>
+    --- FAIL: TestStudioResetAgentReplayCarrier/rejected (0.04s)
+        studio_reset_test.go:41: active tasks = 1, want 0, error = <nil>
+    --- FAIL: TestStudioResetAgentReplayCarrier/cancelled (0.03s)
+        studio_reset_test.go:41: active tasks = 1, want 0, error = <nil>
+    --- FAIL: TestStudioResetAgentReplayCarrier/failed (0.03s)
+        studio_reset_test.go:41: active tasks = 1, want 0, error = <nil>
+FAIL
+FAIL	yingce/backend/internal/database	1.169s
+FAIL

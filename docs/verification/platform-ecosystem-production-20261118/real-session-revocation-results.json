@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "subject_id": 10,
+  "checks": [
+    "disabled_account_denied",
+    "reenable_does_not_revive_session",
+    "studio_logout_revokes_original_session"
+  ]
+}

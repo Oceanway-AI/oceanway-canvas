@@ -1,0 +1,118 @@
+{
+  "supported": true,
+  "connected": true,
+  "repository": "oceanway-ai/oceanway-canvas",
+  "deployment": "docker-compose-host-updater",
+  "currentVersion": "v2.0.7",
+  "latestRelease": {
+    "version": "v2.0.7",
+    "name": "v2.0.7",
+    "body": "- 清理后再次采用同一 Platform 素材时，保留 Resource ID，并持久化新绑定命令。并发采用和丢回执沿同一命令恢复。\n- PostgreSQL schema 101 增加素材绑定命令字段，旧绑定保持原命令，离线清理按记录释放当前绑定。\n",
+    "url": "https://github.com/Oceanway-AI/oceanway-canvas/releases/tag/v2.0.7",
+    "publishedAt": "2026-11-18T14:37:24Z",
+    "prerelease": false
+  },
+  "updateAvailable": false,
+  "checks": [
+    {
+      "key": "updater",
+      "label": "Host Updater",
+      "status": "passed",
+      "detail": "linux/amd64",
+      "blocking": true
+    },
+    {
+      "key": "version",
+      "label": "当前版本",
+      "status": "passed",
+      "detail": "v2.0.7",
+      "blocking": true
+    },
+    {
+      "key": "backup",
+      "label": "数据库备份 ZIP",
+      "status": "passed",
+      "detail": "backup-20261118-144014 · sha256:b13d3a8997d567692d741158abb104f367297cbb4749da4d92e8b178875f3cb9",
+      "blocking": true
+    },
+    {
+      "key": "images",
+      "label": "目标镜像",
+      "status": "pending",
+      "detail": "拉取后校验仓库摘要",
+      "blocking": true
+    },
+    {
+      "key": "migration",
+      "label": "数据库迁移",
+      "status": "pending",
+      "detail": "在旧服务完全停止后执行",
+      "blocking": true
+    }
+  ],
+  "lastBackup": {
+    "id": "backup-20261118-144014",
+    "path": "",
+    "checksum": "sha256:b13d3a8997d567692d741158abb104f367297cbb4749da4d92e8b178875f3cb9",
+    "size": 14437788,
+    "createdAt": "2026-11-18T14:40:14.125417064Z",
+    "version": "v2.0.5"
+  },
+  "rollbackVersion": "v2.0.5",
+  "operation": {
+    "id": "e9f005f2c07f425351b57902",
+    "phase": "succeeded",
+    "fromVersion": "v2.0.5",
+    "targetVersion": "v2.0.7",
+    "startedAt": "2026-11-18T14:39:58.548005913Z",
+    "finishedAt": "2026-11-18T14:41:12.55222566Z",
+    "automaticRollback": false,
+    "logs": [
+      {
+        "at": "2026-11-18T14:39:58.548005913Z",
+        "phase": "preflight",
+        "message": "开始更新前检查"
+      },
+      {
+        "at": "2026-11-18T14:39:59.247598186Z",
+        "phase": "pulling",
+        "message": "拉取目标版本镜像"
+      },
+      {
+        "at": "2026-11-18T14:40:10.997920872Z",
+        "phase": "draining",
+        "message": "停止 Web、Backend 与 Agent，等待后台任务优雅退出"
+      },
+      {
+        "at": "2026-11-18T14:40:14.123704919Z",
+        "phase": "backing_up",
+        "message": "创建停服后的 PostgreSQL 与数据目录 ZIP 备份"
+      },
+      {
+        "at": "2026-11-18T14:40:16.865263357Z",
+        "phase": "migrating",
+        "message": "执行目标版本数据库迁移"
+      },
+      {
+        "at": "2026-11-18T14:40:19.272372194Z",
+        "phase": "switching",
+        "message": "切换 Compose 配置与镜像版本"
+      },
+      {
+        "at": "2026-11-18T14:40:42.312066216Z",
+        "phase": "verifying",
+        "message": "验证健康状态、运行版本和稳定窗口"
+      },
+      {
+        "at": "2026-11-18T14:41:12.552234808Z",
+        "phase": "succeeded",
+        "message": "已成功更新到 v2.0.7"
+      },
+      {
+        "at": "2026-11-18T14:41:12.552235619Z",
+        "phase": "succeeded",
+        "message": "Host Updater 二进制已同步到目标 Release"
+      }
+    ]
+  }
+}

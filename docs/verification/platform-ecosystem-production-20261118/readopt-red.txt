@@ -1,0 +1,10 @@
+2026/11/18 21:54:01 handler request failed: method=POST route=/api/resources/adopt status=503 error_type=*platformclient.Error
+2026/11/18 21:54:01 handler request failed: method=POST route=/api/resources/adopt status=502 error_type=*kernel.AppError
+2026/11/18 21:54:01 handler request failed: method=POST route=/api/resources/adopt status=502 error_type=*kernel.AppError
+--- FAIL: TestStudioReadoptsMaterialAfterClearedLocalReference (0.47s)
+    studio_materials_test.go:79: POST /api/resources/adopt status=502 want=200 body={"code":502,"data":null,"msg":"素材绑定响应不匹配","reason":"bad_gateway"}
+    studio_materials_test.go:79: POST /api/resources/adopt status=502 want=200 body={"code":502,"data":null,"msg":"素材绑定响应不匹配","reason":"bad_gateway"}
+    studio_materials_test.go:83: re-adoption lost stable Resource or duplicated binding: [studio-resource-d88fd8b1-96f4-5b20-8c1b-8a99445944a3]
+FAIL
+FAIL	yingce/backend/internal/handler	1.745s
+FAIL

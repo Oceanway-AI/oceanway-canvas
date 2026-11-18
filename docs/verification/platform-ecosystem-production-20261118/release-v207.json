@@ -1,0 +1,65 @@
+{
+  "assets": [
+    {
+      "apiUrl": "https://api.github.com/repos/Oceanway-AI/oceanway-canvas/releases/assets/763740477",
+      "contentType": "application/yaml",
+      "createdAt": "2026-11-18T14:37:22Z",
+      "digest": "sha256:e98c91029011bbe39b0b35a88686cc5bb22b961d3882bccf141fb137ce69dc92",
+      "downloadCount": 0,
+      "id": "RA_kwDOVmNKoM4thcE9",
+      "label": "",
+      "name": "docker-compose.deploy.yml",
+      "size": 4680,
+      "state": "uploaded",
+      "updatedAt": "2026-11-18T14:37:22Z",
+      "url": "https://github.com/Oceanway-AI/oceanway-canvas/releases/download/v2.0.7/docker-compose.deploy.yml"
+    },
+    {
+      "apiUrl": "https://api.github.com/repos/Oceanway-AI/oceanway-canvas/releases/assets/763740476",
+      "contentType": "application/octet-stream",
+      "createdAt": "2026-11-18T14:37:22Z",
+      "digest": "sha256:e838617a30e6d10578d43afdc1392d95b5c526a679bff904b42e883dc2a6fca0",
+      "downloadCount": 0,
+      "id": "RA_kwDOVmNKoM4thcE8",
+      "label": "",
+      "name": "open-ai-canvas-host-updater-linux-amd64",
+      "size": 6762680,
+      "state": "uploaded",
+      "updatedAt": "2026-11-18T14:37:23Z",
+      "url": "https://github.com/Oceanway-AI/oceanway-canvas/releases/download/v2.0.7/open-ai-canvas-host-updater-linux-amd64"
+    },
+    {
+      "apiUrl": "https://api.github.com/repos/Oceanway-AI/oceanway-canvas/releases/assets/763740473",
+      "contentType": "application/octet-stream",
+      "createdAt": "2026-11-18T14:37:22Z",
+      "digest": "sha256:7955afdf52ac5a562f0b9f0e6e0af3e5d1eb590b4baaf1fc520ba15c0295fd37",
+      "downloadCount": 0,
+      "id": "RA_kwDOVmNKoM4thcE5",
+      "label": "",
+      "name": "open-ai-canvas-host-updater-linux-arm64",
+      "size": 6291640,
+      "state": "uploaded",
+      "updatedAt": "2026-11-18T14:37:23Z",
+      "url": "https://github.com/Oceanway-AI/oceanway-canvas/releases/download/v2.0.7/open-ai-canvas-host-updater-linux-arm64"
+    },
+    {
+      "apiUrl": "https://api.github.com/repos/Oceanway-AI/oceanway-canvas/releases/assets/763740501",
+      "contentType": "application/octet-stream",
+      "createdAt": "2026-11-18T14:37:22Z",
+      "digest": "sha256:b603476aed5a651bc2299edf25583c8bc2167f37ed724934d6a55ecdcdf1c9cd",
+      "downloadCount": 0,
+      "id": "RA_kwDOVmNKoM4thcFV",
+      "label": "",
+      "name": "SHA256SUMS",
+      "size": 212,
+      "state": "uploaded",
+      "updatedAt": "2026-11-18T14:37:23Z",
+      "url": "https://github.com/Oceanway-AI/oceanway-canvas/releases/download/v2.0.7/SHA256SUMS"
+    }
+  ],
+  "isPrerelease": false,
+  "publishedAt": "2026-11-18T14:37:24Z",
+  "tagName": "v2.0.7",
+  "targetCommitish": "main",
+  "url": "https://github.com/Oceanway-AI/oceanway-canvas/releases/tag/v2.0.7"
+}

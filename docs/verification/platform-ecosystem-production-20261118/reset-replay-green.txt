@@ -1,0 +1,2 @@
+ok  	yingce/backend/internal/database	0.800s
+ok  	yingce/backend/internal/app	1.920s

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-2026-11-18 WP-STUDIO-020 实施更新。用户明确退出 SQLite 兼容，开发、测试和部署统一为 PostgreSQL 与 Redis。必须显式设置 `DATABASE_URL`、`REDIS_URL` 及 `STUDIO_*`，采用 Studio v98 schema。下文历史 SQLite 结果保留原验收范围，新测试使用 `CANVAS_TEST_POSTGRES_DSN` 的独立 schema。身份直接使用 Platform 数字 ID，旧数据清理先释放 Studio 引用。当前执行进度以工作包与实际验证记录为准。
+2026-11-18 WP-STUDIO-020 完成。生产已受管升级至自有 v2.0.7／4c1d575／schema101，旧任务账务、渠道分组定价、独立 OSS 与本地账号查询退出。本地最终8项及发行18个job通过，真实免费 Platform／Pi、清理重入、再次采用、生产上传播放和重开、配套回退均有记录。开发、测试和部署统一 PostgreSQL 与 Redis，必须显式设置 `DATABASE_URL`、`REDIS_URL` 及 `STUDIO_*`。新测试使用 `CANVAS_TEST_POSTGRES_DSN` 独立 schema。身份直接使用 Platform 数字 ID，清理先释放实际绑定命令与所持委托。五项平台吸收建议仍待提供方评估实施，团队／购买返回／完整资产A3沿原包。实际范围与制品证据见 [最终验收](docs/verification/platform-ecosystem-production-20261118/README.md)，下方历史记录保留原版本范围。
 
 2026-11-09 模型供给交接续记：提供方会话已完成，模型设置本地提交b20e4715b999df4ee1cedb9704f3f4f33e650347，固定验收树与提交仅差验收JSON；207前端/28顶层后端专项通过。原冻结样例未重新导出，7/8抽查契约源码相同、media_configuration有差异，不能改标最终双仓已联验。共享Platform仍有其他会话dirty，须独立检出；未push/合并/部署/收费。本轮仅文档与证据，交接docs/verification/model-supply-joint-20261109/README.md及Docs PROC-02-067已补当前版本和接手顺序；后续固定版本复验→尺寸→参考→变体/Agent，A3未完。下方未提交表述为历史。
 

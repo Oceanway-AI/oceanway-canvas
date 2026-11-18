@@ -1,0 +1,21 @@
+基准 origin/main @ 8bc71a33，相对基准改动 12 个文件
+▶ backend:list-app
+▶ backend:test-rest
+▶ backend:dependency-contract
+✓ backend:dependency-contract 0.1s
+▶ backend:gofmt
+✓ backend:gofmt 0.3s
+✓ backend:list-app 21.0s
+▶ backend:test-app-1
+▶ backend:test-app-2
+✓ backend:test-rest 112.3s
+▶ backend:test-app-3
+✓ backend:test-app-1 162.1s
+▶ backend:test-app-4
+✓ backend:test-app-2 165.3s
+✓ backend:test-app-3 204.0s
+✓ backend:test-app-4 171.9s
+
+共 8 项，失败 0 项，用时 355.2s（并行 3）
+  跳过：Web 检查（没有 web/ 改动）
+  本地未覆盖：Agent 静态检查 golangci-lint v2.5.0（本机未安装；Agent 架构测试已包含在 backend:test-rest）

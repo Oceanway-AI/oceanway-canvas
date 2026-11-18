@@ -1,0 +1,123 @@
+{
+  "run_id": 44320684824,
+  "source": "4c1d5758b6ee6c2c4fde05d12d7d0d93890bb2f5",
+  "attempt": 1,
+  "conclusion": "cancelled",
+  "reason": "Agent arm64 npm ci stopped emitting progress after qemu illegal instruction. Cancelled after about 15 minutes and reran only the Agent build job and dependent publish jobs.",
+  "failure_observed_at": "2026-11-18T14:07:35.8695767Z",
+  "diagnostic": "qemu: uncaught target signal 4 (Illegal instruction) - core dumped",
+  "jobs": [
+    {
+      "name": "Resolve build version",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:06:46Z",
+      "completed_at": "2026-11-18T14:06:56Z"
+    },
+    {
+      "name": "Reuse verified main checks",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:06:46Z",
+      "completed_at": "2026-11-18T14:06:48Z"
+    },
+    {
+      "name": "Quality checks / Agent architecture and static checks",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:06:50Z",
+      "completed_at": "2026-11-18T14:07:26Z"
+    },
+    {
+      "name": "Quality checks / Web checks",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:06:51Z",
+      "completed_at": "2026-11-18T14:11:54Z"
+    },
+    {
+      "name": "Quality checks / Backend tests (rest)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:06:50Z",
+      "completed_at": "2026-11-18T14:13:16Z"
+    },
+    {
+      "name": "Quality checks / Backend tests (app-3)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:06:51Z",
+      "completed_at": "2026-11-18T14:14:09Z"
+    },
+    {
+      "name": "Quality checks / Backend tests (app-1)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:06:51Z",
+      "completed_at": "2026-11-18T14:14:20Z"
+    },
+    {
+      "name": "Quality checks / Backend tests (app-4)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:06:51Z",
+      "completed_at": "2026-11-18T14:13:29Z"
+    },
+    {
+      "name": "Quality checks / Backend tests (app-2)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:06:50Z",
+      "completed_at": "2026-11-18T14:14:42Z"
+    },
+    {
+      "name": "Build open-ai-canvas-yingce-agent (multi)",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-11-18T14:06:58Z",
+      "completed_at": "2026-11-18T14:22:37Z"
+    },
+    {
+      "name": "Build open-ai-canvas-backend (amd64)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:06:58Z",
+      "completed_at": "2026-11-18T14:10:32Z"
+    },
+    {
+      "name": "Build open-ai-canvas-backend (arm64)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:07:00Z",
+      "completed_at": "2026-11-18T14:09:45Z"
+    },
+    {
+      "name": "Build open-ai-canvas-web (multi)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:06:58Z",
+      "completed_at": "2026-11-18T14:10:38Z"
+    },
+    {
+      "name": "Quality checks / Backend checks",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-18T14:14:44Z",
+      "completed_at": "2026-11-18T14:14:53Z"
+    },
+    {
+      "name": "Publish ${{ matrix.image }} manifest",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-11-18T14:22:38Z",
+      "completed_at": "2026-11-18T14:22:37Z"
+    },
+    {
+      "name": "Publish release assets",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-11-18T14:22:38Z",
+      "completed_at": "2026-11-18T14:22:37Z"
+    }
+  ]
+}

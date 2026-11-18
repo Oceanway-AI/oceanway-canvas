@@ -1,0 +1,46 @@
+{
+  "studio_bindings": [
+    {
+      "target_id": "e130f783-4b5c-592d-9a3d-56f33dac1891",
+      "state": "released"
+    },
+    {
+      "target_id": "d394fda1-c33a-537c-865a-6c47d2a4220e",
+      "state": "released"
+    },
+    {
+      "target_id": "d6771d22-402f-5f73-8f37-409adb71a32d",
+      "state": "released"
+    }
+  ],
+  "pi_grants": [
+    {
+      "task_reference": "ag0742a7dee3d70c726078694cbceff4d3",
+      "revoked": true
+    },
+    {
+      "task_reference": "ag12f4bc6c7616498ac91a01e178a56c1c",
+      "revoked": true
+    },
+    {
+      "task_reference": "ag35f43fdcfb70cfdbf81683d246d00ac9",
+      "revoked": true
+    },
+    {
+      "task_reference": "ag65ea51a48158872a54cb99ceb521b0a6",
+      "revoked": true
+    }
+  ],
+  "platform_managed_generation_grants": [
+    {
+      "task_reference": "2212af98-80e5-57e7-8502-fab82210d45f",
+      "revoked": false
+    },
+    {
+      "task_reference": "5d515d2c-8443-57d1-94da-c1d705ef431a",
+      "revoked": false
+    }
+  ],
+  "platform_assets_preserved": 3,
+  "platform_generation_history_bindings_preserved": 2
+}

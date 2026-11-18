@@ -1,0 +1,207 @@
+{
+  "platform_revision": "a447af59b4427dfb3e213e897ab8c92fd622e821",
+  "platform_tree": "8e26e74e5af6012170959298232e3b52d6b6f2d5",
+  "studio_application_source": "f949450b78deb85674cf8d95788a8bb5af6c4e2b",
+  "reset_fix_source": "8bc71a333e7e71453ecd0011ea46a89855158deb",
+  "readoption_fix_and_ordinary_image_source": "4c1d5758b6ee6c2c4fde05d12d7d0d93890bb2f5",
+  "platform_kind": "real test deployment",
+  "model_supply": "published zero-price fixture behind actual Platform relay and Media Gateway",
+  "paid_generation_submissions": 0,
+  "first_video_failure_preserved": {
+    "id": "2212af98-80e5-57e7-8502-fab82210d45f",
+    "userId": "9",
+    "type": "canvas_video",
+    "status": "failed",
+    "provider": "platform",
+    "model": "fixture-modelark",
+    "providerRequestId": "media_cf37e868abec604325f5914ef5e98fda75796901a6680fa2244f2ea31fe14435",
+    "platformGenerationRequest": "wp020-free-video-v1",
+    "platformRevision": 12,
+    "startedAt": "2026-11-18T21:05:25.759682+08:00",
+    "completedAt": "2026-11-18T21:17:56.568563+08:00",
+    "result": {
+      "executionState": "failed",
+      "fundsState": "released",
+      "settledPoints": null
+    },
+    "outputs": [],
+    "media": []
+  },
+  "recovery_video": {
+    "id": "5d515d2c-8443-57d1-94da-c1d705ef431a",
+    "userId": "9",
+    "type": "canvas_video",
+    "status": "succeeded",
+    "provider": "platform",
+    "model": "fixture-modelark",
+    "providerRequestId": "media_2a68f610bbb2bede7e3f373aaae85b7f8ebcd0032d5b381691409b26b94e4846",
+    "platformGenerationRequest": "wp020-free-video-recovery-v2",
+    "platformRevision": 27,
+    "startedAt": "2026-11-18T21:18:40.146431+08:00",
+    "completedAt": "2026-11-18T21:19:37.252272+08:00",
+    "result": {
+      "executionState": "succeeded",
+      "fundsState": "settled",
+      "settledPoints": "0"
+    },
+    "outputs": [
+      {
+        "index": 0,
+        "kind": "video",
+        "contentState": "available",
+        "previewState": "available",
+        "materialState": "saved",
+        "resourceId": "d394fda1-c33a-537c-865a-6c47d2a4220e"
+      }
+    ],
+    "media": [
+      {
+        "bytes": 4217,
+        "durationMs": 4000,
+        "height": 720,
+        "width": 1280,
+        "mimeType": "video/mp4"
+      }
+    ]
+  },
+  "recovered_before_completion": "running",
+  "receipt_loss_method": "caller deliberately discarded successful submission response before SIGKILL, then queried original command",
+  "restart": {
+    "old_pid": 73122,
+    "new_pid": 88864,
+    "signal": "SIGKILL",
+    "same_settings_key": true,
+    "schema": "wp020_real_platform"
+  },
+  "agents": [
+    {
+      "case": "approved",
+      "id": "ag0742a7dee3d70c726078694cbceff4d3",
+      "status": "completed",
+      "cleanupPending": null
+    },
+    {
+      "case": "rejected",
+      "id": "ag65ea51a48158872a54cb99ceb521b0a6",
+      "status": "rejected",
+      "cleanupPending": null
+    },
+    {
+      "case": "cancelled",
+      "id": "ag35f43fdcfb70cfdbf81683d246d00ac9",
+      "status": "cancelled",
+      "cleanupPending": null
+    },
+    {
+      "case": "reset",
+      "id": "ag12f4bc6c7616498ac91a01e178a56c1c",
+      "status": "cancelled",
+      "cleanupPending": null
+    }
+  ],
+  "ordinary_reference_image": {
+    "id": "803d0c63-61dc-50af-9efc-4a43ce85e1f6",
+    "userId": "9",
+    "type": "canvas_image",
+    "status": "succeeded",
+    "provider": "platform",
+    "model": "fixture-openai",
+    "providerRequestId": "media_63f9dd4c2b9e5fee8b873eb9f09e697c60fd35ac3508969eb600763c25842a7c",
+    "platformGenerationRequest": "wp020-free-ordinary-edit-image",
+    "platformRevision": 20,
+    "startedAt": "2026-11-18T22:00:18.865152+08:00",
+    "completedAt": "2026-11-18T22:00:27.469543+08:00",
+    "result": {
+      "executionState": "succeeded",
+      "fundsState": "settled",
+      "settledPoints": "0"
+    },
+    "outputs": [
+      {
+        "index": 0,
+        "kind": "image",
+        "contentState": "available",
+        "previewState": "available",
+        "materialState": "saved",
+        "resourceId": "771a8381-507a-56d5-a37d-eca89c54008b"
+      }
+    ],
+    "media": [
+      {
+        "bytes": 5337,
+        "durationMs": null,
+        "height": 1024,
+        "width": 1024,
+        "mimeType": "image/png"
+      }
+    ]
+  },
+  "ordinary_image_generation_unavailable": {
+    "id": "80a1d830-2026-5c2d-818d-ad5b2d8b187f",
+    "userId": "9",
+    "type": "canvas_image",
+    "status": "failed",
+    "provider": "platform",
+    "model": "fixture-openai",
+    "providerRequestId": null,
+    "platformGenerationRequest": null,
+    "platformRevision": null,
+    "startedAt": "2026-11-18T21:48:53.030791+08:00",
+    "completedAt": "2026-11-18T21:49:00.692492+08:00",
+    "result": {
+      "executionState": null,
+      "fundsState": null,
+      "settledPoints": null
+    },
+    "outputs": [],
+    "media": []
+  },
+  "pi_task_status_snapshot": [
+    {
+      "id": "agf3d2e6aab1c0e5e468bad24d5c507dbb",
+      "type": "canvas_text",
+      "status": "succeeded"
+    },
+    {
+      "id": "ag924aa464359483d00f44a3846720b190",
+      "type": "canvas_image",
+      "status": "succeeded"
+    },
+    {
+      "id": "ag16cc7380126822f5017db45cd59abeb5",
+      "type": "canvas_text",
+      "status": "succeeded"
+    },
+    {
+      "id": "ag0742a7dee3d70c726078694cbceff4d3",
+      "type": "canvas_text",
+      "status": "succeeded"
+    }
+  ],
+  "final_tasks_before_reset": [
+    {
+      "id": "803d0c63-61dc-50af-9efc-4a43ce85e1f6",
+      "type": "canvas_image",
+      "status": "succeeded"
+    },
+    {
+      "id": "80a1d830-2026-5c2d-818d-ad5b2d8b187f",
+      "type": "canvas_image",
+      "status": "failed"
+    },
+    {
+      "id": "afd3bafc-b9db-5b7c-be64-337829b84f1d",
+      "type": "canvas_text",
+      "status": "failed"
+    }
+  ],
+  "ordinary_text_probe": {
+    "status": "failed",
+    "http_status": 422,
+    "reason": "Published planner fixture requires generate_media tool schema. Plain-text generation is covered by local regression; actual Pi text completed."
+  },
+  "quote": {
+    "estimatedPoints": "0",
+    "walletMaxPoints": "0"
+  }
+}

@@ -1,4 +1,41 @@
-# WP-STUDIO-020 生产发布与剩余验收
+# WP-STUDIO-020 平台融合、生产发布与验收
+
+## 最终验收
+
+最终应用提交为 `4c1d5758b6ee6c2c4fde05d12d7d0d93890bb2f5`，自有 Release `v2.0.7`，Studio schema101，正式 SDK `platformclient v1.0.0-rc.5`。本机最终检查为「共8项，失败0项，用时355.2s（并行3）」。发行工作流44324670635的18个job全部通过，2026-11-18 14:41:12 UTC完成受管生产升级。WP-STUDIO-020 按 FS-STUDIO-001 v1.5／WP v1.7 本包范围完成，Docs PROC-02-094 v1.3记录对应结论。下方v2.0.2内容保留首次安装时点。
+
+| 验收范围 | 实际结果与证据 |
+| --- | --- |
+| 源码退出 | 旧任务账务、分组定价、独立 OSS、User 查询、配置和翻译退出。97个运行模型，56个仅 reset 识别的退役表名，运行依赖无 SQLite。`final-retirement-inventory.json` 固定 f949450／schema100，schema101 增加绑定命令列 |
+| 真实身份与权限 | 同名双账号、跨账号404、旧 actor／UUID写409、临时角色授予及撤销、Cookie刷新、禁用及退出会话通过，见 `real-identity-results.json`、`real-session-revocation-results.json` |
+| 真实素材 | 上传、采用、重复采用、跨账号拒绝、原件摘要，以及清理后同 Resource 新绑定采用通过，见 `real-materials-results.json`、`real-readopt-results.json` |
+| 真实免费生成与 Pi | 普通参考图成功；视频丢回执后 SIGKILL 重启，以原命令恢复成功；Pi 批准后完成图片及文本、拒绝和取消均终态。成功生成结算0，见 `real-generation-results.json` |
+| 清理与恢复 | 缺 key 失败保持数据，恢复 key 后释放3条 Studio引用及1个实际持有 Pi委托，重新登录／画布重开通过。schema101 再次释放2条新命令引用后零画布／资源／引用／任务／执行，两个自建测试账号禁用，见 `real-reset-results.json`、`real-post-reset-results.json`、`real-final-reset-results.json`、`real-test-cleanup-results.json` |
+| 提供方对象 | Platform原件、生成历史绑定和内部授权保留，物理删除0，见 `real-platform-retention.json`。2条普通生成使用平台内部授权，不能计为Studio持有委托 |
+| 配置 | 7项必需配置缺失及显式SQLite共8类均启动失败，见 `real-startup-config-results.json` |
+| 平台吸收审查 | 固定旧 Studio 与 Platform 源码，已有覆盖和五项评估建议见 `retired-capabilities-audit.md`，五项均为尚待Platform实施的建议 |
+
+真实测试 Platform 为 `a447af59b4427dfb3e213e897ab8c92fd622e821`，tree `8e26e74e5af6012170959298232e3b52d6b6f2d5`，镜像 `sha256:8d93f496b823c75b45e5b36fc6d00c071b812236ec0f858918cc22d1f2bb577d`。模型为实际 Platform／Media Gateway 中发布的零价格夹具，付费生成提交为0。普通文本探针因planner夹具要求工具返回422，双图纯生成探针因供给不可用失败，原失败保留。普通文本、多输出和其他创作链由本地回归覆盖，真实Pi文本和单张参考图成功另行记录。
+
+首笔视频因测试 Gateway poller 停止而失败并释放资金。恢复既有 poller、修正素材源精确出口白名单后，以新用例验证原请求恢复成功。测试身份配置补入 studio:admin 定义，临时授权已撤销。这些测试配置修复已记录，Platform／Gateway源码沿原版本。
+
+联验发现并修复两个产品缺陷。v2.0.6 `8bc71a3` 按匹配的终态 Pi执行排除 text_replay 清理阻塞，8场景先失败后通过。v2.0.7 `4c1d575` 在引用创建前持久化新 binding_command_id，支持丢回执、并发赢家、历史 released 绑定续接及迟到回执拒绝。schema101 保留历史命令回退，清理读取当前命令。RED／GREEN见 `reset-replay-*.txt`、`readopt-*.txt`，race 的 handler／database／app 均通过。
+
+v2.0.3 本地13项0失败457.0秒，v2.0.6 本地8项0失败351.7秒，v2.0.7 本地8项0失败355.2秒。v2.0.7差异无web，默认检查按范围跳过Web；本机缺少golangci-lint，发行CI补齐全量Web、预演台E2E、Agent静态检查与后端PostgreSQL／Redis。
+
+原生根路径与子路径完整夹具见 `../platform-ecosystem-20261118/`，含采用、账号切换、画布重开、窄屏深色与偏好。此次同源 `/studio/` Web构建和真实页面路径通过，后端返回登记的HTTPS回跳。云端子路径登录未在本批重跑。本机HTTP Origin不匹配登记HTTPS时明确拒绝。预构建Release Web使用根路径，子路径需同源Web构建参数 `VITE_APP_BASE_PATH=/studio/` 与后端基础路径匹配。
+
+自有更新器在v2.0.4修复GHCR owner大小写，v2.0.5修复systemd ProtectHome下的Docker凭据目录，两次失败发生于停止服务前。生产完成v2.0.2→v2.0.3→v2.0.5→v2.0.7受管升级。独立回退演练恢复v2.0.2镜像、schema98、3画布、2引用、0任务及配套 `.settings-key` 后核验通过，演练服务已停止。最终运行、3份配套备份摘要与回退结果见 `production-v207.json`，升级操作见 `updater-v207.json`。
+
+首轮发行44320684824在Agent arm64 npm ci时出现qemu illegal instruction并挂起，质量检查已通过，约15分钟后取消。单job重试未进入执行，重新派发同一源码的44324670635后全部成功，首轮记录见 `ci-v207-attempt1.json`。正式Release发布于14:37:24 UTC，两个架构更新器与Compose附件完成下载校验，见 `release-v207.json`、`release-v207-verified-assets.json` 和 `ci-v207.json`。
+
+生产五个常驻服务健康，migrate退出0，backend／web／yingce-agent／migrate revision均为最终4c1d575，schema101的binding_command_id存在，56个退役表均不存在，Host Updater二进制摘要与Release一致。升级前v2.0.5备份14437788字节，SHA256 `b13d3a8997d567692d741158abb104f367297cbb4749da4d92e8b178875f3cb9`。
+
+升级后的浏览器当前会话属于另一Platform主体，旧验收画布返回归属拒绝。沿当前会话新建 `Y2FsaPlM0WH4HfymqEqgk`「WP-STUDIO-020 v2.0.7 生产验收」，原生上传799字节PNG和2291字节MP4，并生成1212字节JPEG预览图。图片320×240加载完成，视频320×240、1秒完整播放，readyState4且无媒体错误。关页重开后2节点、0连线、已同步，三个新引用的绑定命令持久化、owner一致且Resource均ready。生产总计4画布、5Resource、5引用、0Task、0StudioExecution。新验收画布及小型素材保留，模型生成提交0。见 `browser-v207.json`、`canvas-v207-reopened.jpg` 和 `production-v207.json`。截图裁去账号区域。
+
+WP-STUDIO-018 的团队协作、团队生成和购买返回，以及资产A3的完整永久删除／团队／元数据仍由对应工作包交付。本目录覆盖 WP-STUDIO-020 的直接身份与旧平台能力退出。
+
+## v2.0.2 首次安装历史
 
 2026-11-18，按用户直接部署生产 Studio 的授权，发布自有 Release `v2.0.2` 并在 `studio.oceanway.tech` 运行。源码为 `8d68e13422a445c73b1734ab99da6e0a81230978`，SDK 为 `platformclient v1.0.0-rc.5`，schema 为 98。工作包保持 doing，规范与状态沿 Docs 的 FS-STUDIO-001、WP-STUDIO-020、PROC-02-094 维护。
 
@@ -30,7 +67,7 @@ v2.0.1 的远端质量检查暴露三项问题，v2.0.2 已修复并复验。
 
 数据库结果见 `browser-database.json`。画布 owner 为规范十进制 ID，两条素材引用 owner 与画布一致，两个 Resource 和绑定保持固定 ID。当前路径写入画布素材引用，业务 Asset 表为零。本轮 Task／StudioExecution／物理删除任务均为零。新增的验收画布和两个素材引用保留在个人空间。
 
-## 剩余交付
+## v2.0.2 发布时剩余交付
 
 | 范围 | 剩余事项 | 对应验收 |
 | --- | --- | --- |

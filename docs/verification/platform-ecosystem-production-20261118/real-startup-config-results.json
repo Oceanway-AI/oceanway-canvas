@@ -1,0 +1,45 @@
+{
+  "ok": true,
+  "checks": [
+    {
+      "config": "STUDIO_PLATFORM_ORIGIN",
+      "exit_code": 1,
+      "message": "time=2026-11-18T21:33:42.025+08:00 level=WARN msg=\"Studio Platform configuration requires origin, product key, session hosts and allowed origins\""
+    },
+    {
+      "config": "STUDIO_PLATFORM_PRODUCT_KEY",
+      "exit_code": 1,
+      "message": "time=2026-11-18T21:33:42.408+08:00 level=WARN msg=\"Studio Platform configuration requires origin, product key, session hosts and allowed origins\""
+    },
+    {
+      "config": "STUDIO_PUBLIC_ORIGIN",
+      "exit_code": 1,
+      "message": "time=2026-11-18T21:33:42.900+08:00 level=WARN msg=\"STUDIO_PUBLIC_ORIGIN must be an exact HTTPS origin\""
+    },
+    {
+      "config": "STUDIO_PLATFORM_SESSION_HOSTS",
+      "exit_code": 1,
+      "message": "time=2026-11-18T21:33:43.352+08:00 level=WARN msg=\"Studio Platform configuration requires origin, product key, session hosts and allowed origins\""
+    },
+    {
+      "config": "STUDIO_PLATFORM_ALLOWED_ORIGINS",
+      "exit_code": 1,
+      "message": "time=2026-11-18T21:33:43.762+08:00 level=WARN msg=\"Studio Platform configuration requires origin, product key, session hosts and allowed origins\""
+    },
+    {
+      "config": "DATABASE_URL",
+      "exit_code": 1,
+      "message": "time=2026-11-18T21:33:44.205+08:00 level=WARN msg=\"PostgreSQL 模式必须配置 DATABASE_URL\""
+    },
+    {
+      "config": "REDIS_URL",
+      "exit_code": 1,
+      "message": "time=2026-11-18T21:33:45.369+08:00 level=WARN msg=\"必须配置 REDIS_URL，用于限流、并发和熔断协调\""
+    },
+    {
+      "config": "CANVAS_DATABASE_DRIVER",
+      "exit_code": 1,
+      "message": "time=2026-11-18T21:33:45.771+08:00 level=WARN msg=不支持的数据库驱动：sqlite"
+    }
+  ]
+}

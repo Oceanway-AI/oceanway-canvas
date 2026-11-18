@@ -1,0 +1,17 @@
+[
+  {
+    "name": "open-ai-canvas-host-updater-linux-amd64",
+    "bytes": 6762680,
+    "sha256": "e838617a30e6d10578d43afdc1392d95b5c526a679bff904b42e883dc2a6fca0"
+  },
+  {
+    "name": "open-ai-canvas-host-updater-linux-arm64",
+    "bytes": 6291640,
+    "sha256": "7955afdf52ac5a562f0b9f0e6e0af3e5d1eb590b4baaf1fc520ba15c0295fd37"
+  },
+  {
+    "name": "docker-compose.deploy.yml",
+    "bytes": 4680,
+    "sha256": "e98c91029011bbe39b0b35a88686cc5bb22b961d3882bccf141fb137ce69dc92"
+  }
+]

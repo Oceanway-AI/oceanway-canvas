@@ -1,0 +1,242 @@
+{
+  "checked_at": "2026-11-18T14:50:59.813673+00:00",
+  "release": "v2.0.7",
+  "version": {
+    "build": {
+      "version": "v2.0.7",
+      "commit": "4c1d5758b6ee6c2c4fde05d12d7d0d93890bb2f5",
+      "buildTime": "2026-11-18T22:00:18+08:00",
+      "goVersion": "go1.25.14"
+    },
+    "schema": {
+      "current": 101,
+      "expected": 101,
+      "ready": true
+    }
+  },
+  "schema": 101,
+  "binding_command_column": "binding_command_id",
+  "services": [
+    {
+      "service": "backend",
+      "state": "running",
+      "health": "healthy",
+      "exit_code": 0,
+      "image_id": "sha256:fdc4c11b79114f5773d08268968e30e665786640b03de5d881b7f8ea0470dc82",
+      "repo_digests": [
+        "ghcr.io/oceanway-ai/open-ai-canvas-backend@sha256:fdc4c11b79114f5773d08268968e30e665786640b03de5d881b7f8ea0470dc82"
+      ],
+      "source": "4c1d5758b6ee6c2c4fde05d12d7d0d93890bb2f5"
+    },
+    {
+      "service": "migrate",
+      "state": "exited",
+      "health": "",
+      "exit_code": 0,
+      "image_id": "sha256:fdc4c11b79114f5773d08268968e30e665786640b03de5d881b7f8ea0470dc82",
+      "repo_digests": [
+        "ghcr.io/oceanway-ai/open-ai-canvas-backend@sha256:fdc4c11b79114f5773d08268968e30e665786640b03de5d881b7f8ea0470dc82"
+      ],
+      "source": "4c1d5758b6ee6c2c4fde05d12d7d0d93890bb2f5"
+    },
+    {
+      "service": "postgres",
+      "state": "running",
+      "health": "healthy",
+      "exit_code": 0,
+      "image_id": "sha256:a77aa70e641402a21411b92b721c58d10f23b50ae5fdd2333efd22d166e1e5f7",
+      "repo_digests": [
+        "postgres@sha256:a77aa70e641402a21411b92b721c58d10f23b50ae5fdd2333efd22d166e1e5f7"
+      ],
+      "source": null
+    },
+    {
+      "service": "redis",
+      "state": "running",
+      "health": "healthy",
+      "exit_code": 0,
+      "image_id": "sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe",
+      "repo_digests": [
+        "redis@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe"
+      ],
+      "source": null
+    },
+    {
+      "service": "web",
+      "state": "running",
+      "health": "healthy",
+      "exit_code": 0,
+      "image_id": "sha256:7c95025f48c66a15fcc65fc68a557309cabb82ca029f89569ee3b7398fa50490",
+      "repo_digests": [
+        "ghcr.io/oceanway-ai/open-ai-canvas-web@sha256:7c95025f48c66a15fcc65fc68a557309cabb82ca029f89569ee3b7398fa50490"
+      ],
+      "source": "4c1d5758b6ee6c2c4fde05d12d7d0d93890bb2f5"
+    },
+    {
+      "service": "yingce-agent",
+      "state": "running",
+      "health": "healthy",
+      "exit_code": 0,
+      "image_id": "sha256:23b0a645ac7360ba5ac833005b34720b6fc214e7641dbda633b7f43078f412a7",
+      "repo_digests": [
+        "ghcr.io/oceanway-ai/open-ai-canvas-yingce-agent@sha256:23b0a645ac7360ba5ac833005b34720b6fc214e7641dbda633b7f43078f412a7"
+      ],
+      "source": "4c1d5758b6ee6c2c4fde05d12d7d0d93890bb2f5"
+    }
+  ],
+  "retired_tables": [
+    "announcement_image_drafts",
+    "announcements",
+    "ark_portrait_assets",
+    "ark_portrait_group_grants",
+    "ark_portrait_groups",
+    "ark_portrait_sessions",
+    "ark_private_asset_bindings",
+    "auth_sessions",
+    "auth_verifications",
+    "banner_announcements",
+    "billing_orders",
+    "channel_model_price_tiers",
+    "channel_model_variants",
+    "channel_models",
+    "credit_accounts",
+    "credit_ledger_entries",
+    "email_logs",
+    "email_verification_codes",
+    "logical_model_revisions",
+    "logical_model_routes",
+    "logical_models",
+    "login_logs",
+    "model_channels",
+    "model_pricings",
+    "notification_quota",
+    "o_auth_states",
+    "payment_notifications",
+    "payment_orders",
+    "payment_provider_configs",
+    "payment_reconciliation_items",
+    "payment_reconciliation_runs",
+    "plugin_platform_states",
+    "redeem_batches",
+    "redeem_codes",
+    "referral_bindings",
+    "referral_commissions",
+    "referral_profiles",
+    "resource_offload_jobs",
+    "route_attempts",
+    "sms_channels",
+    "sms_records",
+    "storage_locations",
+    "topup_products",
+    "user_announcement_reads",
+    "user_avatars",
+    "user_daily_upload_usages",
+    "user_feedbacks",
+    "user_group_channels",
+    "user_groups",
+    "user_identities",
+    "user_notification_settings",
+    "user_oss_settings",
+    "user_plugin_states",
+    "user_storage_grants",
+    "user_storage_states",
+    "users"
+  ],
+  "retired_tables_present": [],
+  "counts": {
+    "canvases": 4,
+    "resources": 5,
+    "references": 5,
+    "tasks": 0,
+    "executions": 0
+  },
+  "acceptance_canvas": {
+    "id": "DI0iM5RR7FZpTAv8N8AAE",
+    "user_id": "1",
+    "title": "WP-STUDIO-020 生产验收 20261118"
+  },
+  "updater": "active",
+  "updater_sha256": "e838617a30e6d10578d43afdc1392d95b5c526a679bff904b42e883dc2a6fca0",
+  "backups": [
+    {
+      "name": "backup-20261118-130429.zip",
+      "bytes": 14440191,
+      "sha256": "ed5b58f98084570b15d898c73c77bc9c7a6cd60a891b7ecda9b41e9e8a6981c8"
+    },
+    {
+      "name": "backup-20261118-132105.zip",
+      "bytes": 14435970,
+      "sha256": "5b5ffc615961f48502c1de9ff7bf272b93150c4ceeab3990ba3cfcd9b95bdbb6"
+    },
+    {
+      "name": "backup-20261118-144014.zip",
+      "bytes": 14437788,
+      "sha256": "b13d3a8997d567692d741158abb104f367297cbb4749da4d92e8b178875f3cb9"
+    }
+  ],
+  "rollback_rehearsal": {
+    "ok": true,
+    "isolated_compose_project": "studio-wp020-rollback",
+    "backup": {
+      "createdAt": "2026-11-18T13:04:29.074475237Z",
+      "format": 1,
+      "id": "backup-20261118-130429",
+      "version": "v2.0.2"
+    },
+    "backup_sha256": "ed5b58f98084570b15d898c73c77bc9c7a6cd60a891b7ecda9b41e9e8a6981c8",
+    "old_release": {
+      "version": "v2.0.2",
+      "commit": "8d68e13422a445c73b1734ab99da6e0a81230978",
+      "buildTime": "2026-11-18T16:04:09+08:00",
+      "goVersion": "go1.25.14"
+    },
+    "counts": {
+      "schema": 98,
+      "canvases": 3,
+      "references": 2,
+      "tasks": 0
+    },
+    "settings_key_restored": true,
+    "production_database_untouched": true
+  },
+  "final_acceptance_canvas": {
+    "id": "Y2FsaPlM0WH4HfymqEqgk",
+    "title": "WP-STUDIO-020 v2.0.7 生产验收",
+    "decimal_owner": true,
+    "revision": 7,
+    "nodes": 2,
+    "connections": 0
+  },
+  "final_acceptance_references": [
+    {
+      "resource_id": "a4f4126d-94c7-5035-94a9-96b376d805ec",
+      "binding_id": "binding_1be1b3e918e3c9434c26033203034d6722e18523402f1ae9",
+      "binding_command_persisted": true,
+      "same_resource_owner": true,
+      "mime_type": "image/jpeg",
+      "bytes": 1212,
+      "sha256": "2aff3829ff6c6a2e05b465b8ecc4191b5c6f8293049c9a7e3ebbb1eb85c7babd",
+      "status": "ready"
+    },
+    {
+      "resource_id": "81fdb433-c98c-5ac4-8764-30e4aa241f6d",
+      "binding_id": "binding_b1051ac4a64bccb0041159664c40fdc3c5fd4b6629e745dc",
+      "binding_command_persisted": true,
+      "same_resource_owner": true,
+      "mime_type": "image/png",
+      "bytes": 799,
+      "sha256": "3959a5aa9679df12881985efbb172b0027330bb5260cdaefe8c90218e9f777a5",
+      "status": "ready"
+    },
+    {
+      "resource_id": "349b9c4f-9ed4-5985-a07d-f68cacbc6e64",
+      "binding_id": "binding_7779160c4ef8f667a2378159b7ad32d569baaa688673cb61",
+      "binding_command_persisted": true,
+      "same_resource_owner": true,
+      "mime_type": "video/mp4",
+      "bytes": 2291,
+      "sha256": "c2fcc0fd5930d19d6a352876a04f11bc9d7f3b36d13be72b6555b80aedf22796",
+      "status": "ready"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "release": "v2.0.7",
+  "canvas_id": "Y2FsaPlM0WH4HfymqEqgk",
+  "closed_and_reopened": true,
+  "nodes": 2,
+  "edges": 0,
+  "sync_status": "已同步",
+  "different_account_old_canvas_denied": true,
+  "settings_categories": [
+    "OceanWay 账号",
+    "偏好设置",
+    "模型选择",
+    "素材空间"
+  ],
+  "media": {
+    "image": [
+      {
+        "complete": true,
+        "height": 240,
+        "width": 320
+      }
+    ],
+    "video": [
+      {
+        "currentTime": 1,
+        "duration": 1,
+        "ended": true,
+        "error": null,
+        "height": 240,
+        "readyState": 4,
+        "width": 320
+      }
+    ]
+  },
+  "model_generation_submissions": 0
+}
