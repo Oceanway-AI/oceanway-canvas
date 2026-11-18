@@ -8,6 +8,7 @@ SOCKET_DIR="${CANVAS_UPDATER_SOCKET_DIR:-/run/open-ai-canvas-updater}"
 UPDATER_BIN="/usr/local/bin/open-ai-canvas-host-updater"
 UPDATER_ENV="/etc/open-ai-canvas-updater.env"
 UPDATER_SERVICE="/etc/systemd/system/open-ai-canvas-updater.service"
+UPDATER_DOCKER_CONFIG="/var/lib/open-ai-canvas-updater/docker"
 
 fail() {
     printf 'Host Updater 安装失败：%s\n' "$1" >&2
@@ -77,7 +78,15 @@ ensure_token() {
     fi
     [[ ${#token} -ge 32 ]] || fail "CANVAS_UPDATER_TOKEN 长度不足"
     umask 077
-    printf 'CANVAS_UPDATER_TOKEN=%s\nCANVAS_UPDATER_INSTALL_DIR=%s\nCANVAS_UPDATER_SOCKET=%s/updater.sock\nCANVAS_UPDATER_BACKUP_DIR=%s/backups\n' "$token" "$INSTALL_DIR" "$SOCKET_DIR" "$INSTALL_DIR" > "$UPDATER_ENV"
+    printf 'CANVAS_UPDATER_TOKEN=%s\nCANVAS_UPDATER_INSTALL_DIR=%s\nCANVAS_UPDATER_SOCKET=%s/updater.sock\nCANVAS_UPDATER_BACKUP_DIR=%s/backups\nCANVAS_UPDATER_REPOSITORY=%s\nDOCKER_CONFIG=%s\n' "$token" "$INSTALL_DIR" "$SOCKET_DIR" "$INSTALL_DIR" "$REPOSITORY" "$UPDATER_DOCKER_CONFIG" > "$UPDATER_ENV"
+}
+
+install_registry_config() {
+    local source_config="${DOCKER_CONFIG:-${HOME}/.docker}/config.json"
+    install -d -m 0700 "$UPDATER_DOCKER_CONFIG"
+    if [[ -f "$source_config" && "$source_config" != "${UPDATER_DOCKER_CONFIG}/config.json" ]]; then
+        install -m 0600 "$source_config" "${UPDATER_DOCKER_CONFIG}/config.json"
+    fi
 }
 
 install_service() {
@@ -118,6 +127,7 @@ main() {
     read_image_tag
     install_binary
     ensure_token
+    install_registry_config
     install_service
     printf 'Host Updater 已安装，Socket：%s/updater.sock\n' "$SOCKET_DIR"
     printf '请重建 backend 容器，使 Token 与 Socket 挂载生效。\n'

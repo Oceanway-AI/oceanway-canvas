@@ -1,4 +1,6 @@
 # CHANGELOG
+## v2.0.5
+- Host Updater 安装器将 Docker 登录配置保存到受限服务目录并显式传递自有仓库，支持启用 ProtectHome 时拉取私有 GHCR 镜像。
 ## v2.0.4
 - Host Updater 将 GitHub 组织名规范为小写镜像命名空间，修复自有仓库受管升级在拉取 GHCR 镜像时失败。
 ## v2.0.3
