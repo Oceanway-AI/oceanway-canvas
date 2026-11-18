@@ -26,6 +26,14 @@ type ResourceStream = assets.ResourceStream
 
 type ResourceDelivery = assets.ResourceDelivery
 
+func normalizedResourceProvider(provider string) string {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	if provider == "" {
+		return "local"
+	}
+	return provider
+}
+
 func (s *Service) Resources(userID string, limit int) ([]model.Resource, error) {
 	resources, err := s.repo.Resources(userID, limit)
 	for index := range resources {

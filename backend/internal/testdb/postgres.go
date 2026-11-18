@@ -56,6 +56,35 @@ func Open(t testing.TB, options ...gorm.Option) (*gorm.DB, error) {
 	return connect(t, config, options...)
 }
 
+// OpenDatabase isolates tests of database-wide statistics from concurrent
+// schema fixtures. The test role must have CREATEDB, as in the CI service.
+func OpenDatabase(t testing.TB, options ...gorm.Option) (*gorm.DB, error) {
+	t.Helper()
+	dsn := os.Getenv("CANVAS_TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Fatal("CANVAS_TEST_POSTGRES_DSN is required for PostgreSQL tests")
+	}
+	config, err := pgx.ParseConfig(dsn)
+	if err != nil {
+		return nil, err
+	}
+	admin := stdlib.OpenDB(*config)
+	name := "test_" + uuid.NewString()
+	quotedName := pgx.Identifier{name}.Sanitize()
+	if _, err := admin.Exec("CREATE DATABASE " + quotedName + " TEMPLATE template0"); err != nil {
+		_ = admin.Close()
+		return nil, err
+	}
+	t.Cleanup(func() {
+		if _, err := admin.Exec("DROP DATABASE " + quotedName); err != nil {
+			t.Errorf("drop test database: %v", err)
+		}
+		_ = admin.Close()
+	})
+	config.Database = name
+	return connect(t, config, options...)
+}
+
 // Reopen creates a separate pool against the same isolated schema for
 // cross-connection transaction and concurrency tests.
 func Reopen(t testing.TB, source *gorm.DB, options ...gorm.Option) (*gorm.DB, error) {

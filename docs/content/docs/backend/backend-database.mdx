@@ -51,7 +51,7 @@ go run ./cmd/migrate-schema status
 
 ## PostgreSQL 测试
 
-`internal/testdb.Open` 要求 `CANVAS_TEST_POSTGRES_DSN`，每个测试创建独立 schema，结束后清理。`Reopen` 在同一 schema 建立另一个连接池，用于多连接事务验证。Studio 路由夹具启动独立 Redis，避免限流和租约串扰。依赖缺失会使测试失败。
+`internal/testdb.Open` 要求 `CANVAS_TEST_POSTGRES_DSN`，每个测试创建独立 schema，结束后清理。`Reopen` 在同一 schema 建立另一个连接池，用于多连接事务验证。数据库级容量和健康检查使用 `OpenDatabase` 创建独立数据库，测试账号需有 CREATEDB 权限，CI 使用 PostgreSQL 服务账号。Studio 路由夹具启动独立 Redis，避免限流和租约串扰。依赖缺失会使测试失败。
 
 下列创作表在基线中保留。路由是否开放由 `RegisterStudioAPI` 决定，保留表结构不代表对应入口已完成 Platform 接入。
 

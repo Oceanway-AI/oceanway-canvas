@@ -63,9 +63,6 @@ func TestVolcengineTOSSettingFromRequestRejectsInconsistentLocation(t *testing.T
 	if !supportedResourceDeleteProvider(volcengineTOSProvider) {
 		t.Fatal("volcengine resources must be deletable")
 	}
-	if _, _, _, err := normalizeAdminResourceQuery(AdminResourceQuery{Provider: volcengineTOSProvider}); err != nil {
-		t.Fatalf("admin resource filter rejected volcengine: %v", err)
-	}
 }
 
 func TestVolcengineTOSConnectionTestErrorsAreActionable(t *testing.T) {

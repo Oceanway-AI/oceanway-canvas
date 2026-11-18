@@ -205,9 +205,6 @@ func TestLive2DAppearanceImportPublishAndDetach(t *testing.T) {
 	if len(refs[imported.ResourceID]) != 1 {
 		t.Fatalf("missing deletion protection: %+v", refs)
 	}
-	if _, err := svc.AdminResourcePage(admin, AdminResourceQuery{Kind: "live2d", Page: 1, Limit: 20}); err != nil {
-		t.Fatal(err)
-	}
 	blocked, err := svc.DeleteAdminResources(admin, AdminResourceDeleteRequest{ResourceIDs: []string{imported.ResourceID}})
 	if err != nil || len(blocked.Blocked) != 1 || len(blocked.Deleted) != 0 {
 		t.Fatalf("referenced model deletion: %+v %v", blocked, err)

@@ -118,45 +118,6 @@ func (r *Repository) MarkResourceOffloadLocalDeleted(id string) error {
 		Updates(map[string]any{"local_deleted_at": &now, "updated_at": now}).Error
 }
 
-// ResourceOffloadSummary 是管理后台“待同步到对象存储”的概况。
-type ResourceOffloadSummary struct {
-	Pending       int64      `json:"pending"`
-	PendingBytes  int64      `json:"pendingBytes"`
-	Failed        int64      `json:"failed"`
-	OldestPending *time.Time `json:"oldestPending,omitempty"`
-	LastErrorCode string     `json:"lastErrorCode,omitempty"`
-}
-
-func (r *Repository) ResourceOffloadSummary() (ResourceOffloadSummary, error) {
-	var summary ResourceOffloadSummary
-	active := []model.ResourceOffloadStatus{model.ResourceOffloadStatusPending, model.ResourceOffloadStatusProcessing}
-	var row struct {
-		Count int64
-		Bytes int64
-	}
-	if err := r.db.Model(&model.ResourceOffloadJob{}).Select("COUNT(*) AS count, COALESCE(SUM(size), 0) AS bytes").Where("status IN ?", active).Scan(&row).Error; err != nil {
-		return summary, err
-	}
-	summary.Pending, summary.PendingBytes = row.Count, row.Bytes
-	if err := r.db.Model(&model.ResourceOffloadJob{}).Where("status = ?", model.ResourceOffloadStatusFailed).Count(&summary.Failed).Error; err != nil {
-		return summary, err
-	}
-	var oldest model.ResourceOffloadJob
-	result := r.db.Where("status IN ?", active).Order("created_at asc").Limit(1).Find(&oldest)
-	if result.Error != nil {
-		return summary, result.Error
-	}
-	if result.RowsAffected == 1 {
-		summary.OldestPending = &oldest.CreatedAt
-		var latest model.ResourceOffloadJob
-		if err := r.db.Where("status IN ? AND last_error_code <> ''", active).Order("updated_at desc").Limit(1).Find(&latest).Error; err != nil {
-			return summary, err
-		}
-		summary.LastErrorCode = latest.LastErrorCode
-	}
-	return summary, nil
-}
-
 // ExpediteResourceOffloadJobs 在某个存储位置恢复写入后，把同一位置等待退避的补传提前。
 func (r *Repository) ExpediteResourceOffloadJobs(provider, endpoint, bucket string, now time.Time) error {
 	return r.db.Model(&model.ResourceOffloadJob{}).

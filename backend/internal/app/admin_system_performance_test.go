@@ -60,7 +60,7 @@ func TestAdminSystemPerformanceReportsPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	if result.Status != "healthy" {
-		t.Fatalf("status = %q, want healthy", result.Status)
+		t.Fatalf("status = %q, want healthy: %+v", result.Status, result)
 	}
 	if result.Database.Driver != "postgres" || !result.Database.Connected || result.Database.Postgres == nil {
 		t.Fatalf("database = %#v", result.Database)
@@ -195,11 +195,11 @@ func TestClearAdminRuntimeCacheUsesRedisWhitelist(t *testing.T) {
 func newSystemPerformanceTestService(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
 	dataDir := t.TempDir()
-	db, err := testdb.Open(t, &gorm.Config{})
+	db, err := testdb.OpenDatabase(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&model.AdminAuditEvent{}); err != nil {
+	if err := db.AutoMigrate(&model.AdminAuditEvent{}, &model.SystemSetting{}); err != nil {
 		t.Fatal(err)
 	}
 	if sqlDB, err := db.DB(); err == nil {

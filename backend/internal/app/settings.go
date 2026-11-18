@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -39,7 +40,7 @@ const (
 const unsupportedOSSProviderMessage = "仅支持阿里云 OSS、腾讯云 COS、七牛云 Kodo、火山引擎 TOS 和通用 S3"
 
 func supportedOSSProvider(provider string) bool {
-	return oneOf(provider, aliyunOSSProvider, tencentCOSProvider, qiniuKodoProvider, volcengineTOSProvider, s3Provider)
+	return slices.Contains([]string{aliyunOSSProvider, tencentCOSProvider, qiniuKodoProvider, volcengineTOSProvider, s3Provider}, provider)
 }
 
 type OSSSettingRequest struct {

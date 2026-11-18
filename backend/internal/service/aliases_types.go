@@ -52,11 +52,7 @@ type (
 	AdminResourceDeleteBlocked             = app.AdminResourceDeleteBlocked
 	AdminResourceDeleteRequest             = app.AdminResourceDeleteRequest
 	AdminResourceDeleteResult              = app.AdminResourceDeleteResult
-	AdminResourcePage                      = app.AdminResourcePage
-	AdminResourceQuery                     = app.AdminResourceQuery
 	AdminResourceReferenceView             = app.AdminResourceReferenceView
-	AdminStorageResourceView               = app.AdminStorageResourceView
-	AdminStorageStats                      = app.AdminStorageStats
 	AdminSystemPerformance                 = app.AdminSystemPerformance
 	AnnouncementPage                       = app.AnnouncementPage
 	AppError                               = app.AppError
