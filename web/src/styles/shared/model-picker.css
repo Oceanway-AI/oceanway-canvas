@@ -872,20 +872,24 @@ html:not(.dark) .creation-home .creation-chat-composer .creation-model-picker.ca
 }
 .canvas-model-picker-media-heading {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, max-content) minmax(80px, 1fr) auto;
     align-items: center;
     gap: 2px 6px;
 }
 .canvas-model-picker-media-heading strong {
     grid-column: 1;
+    grid-row: 1;
     min-width: 0;
     font-size: var(--fs-label);
     font-weight: 600;
     line-height: 1.4;
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .canvas-model-picker-media-heading > .model-picker-price {
-    grid-column: 1;
+    grid-column: 2;
+    grid-row: 1;
     min-width: 0;
     max-width: 100%;
     justify-self: start;
@@ -895,8 +899,8 @@ html:not(.dark) .creation-home .creation-chat-composer .creation-model-picker.ca
 }
 .canvas-model-picker-media-heading > .canvas-model-picker-variant-status,
 .canvas-model-picker-media-heading > .model-picker-availability {
-    grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-column: 3;
+    grid-row: 1;
     justify-self: end;
     white-space: nowrap;
 }
@@ -1029,6 +1033,18 @@ html:not(.dark) .creation-home .creation-chat-composer .creation-model-picker.ca
 
 .dark .model-picker-price {
     --model-price-ink: #e8c45a;
+}
+
+.model-picker-price-details {
+    display: grid;
+    gap: 6px;
+    max-width: min(320px, calc(100vw - 48px));
+    font-size: 12px;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+}
+.model-picker-price-detail {
+    overflow-wrap: anywhere;
 }
 
 .model-picker-price-icon {

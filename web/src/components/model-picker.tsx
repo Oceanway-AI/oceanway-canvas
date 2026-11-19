@@ -311,7 +311,7 @@ export function ModelPicker({
                     renderOption={({ group, item }) => renderModelOption(group, item)}
                     renderGroupHeading={(group) => {
                         const logical = group.options[0]?.group;
-                        if (mediaHierarchy || !logical?.series || logical.models.length < 2) return null;
+                        if (capability === "text" || mediaHierarchy || !logical?.series || logical.models.length < 2) return null;
                         return (
                             <div className="canvas-model-picker-logical-summary">
                                 <strong>{group.label}</strong>
@@ -469,7 +469,6 @@ export function ModelLabel({
     if (platform) {
         const title = platform.content?.display_name?.trim() || modelChannelLabel(config, model);
         const tags = presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
-        const prices = presentation?.price_summary ?? [];
         let parameters = {};
         const currentVariant = nativeMediaVariant(config);
         if (currentVariant) {
@@ -485,13 +484,7 @@ export function ModelLabel({
         const settings = videoPriceSettings(parameters, videoCount > 0, referenceSeconds);
         const estimate = seedanceDisplayPrice(platform, settings);
         const price = estimate ? (estimate.state === "estimated" ? `≈ ✦ ${estimate.perSecond}/s` : "暂时无法预估费用") : platformModelCompactPriceLabel(platform);
-        const details = [
-            estimate?.state === "estimated" ? `${estimate.ratio} · ${estimate.width} × ${estimate.height} × 24 × (${estimate.referenceSeconds} + ${estimate.seconds}) / 1024 ≈ ${estimate.tokens} Token · ✦ ${estimate.rate}/百万 Token` : "",
-            platformModelPriceLabel(platform),
-            platformPriceConditions(prices),
-        ]
-            .filter(Boolean)
-            .join("\n");
+        const details = platformModelPriceLabel(platform);
         return (
             <span className="canvas-model-picker-media-row">
                 <span className="canvas-model-picker-option-logo">
@@ -665,7 +658,7 @@ function modelMenuPrice(config: AiConfig, model: string): ModelMenuPrice | undef
     if (!published) return undefined;
     return {
         label: platformModelCompactPriceLabel(published),
-        title: [platformModelPriceLabel(published), platformPriceConditions(published.presentation?.price_summary || [])].filter(Boolean).join("\n"),
+        title: platformModelPriceLabel(published),
     };
 }
 
@@ -686,11 +679,23 @@ function pickerModelOptionLabel(config: AiConfig, model: string, showConfiguredM
 function ModelPrice({ price }: { price?: ModelMenuPrice }) {
     if (!price) return null;
     return (
-        <Popover content={<div className="platform-model-description">{price.title}</div>} trigger={["hover", "focus"]} arrow={false}>
+        <Popover
+            content={
+                <div className="model-picker-price-details">
+                    {price.title.split(" · ").map((item, index) => (
+                        <div className="model-picker-price-detail" key={index}>
+                            {item}
+                        </div>
+                    ))}
+                </div>
+            }
+            trigger={["hover", "focus"]}
+            placement="topLeft"
+            arrow={false}
+        >
             <span
                 className="model-picker-price inline-flex shrink-0 items-center text-[var(--fs-tiny)] font-semibold"
                 tabIndex={price.title ? 0 : undefined}
-                title={price.title}
                 aria-label={spokenPlatformPrice([price.label, price.title].filter(Boolean).join("；"))}
                 onClick={(event) => event.stopPropagation()}
             >

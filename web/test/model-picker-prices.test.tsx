@@ -208,13 +208,15 @@ test("text rows share the media layout and only expose cached input prices befor
         rate_unit: "million_tokens",
         min: String(index),
         max: String(index),
-        conditions: [],
+        conditions: [{ model_name: "internal-model", price_version: "private-price-version", specification: {}, amount: String(index) }],
     }));
     const html = render();
     expect(html).toContain("canvas-model-picker-media-row");
     expect(html).toContain(">缓存读取 ✦ 2/百万 Token</span>");
-    expect(html).toContain("输入 ✦ 0/百万 Token");
-    expect(html).toContain("输出 ✦ 1/百万 Token");
+    expect(html).not.toContain("private-price-version");
+    expect(html).not.toContain("默认规格");
+    expect(html).toContain("输入 0 OceanWay 积分/百万 Token");
+    expect(html).toContain("输出 1 OceanWay 积分/百万 Token");
     expect(html).not.toContain("内部测试说明");
     expect(html).not.toContain("技术细节");
     expect(html).toContain('data-callable="true"');
