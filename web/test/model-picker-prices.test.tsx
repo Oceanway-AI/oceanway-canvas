@@ -201,7 +201,7 @@ test.each(["text", "image", "video"] as const)("%s variants under the same model
     expect(b).not.toContain("data-callable");
 });
 
-test("text rows share the media layout and only expose cached input prices before hover", () => {
+test("text rows share the media layout and only expose input prices before hover", () => {
     const { cost, render } = platformMediaFixture("text");
     cost.platform!.presentation!.price_summary = ["input", "output", "cache_read", "cache_write_5m"].map((dimension, index) => ({
         dimension,
@@ -212,16 +212,18 @@ test("text rows share the media layout and only expose cached input prices befor
     }));
     const html = render();
     expect(html).toContain("canvas-model-picker-media-row");
-    expect(html).toContain(">缓存读取 ✦ 2/百万 Token</span>");
+    expect(html).toContain(">输入 ✦ 0/百万 Token</span>");
+    expect(html).not.toContain(">缓存读取 ✦ 2/百万 Token</span>");
     expect(html).not.toContain("private-price-version");
     expect(html).not.toContain("默认规格");
     expect(html).toContain("输入 0 OceanWay 积分/百万 Token");
     expect(html).toContain("输出 1 OceanWay 积分/百万 Token");
+    expect(html).toContain("缓存读取 2 OceanWay 积分/百万 Token");
     expect(html).not.toContain("内部测试说明");
     expect(html).not.toContain("技术细节");
     expect(html).toContain('data-callable="true"');
-    cost.platform!.presentation!.price_summary = [];
-    expect(render()).toContain("缓存输入价未提供");
+    cost.platform!.presentation!.price_summary = cost.platform!.presentation!.price_summary.filter((range) => range.dimension !== "input");
+    expect(render()).toContain("输入价未提供");
 });
 
 test("text summaries with no media variants allow plain text before detail has been loaded", () => {
