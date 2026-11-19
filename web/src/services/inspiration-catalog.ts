@@ -6,7 +6,6 @@ import { appURL } from "@/lib/app-path";
  * 浏览器 HTTP 缓存之外再做一层内存缓存，同一次会话只请求一遍。
  */
 import { catalogIdOf, curatedInspirations, type CreationInspiration, type InspirationSourceId } from "@/lib/inspirations/catalog";
-import { getPublicInspirationFeed, type InspirationFeed } from "@/services/api/inspiration-feed";
 
 /** manifest.json 里每个来源带的分类码译名表。 */
 type SourceManifest = { revision?: string; count?: number; categories?: Record<string, string> };
@@ -50,67 +49,16 @@ function readEntries(payload: unknown, file: string): CreationInspiration[] {
     return (entries as CreationInspiration[]).map((entry) => ({ ...entry, image: appURL(entry.image) }));
 }
 
-/** 后端定时同步的上新条目只来自这两个来源；其他 sourceId 一律忽略。 */
-const FEED_SOURCES = new Set<InspirationSourceId>(["seedance", "youmind"]);
-
-/** 上新是静态目录之外的补充：拿不到就只展示静态目录，不影响灵感大厅本身。 */
-function loadFeed(): Promise<InspirationFeed | null> {
-    return getPublicInspirationFeed().catch((error) => {
-        console.warn("灵感上新加载失败，只展示内置目录", error);
-        return null;
-    });
-}
-
-function isWebLink(value: string | undefined, httpsOnly = false) {
-    if (!value) return false;
-    try {
-        const url = new URL(value);
-        return url.protocol === "https:" || (!httpsOnly && url.protocol === "http:");
-    } catch {
-        return false;
-    }
-}
-
-/** 静态目录已有的条目以静态目录为准（带人工译审和本地缩略图），上新只补目录里没有的。 */
-function mergeFeed(entriesBySource: Map<InspirationSourceId, CreationInspiration[]>, feed: InspirationFeed | null, labelsOf: (sourceId: InspirationSourceId) => Record<string, string>) {
-    if (!feed?.enabled) return;
-    const known = new Set([...entriesBySource.values()].flat().map(catalogIdOf));
-    for (const entry of feed.entries) {
-        const sourceId = entry.sourceId as InspirationSourceId;
-        if (!FEED_SOURCES.has(sourceId) || known.has(entry.id) || !entry.title || !entry.prompt || !isWebLink(entry.image, true)) continue;
-        known.add(entry.id);
-        entriesBySource.get(sourceId)?.push({
-            id: entry.id,
-            title: entry.title,
-            // 与静态目录一致：没有中文摘要时用分类名做描述。
-            description: entry.description || (entry.category ? (labelsOf(sourceId)[entry.category] ?? "") : ""),
-            image: entry.image,
-            mode: entry.mode,
-            prompt: entry.prompt,
-            sourceId,
-            addedAt: entry.addedAt,
-            ...(entry.category ? { category: entry.category } : {}),
-            ...(entry.tags?.length ? { tags: entry.tags } : {}),
-            ...(entry.credit ? { credit: entry.credit } : {}),
-            ...(isWebLink(entry.sourceUrl) ? { sourceUrl: entry.sourceUrl } : {}),
-            ...(entry.publishedAt ? { publishedAt: entry.publishedAt } : {}),
-        });
-    }
-}
-
 async function buildCatalog(): Promise<InspirationCatalog> {
-    const [manifest, feed, ...packs] = await Promise.all([
+    const [manifest, ...packs] = await Promise.all([
         fetchJson<CatalogManifest>(appURL("/inspirations/manifest.json")).catch(() => ({ sources: {} }) as CatalogManifest),
-        loadFeed(),
         ...CATALOG_SOURCES.map((source) => fetchJson<unknown>(source.file).then((payload) => readEntries(payload, source.file))),
     ]);
 
     const entriesBySource = new Map<InspirationSourceId, CreationInspiration[]>();
     CATALOG_SOURCES.forEach((source, index) => entriesBySource.set(source.key, [...packs[index]]));
     entriesBySource.set("original", curatedInspirations);
-    // 静态目录的分类名优先，上游新增的分类码再用上新接口带回的名称。
-    const labelsOf = (sourceId: InspirationSourceId) => ({ ...(feed?.categories?.[sourceId] ?? {}), ...(manifest.sources?.[sourceId]?.categories ?? {}) });
-    mergeFeed(entriesBySource, feed, labelsOf);
+    const labelsOf = (sourceId: InspirationSourceId) => manifest.sources?.[sourceId]?.categories ?? {};
 
     const categoriesBySource = {} as Record<InspirationSourceId, InspirationCategoryOption[]>;
     const revisions: Record<string, string> = {};
@@ -133,7 +81,7 @@ async function buildCatalog(): Promise<InspirationCatalog> {
     };
 }
 
-/** 管理员改了上新开关或刚同步完，下次进入灵感大厅重新拉取。 */
+/** 清除内存目录缓存，下次进入灵感大厅重新读取。 */
 export function invalidateInspirationCatalog() {
     pending = null;
 }
