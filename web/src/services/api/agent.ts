@@ -238,8 +238,15 @@ export function undoAgentCanvasRun(runId: string, input: { stepId?: string; expe
 
 export type StudioAgentMediaQuote = { id: string; billingMode?: "actual_usage"; estimatedPoints?: string; walletMaxPoints?: string; priceVersion: string; expiresAt: string; parameters: Record<string, unknown> };
 
-export function quoteAgentMedia(runId: string, approvalId: string, signal?: AbortSignal) {
-    return http.post<StudioAgentMediaQuote>(`/agent/runs/${encodeURIComponent(runId)}/approvals/${encodeURIComponent(approvalId)}/quote`, { billingMode: "actual_usage" }, { signal });
+export async function prepareAgentMediaApproval(runId: string, approvalId: string, existing?: StudioAgentMediaQuote, signal?: AbortSignal) {
+    // An older client may already have bound this draft to a spending cap.
+    if (existing?.walletMaxPoints != null) {
+        if (!existing.id || !(Date.parse(existing.expiresAt) > Date.now())) throw new Error("旧草稿已过期，请暂不执行并重新发起生成");
+        return existing.id;
+    }
+    const quote = await http.post<StudioAgentMediaQuote>(`/agent/runs/${encodeURIComponent(runId)}/approvals/${encodeURIComponent(approvalId)}/quote`, { billingMode: "actual_usage" }, { signal });
+    if (!quote.id || quote.billingMode !== "actual_usage" || quote.walletMaxPoints != null) throw new Error("平台暂未就绪，请稍后再试");
+    return quote.id;
 }
 
 export async function decideAgentApproval(runId: string, approvalId: string, decision: "approve" | "reject", reason?: string, signal?: AbortSignal, mediaSettings?: AgentMediaSettings, quoteId?: string) {
