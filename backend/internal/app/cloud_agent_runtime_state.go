@@ -331,6 +331,13 @@ func validateCloudAgentPolicySnapshot(snapshot cloudAgentPolicySnapshot) error {
 	if err != nil {
 		return fmt.Errorf("load Agent runtime policies: %w", err)
 	}
+	// v21 runs already persist their compiled prompt and tools. Preserve that
+	// exact contract during recovery, including pending manual approvals.
+	if snapshot.SystemPolicyID == system.ID && snapshot.MediaPolicyID == media.ID && snapshot.SystemPolicyVersion == 21 && snapshot.MediaPolicyVersion == 21 &&
+		snapshot.SystemPolicyHash == "1d0e8e117568dbc5caa969af45b4ec4af1b6d26ab4439a199c6e17146ddfe3ce" &&
+		snapshot.MediaPolicyHash == "d2155f4f6e1fdac48f27182bc81369fa94f4536c477cc282639bbdf364f88730" && snapshot.CapabilitySetHash == cloudAgentCapabilitySetHash() {
+		return nil
+	}
 	if snapshot.SystemPolicyID != system.ID || snapshot.SystemPolicyVersion != system.Version || snapshot.MediaPolicyID != media.ID || snapshot.MediaPolicyVersion != media.Version {
 		return errors.New("Agent runtime policy version is unsupported")
 	}

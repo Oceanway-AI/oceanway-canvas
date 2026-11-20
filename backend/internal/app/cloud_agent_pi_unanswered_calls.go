@@ -37,6 +37,8 @@ const cloudAgentPiUnansweredCallText = `{"error":"该工具调用未被执行：
 // cloudAgentPiApprovalPauseText 是工具进入审批时交给运行时的占位结果。
 const cloudAgentPiApprovalPauseText = "操作正在等待用户审批。"
 
+const cloudAgentPiAutomaticMediaPauseText = "媒体任务正在生成，完成后自动继续。"
+
 // 孤立结果转成数据消息时的保留上限：只保留最近几条，单条截断，避免旧流水撑大上下文。
 const (
 	cloudAgentOrphanToolResultKeep  = 4
@@ -170,7 +172,7 @@ func repairToolHistory(messages []map[string]any, format toolHistoryFormat, rece
 // 占位，以及补齐的「未执行」结果。
 func cloudAgentToolResultIsPlaceholder(text string) bool {
 	trimmed := strings.TrimSpace(text)
-	return trimmed == cloudAgentPiApprovalPauseText || trimmed == cloudAgentPiMediaBatchPauseText || trimmed == cloudAgentPiUnansweredCallText ||
+	return trimmed == cloudAgentPiApprovalPauseText || trimmed == cloudAgentPiAutomaticMediaPauseText || trimmed == cloudAgentPiMediaBatchPauseText || trimmed == cloudAgentPiUnansweredCallText ||
 		strings.Contains(trimmed, `"errorClass":"`+cloudAgentToolErrorApprovalDeferred+`"`)
 }
 

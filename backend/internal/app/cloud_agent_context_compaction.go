@@ -278,7 +278,7 @@ func cloudAgentFallbackCheckpoint(state *cloudAgentRuntime) agentcontext.Checkpo
 		checkpoint.Decisions = append(checkpoint.Decisions, fmt.Sprintf("已查看过画面 %s（%s），无需重复看图", asset.NodeID, asset.Type))
 	}
 	if state.Request.ChannelID == StudioPlatformChannelID {
-		checkpoint.Constraints = append(checkpoint.Constraints, fmt.Sprintf("权限模式：%s；资金由 Platform 校验，媒体按单次明确上限与原生审批执行，无本地积分预算", state.Request.PermissionMode))
+		checkpoint.Constraints = append(checkpoint.Constraints, fmt.Sprintf("权限模式：%s。媒体生成按本轮权限执行，Platform 按实际用量计费", state.Request.PermissionMode))
 	} else {
 		checkpoint.Constraints = append(checkpoint.Constraints, fmt.Sprintf("权限模式：%s；本轮预算上限：%.4f credits", state.Request.PermissionMode, state.Request.Budget.MaxCredits))
 	}

@@ -1203,6 +1203,34 @@ paths:
       parameters:
         - $ref: "#/components/parameters/StudioIdentityVersion"
         - $ref: "#/components/parameters/StudioActorID"
+  /agent/runs/{id}/execution-mode:
+    parameters:
+      - $ref: "#/components/parameters/AgentRunID"
+    post:
+      tags: [ agent ]
+      summary: 切换当前可写 Studio 轮次的执行权限
+      parameters:
+        - $ref: "#/components/parameters/StudioIdentityVersion"
+        - $ref: "#/components/parameters/StudioActorID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ from, mode ]
+              properties:
+                from:
+                  type: string
+                  enum: [ auto, request_approval ]
+                mode:
+                  type: string
+                  enum: [ auto, request_approval ]
+      responses:
+        "200":
+          description: 模式已经保存
+        "409":
+          description: 当前轮次或模式已经变化
   /agent/runs/{id}/approvals/{approvalId}/decision:
     parameters:
       - $ref: "#/components/parameters/AgentRunID"
@@ -1226,6 +1254,9 @@ paths:
                 decision:
                   type: string
                   enum: [ approve, reject ]
+                enableAuto:
+                  type: boolean
+                  description: 用户在当前待审批操作上选择自动执行时传 true
                 reason:
                   type: string
                   maxLength: 2000

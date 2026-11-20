@@ -368,6 +368,31 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 		}
 		ok(c, quote)
 	})
+	r.POST("/agent/runs/:id/execution-mode", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		if !svc.UsesPlatformIdentity() {
+			failService(c, service.NewAppError(501, "当前服务不支持切换运行权限"))
+			return
+		}
+		var req struct {
+			From string `json:"from"`
+			Mode string `json:"mode"`
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024)
+		if err := c.ShouldBindJSON(&req); err != nil {
+			fail(c, http.StatusBadRequest, err)
+			return
+		}
+		if err := svc.SetStudioAgentMode(user.ID, c.Param("id"), req.From, req.Mode); err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, gin.H{"accepted": true})
+	})
 	r.POST("/agent/runs/:id/approvals/:approvalId/decision", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
@@ -383,6 +408,7 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 			Decision      string                           `json:"decision"`
 			Reason        string                           `json:"reason"`
 			QuoteID       string                           `json:"quoteId,omitempty"`
+			EnableAuto    bool                             `json:"enableAuto,omitempty"`
 			MediaSettings *service.CloudAgentMediaSettings `json:"mediaSettings,omitempty"`
 		}
 		decoder := json.NewDecoder(c.Request.Body)
@@ -404,7 +430,7 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		if svc.UsesPlatformIdentity() {
-			err = svc.DecideStudioAgentMedia(user.ID, c.Param("id"), c.Param("approvalId"), req.Decision, req.Reason, req.QuoteID, req.MediaSettings)
+			err = svc.DecideStudioAgentMedia(user.ID, c.Param("id"), c.Param("approvalId"), req.Decision, req.Reason, req.QuoteID, req.MediaSettings, req.EnableAuto)
 		} else {
 			err = svc.DecideCloudAgentApproval(user.ID, c.Param("id"), c.Param("approvalId"), req.Decision, req.Reason, req.MediaSettings)
 		}

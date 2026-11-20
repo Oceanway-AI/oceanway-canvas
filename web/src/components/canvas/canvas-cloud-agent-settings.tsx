@@ -63,7 +63,7 @@ type AgentSettingsProps = {
 const permissionOptions: Array<{ value: AgentPermissionMode; label: string; short: string; description: string; icon: typeof ShieldCheck; color: string }> = [
     { value: "read_only", label: "只读", short: "只读", description: "只分析和建议", icon: LockKeyhole, color: "var(--status-loading)" },
     { value: "request_approval", label: "请求审批", short: "审批", description: "写入和生成前确认", icon: ShieldCheck, color: "var(--status-warning)" },
-    { value: "auto", label: "自动执行", short: "自动", description: "执行已授权画布工具，生成另行审批", icon: CirclePlay, color: "var(--status-success)" },
+    { value: "auto", label: "自动执行", short: "自动", description: "自动修改画布、生成图片和视频，按实际用量计费", icon: CirclePlay, color: "var(--status-success)" },
 ];
 
 const contextOptions: Array<{ value: AgentContextKey; label: string; description: string }> = [{ value: "canvas", label: "画布节点目录", description: "每次请求只带节点 id、类型和标题；正文按页读取，不含媒体或未同步修改" }];
@@ -153,9 +153,6 @@ function SettingsHome({ props, theme, onOpen }: { props: AgentSettingsProps; the
                         );
                     })}
                 </div>
-                <p className="mt-2 text-xs leading-5" style={{ color: theme.node.muted }}>
-                    默认逐项审批。自动模式可修改已授权的画布内容；图片、视频始终先创建草稿，再经独立审批才提交生成任务。
-                </p>
             </section>
             <section>
                 <SettingLabel label="能力与范围" />

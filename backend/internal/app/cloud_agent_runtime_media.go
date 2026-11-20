@@ -232,6 +232,7 @@ func (s *Service) cloudAgentMediaError(run *model.CloudAgentExecution, state *cl
 		state.AutoPreparedCallHash = ""
 		if submitted {
 			state.MediaTaskID = ""
+			state.StudioMediaCallHash = ""
 		}
 		// Only explicitly typed argument errors, stale canvas snapshots and known
 		// transient admission failures may continue into another model turn. A
@@ -379,6 +380,10 @@ func (s *Service) advanceCloudAgentMedia(run *model.CloudAgentExecution, state *
 }
 
 func (s *Service) DecideCloudAgentApproval(userID, id, approvalID, decision, reason string, mediaSettings ...*CloudAgentMediaSettings) error {
+	return s.decideCloudAgentApproval(userID, id, approvalID, decision, reason, false, mediaSettings...)
+}
+
+func (s *Service) decideCloudAgentApproval(userID, id, approvalID, decision, reason string, promote bool, mediaSettings ...*CloudAgentMediaSettings) error {
 	// Resource leases are a protection mechanism only. Expiry cleanup is safe to
 	// run on the control-plane path and never changes the approval decision.
 	if err := s.repo.ReleaseExpiredCloudAgentResourceLeases(time.Now().UTC()); err != nil {
@@ -464,6 +469,12 @@ func (s *Service) DecideCloudAgentApproval(userID, id, approvalID, decision, rea
 		}
 		s.storageMu.Lock()
 		err = s.repo.MutateCloudAgent(userID, id, run.Revision, func(current *model.CloudAgentExecution, repo *repository.Repository) error {
+			if promote {
+				if state.Request.ChannelID != StudioPlatformChannelID || state.Request.PermissionMode == "read_only" || !cloudAgentToolAllowed(state.Request, state.Approval.Call.Function.Name) {
+					return creationConflict("本轮不支持自动执行此操作")
+				}
+				state.Request.PermissionMode, state.StudioAutoMedia = "auto", true
+			}
 			if settings != nil {
 				if err := s.updateCloudAgentMediaApproval(repo, run, &state, *settings); err != nil {
 					return err

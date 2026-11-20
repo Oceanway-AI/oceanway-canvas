@@ -39,6 +39,7 @@ import {
     getAgentRun,
     createAgentRun,
     decideAgentApproval,
+    setAgentExecutionMode,
     prepareAgentMediaApproval,
     type StudioAgentMediaQuote,
     sendAgentInterjection,
@@ -1735,7 +1736,32 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
     // 连接断开时没有请求在路上，转圈会让人以为审批卡死了。
     const approvalBlockedReason = otherAgentRunning ? "画布上有别的 Agent 在运行，它结束后才能确认" : connectionStatus === "disconnected" ? "连接已断开，重新连接后才能确认" : connectionStatus !== "connected" ? "正在连接服务端，连上后即可确认" : undefined;
 
-    const submitApproval = async (decision: "approve" | "reject", mediaSettings?: AgentMediaSettings) => {
+    const changeExecutionMode = async (mode: AgentPermissionMode) => {
+        if (mode === "auto" && run?.status === "waiting_approval" && approval) {
+            if (approvalBlockedReason) void appMessage.warning(approvalBlockedReason);
+            else void submitApproval("approve", undefined, true);
+            return;
+        }
+        if (run && (run.status === "running" || run.status === "queued") && mode !== "read_only" && run.permissionMode !== "read_only") {
+            const scope = conversationScope;
+            try {
+                await setAgentExecutionMode(run.id, run.permissionMode, mode);
+                if (!accountIsCurrent() || currentScope.current !== scope) return;
+                setRun((current) => (current?.id === run.id ? { ...current, permissionMode: mode } : current));
+                setPermissionMode(mode);
+            } catch (error) {
+                if (accountIsCurrent() && currentScope.current === scope) {
+                    setConnectionEpoch((value) => value + 1);
+                    void appMessage.warning(error instanceof Error ? error.message : "权限未更新，请重新选择");
+                }
+            }
+            return;
+        }
+        setPermissionMode(mode);
+        if (run && !agentRunTerminal(run.status) && mode !== run.permissionMode) void appMessage.info("所选权限从下一轮消息生效");
+    };
+
+    const submitApproval = async (decision: "approve" | "reject", mediaSettings?: AgentMediaSettings, enableAuto?: boolean) => {
         if (!run || !approval || approvalBlockedReason || approvalRequestRef.current === approval.approvalId) return;
         const runId = run.id;
         const approvalId = approval.approvalId;
@@ -1755,12 +1781,13 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                 quoteId = await prepareAgentMediaApproval(runId, approvalId, approval.detail.studioQuote as StudioAgentMediaQuote | undefined, AbortSignal.timeout(30_000));
                 if (!accountIsCurrent() || currentScope.current !== scope) return;
             }
-            await decideAgentApproval(runId, approvalId, decision, approval.reason, AbortSignal.timeout(15_000), mediaSettings, quoteId);
+            await decideAgentApproval(runId, approvalId, decision, approval.reason, AbortSignal.timeout(15_000), mediaSettings, quoteId, enableAuto);
             if (accountIsCurrent() && currentScope.current === scope) {
+                if (enableAuto) setPermissionMode("auto");
                 setApproval((current) => (current?.approvalId === approvalId ? null : current));
                 setRun((current) =>
                     current?.id === runId && current.status === "waiting_approval" && (!current.approval || current.approval.approvalId === approvalId)
-                        ? { ...current, status: decision === "reject" ? "rejected" : "running", approval: undefined }
+                        ? { ...current, status: decision === "reject" ? "rejected" : "running", approval: undefined, permissionMode: enableAuto ? "auto" : current.permissionMode }
                         : current,
                 );
             }
@@ -1779,6 +1806,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                 if (snapshot.run.approval?.approvalId !== approvalId || snapshot.run.approval?.decision || snapshot.run.status !== "waiting_approval") {
                     // 另一端已经处理审批：读取实际状态，不自动重发当前端的决定。
                     setRun(snapshot.run);
+                    if (enableAuto && snapshot.run.permissionMode === "auto") setPermissionMode("auto");
                     setApproval(approvalStateFromRun(snapshot.run));
                     setConnectionEpoch((value) => value + 1);
                     setCloudRefreshEpoch((value) => value + 1);
@@ -2484,7 +2512,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                                         onBack={() => setView("chat")}
                                         onCollapse={onCollapse}
                                         onModelChange={setModel}
-                                        onPermissionChange={setPermissionMode}
+                                        onPermissionChange={changeExecutionMode}
                                         reasoningMode={reasoningMode}
                                         onReasoningModeChange={setReasoningMode}
                                         profileView={profileView}
@@ -2723,7 +2751,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                                                 permissionMode={permissionMode}
                                                 theme={theme}
                                                 onModelChange={setModel}
-                                                onPermissionChange={setPermissionMode}
+                                                onPermissionChange={changeExecutionMode}
                                                 reasoningMode={reasoningMode}
                                                 onReasoningModeChange={setReasoningMode}
                                                 skillsOpen={skillsOpen}

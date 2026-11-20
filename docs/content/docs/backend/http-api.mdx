@@ -23,6 +23,8 @@ Studio 已开放 `POST /api/tasks`、`POST /api/tasks/preview`、`GET /api/tasks
 
 Studio 原生 Pi 的媒体草稿使用 `approval.studioMedia=true`。用户在生成操作卡点击「同意执行」后，浏览器向 `POST /agent/runs/:id/approvals/:approvalId/quote` 发送 `{"billingMode":"actual_usage"}` 准备本次请求，再向 `POST .../decision` 携带原 `quoteId` 提交。拒绝直接提交决定。Platform 根据实际用量在原单结算，超过预估时自动补扣。历史显式上限按原授权恢复。报价过期或依赖变化返回 409。任务、画布绑定与决定同事务写入，沿用整轮授权。
 
+新轮次选择 `auto` 时，图片、视频由服务端使用本轮授权和已冻结的模型版本直接提交，按原任务回写画布。`read_only` 只读。执行中在两种写入模式之间切换使用 `POST /agent/runs/:id/execution-mode` 的 `from`、`mode`。已有待审批媒体时，用户选择自动执行会对当前操作提交 `enableAuto: true`，后续步骤沿用该模式。打开历史会话本身不会提交生成。
+
 历史个人视频若已按显式上限批准，支持最终账单的 Platform SDK 会在原任务详情 `platformBilling.finalWalletConsent` 返回 `state`、`totalPoints`。原付款人在 `required` 状态核对总额后，向 `POST /tasks/:id/final-wallet-consent` 提交字符串 `totalPoints`。成功表示本人确认已登记。继续读取原任务，`settledPoints` 为最终实扣积分。rc.5 支持新单按量结算，历史确认入口随扩展 SDK 启用。
 
 Pi 媒体报价同时冻结能力/连接 revision 到原加密准备态，公共审批格式不变；批准不重新报价、不申请独立 EXA。缺失版本的旧准备态409拒绝，已排队且未提交的旧媒体任务标记失败；已提交的旧任务继续按原 request ID 恢复，即使旧 envelope 缺少 revision，也不得改判为未执行或补发。

@@ -412,6 +412,9 @@ func (s *Service) executeCloudAgentRuntimeTool(ctx context.Context, userID, runI
 			return nil, fmt.Errorf("工具调用 %q 没有对应的模型工具调用", call.ID)
 		}
 		expected := state.Calls[state.CallIndex]
+		if state.MediaTaskID != "" && state.StudioMediaCallHash != "" && expected.ID == call.ID && state.StudioMediaCallHash == cloudAgentApprovalCallHash(call) {
+			break
+		}
 		if !cloudAgentToolCallsEquivalent(expected, call) {
 			return nil, fmt.Errorf("工具调用 %q 与模型声明的工具调用不一致", call.ID)
 		}
@@ -425,9 +428,6 @@ func (s *Service) executeCloudAgentRuntimeTool(ctx context.Context, userID, runI
 			return nil, err
 		}
 		executed = true
-	}
-	if !executed {
-		return nil, fmt.Errorf("execute tool %s: %w", call.Function.Name, repository.ErrCreationConflict)
 	}
 	// 媒体生成：等待已提交的任务结束，再由同一执行器回写画布并记录工具结果。
 	for {
@@ -447,6 +447,13 @@ func (s *Service) executeCloudAgentRuntimeTool(ctx context.Context, userID, runI
 		}
 		if content, ok := cloudAgentToolMessage(&state, call.ID); ok {
 			return cloudAgentPiToolResult(call, content), nil
+		}
+		if state.MediaTaskID != "" && state.StudioMediaCallHash != "" && state.CallIndex < len(state.Calls) && state.Calls[state.CallIndex].ID == call.ID {
+			s.startApprovedCloudAgentMediaWaiter(userID, runID, state.MediaTaskID)
+			return map[string]any{"pause": true, "content": cloudAgentPiAutomaticMediaPauseText}, nil
+		}
+		if !executed {
+			return nil, fmt.Errorf("execute tool %s: %w", call.Function.Name, repository.ErrCreationConflict)
 		}
 		if batch := state.MediaBatch; batch.active() && batch.CallID == call.ID {
 			// 批次在后台执行：像审批一样暂停 Pi 会话，结束后由执行器写入回执并续跑。

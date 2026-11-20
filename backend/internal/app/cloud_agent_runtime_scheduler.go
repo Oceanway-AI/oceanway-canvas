@@ -37,6 +37,7 @@ func (s *Service) cloudAgentExecutionOutput(task *model.Task, initial cloudAgent
 		out.ConversationID = run.ID
 	}
 	out.Status = run.Status
+	out.PermissionMode = state.Request.PermissionMode
 	out.Revision, out.CleanupPending, out.FailureMessage = run.Revision, run.CleanupPending, run.FailureMessage
 	out.UpdatedAt = run.UpdatedAt
 	view := CloudAgentRunViewOptions{}

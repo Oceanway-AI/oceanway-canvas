@@ -105,6 +105,9 @@ func (s *Service) buildProfileConfig(profile cloudAgentProfileSnapshot) map[stri
 func (s *Service) buildFeaturesConfig(state *cloudAgentRuntime) map[string]any {
 	approvalTools := []string{}
 	for _, name := range cloudAgentRegistry().Names() {
+		if state.StudioAutoMedia && state.Request.PermissionMode == "auto" && cloudAgentMediaTool(name) {
+			continue
+		}
 		if cloudAgentToolAllowed(state.Request, name) && agenttool.Of(name).ApprovalRequired(state.Request.PermissionMode) {
 			approvalTools = append(approvalTools, name)
 		}

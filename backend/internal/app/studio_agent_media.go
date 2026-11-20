@@ -33,6 +33,31 @@ type studioAgentMediaPrepared struct {
 	Quote          StudioAgentMediaQuote   `json:"quote"`
 }
 
+// Writable turns share the same tool set. A pending action must be addressed
+// by its ID so a mode change racing a new approval cannot consume that action.
+func (s *Service) SetStudioAgentMode(userID, runID, from, mode string) error {
+	if (mode != "auto" && mode != "request_approval") || (from != "auto" && from != "request_approval") {
+		return BadAuthRequest("当前轮次只能在自动执行与请求审批之间切换")
+	}
+	run, err := s.repo.CloudAgent(userID, runID)
+	if err != nil {
+		return err
+	}
+	return s.repo.MutateCloudAgent(userID, runID, run.Revision, func(current *model.CloudAgentExecution, _ *repository.Repository) error {
+		state, err := cloudAgentDecode(current)
+		if err != nil {
+			return err
+		}
+		if current.CleanupPending || current.Status != "running" && current.Status != "queued" || state.Request.ChannelID != StudioPlatformChannelID ||
+			state.Request.PermissionMode == "read_only" || (state.Request.PermissionMode != from && state.Request.PermissionMode != mode) {
+			return creationConflict("本轮状态已变化，请刷新后切换权限")
+		}
+		state.Request.PermissionMode = mode
+		state.StudioAutoMedia = mode == "auto"
+		return cloudAgentSave(current, &state)
+	})
+}
+
 func (s *Service) studioAgentMediaSelection(userID, runID, name string, variant ...string) (platformintegration.ModelSelection, error) {
 	root, err := s.repo.StudioExecution(userID, runID)
 	if err != nil {
@@ -305,6 +330,109 @@ func (s *Service) requestStudioAgentMediaApproval(run *model.CloudAgentExecution
 	})
 }
 
+// An automatic turn uses the model contract frozen under its execution grant.
+// The original call hash lets Pi reconnect to the same task after a lost reply.
+func (s *Service) submitAutomaticStudioMedia(run *model.CloudAgentExecution, state *cloudAgentRuntime, call, original cloudAgentCall) error {
+	req, plan, err := s.prepareCloudAgentMedia(run, state, cloudAgentMediaCall(call))
+	if err != nil {
+		return s.cloudAgentMediaError(run, state, "admission", false, false, err)
+	}
+	detail, err := s.studioAgentCatalogDetail(run.UserID, run.ID, req.Model, plan.Args.NativeVariantID)
+	if err != nil {
+		return err
+	}
+	selected, err := platformintegration.SelectModel(detail.Model, plan.Args.NativeVariantID)
+	if err != nil {
+		return err
+	}
+	body, err := s.studioMediaBody(context.Background(), run.UserID, req, selected)
+	if err != nil {
+		return s.cloudAgentMediaError(run, state, "admission", false, false, err)
+	}
+	actionID := fmt.Sprintf("%s-%d-%d", run.ID, state.Step, state.CallIndex)
+	task, err := studioAgentMediaTask(run.UserID, run.ID, state.Request.CanvasID, actionID, req, selected)
+	if err != nil {
+		return err
+	}
+	e := studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + task.ID, AgentRunID: run.ID, ContentType: "application/json", Body: body, ActualUsageBilling: true,
+		Consumption: &platformclient.MediaConsumptionConstraints{ExpectedCapabilityRevision: detail.CapabilityRevision, ExpectedConnectionRevision: detail.ConnectionRevision, ExpectedPriceVersion: detail.PriceVersion}}
+	if !e.validMediaConsumption() {
+		return creationConflict("本轮模型的计费版本不完整，请重新读取模型")
+	}
+	policy, err := s.RuntimePolicy()
+	if err != nil {
+		return err
+	}
+	raw, err := json.Marshal(plan.Args)
+	if err != nil {
+		return err
+	}
+	call.Function.Arguments = string(raw)
+	state.Calls[state.CallIndex] = call
+	state.StudioMediaCallHash = cloudAgentApprovalCallHash(original)
+	state.PiResumePrompt = ""
+	if selected.GenerationV1 {
+		a := model.StudioMediaAction{RunID: run.ID, ApprovalID: actionID, UserID: run.UserID, ProjectID: state.Request.CanvasID, NodeID: plan.Args.NodeID}
+		_, err = s.decideStudioGenerationAction(context.Background(), run, state, a, &task, studioAgentGenerationCommand(e), state.StudioMediaCallHash, "", "auto", plan, "", policy, &platformclient.Response{Header: make(http.Header)}, false)
+		return err
+	}
+	frozen, err := s.encryptStudioValue(e)
+	if err != nil {
+		return err
+	}
+	s.storageMu.Lock()
+	err = s.repo.MutateCloudAgent(run.UserID, run.ID, run.Revision, func(current *model.CloudAgentExecution, repo *repository.Repository) error {
+		if (current.Status != "running" && current.Status != "queued") || current.CleanupPending {
+			return repository.ErrCreationConflict
+		}
+		root, err := repo.StudioExecution(run.UserID, run.ID)
+		if err != nil {
+			return err
+		}
+		if root.State != "agent" || root.Released {
+			return creationConflict("本轮授权已结束")
+		}
+		if err := createCloudAgentMediaNode(repo, run.UserID, state.Request.CanvasID, plan, &task, policy, cloudAgentCanvasEventRecorder(run.ID, state)); err != nil {
+			return err
+		}
+		if err := queueStudioAgentMedia(repo, task, frozen, state.StudioMediaCallHash, root.AuthorizationEncrypted, policy); err != nil {
+			return err
+		}
+		current.Status = "running"
+		state.TaskIDs = append(state.TaskIDs, task.ID)
+		state.MediaTaskID = task.ID
+		state.Generations++
+		state.VideoSeconds += plan.Args.Duration
+		state.event(run.ID, "generation_task_created", map[string]any{"toolName": call.Function.Name, "taskId": task.ID, "nodeId": plan.Args.NodeID, "canvasId": state.Request.CanvasID})
+		return cloudAgentSave(current, state)
+	})
+	s.storageMu.Unlock()
+	if err == nil {
+		s.wakeTaskDispatcher()
+	}
+	return err
+}
+
+func studioAgentMediaTask(userID, runID, canvasID, actionID string, req CreateTaskRequest, selected platformintegration.ModelSelection) (model.Task, error) {
+	public, err := studioPublicTaskInput(selected.Kind, req)
+	if err != nil {
+		return model.Task{}, err
+	}
+	id := cloudAgentID(userID, runID+":media:"+actionID)
+	return model.Task{ID: id, UserID: userID, ProjectID: canvasID, AgentRunID: runID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: public, Status: model.TaskStatusQueued, Stage: "等待平台媒体任务"}, nil
+}
+
+func queueStudioAgentMedia(repo *repository.Repository, task model.Task, frozen, intent, grant string, policy RuntimePolicySetting) error {
+	execution, err := repo.CreateStudioExecution(model.StudioExecution{TaskID: task.ID, UserID: task.UserID, CommandID: "agent-media:" + task.ID, IntentHash: intent, EnvelopeEncrypted: frozen, State: "authorizing", Released: true})
+	if err != nil {
+		return err
+	}
+	if execution.IntentHash != intent {
+		return creationConflict("该媒体步骤已有其他请求")
+	}
+	return repo.QueueStudioExecution(task, grant, policy.Task.ActiveTaskLimit)
+}
+
 func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, session platformclient.SessionContext, runID, approvalID string, prepareActualUsage bool) (*StudioAgentMediaQuote, *platformclient.Response, error) {
 	response := &platformclient.Response{Header: make(http.Header)}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -322,6 +450,9 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 	}
 	if run.Status != "waiting_approval" || state.Approval == nil || state.Approval.ID != approvalID || !state.Approval.StudioMedia || state.Approval.Decision != "" {
 		return nil, response, creationConflict("媒体审批不存在或已经处理")
+	}
+	if prepareActualUsage && state.Approval.StudioQuote != nil && state.Approval.StudioQuote.BillingMode != "actual_usage" {
+		return nil, response, creationConflict("历史草稿须使用原消费授权")
 	}
 	req, plan, err := s.prepareCloudAgentMedia(run, &state, state.Approval.Call)
 	if err != nil {
@@ -354,12 +485,10 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 	if err != nil {
 		return nil, response, err
 	}
-	id := cloudAgentID(userID, runID+":media:"+approvalID)
-	public, err := studioPublicTaskInput(selected.Kind, req)
+	task, err := studioAgentMediaTask(userID, runID, state.Request.CanvasID, approvalID, req, selected)
 	if err != nil {
 		return nil, response, err
 	}
-	task := model.Task{ID: id, UserID: userID, ProjectID: state.Request.CanvasID, AgentRunID: runID, Type: req.Type, Operation: req.Operation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: public, Status: model.TaskStatusQueued, Stage: "等待已批准的平台媒体任务"}
 	canvas, err := s.repo.CanvasProjectForUser(userID, state.Request.CanvasID)
 	if err != nil {
 		return nil, response, err
@@ -386,7 +515,7 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 		return &StudioAgentMediaQuote{EstimatedPoints: preview.WalletPoints, PriceVersion: preview.PriceVersion, Parameters: parameters}, response, nil
 	}
 	quote := StudioAgentMediaQuote{ID: newID(), BillingMode: "actual_usage", EstimatedPoints: preview.WalletPoints, PriceVersion: preview.PriceVersion, ExpiresAt: time.Now().Add(cloudAgentMediaQuoteLifetime), Parameters: parameters}
-	prepared := studioAgentMediaPrepared{Envelope: studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, AgentRunID: runID, ContentType: "application/json", Body: body, Consumption: studioMediaConsumption(preview, req.Platform), ActualUsageBilling: true}, Request: req, Plan: *plan, DependencyHash: dependency, Quote: quote}
+	prepared := studioAgentMediaPrepared{Envelope: studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + task.ID, AgentRunID: runID, ContentType: "application/json", Body: body, Consumption: studioMediaConsumption(preview, req.Platform), ActualUsageBilling: true}, Request: req, Plan: *plan, DependencyHash: dependency, Quote: quote}
 	encrypted, err := s.encryptStudioValue(prepared)
 	if err != nil {
 		return nil, response, err
@@ -417,7 +546,11 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 
 // The decision, frozen request, canvas binding and native Pi checkpoint commit
 // together. A lost response can only recover this decision, never re-quote it.
-func (s *Service) DecideStudioAgentMedia(userID, runID, approvalID, decision, reason, quoteID string, settings *CloudAgentMediaSettings) error {
+func (s *Service) DecideStudioAgentMedia(userID, runID, approvalID, decision, reason, quoteID string, settings *CloudAgentMediaSettings, enableAuto ...bool) error {
+	promote := len(enableAuto) == 1 && enableAuto[0]
+	if promote && decision != "approve" {
+		return BadAuthRequest("切换模式需要指定本轮待执行的操作")
+	}
 	if decision != "approve" {
 		return s.DecideCloudAgentApproval(userID, runID, approvalID, decision, reason, settings)
 	}
@@ -439,6 +572,9 @@ func (s *Service) DecideStudioAgentMedia(userID, runID, approvalID, decision, re
 		return err
 	}
 	if previous, ok := state.Decisions[approvalID]; ok {
+		if promote && !state.StudioAutoMedia {
+			return creationConflict("该操作已在其他模式下处理")
+		}
 		if previous == "manual" {
 			return nil
 		}
@@ -452,7 +588,7 @@ func (s *Service) DecideStudioAgentMedia(userID, runID, approvalID, decision, re
 		return cloudAgentDecisionConflict(previous)
 	}
 	if state.Approval == nil || !state.Approval.StudioMedia {
-		return s.DecideCloudAgentApproval(userID, runID, approvalID, decision, reason, settings)
+		return s.decideCloudAgentApproval(userID, runID, approvalID, decision, reason, promote, settings)
 	}
 	if run.Status != "waiting_approval" || state.Approval.ID != approvalID || state.Approval.StudioQuote == nil || quoteID == "" || state.Approval.StudioQuote.ID != quoteID || !time.Now().Before(state.Approval.StudioQuote.ExpiresAt) {
 		return creationConflict("报价尚未确认或已过期，请刷新报价后再批准")
@@ -473,6 +609,13 @@ func (s *Service) DecideStudioAgentMedia(userID, runID, approvalID, decision, re
 	}
 	if !bytes.Equal(body, prepared.Envelope.Body) {
 		return creationConflict("参考素材已变化，请重新申请报价")
+	}
+	if promote {
+		if state.Request.PermissionMode == "read_only" || !cloudAgentToolAllowed(state.Request, state.Approval.Call.Function.Name) {
+			return creationConflict("本轮未获生成权限")
+		}
+		state.Request.PermissionMode = "auto"
+		state.StudioAutoMedia = true
 	}
 	policy, err := s.RuntimePolicy()
 	if err != nil {
@@ -523,14 +666,7 @@ func (s *Service) DecideStudioAgentMedia(userID, runID, approvalID, decision, re
 		if err := createCloudAgentMediaNode(repo, userID, state.Request.CanvasID, &prepared.Plan, &task, policy, cloudAgentCanvasEventRecorder(runID, &state)); err != nil {
 			return err
 		}
-		execution, err := repo.CreateStudioExecution(model.StudioExecution{TaskID: task.ID, UserID: userID, CommandID: "agent-media:" + task.ID, IntentHash: quoteID, EnvelopeEncrypted: frozen, State: "authorizing", Released: true})
-		if err != nil {
-			return err
-		}
-		if execution.IntentHash != quoteID {
-			return creationConflict("该媒体步骤已有其他请求")
-		}
-		if err := repo.QueueStudioExecution(task, root.AuthorizationEncrypted, policy.Task.ActiveTaskLimit); err != nil {
+		if err := queueStudioAgentMedia(repo, task, frozen, quoteID, root.AuthorizationEncrypted, policy); err != nil {
 			return err
 		}
 		if state.Decisions == nil {

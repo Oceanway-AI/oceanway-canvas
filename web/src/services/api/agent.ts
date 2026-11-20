@@ -232,6 +232,10 @@ export function cancelAgentRun(runId: string) {
     return http.post<{ accepted: boolean }>(`/agent/runs/${encodeURIComponent(runId)}/cancel`, undefined, { timeout: 15_000 });
 }
 
+export function setAgentExecutionMode(runId: string, from: AgentPermissionMode, mode: AgentPermissionMode) {
+    return http.post<{ accepted: boolean }>(`/agent/runs/${encodeURIComponent(runId)}/execution-mode`, { from, mode }, { timeout: 10_000 });
+}
+
 export function undoAgentCanvasRun(runId: string, input: { stepId?: string; expectedSnapshotHash: string; reason?: string }, signal?: AbortSignal) {
     return http.post<{ accepted: boolean; snapshotHash: string }>(`/agent/runs/${encodeURIComponent(runId)}/undo`, input, { signal });
 }
@@ -249,10 +253,10 @@ export async function prepareAgentMediaApproval(runId: string, approvalId: strin
     return quote.id;
 }
 
-export async function decideAgentApproval(runId: string, approvalId: string, decision: "approve" | "reject", reason?: string, signal?: AbortSignal, mediaSettings?: AgentMediaSettings, quoteId?: string) {
+export async function decideAgentApproval(runId: string, approvalId: string, decision: "approve" | "reject", reason?: string, signal?: AbortSignal, mediaSettings?: AgentMediaSettings, quoteId?: string, enableAuto?: boolean) {
     return http.post<{ accepted: boolean }>(
         `/agent/runs/${encodeURIComponent(runId)}/approvals/${encodeURIComponent(approvalId)}/decision`,
-        { decision, reason: reason?.trim() || undefined, ...(mediaSettings ? { mediaSettings } : {}), ...(quoteId ? { quoteId } : {}) },
+        { decision, reason: reason?.trim() || undefined, ...(mediaSettings ? { mediaSettings } : {}), ...(quoteId ? { quoteId } : {}), ...(enableAuto ? { enableAuto: true } : {}) },
         { signal },
     );
 }
