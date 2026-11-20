@@ -24,12 +24,11 @@ const { ApprovalCard } = await import("@/components/canvas/canvas-cloud-agent-pa
 const { canvasThemes } = await import("@/lib/canvas-theme");
 afterAll(() => dom.happyDOM.abort());
 
-test("平台审批卡先报价、保留精确积分、批准时不混入可编辑参数", async () => {
+test("平台媒体草稿直接确认生成，重开的草稿也没有消费确认控件", async () => {
     const host = document.createElement("div");
     document.body.append(host);
     const root = createRoot(host);
-    let quotes = 0,
-        approvals = 0;
+    let approvals = 0;
     const detail = { studioMedia: true, toolName: "generate_media", arguments: { mode: "image", channelId: "oceanway-platform", channelModelKey: "image-model", prompt: "测试", referenceNodeIds: [] } };
     const quote = { id: "quote-1", estimatedPoints: "0.123456789", priceVersion: "v1", expiresAt: "2099-01-01T00:00:00Z", parameters: { size: "1:1", count: 1 } };
     const render = (quoted: boolean) =>
@@ -39,9 +38,6 @@ test("平台审批卡先报价、保留精确积分、批准时不混入可编�
                 theme={canvasThemes.dark}
                 submitting={false}
                 onReasonChange={() => {}}
-                onQuote={() => {
-                    quotes++;
-                }}
                 onApprove={(settings) => {
                     expect(settings).toBeUndefined();
                     approvals++;
@@ -52,18 +48,14 @@ test("平台审批卡先报价、保留精确积分、批准时不混入可编�
     const button = (name: string) => [...host.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent?.trim() === name)!;
     try {
         await act(async () => render(false));
-        expect(button("同意执行").disabled).toBe(true);
-        await act(async () => button("获取平台报价").click());
-        expect(quotes).toBe(1);
-        expect(approvals).toBe(0);
-        await act(async () => render(true));
-        expect(host.textContent).toContain("个人空间");
-        expect(host.textContent).toContain("✦ 0.123456789");
-        expect(host.textContent).toContain("按实际用量结算");
-        expect(host.textContent).not.toContain("最高");
         expect(button("同意执行").disabled).toBe(false);
+        expect(button("获取平台报价")).toBeUndefined();
+        expect(approvals).toBe(0);
         await act(async () => button("同意执行").click());
         expect(approvals).toBe(1);
+        await act(async () => render(true));
+        expect(host.textContent).not.toMatch(/报价|钱包|确认额度|0\.123456789/);
+        expect(button("同意执行").disabled).toBe(false);
     } finally {
         await act(async () => root.unmount());
         host.remove();

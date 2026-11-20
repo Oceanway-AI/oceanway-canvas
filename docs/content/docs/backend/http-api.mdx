@@ -21,7 +21,7 @@ Studio 已开放 `POST /api/tasks`、`POST /api/tasks/preview`、`GET /api/tasks
 
 新 Gateway 原生 profile 的参数入口为 `input.config.nativeVariantId` 和对象 `input.config.nativeParameters`，对象键是发布的 JSON Pointer；按钮与 Agent 使用同一目录、原生默认值和完整 schema 校验，保留零值、false、null。预览携带明确协议，执行冻结同一正文；`duration` 不改成 `requested_duration`，异步偏好通过 SDK 请求头发出。仅支持明确发布的 JSON POST/create 变体，未适配或 multipart-only 变体不可用。非原生旧 profile 继续其既有 enum/const 投影。价格 usage_schema 不作为生成参数，详情见[执行合同](../../../plans/oceanway-studio-execution-contract.md)。
 
-Studio 原生 Pi 的媒体草稿使用 `approval.studioMedia=true`。浏览器向 `POST /agent/runs/:id/approvals/:approvalId/quote` 发送 `{"billingMode":"actual_usage"}`，获得 `id`、`estimatedPoints`、`priceVersion`、`expiresAt` 和 `parameters`。空对象只读预估。用户查看预估后点击同意，`POST .../decision` 携带原 `quoteId` 提交。Platform 根据实际用量在原单结算，超过预估时自动补扣。历史报价按原授权恢复。报价过期或依赖变化返回 409。任务、画布绑定与决定同事务写入，沿用整轮授权。
+Studio 原生 Pi 的媒体草稿使用 `approval.studioMedia=true`。用户在生成操作卡点击「同意执行」后，浏览器向 `POST /agent/runs/:id/approvals/:approvalId/quote` 发送 `{"billingMode":"actual_usage"}` 准备本次请求，再向 `POST .../decision` 携带原 `quoteId` 提交。拒绝直接提交决定。Platform 根据实际用量在原单结算，超过预估时自动补扣。历史显式上限按原授权恢复。报价过期或依赖变化返回 409。任务、画布绑定与决定同事务写入，沿用整轮授权。
 
 历史个人视频若已按显式上限批准，支持最终账单的 Platform SDK 会在原任务详情 `platformBilling.finalWalletConsent` 返回 `state`、`totalPoints`。原付款人在 `required` 状态核对总额后，向 `POST /tasks/:id/final-wallet-consent` 提交字符串 `totalPoints`。成功表示本人确认已登记。继续读取原任务，`settledPoints` 为最终实扣积分。rc.5 支持新单按量结算，历史确认入口随扩展 SDK 启用。
 

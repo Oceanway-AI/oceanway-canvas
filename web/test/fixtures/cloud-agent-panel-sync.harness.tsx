@@ -48,6 +48,8 @@ let sendFailure: Error | undefined;
 let capabilitiesOverride: (() => Promise<unknown>) | undefined;
 let sendOverride: (() => Promise<{ run: AgentRun }>) | undefined;
 let createOverride: (() => Promise<{ run: AgentRun }>) | undefined;
+let mediaPrepare: (() => Promise<string>) | undefined;
+let mediaDecision: ((decision: string, quoteId?: string) => void) | undefined;
 const refreshRequests: Array<{ observedConversationIds?: string[]; canvasId?: string }> = [];
 let generated = 0;
 let composer: Record<string, any>;
@@ -98,7 +100,12 @@ mock.module("@/services/api/agent", () => ({
         if (createOverride) return createOverride();
         throw new Error("不应新建独立轮次");
     },
-    decideAgentApproval: async () => {
+    prepareAgentMediaApproval: async () => {
+        if (mediaPrepare) return mediaPrepare();
+        throw new Error("意外的媒体准备请求");
+    },
+    decideAgentApproval: async (_run: string, _approval: string, decision: string, _reason?: string, _signal?: AbortSignal, _settings?: unknown, quoteId?: string) => {
+        if (mediaDecision) return mediaDecision(decision, quoteId);
         generated++;
         throw new Error("测试禁止审批");
     },
@@ -244,6 +251,8 @@ async function mount(initial: CloudAgentConversation, cloud: CloudAgentConversat
     capabilitiesOverride = undefined;
     sendOverride = undefined;
     createOverride = undefined;
+    mediaPrepare = undefined;
+    mediaDecision = undefined;
     generated = 0;
     subscriptions.length = 0;
     refreshRequests.length = 0;
@@ -299,6 +308,34 @@ test("手机空缓存接续同画布桌面会话，审批被另一端处理后�
         expect(generated).toBe(0);
     } finally {
         await mounted.close();
+    }
+});
+
+test("原生操作卡同意一次完成媒体准备与提交，拒绝跳过准备", async () => {
+    for (const decision of ["approve", "reject"] as const) {
+        const waiting = makeRun("media-run", "waiting_approval");
+        waiting.approval = { approvalId: "media-draft", studioMedia: true, call: { id: "call", function: { name: "generate_media", arguments: "{}" } } };
+        const mounted = await mount(chat("local", waiting), [chat("server", waiting)]);
+        try {
+            const calls: string[] = [];
+            mediaPrepare = async () => {
+                calls.push("prepare");
+                return "frozen";
+            };
+            mediaDecision = (value, quoteId) => calls.push(`${value}:${quoteId || ""}`);
+            expect(conversationUI.approval.detail.studioMedia).toBe(true);
+            expect(calls).toEqual([]);
+            await act(async () => {
+                if (decision === "approve") {
+                    conversationUI.onApprove();
+                    conversationUI.onApprove();
+                } else conversationUI.onReject();
+                await settle();
+            });
+            expect(calls).toEqual(decision === "approve" ? ["prepare", "approve:frozen"] : ["reject:"]);
+        } finally {
+            await mounted.close();
+        }
     }
 });
 
