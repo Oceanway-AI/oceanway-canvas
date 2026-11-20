@@ -30,6 +30,7 @@ func TestStudioPiModelStepUsesOriginalRunAuthority(t *testing.T) {
 	s.legacyCloudAgentRootTask = false
 	s.activeCancels = make(map[string]context.CancelFunc)
 	issues, submits, releases := 0, 0, 0
+	requests := map[string]string{}
 	var catalogUnavailable atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -44,19 +45,22 @@ func TestStudioPiModelStepUsesOriginalRunAuthority(t *testing.T) {
 			issues++
 			var in map[string]string
 			_ = json.NewDecoder(r.Body).Decode(&in)
-			_ = json.NewEncoder(w).Encode(map[string]any{"authorization_id": "exa_pi_run", "task_reference": in["task_reference"], "product": "studio", "expires_at": time.Now().Add(time.Hour).Unix()})
+			_ = json.NewEncoder(w).Encode(map[string]any{"authorization_id": "exa_" + in["task_reference"], "task_reference": in["task_reference"], "product": "studio", "expires_at": time.Now().Add(time.Hour).Unix()})
 		case strings.HasSuffix(r.URL.Path, "/release"):
 			releases++
 			w.WriteHeader(204)
 		case r.URL.Path == "/internal/relay/chat/completions":
 			submits++
-			if r.Header.Get("X-Platform-Execution-Authorization") != "exa_pi_run" || r.Header.Get("Cookie") != "" || r.Header.Get("Origin") != "" {
+			auth := r.Header.Get("X-Platform-Execution-Authorization")
+			if auth == "" || r.Header.Get("Cookie") != "" || r.Header.Get("Origin") != "" {
 				t.Error("Pi authority leaked/missing")
 			}
-			if r.Header.Get("X-Platform-Text-Request-Id") == "" {
-				t.Error("Pi request not durable")
+			id := r.Header.Get("X-Platform-Text-Request-Id")
+			if id == "" || requests[id] != "" {
+				t.Error("missing or duplicate relay request ID")
 			}
-			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"Pi platform response"}}]}`))
+			requests[id] = auth
+			_, _ = fmt.Fprintf(w, `{"choices":[{"message":{"content":"Pi platform response"}}],"usage":{"prompt_tokens":%d,"completion_tokens":1}}`, submits)
 		default:
 			t.Errorf("unexpected Pi request %s", r.URL.Path)
 			w.WriteHeader(500)
@@ -70,7 +74,6 @@ func TestStudioPiModelStepUsesOriginalRunAuthority(t *testing.T) {
 	}
 	s.studioPlatform = gateway
 	req := CloudAgentRequest{Prompt: "hello", Model: "pi-model", ChannelID: StudioPlatformChannelID, ChannelModelKey: "pi-model", IdempotencyKey: "studio-pi-test", PermissionMode: "read_only"}
-	req.Budget.MaxSteps = 4
 	view, _, err := s.CreateStudioCloudAgentRun(context.Background(), "user", platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "platform_session=alice"}, req, "")
 	if err != nil {
 		t.Fatal(err)
@@ -90,37 +93,61 @@ func TestStudioPiModelStepUsesOriginalRunAuthority(t *testing.T) {
 	if _, err := s.CloudAgentRun("other", view.ID); err == nil {
 		t.Fatal("cross-account Agent access")
 	}
-	run, err := s.repo.CloudAgent("user", view.ID)
-	if err != nil {
-		t.Fatal(err)
+	for turn, steps := range []int{17, 1} {
+		if turn > 0 {
+			req.IdempotencyKey = "studio-pi-next-turn"
+			parent := view.ID
+			view, _, err = s.CreateStudioCloudAgentRun(t.Context(), "user", session, req, parent)
+			if err != nil || view.ID == parent || view.ParentID != parent {
+				t.Fatalf("next turn: %v, %v", view, err)
+			}
+		}
+		ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+		defer cancel()
+		for step := 1; step <= steps; step++ {
+			done := make(chan error, 1)
+			go func() {
+				_, _, err := s.runCloudAgentModelStep(ctx, "user", view.ID, []map[string]any{{"role": "user", "content": "hello"}}, "off")
+				done <- err
+			}()
+		waitForStep:
+			for {
+				select {
+				case err := <-done:
+					if err != nil {
+						t.Fatal(err)
+					}
+					break waitForStep
+				case <-time.After(20 * time.Millisecond):
+					if err := s.ProcessNextTask(); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			_, state := agentInterjectionState(t, s, view.ID)
+			id := state.TaskIDs[len(state.TaskIDs)-1]
+			task, err := s.repo.Task(id)
+			if err != nil || task.Status != model.TaskStatusSucceeded || task.AgentRunID != view.ID || !strings.Contains(task.ResultJSON, "Pi platform response") {
+				t.Fatalf("turn=%d step=%d task=%v err=%v", turn, step, task, err)
+			}
+			var result struct {
+				Usage map[string]int `json:"usage"`
+			}
+			if err := json.Unmarshal([]byte(task.ResultJSON), &result); err != nil || result.Usage["totalTokens"] != submits+1 ||
+				state.Step != step || requests["studio-"+id] != "exa_"+view.ID || s.cloudAgentModelTaskRetryable(id) {
+				t.Fatalf("incorrect usage, authority or step identity: turn=%d step=%d result=%s", turn, step, task.ResultJSON)
+			}
+			if _, err := s.handleMessageEnd("user", view.ID, map[string]any{"role": "assistant"}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := s.completeCloudAgentPiRun("user", view.ID); err != nil {
+			t.Fatal(err)
+		}
+		s.releaseCompletedStudioExecutions(t.Context())
 	}
-	state, err := cloudAgentDecode(run)
-	if err != nil {
-		t.Fatal(err)
-	}
-	step := CreateTaskRequest{Type: "canvas_text", Operation: cloudAgentStepOperation, Prompt: "hello", Model: "pi-model", Input: map[string]any{"config": map[string]any{"channelId": StudioPlatformChannelID, "model": "pi-model"}, "agentRequests": map[string]any{"canonical": state.Canonical}}}
-	if err := s.enqueueCloudAgentTask(run, &state, step, nil); err != nil {
-		t.Fatal(err)
-	}
-	id := state.ActiveTaskID
-	if id == "" || id == view.ID {
-		t.Fatal("Pi model step did not create separate durable task")
-	}
-	if err := s.ProcessNextTask(); err != nil {
-		t.Fatal(err)
-	}
-	task, err := s.repo.Task(id)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if task.Status != model.TaskStatusSucceeded || !strings.Contains(task.ResultJSON, "Pi platform response") {
-		t.Fatalf("Pi result missing: %#v", task)
-	}
-	if submits != 1 || issues != 1 || releases != 0 {
-		t.Fatalf("step replaced/released run authority: submits=%d issues=%d releases=%d", submits, issues, releases)
-	}
-	if s.cloudAgentModelTaskRetryable(id) {
-		t.Fatal("Platform step entered old auto retry")
+	if submits != 18 || issues != 2 || releases != 2 || len(requests) != 18 {
+		t.Fatalf("unexpected relay lifecycle: submits=%d issues=%d releases=%d", submits, issues, releases)
 	}
 	if db.Migrator().HasTable("billing_orders") {
 		t.Fatal("Pi created local bill")
@@ -175,7 +202,7 @@ func testStudioPiRuntimeToolRoundTrip(t *testing.T, media bool) {
 			mediaSubmits++
 			raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get("X-Platform-Media-Consumption"))
 			var cap platformclient.MediaConsumptionConstraints
-			if json.Unmarshal(raw, &cap) != nil || cap.ExpectedCapabilityRevision != strings.Repeat("a", 64) || cap.ExpectedConnectionRevision != 7 || cap.ExpectedPriceVersion != "price-1" || cap.WalletMaxPoints != "0.123456789" {
+			if json.Unmarshal(raw, &cap) != nil || cap.ExpectedCapabilityRevision != strings.Repeat("a", 64) || cap.ExpectedConnectionRevision != 7 || cap.ExpectedPriceVersion != "price-1" || cap.WalletMaxPoints != "" {
 				t.Errorf("native Pi lost frozen consumption: %s", raw)
 			}
 			w.WriteHeader(503)
@@ -259,7 +286,7 @@ func testStudioPiRuntimeToolRoundTrip(t *testing.T, media bool) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "session=fixture"}, run.ID, state.Approval.ID, "0.123456789")
+			quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "session=fixture"}, run.ID, state.Approval.ID, true)
 			if err != nil {
 				t.Fatal(err)
 			}

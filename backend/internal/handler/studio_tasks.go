@@ -132,6 +132,28 @@ func RegisterStudioTaskRoutes(r *gin.RouterGroup, svc *service.Service) {
 		}
 		ok(c, task)
 	})
+	r.POST("/tasks/:id/final-wallet-consent", func(c *gin.Context) {
+		user, err := currentUser(c, svc)
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024)
+		var in struct {
+			TotalPoints string `json:"totalPoints"`
+		}
+		if c.ShouldBindJSON(&in) != nil {
+			failService(c, service.BadAuthRequest("原单结算总额无效"))
+			return
+		}
+		response, err := svc.StudioConfirmFinalWalletBill(c.Request.Context(), user.ID, c.Param("id"), in.TotalPoints, platformintegration.Session(c.Request))
+		response.AppendCookies(c.Writer.Header())
+		if err != nil {
+			failService(c, err)
+			return
+		}
+		ok(c, gin.H{"state": "recorded"})
+	})
 	r.POST("/tasks/:id/adopt-outputs", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {

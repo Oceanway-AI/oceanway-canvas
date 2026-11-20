@@ -77,6 +77,10 @@ func cloudAgentStepLimit(req CloudAgentRequest) int {
 	return 0
 }
 
+func cloudAgentStepLimitMessage(limit int) string {
+	return fmt.Sprintf("已达到本轮 %d 次模型调用上限。请先查看已完成的操作，再继续剩余工作。", limit)
+}
+
 type cloudAgentState struct {
 	Version                        int                       `json:"version"`
 	Request                        CloudAgentRequest         `json:"request"`
@@ -245,8 +249,8 @@ func validateCloudAgentRequest(req *CloudAgentRequest) error {
 		return BadAuthRequest("未绑定画布的对话不能读取画布上下文或焦点节点")
 	}
 	if req.ChannelID == StudioPlatformChannelID {
-		if req.Budget.MaxCredits != 0 || req.Budget.MaxSteps < 1 || req.Budget.MaxSteps > 64 {
-			return BadAuthRequest("平台负责计费；请设置 1–64 步的执行上限，不设置本地积分预算")
+		if req.Budget.MaxCredits != 0 {
+			return BadAuthRequest("平台按实际用量计费，不能设置本地积分预算")
 		}
 	} else if math.IsNaN(req.Budget.MaxCredits) || math.IsInf(req.Budget.MaxCredits, 0) || req.Budget.MaxCredits <= 0 || req.Budget.MaxCredits > 1000000 {
 		return BadAuthRequest("本轮积分上限必须大于 0 且不超过 1000000")

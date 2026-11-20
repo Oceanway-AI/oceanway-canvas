@@ -200,6 +200,8 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 				runRef = in.ProductTaskID
 				if in.Consumption != nil {
 					postedLimit = in.Consumption.WalletMaxPoints
+				} else {
+					t.Error("missing media consumption contract")
 				}
 				if race {
 					entered <- struct{}{}
@@ -235,11 +237,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 			body, _ := io.ReadAll(r.Body)
 			raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get("X-Platform-Media-Consumption"))
 			var constraints platformclient.MediaConsumptionConstraints
-			expectedMaximum := "0.123456789"
-			if scenario == "approve" {
-				expectedMaximum = "2.5"
-			}
-			if json.Unmarshal(raw, &constraints) != nil || constraints.ExpectedCapabilityRevision != strings.Repeat("a", 64) || constraints.ExpectedConnectionRevision != 7 || constraints.ExpectedPriceVersion != "price-1" || constraints.WalletMaxPoints != expectedMaximum {
+			if json.Unmarshal(raw, &constraints) != nil || constraints.ExpectedCapabilityRevision != strings.Repeat("a", 64) || constraints.ExpectedConnectionRevision != 7 || constraints.ExpectedPriceVersion != "price-1" || constraints.WalletMaxPoints != "" {
 				t.Error("Pi consumption header lost confirmed versions")
 			}
 			if string(body) != string(quotedBody) || r.Header.Get("X-Platform-Execution-Authorization") != "exa_media_run" || r.Header.Get("Cookie") != "" {
@@ -353,7 +351,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 	if scenario == "preview_only" {
 		originalRevision := run.Revision
 		for i := 0; i < 2; i++ {
-			preview, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval)
+			preview, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, false)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -369,42 +367,24 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 				t.Fatal("preview allowed approval")
 			}
 		}
-		if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, ""); err == nil {
-			t.Fatal("explicit empty maximum accepted")
-		}
-		confirmed, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, "2.5")
+		confirmed, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, true)
 		if err != nil || confirmed.ID == "" {
 			t.Fatalf("confirmed maximum not frozen: %+v %v", confirmed, err)
 		}
-		if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval); err != nil {
+		if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, false); err != nil {
 			t.Fatal(err)
 		}
 		reloaded, _ := s.repo.CloudAgent("user", view.ID)
 		restored, _ := cloudAgentDecode(reloaded)
-		if restored.Approval.StudioQuote.ID != confirmed.ID || restored.Approval.StudioQuote.WalletMaxPoints != "2.5" || submits != 0 || issues != 1 {
+		if restored.Approval.StudioQuote.ID != confirmed.ID || restored.Approval.StudioQuote.WalletMaxPoints != "" || submits != 0 || issues != 1 {
 			t.Fatal("preview replaced confirmed scope or submitted work")
 		}
 		return
 	}
-	if scenario == "approve" {
-		for _, maximum := range []string{"-1", "0.1", "NaN"} {
-			if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, maximum); err == nil {
-				t.Fatalf("invalid maximum %q accepted", maximum)
-			}
-		}
-		custom, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, "2.5")
-		if err != nil || custom.WalletMaxPoints != "2.5" || custom.EstimatedPoints != "0.123456789" {
-			t.Fatalf("explicit maximum not frozen: %+v %v", custom, err)
-		}
-	}
 	if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", "", nil); err == nil {
 		t.Fatal("unquoted media approved")
 	}
-	maximum := "0.123456789"
-	if scenario == "approve" {
-		maximum = "2.5"
-	}
-	quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, maximum)
+	quote, _, err := s.QuoteStudioAgentMedia(context.Background(), "user", session, run.ID, approval, true)
 	if strings.HasPrefix(scenario, "missing_preview_") {
 		if appErr, ok := err.(*AppError); !ok || appErr.Status != 409 {
 			t.Fatalf("incomplete preview not rejected: %v", err)
@@ -419,7 +399,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 	if err != nil {
 		t.Fatal(err)
 	}
-	if (quote.WalletMaxPoints != "0.123456789" && !(scenario == "approve" && quote.WalletMaxPoints == "2.5")) || quote.PriceVersion != "price-1" {
+	if quote.BillingMode != "actual_usage" || quote.WalletMaxPoints != "" || quote.EstimatedPoints != "0.123456789" || quote.PriceVersion != "price-1" {
 		t.Fatal("decimal quote changed")
 	}
 	if kind == "video" {
@@ -434,7 +414,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 			t.Fatalf("published imageParameters did not override the default in the native quote: %s", quotedBody)
 		}
 	}
-	if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "other", session, run.ID, approval); err == nil {
+	if _, _, err := s.QuoteStudioAgentMedia(context.Background(), "other", session, run.ID, approval, true); err == nil {
 		t.Fatal("other account quoted run")
 	}
 	if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", "old-quote", nil); err == nil {
@@ -455,7 +435,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 			case "missing_prepared_connection":
 				prepared.Envelope.Consumption.ExpectedConnectionRevision = 0
 			case "missing_prepared_wallet_max":
-				prepared.Envelope.Consumption.WalletMaxPoints = ""
+				prepared.Envelope.ActualUsageBilling = false // Old capped record with a missing limit.
 			}
 			state.Approval.StudioPreparedEncrypted, err = s.encryptStudioValue(prepared)
 			if err != nil {
@@ -566,7 +546,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 		if submits != 1 || runRef != run.ID || checkpoint.MediaTaskID != winner.ID || winner.PlatformGenerationRequest != postedID || latest.Status != "running" {
 			t.Fatalf("posts=%d request=%s ref=%s winner=%s active=%s state=%s", submits, postedID, runRef, winner.ID, checkpoint.MediaTaskID, latest.Status)
 		}
-		if manualFirst && (postedID != "manual-original" || postedLimit != "0") || !manualFirst && postedLimit != maximum {
+		if manualFirst && (postedID != "manual-original" || postedLimit != "0") || !manualFirst && postedLimit != "" {
 			t.Fatalf("changed winner scope %s", postedLimit)
 		}
 		complete.Store(true)
@@ -647,7 +627,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 	if grant != "exa_media_run" || !execution.Released || frozen.Consumption.WalletMaxPoints != quote.WalletMaxPoints || !strings.Contains(string(frozen.Body), "a green square") {
 		t.Fatal("frozen request or shared authority changed")
 	}
-	if (quotes != 1 && !(scenario == "approve" && quotes == 3)) || issues != 1 {
+	if quotes != 1 || issues != 1 {
 		t.Fatalf("unexpected quote/grant count %d/%d", quotes, issues)
 	}
 	if scenario == "changed_capability" || scenario == "missing_recovery_version" {
@@ -665,7 +645,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 		} else if scenario == "missing_queued_capability" {
 			frozen.Consumption.ExpectedCapabilityRevision = ""
 		} else if scenario == "missing_queued_wallet_max" {
-			frozen.Consumption.WalletMaxPoints = ""
+			frozen.ActualUsageBilling = false
 		} else {
 			frozen.Consumption.ExpectedConnectionRevision = 0
 		}

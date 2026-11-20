@@ -76,6 +76,7 @@ export type GenerationTask = {
     platformBilling?: {
         fundsState: string;
         settledPoints?: string;
+        finalWalletConsent?: { state: "required" | "recorded"; totalPoints: string };
         stateAvailable: boolean;
         summary: string;
     };
@@ -242,6 +243,10 @@ async function collectGenerationTaskPages<T>(readPage: (request: GenerationTaskP
         cursor = page.nextCursor;
     } while (items.length < limit);
     return items.slice(0, limit);
+}
+
+export function confirmTaskFinalWalletBill(taskId: string, totalPoints: string) {
+    return http.post<{ state: "recorded" }>(`/tasks/${encodeURIComponent(taskId)}/final-wallet-consent`, { totalPoints });
 }
 
 async function adoptPendingStudioOutputs(task: GenerationTask, signal?: AbortSignal) {

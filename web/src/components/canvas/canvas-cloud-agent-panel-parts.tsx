@@ -997,6 +997,7 @@ export function ApprovalCard({
     const action = agentApprovalPresentation(approval.detail);
     const studioMedia = approval.detail.studioMedia === true;
     const quote = approval.detail.studioQuote as import("@/services/api/agent").StudioAgentMediaQuote | undefined;
+    const estimatedPoints = quote?.estimatedPoints ?? quote?.walletMaxPoints;
     const [quoteExpired, setQuoteExpired] = useState(false);
     useEffect(() => {
         const remaining = quote ? Date.parse(quote.expiresAt) - Date.now() : 0;
@@ -1054,8 +1055,15 @@ export function ApprovalCard({
                 <div aria-label="平台生成报价">
                     {quote ? (
                         <p>
-                            个人空间 · 预计钱包支出 <OceanCreditAmount amount={quote.estimatedPoints ?? quote.walletMaxPoints} />
-                            ，最高 <OceanCreditAmount amount={quote.walletMaxPoints} />。{quoteExpired ? "报价已过期，请刷新" : `有效至 ${new Date(quote.expiresAt).toLocaleTimeString()}`}。参数：
+                            个人空间 · 预计钱包支出 {estimatedPoints == null ? "暂不可用" : <OceanCreditAmount amount={estimatedPoints} />}
+                            {quote.walletMaxPoints != null ? (
+                                <>
+                                    ，最高 <OceanCreditAmount amount={quote.walletMaxPoints} />
+                                </>
+                            ) : (
+                                "，按实际用量结算，超出预估的部分自动补扣"
+                            )}
+                            。{quoteExpired ? "报价已过期，请刷新" : `有效至 ${new Date(quote.expiresAt).toLocaleTimeString()}`}。参数：
                             {Object.entries(quote.parameters)
                                 .map(([key, value]) => `${parameterLabels[key] || key}：${typeof value === "string" ? value : JSON.stringify(value)}`)
                                 .join("，")}
@@ -1102,7 +1110,7 @@ export function ApprovalCard({
                 <button
                     type="button"
                     className="canvas-agent-approval-approve"
-                    disabled={submitting || Boolean(blockedReason) || Boolean(targetGenerating) || (studioMedia && (!quote || quoteExpired))}
+                    disabled={submitting || Boolean(blockedReason) || Boolean(targetGenerating) || (studioMedia && (!quote?.id || estimatedPoints == null || quoteExpired))}
                     onClick={() => onApprove(studioMedia ? undefined : mediaSettings)}
                 >
                     {submitting ? <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Check className="size-4" aria-hidden="true" />}

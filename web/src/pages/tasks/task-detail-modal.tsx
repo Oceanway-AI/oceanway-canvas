@@ -14,7 +14,7 @@ import { formatTaskKind, generationTaskShowsProgress, generationTaskStageLabel, 
 import { progressFillStyle } from "@/lib/progress-fill";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { getResourceAccess, resolveResourceAccessURL, type ResourceAccessVariant, waitForResourcePreview } from "@/services/api/resources";
-import { formatTaskLog, type GenerationTask, type TaskLog } from "@/services/api/task-center";
+import { confirmTaskFinalWalletBill, formatTaskLog, type GenerationTask, type TaskLog } from "@/services/api/task-center";
 import { taskResultMedia, taskResultMediaAccess, withEarlyPreview, type TaskResultMedia } from "./task-result-media";
 import { earlyPreviewURL } from "@/services/task-early-previews";
 import { TaskEarlyMedia } from "@/components/task-early-media";
@@ -95,6 +95,22 @@ function TaskDetailContent({
 }) {
     const { t } = useTranslation();
     const { account } = useStudioAccount();
+    const { message } = App.useApp();
+    const [confirming, setConfirming] = useState(false);
+    const [confirmedTotal, setConfirmedTotal] = useState("");
+    const bill = task.platformBilling?.fundsState === "reserved" ? task.platformBilling.finalWalletConsent : undefined;
+    async function confirmFinalBill() {
+        if (confirming || bill?.state !== "required") return;
+        setConfirming(true);
+        try {
+            await confirmTaskFinalWalletBill(task.id, bill.totalPoints);
+            setConfirmedTotal(bill.totalPoints);
+        } catch (error) {
+            message.error(error instanceof Error ? error.message : "暂未取得确认回执，请刷新任务");
+        } finally {
+            setConfirming(false);
+        }
+    }
     const KindIcon = taskKindIcon(task);
     const active = isTaskActive(task);
     const failed = isTaskFailed(task);
@@ -167,6 +183,20 @@ function TaskDetailContent({
                                 <b style={progressFillStyle(generationTaskShowsProgress(task) ? task.progress || 0 : 0)} />
                             </i>
                         </div>
+                    ) : null}
+
+                    {bill ? (
+                        <section className="task-detail-section">
+                            <h3>原单结算</h3>
+                            <p>本次视频实际总额为 {bill.totalPoints} 积分，已包含原先预留的金额。</p>
+                            {bill.state === "recorded" || confirmedTotal === bill.totalPoints ? (
+                                <p role="status">已确认，等待平台结算并交付视频。</p>
+                            ) : (
+                                <Button type="primary" loading={confirming} onClick={() => void confirmFinalBill()}>
+                                    确认按 {bill.totalPoints} 积分结算
+                                </Button>
+                            )}
+                        </section>
                     ) : null}
 
                     {media.length ? (

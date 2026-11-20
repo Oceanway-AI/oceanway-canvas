@@ -11,6 +11,78 @@ import (
 	"yingce/backend/internal/model"
 )
 
+func TestCloudAgentPiStepLimitAfterToolResult(t *testing.T) {
+	s, db, root := interjectionPiRoot(t)
+	run, state := agentInterjectionState(t, s, root.ID)
+	run.Status = "running"
+	state.Step, state.Request.Budget.MaxSteps = 16, 16
+	state.Canonical.Messages = []map[string]any{
+		{"role": "assistant", "tool_calls": []any{map[string]any{"id": "call-1"}}},
+		{"role": "tool", "tool_call_id": "call-1", "content": "{}"},
+	}
+	interjectionSaveState(t, s, db, run, &state)
+	_, retryable, err := s.runCloudAgentModelStep(context.Background(), "user", root.ID, state.Canonical.Messages, "off")
+	if err == nil || retryable {
+		t.Fatalf("exhausted step returned retryable=%t err=%v", retryable, err)
+	}
+	public := cloudAgentUserFailureMessage(root.ID, err)
+	if !strings.Contains(public, "16 次模型调用上限") || !strings.Contains(public, "剩余") {
+		t.Fatalf("unexpected budget stop message: %s", public)
+	}
+	s.failPiRunner(root.ID, "user", err)
+	run, after := agentInterjectionState(t, s, root.ID)
+	if run.Status != "failed" || run.FailureMessage != public || !agentHasEvent(after, "run_failed") ||
+		after.Step != 16 || !reflect.DeepEqual(after.TaskIDs, state.TaskIDs) {
+		t.Fatalf("incorrect budget stop: status=%s step=%d tasks=%v message=%s", run.Status, after.Step, after.TaskIDs, run.FailureMessage)
+	}
+}
+
+func TestCloudAgentPiUpcomingStepLimitInModelInput(t *testing.T) {
+	s, db, root := interjectionPiRoot(t)
+	run, state := agentInterjectionState(t, s, root.ID)
+	state.Step, state.Request.Budget.MaxSteps = 13, 16
+	interjectionSaveState(t, s, db, run, &state)
+	messages := []map[string]any{{"role": "user", "content": "继续分镜"}}
+	for _, remaining := range []int{3, 2, 1} {
+		interjectionModelStep(t, s, db, "user", root.ID, messages, `{"text":"本步结果","toolCalls":[]}`)
+		_, after := agentInterjectionState(t, s, root.ID)
+		var task model.Task
+		if err := db.First(&task, "id = ?", after.TaskIDs[len(after.TaskIDs)-1]).Error; err != nil {
+			t.Fatal(err)
+		}
+		var input struct {
+			AgentRequests struct{ Canonical canonicalAgentRequest }
+		}
+		if err := json.Unmarshal([]byte(task.InputJSON), &input); err != nil {
+			t.Fatal(err)
+		}
+		var notices int
+		for _, msg := range input.AgentRequests.Canonical.Messages {
+			content := stringField(msg, "content")
+			var fact struct {
+				Kind                string
+				RemainingModelCalls int
+				MaxSteps            int
+			}
+			if !strings.HasPrefix(content, cloudAgentRuntimeContextMarker) {
+				continue
+			}
+			if err := json.Unmarshal([]byte(strings.TrimPrefix(content, cloudAgentRuntimeContextMarker)), &fact); err != nil {
+				t.Fatal(err)
+			}
+			if fact.Kind == "step_budget" {
+				notices++
+				if fact.RemainingModelCalls != remaining || fact.MaxSteps != 16 {
+					t.Fatalf("incorrect budget for step %d: %+v", after.Step, fact)
+				}
+			}
+		}
+		if (remaining == 3 && notices != 0) || (remaining <= 2 && notices != 1) {
+			t.Fatalf("remaining calls %d: got %d notices", remaining, notices)
+		}
+	}
+}
+
 func TestCloudAgentPiCompactionSummaryUsesStandardStepWithoutAssistantEvent(t *testing.T) {
 	s, db, _ := agentMediaFixture(t)
 	s.disablePiRuntime = true

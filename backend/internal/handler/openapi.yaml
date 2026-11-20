@@ -1568,6 +1568,26 @@ paths:
           $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
+  /tasks/{id}/final-wallet-consent:
+    post:
+      tags: [ tasks ]
+      summary: 原付款人确认历史视频原单的最终总额
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - $ref: "#/components/parameters/StudioIdentityVersion"
+        - $ref: "#/components/parameters/StudioActorID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ totalPoints ]
+              properties:
+                totalPoints: { type: string, description: 原任务回执给出的完整账单总额 }
+      responses:
+        "200": { $ref: "#/components/responses/Envelope" }
+        default: { $ref: "#/components/responses/Error" }
   /tasks/{id}/text-events:
     get:
       tags: [ tasks ]
@@ -2815,7 +2835,14 @@ paths:
           $ref: "#/components/responses/Error"
   /agent/runs/{id}/approvals/{approvalId}/quote:
     post:
-      summary: 提交 /agent/runs/{id}/approvals/{approvalId}/quote
+      summary: 读取媒体费用预估或准备按实际用量结算的报价
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                billingMode: { type: string, enum: [ actual_usage ] }
       parameters:
         - name: id
           in: path
@@ -3227,7 +3254,7 @@ components:
     CloudAgentRequest:
       type: object
       additionalProperties: false
-      required: [ prompt, permissionMode, contextScope, budget, idempotencyKey ]
+      required: [ prompt, permissionMode, contextScope, idempotencyKey ]
       properties:
         canvasId:
           type: string
@@ -3281,21 +3308,21 @@ components:
         budget:
           type: object
           additionalProperties: false
-          required: [ maxCredits ]
+          description: Studio 新轮次省略此字段，模型调用按每轮实际用量由 Platform 结算。已有显式限制的请求按原值重放。
           properties:
             maxCredits:
               type: number
               minimum: 0
-              exclusiveMinimum: true
               maximum: 1000000
+              description: Platform 渠道省略或传 0，旧本地计费渠道要求正值。
             maxGenerationTasks:
               type: integer
               minimum: 0
-              description: 本轮累计生成任务数上限；0表示不设此项业务上限，仍受积分预算约束
+              description: 省略或传 0 表示不限本轮累计生成任务数。
             maxVideoSeconds:
               type: integer
               minimum: 0
-              description: 本轮累计视频秒数上限；0表示不设此项业务上限，仍受模型能力和积分预算约束
+              description: 省略或传 0 表示不限本轮累计视频秒数。单次时长由所选模型能力决定。
             maxSteps:
               type: integer
               minimum: 0

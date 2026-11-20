@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Button, Checkbox, Input } from "antd";
-import { ArrowLeft, BookMarked, Check, ChevronRight, Cpu, Gauge, LockKeyhole, PlugZap, Search, ShieldCheck, Sparkles, Wrench, Blocks, CirclePlay, X } from "lucide-react";
+import { ArrowLeft, BookMarked, Check, ChevronRight, Cpu, LockKeyhole, PlugZap, Search, ShieldCheck, Sparkles, Wrench, Blocks, CirclePlay, X } from "lucide-react";
 
 import { ModelPicker } from "@/components/model-picker";
 import { ThinkingLevelSlider } from "@/components/thinking-level-slider";
@@ -18,7 +18,7 @@ import { AgentConnectorsBar } from "./canvas-cloud-agent-connectors";
 export const AGENT_PINNED_SKILL_LIMIT = 8;
 
 export type AgentContextKey = "canvas" | "resources" | "generation_history" | "skills" | "project";
-type SettingsSection = "home" | "profile" | "memories" | "skills" | "mcp" | "context" | "budget";
+type SettingsSection = "home" | "profile" | "memories" | "skills" | "mcp" | "context";
 
 type AgentSettingsProps = {
     theme: CanvasTheme;
@@ -44,9 +44,6 @@ type AgentSettingsProps = {
     skillSearch: string;
     skillsLoading: boolean;
     skillHasMore: boolean;
-    maxSteps: string;
-    maxGenerationTasks: string;
-    maxVideoSeconds: string;
     onBack: () => void;
     /** 设置页也能直接收起 Agent，不必先返回对话。 */
     onCollapse?: () => void;
@@ -60,9 +57,6 @@ type AgentSettingsProps = {
     onSkillAgentModeChange: (skill: Skill, mode: SkillAgentMode) => Promise<void>;
     onOpenSkillRecommendations: () => void;
     onLoadMoreSkills: () => Promise<void>;
-    onMaxStepsChange: (value: string) => void;
-    onMaxGenerationTasksChange: (value: string) => void;
-    onMaxVideoSecondsChange: (value: string) => void;
 };
 
 // 颜色走状态语义 token，明暗主题和皮肤自动适配；short 是输入框权限胶囊上的两字名。
@@ -103,7 +97,6 @@ export function CanvasCloudAgentSettings(props: AgentSettingsProps) {
             {section === "skills" ? <SkillsWorkspace props={props} theme={theme} tab={skillTab} onTabChange={setSkillTab} /> : null}
             {section === "mcp" ? <McpWorkspace theme={theme} /> : null}
             {section === "context" ? <ContextWorkspace props={props} theme={theme} /> : null}
-            {section === "budget" ? <BudgetWorkspace props={props} theme={theme} /> : null}
         </div>
     );
 }
@@ -172,7 +165,6 @@ function SettingsHome({ props, theme, onOpen }: { props: AgentSettingsProps; the
                     <SettingRow theme={theme} icon={<BookMarked className="size-4" />} title="个人记忆" summary="Agent 在对话中自己记住和改写，可随时撤销；只属于你" onClick={() => onOpen("memories")} />
                     <SettingRow theme={theme} icon={<Blocks className="size-4" />} title="Skills · 用户技能库" summary={skillsSummary(props.installedSkills, props.selectedSkillIds)} onClick={() => onOpen("skills")} />
                     <SettingRow theme={theme} icon={<Wrench className="size-4" />} title="工具与连接" summary="画布、技能参考文件、生成任务；第三方连接即将支持" onClick={() => onOpen("mcp")} />
-                    <SettingRow theme={theme} icon={<Gauge className="size-4" />} title="执行上限" summary={`每轮最多 ${props.maxSteps || "未设置"} 步 · 平台按实际用量结算`} onClick={() => onOpen("budget")} />
                 </div>
             </section>
         </div>
@@ -546,20 +538,6 @@ function ContextWorkspace({ props, theme }: { props: AgentSettingsProps; theme: 
     );
 }
 
-function BudgetWorkspace({ props, theme }: { props: AgentSettingsProps; theme: CanvasTheme }) {
-    return (
-        <div className="thin-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
-            <div className="rounded-xl p-4" style={{ background: theme.node.fill }}>
-                <div className="text-sm font-semibold">本轮执行上限</div>
-                <p className="mt-2 text-xs opacity-60">文本调用由平台按实际用量结算。图片、视频在审批时显示平台报价和本次最高额度；生成任务和视频秒数填 0 表示不设该项上限。</p>
-            </div>
-            <BudgetInput label="模型调用步数" hint="1–64；到达上限后停止本轮" value={props.maxSteps} onChange={props.onMaxStepsChange} theme={theme} />
-            <BudgetInput label="生成任务上限" hint="0 表示不限；只读模式不执行生成" value={props.maxGenerationTasks} onChange={props.onMaxGenerationTasksChange} theme={theme} />
-            <BudgetInput label="视频秒数上限" hint="0 表示不限；按请求时长累计" value={props.maxVideoSeconds} onChange={props.onMaxVideoSecondsChange} theme={theme} />
-        </div>
-    );
-}
-
 function SettingRow({ theme, icon, title, summary, onClick }: { theme: CanvasTheme; icon: ReactNode; title: string; summary: string; onClick: () => void }) {
     return (
         <button type="button" className="canvas-agent-setting-row flex w-full min-w-0 items-center gap-3 rounded-xl p-3 text-left transition-colors focus-visible:outline focus-visible:outline-2" onClick={onClick}>
@@ -597,21 +575,10 @@ function SettingLabel({ label, hint }: { label: string; hint?: string }) {
         </div>
     );
 }
-function BudgetInput({ label, hint, value, onChange, theme }: { label: string; hint: string; value: string; onChange: (value: string) => void; theme: CanvasTheme }) {
-    return (
-        <label className="block">
-            <span className="flex items-center justify-between text-xs font-medium">
-                <span>{label}</span>
-                <span className="text-[var(--fs-label)] opacity-40">{hint}</span>
-            </span>
-            <Input size="large" value={value} onChange={(event) => onChange(event.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric" className="mt-2 !rounded-lg" style={{ background: theme.node.fill }} />
-        </label>
-    );
+function sectionTitle(section: Exclude<SettingsSection, "home">) {
+    return section === "profile" ? "长期偏好" : section === "memories" ? "个人记忆" : section === "skills" ? "Skills" : section === "mcp" ? "MCP 与工具" : "上下文";
 }
-function sectionTitle(section: SettingsSection) {
-    return section === "profile" ? "长期偏好" : section === "memories" ? "个人记忆" : section === "skills" ? "Skills" : section === "mcp" ? "MCP 与工具" : section === "context" ? "上下文" : "预算";
-}
-function sectionSubtitle(section: SettingsSection) {
+function sectionSubtitle(section: Exclude<SettingsSection, "home">) {
     return section === "profile"
         ? "用户、项目和画布的长期行为偏好"
         : section === "memories"
@@ -620,9 +587,7 @@ function sectionSubtitle(section: SettingsSection) {
             ? "已安装的技能 Agent 会按任务自动选用"
             : section === "mcp"
               ? "云端工具与连接状态"
-              : section === "context"
-                ? "控制 Agent 能读取的范围"
-                : "控制本轮积分与生成消耗";
+              : "控制 Agent 能读取的范围";
 }
 
 export function agentPermissionLabel(mode: AgentPermissionMode) {
