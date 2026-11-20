@@ -125,6 +125,9 @@ func cloudAgentHandleCanvasPreflight(repo *repository.Repository, userID string,
 						entry["model"], entry["nativeVariantId"] = selected.Name, selected.ID
 						entry["quoteAvailable"] = false
 						entry["quoteStatus"] = "approval_required"
+						if probe.StudioAutoMedia && probe.Request.PermissionMode == "auto" {
+							entry["quoteStatus"] = "actual_usage"
+						}
 					}
 				} else {
 
@@ -198,7 +201,7 @@ func cloudAgentHandleCanvasPreflight(repo *repository.Repository, userID string,
 	if result["ok"] == true {
 		result["next"] = "可以用相同参数调用 generate_media_batch 申请一次批准；条目多或模型新时建议 canary=true 先试跑"
 		if s.UsesPlatformIdentity() {
-			result["next"] = "可以逐节点调用 generate_media 申请平台报价和审批，实际提交时重新校验版本、额度和素材"
+			result["next"] = "可以逐节点调用 generate_media，执行器按本轮权限处理生成，Platform 按实际用量计费"
 		}
 	} else {
 		result["next"] = "先修正失败项（补提示词、等待参考生成完成、移出已有结果的节点或拆批），再重新体检"

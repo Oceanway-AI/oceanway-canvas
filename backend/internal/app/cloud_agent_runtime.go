@@ -120,14 +120,16 @@ type cloudAgentApproval struct {
 }
 
 type cloudAgentRuntime struct {
-	RuntimeRunID   string                   `json:"-"`
-	Request        CloudAgentRequest        `json:"request"`
-	Policy         cloudAgentPolicySnapshot `json:"policy"`
-	ParentID       string                   `json:"parentId,omitempty"`
-	Fingerprint    string                   `json:"fingerprint,omitempty"`
-	CreativeAnchor cloudAgentCreativeAnchor `json:"creativeAnchor,omitempty"`
-	TextHistory    []providerTextMessage    `json:"textHistory,omitempty"`
-	Skills         []cloudAgentSkill        `json:"skills"`
+	StudioAutoMedia     bool                     `json:"studioAutoMedia,omitempty"`
+	StudioMediaCallHash string                   `json:"studioMediaCallHash,omitempty"`
+	RuntimeRunID        string                   `json:"-"`
+	Request             CloudAgentRequest        `json:"request"`
+	Policy              cloudAgentPolicySnapshot `json:"policy"`
+	ParentID            string                   `json:"parentId,omitempty"`
+	Fingerprint         string                   `json:"fingerprint,omitempty"`
+	CreativeAnchor      cloudAgentCreativeAnchor `json:"creativeAnchor,omitempty"`
+	TextHistory         []providerTextMessage    `json:"textHistory,omitempty"`
+	Skills              []cloudAgentSkill        `json:"skills"`
 	// SkillVersions 是本轮可读技能（自动发现 + 固定）的冻结版本；SkillHints / Memory 是每次
 	// 模型请求前重新插入的冻结数据消息。
 	SkillVersions      map[string]string                     `json:"skillVersions,omitempty"`
@@ -272,6 +274,7 @@ func (s *Service) ensureCloudAgentExecution(task *model.Task, initial cloudAgent
 	// immutable task-history anchor. Leaving this nil makes every new Pi run
 	// fail its first checkpoint with "Agent runtime task history is invalid".
 	state := cloudAgentRuntime{Request: initial.Request, Policy: initial.Policy, ParentID: initial.ParentID, Fingerprint: initial.Fingerprint, CreativeAnchor: initial.CreativeAnchor, TextHistory: input.TextHistory, Skills: initial.Skills, SkillVersions: initial.SkillVersions, SkillHints: initial.SkillHints, Memory: initial.Memory, Profile: initial.Profile, Canonical: canonical, ActiveTaskID: "", TaskIDs: []string{task.ID}, Step: 0, Decisions: map[string]string{}, Plan: initial.Plan, ConfirmationRounds: initial.ConfirmationRounds, ConfirmationFingerprints: append([]string(nil), initial.ConfirmationFingerprints...), PendingConfirmationFingerprint: "", Events: []CloudAgentEvent{}, StepLimits: limits}
+	state.StudioAutoMedia = initial.Request.ChannelID == StudioPlatformChannelID && initial.Request.PermissionMode == "auto"
 	if !carrier {
 		state.ActiveTaskID = task.ID
 		state.Step = 1

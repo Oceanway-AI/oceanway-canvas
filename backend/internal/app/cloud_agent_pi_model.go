@@ -219,7 +219,7 @@ func (s *Service) runCloudAgentModelStep(ctx context.Context, userID, runID stri
 			return nil, false, errCloudAgentAwaitingApproval
 		}
 		// 批次在后台执行时同理：结束后由执行器写入回执并用恢复提示词续跑。
-		if cloudAgentMediaBatchActive(&state) {
+		if cloudAgentMediaBatchActive(&state) || state.MediaTaskID != "" && state.StudioMediaCallHash != "" {
 			return nil, false, errCloudAgentAwaitingApproval
 		}
 		if cloudAgentStepBudgetExhausted(&state) {

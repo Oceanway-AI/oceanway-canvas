@@ -441,6 +441,10 @@ func (s *Service) advanceCloudAgentTool(run *model.CloudAgentExecution, state *c
 		return s.failCloudAgent(run, state, "Agent 工具调用状态无效，本轮已停止")
 	}
 	call := state.Calls[state.CallIndex]
+	if state.MediaTaskID != "" && state.StudioMediaCallHash != "" && cloudAgentMediaTool(call.Function.Name) {
+		return s.advanceCloudAgentMedia(run, state, call)
+	}
+	originalCall := call
 	call = s.cloudAgentRefreshStepSnapshotHash(run, state, call)
 	state.Calls[state.CallIndex] = call
 	if state.Approval != nil && state.Approval.Decision == "" {
@@ -452,7 +456,9 @@ func (s *Service) advanceCloudAgentTool(run *model.CloudAgentExecution, state *c
 	allowed := cloudAgentToolAllowed(state.Request, call.Function.Name)
 	binding, _ := cloudAgentRegistry().Lookup(call.Function.Name)
 	toolPolicy := agenttool.Of(call.Function.Name)
-	// 媒体工具在所有模式下都进入审批；其他写入只在 request_approval 下审批。
+	if allowed && s.UsesPlatformIdentity() && state.StudioAutoMedia && state.Request.PermissionMode == "auto" && cloudAgentMediaTool(call.Function.Name) && state.Approval == nil {
+		return s.submitAutomaticStudioMedia(run, state, call, originalCall)
+	}
 	if allowed && toolPolicy.ApprovalRequired(state.Request.PermissionMode) && state.Approval == nil {
 		if s.UsesPlatformIdentity() && cloudAgentMediaTool(call.Function.Name) {
 			return s.requestStudioAgentMediaApproval(run, state, call)

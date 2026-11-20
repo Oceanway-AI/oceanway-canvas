@@ -12,10 +12,14 @@ import (
 	"yingce/backend/internal/repository"
 )
 
+func studioAgentGenerationCommand(e studioExecutionEnvelope) platformclient.MediaCommand {
+	c := e.Consumption
+	return platformclient.MediaCommand{RequestID: e.RequestID, ProductTaskID: e.AgentRunID, Model: e.Selection.Name, VariantID: e.Selection.ID, NativeRequest: e.Body, Consumption: &platformclient.MediaGenerationConstraints{ExpectedCapabilityRevision: c.ExpectedCapabilityRevision, ExpectedConnectionRevision: c.ExpectedConnectionRevision, ExpectedPriceVersion: c.ExpectedPriceVersion, BillingPreference: c.BillingPreference, WalletMaxPoints: c.WalletMaxPoints}}
+}
+
 func (s *Service) approveStudioGeneration(run *model.CloudAgentExecution, state *cloudAgentRuntime, prepared *studioAgentMediaPrepared, quoteID, reason string, policy RuntimePolicySetting, followUp bool) error {
 	e := prepared.Envelope
-	c := e.Consumption
-	command := platformclient.MediaCommand{RequestID: e.RequestID, ProductTaskID: run.ID, Model: e.Selection.Name, VariantID: e.Selection.ID, NativeRequest: e.Body, Consumption: &platformclient.MediaGenerationConstraints{ExpectedCapabilityRevision: c.ExpectedCapabilityRevision, ExpectedConnectionRevision: c.ExpectedConnectionRevision, ExpectedPriceVersion: c.ExpectedPriceVersion, BillingPreference: c.BillingPreference, WalletMaxPoints: c.WalletMaxPoints}}
+	command := studioAgentGenerationCommand(e)
 	a, err := s.repo.StudioMediaAction(run.UserID, run.ID, state.Approval.ID)
 	if err != nil {
 		return err
@@ -112,7 +116,12 @@ func (s *Service) decideStudioGenerationAction(ctx context.Context, run *model.C
 	var auth platformclient.ExecutionContext
 	s.storageMu.Lock()
 	err = s.repo.MutateCloudAgent(a.UserID, a.RunID, run.Revision, func(current *model.CloudAgentExecution, repo *repository.Repository) error {
-		if current.Status != "waiting_approval" || current.CleanupPending {
+		automatic := winner == "auto"
+		validStatus := current.Status == "waiting_approval"
+		if automatic {
+			validStatus = (current.Status == "running" || current.Status == "queued") && state.Request.PermissionMode == "auto" && state.StudioAutoMedia && state.Approval == nil
+		}
+		if !validStatus || current.CleanupPending {
 			return repository.ErrCreationConflict
 		}
 		if winner == "approve" && (state.Approval.StudioQuote == nil || !time.Now().Before(state.Approval.StudioQuote.ExpiresAt)) {
@@ -144,10 +153,17 @@ func (s *Service) decideStudioGenerationAction(ctx context.Context, run *model.C
 				break
 			}
 		}
-		if metadata == nil || stringValue(metadata["agentDraftRunId"]) != run.ID {
+		if !automatic && (metadata == nil || stringValue(metadata["agentDraftRunId"]) != run.ID) {
 			return creationConflict("原节点已删除或不再等待该动作")
 		}
-		if plan != nil {
+		if automatic {
+			if err = createCloudAgentMediaNode(repo, a.UserID, a.ProjectID, plan, task, policy, cloudAgentCanvasEventRecorder(run.ID, state)); err != nil {
+				return err
+			}
+			if err = repo.OpenStudioMediaAction(a); err != nil {
+				return err
+			}
+		} else if plan != nil {
 			h, err := cloudAgentMediaDependencyHash(doc, plan.Args)
 			if err != nil {
 				return err
@@ -197,8 +213,11 @@ func (s *Service) decideStudioGenerationAction(ctx context.Context, run *model.C
 		}
 		state.Decisions[a.ApprovalID] = winner
 		state.DecisionPreparedHashes[a.ApprovalID] = hash
-		state.Approval.Decision = winner
-		state.Approval.Reason = reason
+		if !automatic {
+			state.Approval.Decision = winner
+			state.Approval.Reason = reason
+			state.event(a.RunID, "approval_decided", map[string]any{"approvalId": a.ApprovalID, "decision": winner, "requestId": command.RequestID})
+		}
 		state.MediaTaskID = task.ID
 		state.TaskIDs = append(state.TaskIDs, task.ID)
 		state.Generations++
@@ -206,7 +225,6 @@ func (s *Service) decideStudioGenerationAction(ctx context.Context, run *model.C
 			state.VideoSeconds += plan.Args.Duration
 		}
 		current.Status = "running"
-		state.event(a.RunID, "approval_decided", map[string]any{"approvalId": a.ApprovalID, "decision": winner, "requestId": command.RequestID})
 		state.event(a.RunID, "generation_task_created", map[string]any{"toolName": "generate_media", "taskId": task.ID, "nodeId": a.NodeID, "requestId": command.RequestID, "canvasId": a.ProjectID})
 		return cloudAgentSave(current, state)
 	})

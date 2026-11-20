@@ -110,11 +110,12 @@ func compileCloudAgentTools(req CloudAgentRequest, includeProfileTool bool) []ma
 				properties["limit"] = map[string]any{"type": "integer", "minimum": 1, "maximum": 24, "description": "默认12，实际按字节预算返回"}
 			}
 			if definition.Name == agenttool.GenerateMedia {
+				description = "生成图片或视频，提供提示词和参考节点。工具负责建节点、连线和提交。自动模式直接生成，请求审批模式等待操作确认。已提交任务按原任务查询，禁止重复生成。"
 				change := properties["configurationChange"].(map[string]any)["properties"].(map[string]any)
 				change["fields"] = map[string]any{"type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": map[string]any{"type": "string", "enum": []string{"model", "size", "quality", "imageResolution", "durationSeconds", "videoGenerateAudio", "nativeParameters", "nativeVariantId"}}}
 			}
 			if definition.Name == "canvas_preflight" {
-				description = "只读检查画布节点、提示词、参考素材和所选平台变体的原生参数。支持图片和视频，不创建任务。返回任务数和时长预算检查；精确费用在 generate_media 的审批卡中预估并确认。"
+				description = "只读检查画布节点、提示词、参考素材和所选平台变体的原生参数。支持图片和视频，返回任务数和时长检查。"
 				properties["nativeVariantId"] = map[string]any{"type": "string", "description": "平台变体ID"}
 				properties["nativeParameters"] = map[string]any{"type": "string", "description": "所选变体的原生参数JSON对象字符串"}
 			}

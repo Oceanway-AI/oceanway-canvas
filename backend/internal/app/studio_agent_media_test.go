@@ -44,6 +44,12 @@ func TestStudioPiGenerationAction(t *testing.T) {
 	}
 }
 
+func TestStudioPiAutomaticMedia(t *testing.T) {
+	for _, scenario := range []string{"v1_auto_image", "v1_auto_video", "auto_legacy", "auto_switch", "auto_read_only", "auto_pending"} {
+		t.Run(scenario, func(t *testing.T) { studioPiMediaApprovalScenario(t, scenario) })
+	}
+}
+
 func TestStudioPiGenerationActionPostgres(t *testing.T) {
 	if dsn := os.Getenv("STUDIO_TEST_GENERATION_RESUME_DB"); dsn != "" {
 		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
@@ -132,7 +138,7 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 		raw, _ := json.Marshal(map[string]any{"success": true, "data": map[string]any{"items": []platformclient.Model{envelope.Data.Items[0], m}}})
 		catalog = string(raw)
 	}
-	if strings.HasPrefix(scenario, "video_const") {
+	if strings.HasPrefix(scenario, "video_const") || scenario == "v1_auto_video" {
 		kind, submitPath = "video", "/internal/relay/doubao/api/v3/contents/generations/tasks"
 		catalog = strings.Replace(catalog, `"model_type":"image"`, `"model_type":"video"`, 1)
 		catalog = strings.Replace(catalog, `"protocol":"openai-images"`, `"protocol":"doubao-video"`, 1)
@@ -289,6 +295,13 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 	}
 	session := platformclient.SessionContext{Host: "studio.example.test", Origin: "https://studio.example.test", Cookie: "session=fixture"}
 	req := CloudAgentRequest{Prompt: "draw", CanvasID: "media-canvas", Model: "pi-model", ChannelID: StudioPlatformChannelID, ChannelModelKey: "pi-model", IdempotencyKey: "pi-media", PermissionMode: "request_approval"}
+	automatic := strings.Contains(scenario, "auto") && scenario != "auto_pending" && scenario != "auto_read_only"
+	if automatic && scenario != "auto_switch" {
+		req.PermissionMode = "auto"
+	}
+	if scenario == "auto_read_only" {
+		req.PermissionMode = "read_only"
+	}
 	req.Budget.MaxSteps = 4
 	req.ContextScope = []string{"canvas"}
 	view, _, err := s.CreateStudioCloudAgentRun(context.Background(), "user", session, req, "")
@@ -296,6 +309,15 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 		t.Fatal(err)
 	}
 	run, _ := s.repo.CloudAgent("user", view.ID)
+	if scenario == "auto_switch" {
+		if s.SetStudioAgentMode("other", run.ID, "request_approval", "auto") == nil {
+			t.Fatal("other user changed mode")
+		}
+		if err := s.SetStudioAgentMode("user", run.ID, "request_approval", "auto"); err != nil {
+			t.Fatal(err)
+		}
+		run, _ = s.repo.CloudAgent("user", view.ID)
+	}
 	state, _ := cloudAgentDecode(run)
 	args := cloudAgentMediaArgs{Mode: "image", Prompt: "a green square", ChannelID: StudioPlatformChannelID, ChannelModelKey: "image-model", Size: "1:1", NodeID: "image-node", Title: "草稿"}
 	if scenario == "reference_input" {
@@ -333,6 +355,36 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 	}
 	run, _ = s.repo.CloudAgent("user", view.ID)
 	state, _ = cloudAgentDecode(run)
+	if scenario == "auto_read_only" {
+		if state.MediaTaskID != "" || state.Approval != nil || submits != 0 || s.SetStudioAgentMode("user", run.ID, "request_approval", "auto") == nil {
+			t.Fatal("read-only run acquired media authority")
+		}
+		return
+	}
+	if automatic {
+		if run.Status != "running" || state.Approval != nil || state.MediaTaskID == "" || quotes != 0 || issues != 1 || len(state.TaskIDs) != 2 {
+			t.Fatalf("automatic generation stalled: status=%s task=%s approvals=%v previews=%d grants=%d", run.Status, state.MediaTaskID, state.Approval, quotes, issues)
+		}
+		s.approvedMediaClosed = true
+		for i := 0; i < 2; i++ {
+			got, err := s.executeCloudAgentRuntimeTool(context.Background(), "user", run.ID, agentMediaCall(args))
+			if err != nil || got.(map[string]any)["content"] != cloudAgentPiAutomaticMediaPauseText {
+				t.Fatalf("retry failed to rejoin original task: %v %v", got, err)
+			}
+		}
+		if v1 {
+			if submits != 1 || postedLimit != "" || runRef != run.ID {
+				t.Fatal("automatic generation changed grant or submitted twice")
+			}
+		} else {
+			ex, err := s.repo.StudioExecution("user", state.MediaTaskID)
+			var e studioExecutionEnvelope
+			if err != nil || s.decryptStudioValue(ex.EnvelopeEncrypted, &e) != nil || !e.ActualUsageBilling || !e.validMediaConsumption() || e.Consumption.WalletMaxPoints != "" {
+				t.Fatal("automatic relay did not freeze actual-usage terms")
+			}
+		}
+		return
+	}
 	if scenario == "video_const_invalid" {
 		if run.Status != "failed" || quotes != 0 || submits != 0 || state.Approval != nil {
 			t.Fatal("unsupported Agent resolution was replaced or quoted")
@@ -401,6 +453,17 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 	}
 	if quote.BillingMode != "actual_usage" || quote.WalletMaxPoints != "" || quote.EstimatedPoints != "0.123456789" || quote.PriceVersion != "price-1" {
 		t.Fatal("decimal quote changed")
+	}
+	if scenario == "auto_pending" {
+		s.approvedMediaClosed = true
+		if err := s.DecideStudioAgentMedia("user", run.ID, approval, "approve", "", quote.ID, nil, true); err != nil {
+			t.Fatal(err)
+		}
+		latest, err := s.CloudAgentRun("user", run.ID)
+		if err != nil || latest.Status != "running" || latest.PermissionMode != "auto" {
+			t.Fatalf("pending draft and mode did not advance together: %v %+v", err, latest)
+		}
+		return
 	}
 	if kind == "video" {
 		var body map[string]any

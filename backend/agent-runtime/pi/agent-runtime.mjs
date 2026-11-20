@@ -238,7 +238,7 @@ async function run() {
       }, signal);
       if (result.pause) {
         pausedForApproval = true;
-        emit("approval_wait", { approvalId: result.approvalId, toolName: tool.name, callId: toolCallId });
+        if (result.approvalId) emit("approval_wait", { approvalId: result.approvalId, toolName: tool.name, callId: toolCallId });
         session.abort();
         return {
           content: [{ type: "text", text: result.content || "操作正在等待用户审批。" }],
