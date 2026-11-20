@@ -5,6 +5,10 @@ description: 当前项目已实现功能的手工验证清单与未确认边界
 
 # 待测试
 
+Studio Agent 按轮次使用 Platform 的实际用量结算。发布验收时在同一对话验证超过 16 步后正常完成，并在下一轮核对独立授权、请求号和账单。Agent 设置中已移除执行上限入口。
+
+发布验收还需覆盖原付款人在任务中心确认一笔历史超额视频的实际总额，随后从同一任务打开已归档的原件。同步核对新 Agent 媒体审批只展示预估，按实际用量结算。
+
 WP-STUDIO-020 正在实施。当前开发、测试和部署配置要求 PostgreSQL + Redis，SQLite 运行兼容已退出。直接 Platform 用户 ID、请求动作权限、浏览器身份版本、Studio v98 基线、引用释放后显式清理、旧商业入口退出及任务资金回执投影的本机结果见 `docs/verification/platform-ecosystem-20261118/`。旧渠道／本地账务／OSS 配置源码仍有 E3 清理余项。真实 Platform 账户与付款返回、自有制品安装／升级／回退属于剩余验收。
 
 2026-11-18 E3 后续清理已退出独立 OSS 适配及设置、旧管理员私有记忆巡查，以及任务终态／取消／媒体恢复中的本地结算和人工补扣。PostgreSQL 任务收尾与取消专项通过，生产仍为 v2.0.2。任务创建、重试、其他创作域和渠道分组的旧账务依赖继续清理，最终验收记录见 `docs/verification/platform-ecosystem-production-20261118/`。退出代码的平台复用核对见该目录的 `retired-capabilities-audit.md`，三项提供方建议已登记到 FS-STUDIO-001 的 SF-A16。

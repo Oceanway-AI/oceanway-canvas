@@ -324,6 +324,7 @@ test("旧轮次结束后仍发现手机新轮次，电脑下一条消息使用�
             await settle();
         });
         expect(sent).toEqual(["second"]);
+        expect(sendInputs[0]).not.toHaveProperty("budget");
         expect(generated).toBe(0);
         expect(pending).toBeNull();
     } finally {
@@ -456,7 +457,7 @@ test("刷新恢复的待确认首轮仍可重试，发送期间收起失败条�
     const original: CloudAgentPendingSubmission = {
         key: "restored-original-key",
         fingerprint: "frozen-body",
-        request: { canvasId: "shared-canvas", prompt: "恢复原请求", idempotencyKey: "restored-original-key" },
+        request: { canvasId: "shared-canvas", prompt: "恢复原请求", idempotencyKey: "restored-original-key", budget: { maxSteps: 16 } },
     };
     const initial = chat("original", null);
     const mounted = await mount(initial, [initial], original);

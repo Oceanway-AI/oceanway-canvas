@@ -347,17 +347,18 @@ func RegisterAgentRoutes(r *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		var input struct {
+			BillingMode     string  `json:"billingMode"`
 			WalletMaxPoints *string `json:"walletMaxPoints"`
 		}
 		if err := c.ShouldBindJSON(&input); err != nil {
-			failService(c, service.NewAppError(400, "消费上限格式无效"))
+			failService(c, service.NewAppError(400, "报价请求格式无效"))
 			return
 		}
-		var maximum []string
-		if input.WalletMaxPoints != nil {
-			maximum = append(maximum, *input.WalletMaxPoints)
+		if input.WalletMaxPoints != nil || (input.BillingMode != "" && input.BillingMode != "actual_usage") {
+			failService(c, service.NewAppError(409, "计费方式已更新，请刷新页面后重新获取报价"))
+			return
 		}
-		quote, response, err := svc.QuoteStudioAgentMedia(c.Request.Context(), user.ID, platformintegration.Session(c.Request), c.Param("id"), c.Param("approvalId"), maximum...)
+		quote, response, err := svc.QuoteStudioAgentMedia(c.Request.Context(), user.ID, platformintegration.Session(c.Request), c.Param("id"), c.Param("approvalId"), input.BillingMode == "actual_usage")
 		if response != nil {
 			response.AppendCookies(c.Writer.Header())
 		}

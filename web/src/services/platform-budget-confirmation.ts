@@ -6,21 +6,6 @@ export class PlatformBudgetDeclined extends Error {
     }
 }
 
-export type PlatformBudgetConfirmation = (estimate: string, title: string) => Promise<string | null>;
-let confirmBudget: PlatformBudgetConfirmation | undefined;
-
-// The Agent media approval flow uses this dialog to collect its spending limit.
-export function installPlatformBudgetConfirmation(handler: PlatformBudgetConfirmation) {
-    confirmBudget = handler;
-    return () => {
-        if (confirmBudget === handler) confirmBudget = undefined;
-    };
-}
-export function confirmPlatformBudget(estimate: string, title: string) {
-    if (!confirmBudget) return Promise.reject(new Error("消费确认暂不可用，请刷新页面"));
-    return confirmBudget(estimate, title);
-}
-
 export function validPlatformPoints(value: unknown): value is string {
     return typeof value === "string" && value.length <= 128 && /^(0|[1-9]\d*)(\.\d+)?$/.test(value);
 }

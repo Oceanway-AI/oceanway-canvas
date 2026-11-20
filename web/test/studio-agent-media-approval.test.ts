@@ -13,14 +13,14 @@ test("报价和批准通过不同请求，批准只携带已展示报价身份",
     const requests: { url?: string; data: unknown }[] = [];
     apiClient.defaults.adapter = async (config) => {
         requests.push({ url: config.url, data: JSON.parse(config.data) });
-        return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { id: "exact-quote", walletMaxPoints: "0.123456789", priceVersion: "price" } } };
+        return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { id: "exact-quote", estimatedPoints: "25.00", priceVersion: "price" } } };
     };
     try {
-        const quote = await quoteAgentMedia("run", "approval", undefined, "0.123456789");
-        expect(quote.walletMaxPoints).toBe("0.123456789");
+        const quote = await quoteAgentMedia("run", "approval");
+        expect(quote.estimatedPoints).toBe("25.00");
         await decideAgentApproval("run", "approval", "approve", undefined, undefined, undefined, quote.id);
         expect(requests).toEqual([
-            { url: "/agent/runs/run/approvals/approval/quote", data: { walletMaxPoints: "0.123456789" } },
+            { url: "/agent/runs/run/approvals/approval/quote", data: { billingMode: "actual_usage" } },
             { url: "/agent/runs/run/approvals/approval/decision", data: { decision: "approve", quoteId: "exact-quote" } },
         ]);
     } finally {

@@ -257,9 +257,6 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
     const approvalTargetGenerating = useGlobalAgentStore((state) => (approvalDetail ? agentApprovalTargetGenerating(approvalDetail, state.canvas?.canvasNodes, state.canvas?.runningNodeId) : undefined));
     const [permissionMode, setPermissionMode] = useState<AgentPermissionMode>("request_approval");
     const [contextScope, setContextScope] = useState<AgentContextKey[]>(["canvas"]);
-    const [maxSteps, setMaxSteps] = useState("16");
-    const [maxGenerationTasks, setMaxGenerationTasks] = useState("0");
-    const [maxVideoSeconds, setMaxVideoSeconds] = useState("0");
     const [conversations, setConversations] = useState<CloudAgentConversation[]>([]);
     const conversationSnapshots = useRef(conversations);
     conversationSnapshots.current = conversations;
@@ -1173,7 +1170,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         return next;
     };
     const pauseOutbox = (reason: AgentOutboxPauseReason, detail?: string) => updateOutbox(conversationScope, (current) => pauseAgentOutbox(current, reason, detail));
-    const currentRunSettings = (): AgentRunSettings => ({ model: selectedModel, permissionMode, reasoningMode, skillIds: [...selectedSkillIds], contextScope: [...contextScope], maxSteps, maxGenerationTasks, maxVideoSeconds });
+    const currentRunSettings = (): AgentRunSettings => ({ model: selectedModel, permissionMode, reasoningMode, skillIds: [...selectedSkillIds], contextScope: [...contextScope] });
     // 发送时才读当前选中节点：面板只订阅选中数量，点选节点不会让对话重渲染。排队时在入队那一刻读。
     // 来自输入框的消息：附件节点排在选区前面；用户点了「不带选区」时只带附件。
     const liveFocusSnapshot = (extras?: ComposerExtras) => {
@@ -1444,8 +1441,6 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                 const capabilities = await getAgentCapabilities();
                 if (!accountIsCurrent() || currentScope.current !== scope) return "skipped";
                 if (!capabilities.permissionModes.includes(settings.permissionMode)) throw new Error("当前后端不支持所选 Agent 权限，请更新后端");
-                const stepLimit = Number(settings.maxSteps);
-                if (!Number.isInteger(stepLimit) || stepLimit < 1 || stepLimit > 64) throw new Error("请设置 1–64 步的执行上限");
                 if (settings.skillIds.length && !capabilities.skills) throw new Error("当前后端尚未接入技能库");
                 // 只有当前页面是画布时才绑定画布；其他页面发出的是平台级对话轮次。
                 if (canvasId) await prepareCanvasForCloudAction(canvasId);
@@ -1466,11 +1461,6 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                     focusNodeOmittedCount: canvasId ? focus.focusNodeOmittedCount : 0,
                     permissionMode: settings.permissionMode,
                     contextScope: canvasId ? settings.contextScope : [],
-                    budget: {
-                        maxSteps: stepLimit,
-                        maxGenerationTasks: settings.permissionMode === "read_only" ? 0 : Number(settings.maxGenerationTasks),
-                        maxVideoSeconds: settings.permissionMode === "read_only" ? 0 : Number(settings.maxVideoSeconds),
-                    },
                 };
                 const fingerprint = JSON.stringify({ scope, parent: run?.id, input });
                 if (pending && pending.fingerprint !== fingerprint) throw new Error("上一条请求尚未确认，请恢复原消息与设置后核对，不能覆盖原幂等记录");
@@ -2486,9 +2476,6 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                                         skillSearch={skillSearch}
                                         skillsLoading={skillsLoading}
                                         skillHasMore={skillHasMore}
-                                        maxSteps={maxSteps}
-                                        maxGenerationTasks={maxGenerationTasks}
-                                        maxVideoSeconds={maxVideoSeconds}
                                         onBack={() => setView("chat")}
                                         onCollapse={onCollapse}
                                         onModelChange={setModel}
@@ -2510,9 +2497,6 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                                         onSkillAgentModeChange={changeSkillAgentMode}
                                         onOpenSkillRecommendations={() => setSkillRecommendationsOpen(true)}
                                         onLoadMoreSkills={loadMoreSkills}
-                                        onMaxStepsChange={setMaxSteps}
-                                        onMaxGenerationTasksChange={setMaxGenerationTasks}
-                                        onMaxVideoSecondsChange={setMaxVideoSeconds}
                                     />
                                 </motion.div>
                             ) : view === "history" ? (
@@ -2619,12 +2603,9 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                                                 try {
                                                     await prepareCanvasForCloudAction(run.canvasId);
                                                     if (!accountIsCurrent() || currentScope.current !== scope) return;
-                                                    const preview = await quoteAgentMedia(runId, approvalId, AbortSignal.timeout(30_000));
+                                                    const quote = await quoteAgentMedia(runId, approvalId, AbortSignal.timeout(30_000));
                                                     if (!accountIsCurrent() || currentScope.current !== scope) return;
-                                                    const maximum = await confirmPlatformBudget(preview.estimatedPoints ?? preview.walletMaxPoints, "确认 Agent 媒体消费额度");
-                                                    if (maximum == null || !accountIsCurrent() || currentScope.current !== scope) return;
-                                                    const quote = await quoteAgentMedia(runId, approvalId, AbortSignal.timeout(30_000), maximum);
-                                                    if (!accountIsCurrent() || currentScope.current !== scope) return;
+                                                    if (!quote.id) throw new Error("当前服务尚未支持按实际用量结算，请稍后刷新报价");
                                                     setApproval((current) => (current?.approvalId === approvalId ? { ...current, detail: { ...current.detail, studioQuote: quote } } : current));
                                                 } catch (error) {
                                                     if (accountIsCurrent() && currentScope.current === scope) void appMessage.error(error instanceof Error ? error.message : "报价暂不可用");
@@ -2815,4 +2796,3 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         </>
     );
 });
-import { confirmPlatformBudget } from "@/services/platform-budget-confirmation";

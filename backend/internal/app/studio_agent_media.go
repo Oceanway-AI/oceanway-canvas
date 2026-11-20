@@ -17,8 +17,9 @@ import (
 
 type StudioAgentMediaQuote struct {
 	ID              string         `json:"id"`
+	BillingMode     string         `json:"billingMode,omitempty"`
 	EstimatedPoints string         `json:"estimatedPoints"`
-	WalletMaxPoints string         `json:"walletMaxPoints"`
+	WalletMaxPoints string         `json:"walletMaxPoints,omitempty"` // Historical capped quotes.
 	PriceVersion    string         `json:"priceVersion"`
 	ExpiresAt       time.Time      `json:"expiresAt"`
 	Parameters      map[string]any `json:"parameters"`
@@ -304,7 +305,7 @@ func (s *Service) requestStudioAgentMediaApproval(run *model.CloudAgentExecution
 	})
 }
 
-func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, session platformclient.SessionContext, runID, approvalID string, maximum ...string) (*StudioAgentMediaQuote, *platformclient.Response, error) {
+func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, session platformclient.SessionContext, runID, approvalID string, prepareActualUsage bool) (*StudioAgentMediaQuote, *platformclient.Response, error) {
 	response := &platformclient.Response{Header: make(http.Header)}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -349,12 +350,6 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 		return nil, response, err
 	}
 	req.Platform = &StudioTaskOptions{VariantID: selected.ID, ExpectedPriceVersion: selected.Price.Version}
-	if len(maximum) > 0 {
-		if len(maximum) != 1 || !studioValidDecimal(maximum[0]) {
-			return nil, response, BadAuthRequest("请提供本次生成的平台积分上限")
-		}
-		req.Platform.WalletMaxPoints = maximum[0]
-	}
 	preview, err := s.studioPreviewMedia(ctx, session, req, selected, body, response, false)
 	if err != nil {
 		return nil, response, err
@@ -385,13 +380,13 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 	if err != nil {
 		return nil, response, err
 	}
-	if len(maximum) == 0 {
+	if !prepareActualUsage {
 		// Reading an estimate must not create approval authority. A cancelled
 		// confirmation or reconnect leaves the original approval unchanged.
 		return &StudioAgentMediaQuote{EstimatedPoints: preview.WalletPoints, PriceVersion: preview.PriceVersion, Parameters: parameters}, response, nil
 	}
-	quote := StudioAgentMediaQuote{ID: newID(), EstimatedPoints: preview.WalletPoints, WalletMaxPoints: req.Platform.WalletMaxPoints, PriceVersion: preview.PriceVersion, ExpiresAt: time.Now().Add(cloudAgentMediaQuoteLifetime), Parameters: parameters}
-	prepared := studioAgentMediaPrepared{Envelope: studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, AgentRunID: runID, ContentType: "application/json", Body: body, Consumption: studioMediaConsumption(preview, req.Platform)}, Request: req, Plan: *plan, DependencyHash: dependency, Quote: quote}
+	quote := StudioAgentMediaQuote{ID: newID(), BillingMode: "actual_usage", EstimatedPoints: preview.WalletPoints, PriceVersion: preview.PriceVersion, ExpiresAt: time.Now().Add(cloudAgentMediaQuoteLifetime), Parameters: parameters}
+	prepared := studioAgentMediaPrepared{Envelope: studioExecutionEnvelope{Task: task, Selection: selected, RequestID: "studio-" + id, AgentRunID: runID, ContentType: "application/json", Body: body, Consumption: studioMediaConsumption(preview, req.Platform), ActualUsageBilling: true}, Request: req, Plan: *plan, DependencyHash: dependency, Quote: quote}
 	encrypted, err := s.encryptStudioValue(prepared)
 	if err != nil {
 		return nil, response, err
@@ -469,7 +464,7 @@ func (s *Service) DecideStudioAgentMedia(userID, runID, approvalID, decision, re
 	if prepared.Quote.ID != quoteID {
 		return creationConflict("审批报价身份不匹配")
 	}
-	if !prepared.Envelope.validMediaConsumption() {
+	if !prepared.Envelope.validMediaConsumption() || prepared.Envelope.ActualUsageBilling != (prepared.Quote.BillingMode == "actual_usage") {
 		return creationConflict("原媒体消费版本未冻结，请重新确认报价")
 	}
 	body, err := s.studioMediaBody(context.Background(), userID, prepared.Request, prepared.Envelope.Selection)

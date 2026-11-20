@@ -18,20 +18,23 @@ const (
 	cloudAgentContextInvalidOutput      cloudAgentRuntimeContextKind = "invalid_output"
 	cloudAgentContextTruncatedArguments cloudAgentRuntimeContextKind = "truncated_tool_arguments"
 	cloudAgentContextReadLoop           cloudAgentRuntimeContextKind = "read_loop"
+	cloudAgentContextStepBudget         cloudAgentRuntimeContextKind = "step_budget"
 	cloudAgentContextOrphanToolResults  cloudAgentRuntimeContextKind = "orphan_tool_results"
 )
 
 // Only serializable fact fields belong here. Behavioral instructions live in
 // prompts/agent-system-policy.md and share its version/hash contract.
 type cloudAgentRuntimeContext struct {
-	Source            string                       `json:"source"`
-	Kind              cloudAgentRuntimeContextKind `json:"kind"`
-	Items             []cloudAgentPlanItem         `json:"items,omitempty"`
-	PendingTitle      string                       `json:"pendingTitle,omitempty"`
-	LatestUserMessage string                       `json:"latestUserMessage,omitempty"`
-	Detail            string                       `json:"detail,omitempty"`
-	MaxToolCalls      int                          `json:"maxToolCalls,omitempty"`
-	MaxOutputBytes    int                          `json:"maxOutputBytes,omitempty"`
+	Source              string                       `json:"source"`
+	Kind                cloudAgentRuntimeContextKind `json:"kind"`
+	Items               []cloudAgentPlanItem         `json:"items,omitempty"`
+	PendingTitle        string                       `json:"pendingTitle,omitempty"`
+	LatestUserMessage   string                       `json:"latestUserMessage,omitempty"`
+	Detail              string                       `json:"detail,omitempty"`
+	MaxToolCalls        int                          `json:"maxToolCalls,omitempty"`
+	MaxOutputBytes      int                          `json:"maxOutputBytes,omitempty"`
+	MaxSteps            int                          `json:"maxSteps,omitempty"`
+	RemainingModelCalls int                          `json:"remainingModelCalls,omitempty"`
 }
 
 func cloudAgentRuntimeMessage(context cloudAgentRuntimeContext) map[string]any {

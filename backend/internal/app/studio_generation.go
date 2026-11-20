@@ -193,6 +193,9 @@ func (s *Service) projectStudioGeneration(ctx context.Context, task *model.Task,
 	}
 	if g.FundsState == "reserved" && g.RetryAfterMS > 0 && (g.ExecutionState == "succeeded" || g.ExecutionState == "failed" || g.ExecutionState == "cancelled" || g.ExecutionState == "rejected") {
 		task.Stage = "正在处理原请求"
+		if g.ExecutionState == "succeeded" {
+			task.Stage = "生成已完成，等待平台结算"
+		}
 	} else if g.ExecutionState == "failed" || g.ExecutionState == "rejected" || g.ExecutionState == "cancelled" {
 		task.Status = model.TaskStatusFailed
 		task.Stage = "生成失败"
@@ -313,6 +316,9 @@ func (s *Service) StudioReadGeneration(ctx context.Context, task *model.Task, se
 		return nil, response, err
 	}
 	out, err := s.Task(task.UserID, task.ID)
+	if err == nil && out.PlatformBilling != nil && out.PlatformBilling.FundsState == "reserved" && out.PlatformRevision == g.Revision {
+		out.PlatformBilling.FinalWalletConsent = studioFinalBill(out, g)
+	}
 	return out, response, err
 }
 

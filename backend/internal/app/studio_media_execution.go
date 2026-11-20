@@ -285,7 +285,7 @@ func (e *studioExecutionEnvelope) validMediaConsumption() bool {
 	// Older envelopes only granted a specific amount. A missing limit in one
 	// of those records cannot authorize actual-usage billing during recovery.
 	if e.ActualUsageBilling {
-		return c.WalletMaxPoints == "" && e.AgentRunID == "" && e.Task.AgentRunID == ""
+		return c.WalletMaxPoints == "" && e.AgentRunID == e.Task.AgentRunID
 	}
 	return studioValidDecimal(c.WalletMaxPoints)
 }

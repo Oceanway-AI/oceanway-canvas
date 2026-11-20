@@ -226,7 +226,7 @@ func (s *Service) runCloudAgentModelStep(ctx context.Context, userID, runID stri
 			// 最终回答之后的插话续步会在这里撞上限；若确实停在最终回答边界，
 			// 按完成收尾而不是把整轮判失败（见 settleCloudAgentPiFinalAnswer）。
 			s.settleCloudAgentPiFinalAnswer(userID, runID)
-			return nil, false, fmt.Errorf("step budget exhausted")
+			return nil, false, errors.New(cloudAgentStepLimitMessage(cloudAgentStepLimit(state.Request)))
 		}
 		if state.StepLimits, err = s.cloudAgentStepLimits(); err != nil {
 			return nil, false, err
@@ -284,7 +284,13 @@ func (s *Service) runCloudAgentModelStep(ctx context.Context, userID, runID stri
 		}
 		if !compactionSummary {
 			cloudAgentAttachRunContext(&canonical, &state)
-			// Pi owns the durable transcript and its compaction.
+			// Count the request being prepared. This fact is only for the model, not Pi's transcript.
+			stepLimit := cloudAgentStepLimit(state.Request)
+			if remaining := stepLimit - state.Step; remaining > 0 && remaining <= 2 {
+				canonical.Messages = append(canonical.Messages, cloudAgentRuntimeMessage(cloudAgentRuntimeContext{
+					Kind: cloudAgentContextStepBudget, MaxSteps: stepLimit, RemainingModelCalls: remaining,
+				}))
+			}
 		}
 		// 看图后的历史里有 resource: 图片占位，必须随请求带上获准图片清单，
 		// 否则预检以「模型协议引用了未获准的图片」拒绝（见 cloud_agent_pi_image_references.go）。

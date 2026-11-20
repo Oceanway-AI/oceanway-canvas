@@ -24,9 +24,6 @@ export type AgentRunSettings = {
     reasoningMode: AgentReasoningMode;
     skillIds: string[];
     contextScope: string[];
-    maxSteps: string;
-    maxGenerationTasks: string;
-    maxVideoSeconds: string;
 };
 
 export type AgentOutboxItemStatus = "queued" | "editing" | "interjecting" | "dispatching" | "failed";
@@ -311,16 +308,7 @@ function stringArray(value: unknown): value is string[] {
 function isRunSettings(value: unknown): value is AgentRunSettings {
     if (!value || typeof value !== "object") return false;
     const settings = value as Partial<AgentRunSettings>;
-    return (
-        typeof settings.model === "string" &&
-        PERMISSION_MODES.has(settings.permissionMode as AgentPermissionMode) &&
-        typeof settings.reasoningMode === "string" &&
-        stringArray(settings.skillIds) &&
-        stringArray(settings.contextScope) &&
-        typeof settings.maxSteps === "string" &&
-        typeof settings.maxGenerationTasks === "string" &&
-        typeof settings.maxVideoSeconds === "string"
-    );
+    return typeof settings.model === "string" && PERMISSION_MODES.has(settings.permissionMode as AgentPermissionMode) && typeof settings.reasoningMode === "string" && stringArray(settings.skillIds) && stringArray(settings.contextScope);
 }
 
 function isOutboxItem(value: unknown): value is AgentOutboxItem {

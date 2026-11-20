@@ -31,7 +31,7 @@ test("平台审批卡先报价、保留精确积分、批准时不混入可编�
     let quotes = 0,
         approvals = 0;
     const detail = { studioMedia: true, toolName: "generate_media", arguments: { mode: "image", channelId: "oceanway-platform", channelModelKey: "image-model", prompt: "测试", referenceNodeIds: [] } };
-    const quote = { id: "quote-1", walletMaxPoints: "0.123456789", priceVersion: "v1", expiresAt: "2099-01-01T00:00:00Z", parameters: { size: "1:1", count: 1 } };
+    const quote = { id: "quote-1", estimatedPoints: "0.123456789", priceVersion: "v1", expiresAt: "2099-01-01T00:00:00Z", parameters: { size: "1:1", count: 1 } };
     const render = (quoted: boolean) =>
         root.render(
             <ApprovalCard
@@ -59,6 +59,8 @@ test("平台审批卡先报价、保留精确积分、批准时不混入可编�
         await act(async () => render(true));
         expect(host.textContent).toContain("个人空间");
         expect(host.textContent).toContain("✦ 0.123456789");
+        expect(host.textContent).toContain("按实际用量结算");
+        expect(host.textContent).not.toContain("最高");
         expect(button("同意执行").disabled).toBe(false);
         await act(async () => button("同意执行").click());
         expect(approvals).toBe(1);

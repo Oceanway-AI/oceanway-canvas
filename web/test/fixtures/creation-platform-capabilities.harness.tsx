@@ -216,7 +216,6 @@ test.each([
 ])("原生视频生成按钮保留4秒720p参数：%s", async (_scenario, priceVersion) => {
     const { systemChannelModelChannels } = await import("@/lib/user-session");
     const { setActiveUserScope } = await import("@/lib/user-scope");
-    const { PlatformBudgetConfirmationHost } = await import("@/components/layout/platform-budget-confirmation");
     const name = "doubao-seedance-2-0-fast-260128";
     const selected = `oceanway-platform::${name}`;
     const channels = systemChannelModelChannels([
@@ -293,7 +292,6 @@ test.each([
             root.render(
                 <QueryClientProvider client={client}>
                     <App>
-                        <PlatformBudgetConfirmationHost />
                         <MemoryRouter>
                             <CreatePage />
                         </MemoryRouter>

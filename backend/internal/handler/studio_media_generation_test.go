@@ -322,6 +322,9 @@ func TestStudioMediaGenerationObservesRemainingFundsAndPermanentOutputs(t *testi
 			var w struct{ Data model.Task }
 			_ = json.Unmarshal(result.Body.Bytes(), &w)
 			if mode != "permanent_output" {
+				if mode == "succeeded_reserved" && w.Data.Stage != "生成已完成，等待平台结算" {
+					t.Fatalf("unexpected settlement stage: %s", w.Data.Stage)
+				}
 				if w.Data.Status != model.TaskStatusRunning || w.Data.PlatformRetryAfterMS != 1500 {
 					t.Fatalf("lost remaining settlement %+v", w.Data.Status)
 				}

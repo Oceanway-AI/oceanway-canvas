@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"strings"
 	"unicode/utf8"
@@ -361,7 +360,7 @@ func (s *Service) advanceCloudAgent(run *model.CloudAgentExecution) (err error) 
 		state.ProfileReads = nil
 	}
 	if stepLimit := cloudAgentStepLimit(state.Request); stepLimit > 0 && state.Step >= stepLimit {
-		return s.failCloudAgent(run, &state, fmt.Sprintf("达到 %d 次模型调用上限，本轮已停止", stepLimit))
+		return s.failCloudAgent(run, &state, cloudAgentStepLimitMessage(stepLimit))
 	}
 	cloudAgentDrainInterjections(run.ID, &state)
 	softReadGuard := state.ReadLoopNudge
