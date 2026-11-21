@@ -1,4 +1,5 @@
 import { modelCapabilityConfigFor, normalizeImageValue, type ImageCapabilityConfig } from "@/lib/model-capabilities";
+import { platformModelDetailPending, publishedImageReferenceLimit } from "@/lib/platform-native-media";
 import { createGenerationTask, queryGenerationTask, type GenerationTask } from "@/services/api/task-center";
 import { parseBackendGenerationResult, prepareBackendGenerationTask } from "@/services/api/generation-task";
 import { resourceStorageKey } from "@/services/api/resources";
@@ -265,8 +266,13 @@ export function commerceRequiredImageReferenceCount(draft: EcommerceDraft, clone
     return references.length;
 }
 
-export function assertCommerceImageReferenceCapacity(referenceCount: number, modelMaxImages: number) {
+export function commerceImageReferenceLimit(config: Config, model: string) {
+    return publishedImageReferenceLimit(config, model) ?? (platformModelDetailPending(config, model) ? undefined : modelCapabilityConfigFor(config, model).image?.references.maxImages);
+}
+
+export function assertCommerceImageReferenceCapacity(referenceCount: number, modelMaxImages: number | undefined) {
     if (referenceCount > 20) throw new Error(`平台单次生图最多接收 20 张参考图片，当前需要 ${referenceCount} 张；请减少本次生图使用的商品图或借鉴图片`);
+    if (modelMaxImages === undefined) throw new Error("请先加载图片模型详情");
     const limit = Math.min(20, modelMaxImages);
     if (referenceCount < 0 || referenceCount > limit) throw new Error(`当前图片模型最多接收 ${limit} 张参考图片，当前需要 ${referenceCount} 张；请更换模型或减少图片`);
 }
@@ -282,7 +288,7 @@ export function commerceGenerationRatio(config: Config, draft: Pick<EcommerceDra
 }
 
 export async function submitCommercePlan(config: Config, draft: EcommerceDraft, existing?: EcommerceProject | null) {
-    assertCommerceImageReferenceCapacity(commerceRequiredImageReferenceCount(draft), modelCapabilityConfigFor(config, draft.imageModel).image?.references.maxImages || 0);
+    assertCommerceImageReferenceCapacity(commerceRequiredImageReferenceCount(draft), commerceImageReferenceLimit(config, draft.imageModel));
     const maxImages = modelCapabilityConfigFor(config, draft.agentModel).text?.references.maxImages || 0;
     const skillPrompt = await getEcommerceSkillPrompt(draft.skillIds || []);
     const payload = await prepareCommercePlanningPayload(draft, maxImages, skillPrompt);
@@ -325,7 +331,6 @@ export async function submitCommerceImages(config: Config, draft: EcommerceDraft
     assertCommerceDetailRhythm(plan, draft);
     validateCommerceReferencePlan(plan, draft);
     if (plan.images.length !== draft.count || plan.uncertainFacts.length) throw new Error("请核对策划数量与待确认商品事实后再生成");
-    for (const image of plan.images) assertCommerceImageReferenceCapacity(commerceRequiredImageReferenceCount(draft, clone), modelCapabilityConfigFor(config, image.imageModel).image?.references.maxImages || 0);
     let current = project;
     let nextPlan = await prepareCommerceReferencePlan(draft, plan, {
         onSaved: async (prepared) => {
@@ -338,7 +343,7 @@ export async function submitCommerceImages(config: Config, draft: EcommerceDraft
         const profile = modelCapabilityConfigFor(config, planned.imageModel).image;
         if (!profile) throw new Error(`第 ${index + 1} 张图片模型不可用`);
         const refs = commerceImageReferences(draft, planned, index, clone);
-        assertCommerceImageReferenceCapacity(refs.length, profile.references.maxImages);
+        assertCommerceImageReferenceCapacity(refs.length, commerceImageReferenceLimit(config, planned.imageModel));
         if (!profile.size.values.includes(planned.ratio) || (profile.resolution.supported && !profile.resolution.values.includes(planned.resolution))) throw new Error(`第 ${index + 1} 张的比例或分辨率不受支持`);
         const image = { ...planned, ratio: commerceGenerationRatio(config, draft, planned) };
         const parameters = commerceImageParameters(profile, image.ratio, image.resolution);

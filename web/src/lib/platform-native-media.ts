@@ -108,12 +108,58 @@ export function nativeMediaVariant(config: AiConfig, model = config.model, id = 
     return profile?.variants.find((v) => v.id === (id || profile.defaultId));
 }
 
-// A text-to-image default can accept attachments in the composer when the
-// same model publishes one unambiguous edit operation for reference images.
-export function nativeImageReferenceVariant(config: AiConfig, model: string, current: NativeMediaVariant | undefined) {
-    if (current?.gateway_protocol !== "openai.image.generate") return current;
-    const edits = nativeMediaProfile(config, model)?.variants.filter((v) => v.gateway_protocol === "openai.image.edit" && v.native_request_variant.native_reference_inputs?.some((r) => r.role === "reference_image" && r.max_items !== 0));
-    return edits?.length === 1 ? edits[0] : current;
+type ReferenceSlot = { role: string; min_items?: number; max_items?: number };
+
+function imageRange(slots: ReferenceSlot[]) {
+    let min = 0,
+        max = 0;
+    for (const slot of slots) {
+        if (slot.role === "reference_image") {
+            min += slot.min_items ?? 0;
+            max += slot.max_items ?? Infinity;
+        } else if (slot.min_items) return undefined;
+    }
+    return { min, max };
+}
+
+// Ties follow the published default, then catalog order, independent of draft history.
+function imageRoutes(profile: NonNullable<ReturnType<typeof nativeMediaProfile>>, count: number) {
+    const routes = profile.variants
+        .flatMap((variant) => {
+            const range = imageRange(variant.native_request_variant.native_reference_inputs ?? []);
+            return range ? [{ variant, ...range }] : [];
+        })
+        .sort((a, b) => Number(b.variant.id === profile.defaultId) - Number(a.variant.id === profile.defaultId));
+    const widest = routes.reduce<(typeof routes)[number] | undefined>((best, route) => (!best || route.max > best.max ? route : best), undefined);
+    const request = routes.find((route) => route.min <= count && count <= route.max);
+    return { referenceVariant: widest?.variant, requestVariant: request?.variant, maxImages: widest?.max ?? 0 };
+}
+
+export function publishedImageReferenceLimit(config: AiConfig, model = config.model) {
+    const platform = resolveModelChannel(config, model).modelDetails?.find((v) => v.model === modelOptionName(model))?.platform;
+    if (platform?.model_type !== "image") return undefined;
+    if (platform.state === "summary") {
+        if (!platform.variants_complete || !platform.variants?.length || !platform.variants.every((v) => v.references_complete)) return undefined;
+        return Math.max(0, ...platform.variants.map((v) => imageRange(v.references)?.max ?? 0));
+    }
+    const profile = nativeMediaProfile(config, model);
+    return profile ? imageRoutes(profile, 0).maxImages : undefined;
+}
+
+export function imageReferenceError(config: AiConfig, model: string, count: number) {
+    const profile = nativeMediaProfile(config, model);
+    if (!profile) return "";
+    const { requestVariant, maxImages } = imageRoutes(profile, count);
+    return requestVariant ? "" : count > maxImages ? `当前图片模型最多支持 ${maxImages} 张参考图` : "当前图片模型不支持这一参考图数量";
+}
+
+export function imageRequestConfig(config: AiConfig, count: number) {
+    if (platformModelDetailPending(config)) throw new Error("模型参数尚未加载，请在模型选择器中加载后生成");
+    if (!nativeMediaProfile(config)) return config;
+    if (config.nativeVariantId && !nativeMediaVariant(config)) throw new Error("所选模型参数版本已失效，请刷新模型目录");
+    const issue = imageReferenceError(config, config.model, count);
+    if (issue) throw new Error(issue);
+    return { ...config, ...nativeCreationSettings(config, config.model, config, count).settings };
 }
 
 export function nativeVideoComposerVariants(variants: NativeMediaVariant[], base: NativeMediaVariant, preferredId?: string) {
@@ -125,25 +171,25 @@ export function nativeVideoComposerVariants(variants: NativeMediaVariant[], base
     };
 }
 
-export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId"> & { nativeModeVariantId?: string }, hasReferences: boolean) {
+export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId"> & { nativeModeVariantId?: string }, referenceCount: number | boolean) {
     const profile = nativeMediaProfile(config, model);
     const savedVariant = profile?.variants.find((v) => v.id === saved.nativeVariantId);
     const fallback = profile?.variants.find((v) => v.id === profile.defaultId) ?? profile?.variants[0];
     const base = nativeMediaDefaults(config, model, savedVariant || (!saved.nativeVariantId && fallback?.id === profile?.defaultId) ? saved : { nativeVariantId: fallback?.id });
     const variant = nativeMediaVariant(config, model, base.nativeVariantId);
     const preferred = profile?.variants.find((v) => v.id === saved.nativeModeVariantId) ?? variant;
-    let referenceVariant = nativeImageReferenceVariant(config, model, preferred);
-    let requestVariant = hasReferences ? referenceVariant : variant;
-    if (!hasReferences && preferred?.gateway_protocol === "openai.image.edit") {
-        const generators = profile?.variants.filter((v) => v.gateway_protocol === "openai.image.generate" && !v.native_request_variant.native_reference_inputs?.some((ref) => ref.max_items !== 0));
-        if (generators?.length === 1) requestVariant = generators[0];
-    }
+    let referenceVariant = variant;
+    let requestVariant = variant;
     const isVideo = variant?.gateway_protocol.endsWith(".video");
     if (variant && isVideo) {
         const video = nativeVideoComposerVariants(profile?.variants ?? [], preferred ?? variant, saved.nativeModeVariantId ?? savedVariant?.id);
         referenceVariant = video.reference;
         const text = video.text;
-        requestVariant = (hasReferences ? referenceVariant : text) ?? referenceVariant ?? variant;
+        requestVariant = (referenceCount ? referenceVariant : text) ?? referenceVariant ?? variant;
+    } else if (profile) {
+        const routes = imageRoutes(profile, Number(referenceCount));
+        referenceVariant = routes.referenceVariant;
+        requestVariant = routes.requestVariant ?? referenceVariant ?? variant;
     }
     if (!requestVariant || !variant || requestVariant.id === variant.id) return { settings: base, referenceVariant };
     const values = nativeParameterValues(requestVariant);

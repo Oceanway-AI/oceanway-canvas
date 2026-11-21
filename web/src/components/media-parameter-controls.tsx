@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Popover } from "antd";
 import "./media-parameter-controls.css";
-import { Check, Clapperboard, Clock3, Image as ImageIcon, Layers, Monitor, Palette, SlidersHorizontal, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { Check, Clapperboard, Clock3, Layers, Monitor, Palette, SlidersHorizontal, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { ImageSizeDock } from "@/components/image-size-dock";
 import { nativeImageSizePointers, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
 import { imageQualityLabel } from "@/lib/image-quality";
@@ -57,7 +57,7 @@ export function MediaParameterControls({
     const variant = variants.find((v) => v.id === config.nativeVariantId);
     const modeVariant = variants.find((v) => v.id === modeVariantId) ?? variant;
     const image = mode === "image";
-    const modes = nativeCreationModeOptions(variants, modeVariant, true);
+    const modes = image ? [] : nativeCreationModeOptions(variants, modeVariant, true);
     const modeLabel = modes.find((mode) => mode.value === modeVariant?.id)?.label ?? "选择模式";
     function menu(group: Group, label: string, icon: ReactNode, content: ReactNode) {
         return (
@@ -83,11 +83,10 @@ export function MediaParameterControls({
     }
     const modeMenu =
         modes.length > 0 &&
-        (!image || modes.length > 1) &&
         menu(
             "生成模式",
             modeLabel,
-            image ? <ImageIcon /> : <Clapperboard />,
+            <Clapperboard />,
             <>
                 <strong>生成模式</strong>
                 {modes.map((option) => (
@@ -111,7 +110,7 @@ export function MediaParameterControls({
         return (
             <>
                 {modeMenu}
-                <span role="status">请选择有效的生成模式</span>
+                <span role="status">{image ? "请重新选择图片模型" : "请选择有效的生成模式"}</span>
             </>
         );
     let values: Record<string, unknown>;

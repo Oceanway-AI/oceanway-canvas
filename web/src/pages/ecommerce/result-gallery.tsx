@@ -10,7 +10,7 @@ import type { GenerationTask } from "@/services/api/task-center";
 import type { EcommerceDraft, EcommercePlan, EcommercePlanImage } from "@/services/api/ecommerce";
 import type { AiConfig } from "@/stores/use-config-store";
 import { imageSizeLabel, imageTypes, labelOf } from "./catalog";
-import { commerceImageReferences } from "./workflow";
+import { commerceImageReferenceLimit, commerceImageReferences } from "./workflow";
 import type { EcommerceExportItem } from "./export";
 import { writeCommerceImageTransfer } from "./image-transfer";
 import { commerceCanvasAspect } from "./canvas-layout";
@@ -83,8 +83,8 @@ export function SingleImageEditor({
                     config={config}
                     capability="image"
                     value={edited.imageModel}
-                    modelFilter={(value) => imageModels.includes(value) && (modelCapabilityConfigFor(config, value).image?.references.maxImages || 0) >= refs.length}
-                    requirements={{ input: { textCount: 1, imageCount: refs.length, referenceImageCount: refs.length, videoCount: 0, audioCount: 0, characterCount: 0 } }}
+                    modelFilter={(value) => imageModels.includes(value) && (commerceImageReferenceLimit(config, value) ?? Infinity) >= refs.length}
+                    requirements={{ capability: "image", input: { textCount: 1, imageCount: refs.length, referenceImageCount: refs.length, videoCount: 0, audioCount: 0, characterCount: 0 } }}
                     fullWidth
                     showOptionPrices
                     onChange={(value) => {

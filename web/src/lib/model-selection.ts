@@ -2,7 +2,7 @@ import { defaultImageCapabilityConfig, modelCapabilityConfigFor, normalizeImageV
 import { videoResolutionComparisonKey } from "@/lib/video-generation-options";
 import { imageParameterRequest, imageParameterDefaults, imageParameterAccepts } from "./image-parameters";
 import { imageSizePresets } from "@/lib/image-size-presets";
-import { nativeVideoComposerVariants, nativeImageReferenceVariant, nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, platformModelDetailPending } from "@/lib/platform-native-media";
+import { nativeVideoComposerVariants, imageReferenceError, publishedImageReferenceLimit, nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, platformModelDetailPending } from "@/lib/platform-native-media";
 import { modelOptionName, PUBLIC_MODEL_CATALOG_ID, resolveModelChannel, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
 
 export type ModelInputSummary = {
@@ -22,7 +22,6 @@ export type ModelRequirements = {
     videoOperation?: string;
     videoSeconds?: string;
     imageSize?: string;
-    useImageEditForReferences?: boolean;
     useVideoReferenceMode?: boolean;
     options?: Record<string, unknown>;
 };
@@ -150,14 +149,16 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
         const variant =
             requirements.useVideoReferenceMode && capability === "video" && current && hasVideoInputs
                 ? (nativeVideoComposerVariants(nativeProfile.variants, current, model === config.model ? config.nativeVariantId : undefined).reference ?? current)
-                : requirements.useImageEditForReferences && visualInputCount > 0
-                  ? nativeImageReferenceVariant(config, model, current)
-                  : current;
+                : current;
         if (!variant) return "模型参数版本已失效，请重新选择";
         if (logicalCost?.platform?.model_type !== capability) return "模型与创作类型不匹配";
         // Native schema admission owns parameter combinations. Legacy size and
         // duration preferences must not hide a valid native model in the picker.
         if (!input) return "";
+        if (capability === "image") {
+            if (input.videoCount || input.audioCount) return "图片模型仅支持参考图片";
+            return imageReferenceError(config, model, visualInputCount);
+        }
         for (const [kind, count] of [
             ["image", visualInputCount],
             ["video", input.videoCount],
@@ -481,7 +482,12 @@ export function resolveModelVideoBooleanOptions(config: AiConfig, model: string,
 export function maxModelInputCapacity(config: AiConfig, capability: "image" | "video", kind: "image" | "video" | "audio") {
     const options = selectableModelsByCapability(config, capability);
     if (!options.length) return null;
+    if (capability === "image" && kind === "image" && options.some((model) => platformModelDetailPending(config, model) && publishedImageReferenceLimit(config, model) === undefined)) return null;
     return options.reduce((maximum, model) => {
+        if (capability === "image" && kind === "image") {
+            const limit = publishedImageReferenceLimit(config, model);
+            if (limit !== undefined) return Math.max(maximum, limit);
+        }
         const native = nativeMediaProfile(config, model);
         if (native) {
             const key = kind === "image" ? "maxImages" : kind === "video" ? "maxVideos" : "maxAudios";
@@ -496,6 +502,11 @@ export function maxModelInputCapacity(config: AiConfig, capability: "image" | "v
 
 export function modelGroupReferenceLimits(config: AiConfig, selected: string, capability: ModelCapability, requirements?: ModelRequirements): ModelReferenceLimits | undefined {
     if (capability !== "image" && capability !== "video") return undefined;
+    if (capability === "image") {
+        const maxImages = publishedImageReferenceLimit(config, selected);
+        if (maxImages !== undefined) return { maxImages, maxVideos: 0, maxAudios: 0 };
+        if (platformModelDetailPending(config, selected)) return undefined;
+    }
     if (nativeMediaProfile(config, selected)) return nativeMediaReferenceLimits(config, selected);
     const options = selectableModelsByCapability(config, capability);
     const selectedGroup = groupModelsByDisplayName(config, options).find((group) => group.models.includes(selected));

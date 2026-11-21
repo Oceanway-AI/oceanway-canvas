@@ -15,7 +15,6 @@ export function PlatformNativeMediaSettings({ config, onChange }: { config: AiCo
     const profile = nativeMediaProfile(config);
     const variant = nativeMediaVariant(config);
     const controls = variant?.workbench_parameters;
-    const automaticImageMode = controls && profile?.variants.every((v) => ["openai.image.generate", "openai.image.edit"].includes(v.gateway_protocol));
     let values: Record<string, unknown> = {};
     let error = "";
     let sizePointers: string[] = [];
@@ -36,7 +35,7 @@ export function PlatformNativeMediaSettings({ config, onChange }: { config: AiCo
     };
     return (
         <div className="min-w-0 space-y-3" data-canvas-no-zoom data-canvas-wheel-scroll onMouseDown={(e) => e.stopPropagation()}>
-            {profile && profile.variants.length > 1 && !automaticImageMode ? (
+            {profile && profile.variants.length > 1 && profile.variants.some((v) => v.gateway_protocol.endsWith(".video")) ? (
                 <Select
                     className="w-full"
                     ariaLabel={controls ? "生成模式" : "请求协议"}

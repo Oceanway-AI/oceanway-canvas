@@ -2,7 +2,7 @@ import type { ThinkingRequest } from "@/lib/text-thinking";
 import { createClientUUID } from "@/lib/client-id";
 import { backendProviderConfig, omittedImageQuality } from "./generation-provider-config";
 import { imageParameterRequest } from "@/lib/image-parameters";
-import { nativeMediaVariant, studioMediaGenerationVariant } from "@/lib/platform-native-media";
+import { imageRequestConfig, nativeMediaVariant, studioMediaGenerationVariant } from "@/lib/platform-native-media";
 import { assignFrameSlots, publishedFrameRoles } from "@/lib/media-reference-slots";
 import { getMediaBlob } from "@/services/file-storage";
 import { getImageBlob } from "@/services/image-storage";
@@ -102,6 +102,7 @@ export async function runBackendGenerationTask(
     dependencies: GenerationTaskDependencies = defaultDependencies,
 ) {
     throwIfAborted(signal);
+    config = generationRequestConfig(config, mode, referenceImages.length);
     assertClientPromptLimit(mode, prompt, config, metadata);
     assertBackendRuntimeConfigured(config, mode);
     const prepared = await prepareGenerationReferences({ config, mode, referenceImages, referenceVideos, referenceAudios, mask });
@@ -117,6 +118,7 @@ export async function runBackendGenerationTask(
 // 后端自动回填负责，不能让页面 mutation 一直等待供应商完成。
 export async function submitBackendGenerationTask(options: BackendGenerationTaskOptions, dependencies: GenerationTaskDependencies = defaultDependencies): Promise<GenerationTask> {
     throwIfAborted(options.signal);
+    options = withGenerationRequestConfig(options);
     assertClientPromptLimit(options.mode, options.prompt, options.config, options.metadata);
     assertBackendRuntimeConfigured(options.config, options.mode);
     const prepared = await prepareGenerationReferences(options);
@@ -189,6 +191,7 @@ export async function runBackendToolGenerationTask(options: BackendToolGeneratio
 }
 
 export async function runBackendGenerationTaskBatch(options: BackendGenerationTaskOptions & { count: number }, dependencies: GenerationTaskDependencies = defaultDependencies) {
+    options = withGenerationRequestConfig(options);
     const count = studioMediaGenerationVariant(options.config) ? 1 : Math.max(1, Math.min(15, Math.floor(Number(options.count)) || 1));
     throwIfAborted(options.signal);
     assertClientPromptLimit(options.mode, options.prompt, options.config, options.metadata);
@@ -286,11 +289,20 @@ async function createBackendGenerationTask(options: BackendGenerationTaskOptions
 
 export async function prepareBackendGenerationTask(options: BackendGenerationTaskOptions): Promise<CreateTaskInput> {
     throwIfAborted(options.signal);
+    options = withGenerationRequestConfig(options);
     assertClientPromptLimit(options.mode, options.prompt, options.config, options.metadata);
     assertBackendRuntimeConfigured(options.config, options.mode);
     const prepared = await prepareGenerationReferences(options);
     throwIfAborted(options.signal);
     return backendGenerationTaskInput(options, prepared);
+}
+
+function generationRequestConfig(config: AiConfig, mode: BackendGenerationMode, images: number) {
+    return mode === "image" && !resolveGenerationWorkflowExecution(config, mode) ? imageRequestConfig(config, images) : config;
+}
+
+function withGenerationRequestConfig<T extends BackendGenerationTaskOptions>(options: T): T {
+    return { ...options, config: generationRequestConfig(options.config, options.mode, options.referenceImages?.length ?? 0) };
 }
 
 function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepared: PreparedGenerationReferences): CreateTaskInput {

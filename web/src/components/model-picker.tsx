@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSP
 import { Check, ChevronDown } from "lucide-react";
 import { Popover } from "antd";
 import { seedanceDisplayPrice, videoPriceSettings } from "@oceanway/model-picker/video-unit-price";
-import { nativeMediaVariant, nativeParameterValues } from "@/lib/platform-native-media";
+import { nativeMediaVariant, nativeParameterValues, publishedImageReferenceLimit } from "@/lib/platform-native-media";
 import { ModelPickerPanel } from "@oceanway/model-picker";
 import { usePopoverAnchorAlign } from "@/hooks/use-popover-anchor-align";
 
@@ -468,7 +468,12 @@ export function ModelLabel({
     const platformStatus = platform && <PlatformHealthIndicator health={presentation?.health} available={Boolean(logicalCost?.available) && presentation?.availability.state !== "unavailable"} compact />;
     if (platform) {
         const title = platform.content?.display_name?.trim() || modelChannelLabel(config, model);
-        const tags = presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
+        const publishedTags = presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
+        const imageLimit = publishedImageReferenceLimit(config, model);
+        const tags =
+            platform.model_type === "image"
+                ? [...(imageLimit === undefined ? [] : [Number.isFinite(imageLimit) ? `参考图 ${imageLimit} 张` : "支持参考图"]), ...publishedTags.filter((tag) => !/^(?:参考图(?:片)?\s*[×x:：]?\s*\d+\s*张?|\d+\s*张?\s*参考图(?:片)?)$/.test(tag))]
+                : publishedTags;
         let parameters = {};
         const currentVariant = nativeMediaVariant(config);
         if (currentVariant) {

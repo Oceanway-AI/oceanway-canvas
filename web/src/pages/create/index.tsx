@@ -237,7 +237,6 @@ export default function CreatePage() {
     const modelRequirements = useMemo<ModelRequirements>(
         () => ({
             capability: mode,
-            useImageEditForReferences: mode === "image",
             useVideoReferenceMode: mode === "video",
             input: {
                 textCount: hasPrompt ? 1 : 0,
@@ -264,20 +263,20 @@ export default function CreatePage() {
         }),
         [attachments, config, preferredImageProfile, count, hasPrompt, imageResolution, imageParameters, mode, quality, ratio, seconds, videoQuality],
     );
-    const selectedVideoProfile = mode === "video" ? nativeMediaProfile(config, preferredModel) : undefined;
-    const candidateModel = selectedVideoProfile ? preferredModel : resolveCompatibleModel(config, preferredModel, modelRequirements) || preferredModel;
+    const preferredNativeProfile = mode === "image" || mode === "video" ? nativeMediaProfile(config, preferredModel) : undefined;
+    const candidateModel = preferredNativeProfile ? preferredModel : resolveCompatibleModel(config, preferredModel, modelRequirements) || preferredModel;
     const selectedModel = availableModels.includes(candidateModel) ? candidateModel : "";
     const detailPending = platformModelDetailPending(config, selectedModel);
     const imageProfile = useMemo(() => (selectedModel && !detailPending ? modelCapabilityConfigFor(config, selectedModel).image : undefined), [config, selectedModel, detailPending]);
     const videoProfile = useMemo(() => (selectedModel && !detailPending ? modelCapabilityConfigFor(config, selectedModel).video : undefined), [config, selectedModel, detailPending]);
-    const nativeProfile = selectedVideoProfile ?? nativeMediaProfile(config, selectedModel);
+    const nativeProfile = preferredNativeProfile ?? nativeMediaProfile(config, selectedModel);
     const nativeSaved = mode === "video" ? savedNativePreferences.video : savedNativePreferences.image;
     const nativeCreation = nativeProfile
         ? nativeCreationSettings(
               config,
               selectedModel,
               nativeSaved?.model === selectedModel ? nativeSaved : {},
-              Boolean(modelRequirements.input?.imageCount || (mode === "video" && (modelRequirements.input?.videoCount || modelRequirements.input?.audioCount))),
+              (modelRequirements.input?.imageCount ?? 0) + (modelRequirements.input?.characterCount ?? 0) + (mode === "video" ? (modelRequirements.input?.videoCount ?? 0) + (modelRequirements.input?.audioCount ?? 0) : 0),
           )
         : undefined;
     const nativeSettings: { nativeParameters?: string; nativeVariantId?: string } = nativeCreation?.settings || {};

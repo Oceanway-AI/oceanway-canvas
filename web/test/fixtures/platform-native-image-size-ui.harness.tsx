@@ -64,7 +64,7 @@ const image: NativeMediaVariant = {
         output_size: { allow_custom: true, allow_auto: true, multiple_of: 16, min_width: 16, max_width: 3840, min_height: 16, max_height: 3840, min_pixels: 655360, max_pixels: 4194304, min_aspect_ratio: 1 / 3, max_aspect_ratio: 3 },
     },
 };
-function configFor(variant: NativeMediaVariant, capability: "image" | "video" = "image"): AiConfig {
+function configFor(variant: NativeMediaVariant, capability: "image" | "video" = "image", variants = [variant]): AiConfig {
     const model = {
         id: "fixture",
         modelKey: "fixture",
@@ -72,7 +72,7 @@ function configFor(variant: NativeMediaVariant, capability: "image" | "video" = 
         capability,
         available: true,
 
-        platform: { model_type: capability, media_generation_profile: { gateway_protocol: variant.gateway_protocol, native_request_variant: variant.native_request_variant, default_variant: variant.id, variants: [variant] } },
+        platform: { model_type: capability, media_generation_profile: { gateway_protocol: variant.gateway_protocol, native_request_variant: variant.native_request_variant, default_variant: variant.id, variants } },
     } as unknown as PublicChannelModel;
     const channels = systemChannelModelChannels([{ id: "oceanway-platform", name: "OceanWay", displayName: "OceanWay", models: [model] }]);
     return { ...defaultConfig, channels, model: "oceanway-platform::fixture", imageModel: "oceanway-platform::fixture", nativeVariantId: variant.id, nativeParameters: "{}" };
@@ -136,7 +136,8 @@ afterAll(() => {
 });
 
 test("real image settings select exact tuples, reject unaligned custom sizes, and reset the local custom mode", async () => {
-    await renderConfig(configFor(image));
+    await renderConfig(configFor(image, "image", [image, { ...image, id: "edit", gateway_protocol: "openai.image.edit" }]));
+    expect(host.querySelector('[aria-label="生成模式"], [aria-label="请求协议"]')).toBeNull();
     expect(host.querySelector('[aria-label="/size"]')).toBeNull();
     await select("分辨率", "2K 级");
     expect(JSON.parse(current.nativeParameters!)["/size"]).toBe("2048x2048");

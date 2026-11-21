@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { studioMediaGenerationVariant } from "@/lib/platform-native-media";
+import { imageRequestConfig, studioMediaGenerationVariant } from "@/lib/platform-native-media";
 import { resourceIdFromStorageKey, resourceStorageKey } from "@/services/api/resources";
 import { backendProviderConfig } from "@/services/api/generation-provider-config";
 import type { CreateTaskInput } from "@/services/api/task-center";
@@ -14,9 +14,8 @@ type PriceDisplay = { key: string; label: string };
 
 export function studioMediaPriceRequest(config: AiConfig, mode: string, prompt: string, references: EstimateReference[], owner: string, projectId?: string): CreateTaskInput | null {
     if (!owner || !prompt.trim() || (mode !== "image" && mode !== "video")) return null;
-    const variantId = studioMediaGenerationVariant(config);
     const selected = resolveModelChannel(config, config.model).modelDetails?.find((item) => item.model === modelOptionName(config.model))?.platform;
-    if (!variantId || !selected?.price.version) return null;
+    if (!selected?.price.version) return null;
     const refs = { image: [] as EstimateReference[], video: [] as EstimateReference[], audio: [] as EstimateReference[] };
     for (const ref of references) {
         const kind = ref.kind === "character" ? "image" : ref.kind;
@@ -29,6 +28,9 @@ export function studioMediaPriceRequest(config: AiConfig, mode: string, prompt: 
         refs.image.sort((a, b) => Number(a.role === "last_frame") - Number(b.role === "last_frame"));
     }
     try {
+        if (mode === "image") config = imageRequestConfig(config, refs.image.length);
+        const variantId = studioMediaGenerationVariant(config);
+        if (!variantId) return null;
         const parameters = backendProviderConfig(config, mode);
         if (!("channelId" in parameters) || parameters.channelId !== "oceanway-platform") return null;
         const pins = (entries: EstimateReference[]) => entries.map(({ storageKey, role }) => ({ storageKey, role }));
@@ -37,7 +39,13 @@ export function studioMediaPriceRequest(config: AiConfig, mode: string, prompt: 
             type: "canvas_" + mode,
             model: config.model,
             prompt,
-            platform: { mediaGenerationV1: true, expectedUserId: owner, variantId, expectedPriceVersion: selected.price.version },
+            platform: {
+                mediaGenerationV1: true,
+                expectedUserId: owner,
+                variantId,
+                expectedPriceVersion: selected.price.version,
+                ...(selected.capability_revision ? { expectedCapabilityRevision: selected.capability_revision, expectedConnectionRevision: selected.connection_revision } : {}),
+            },
             input: { mode, config: parameters, referenceImages: pins(refs.image), referenceVideos: pins(refs.video), referenceAudios: pins(refs.audio) },
         };
     } catch {

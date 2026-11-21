@@ -56,8 +56,53 @@ func studioCatalogPublicModel(item platformclient.Model, wire json.RawMessage) P
 		m.TextWire = studioTextWire(selected.TextProtocol)
 		m.DefaultOptions = selected.Defaults
 		m.CapabilityConfig = studioCapabilityProjection(selected)
+		if selected.Kind == "image" && selected.NativeRequest != nil {
+			refs := m.CapabilityConfig["image"].(map[string]any)["references"].(map[string]any)
+			if limit, bounded := studioImageReferenceLimit(item); bounded {
+				refs["maxImages"] = limit
+			} else {
+				delete(refs, "maxImages")
+			}
+		}
 	}
 	return m
+}
+
+// Project ordinary image capacity for discovery. Admission uses one original variant.
+func studioImageReferenceLimit(item platformclient.Model) (int64, bool) {
+	var profile platformintegration.MediaProfile
+	if err := json.Unmarshal(item.MediaGenerationProfile, &profile); err != nil {
+		return 0, false
+	}
+	var maximum int64
+	for _, variant := range profile.Variants {
+		selected, err := platformintegration.SelectModelFromProfile(item, variant.ID, profile)
+		if err != nil || selected.NativeRequest == nil {
+			continue
+		}
+		var count int64
+		available, bounded := true, true
+		for _, slot := range selected.NativeRequest.References {
+			if slot.Role != "reference_image" {
+				if slot.MinItems != nil && *slot.MinItems > 0 {
+					available = false
+				}
+				continue
+			}
+			if slot.MaxItems == nil {
+				bounded = false
+			} else {
+				count += *slot.MaxItems
+			}
+		}
+		if available {
+			if !bounded {
+				return 0, false
+			}
+			maximum = max(maximum, count)
+		}
+	}
+	return maximum, true
 }
 
 // Forward the authorized public wire objects intact. Re-encoding a narrow SDK

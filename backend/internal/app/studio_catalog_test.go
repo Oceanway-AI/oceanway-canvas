@@ -90,6 +90,32 @@ func TestStudioCatalogProjectionKeepsTypedDefaultsAndMissingLimits(t *testing.T)
 	}
 }
 
+func TestStudioCatalogImageLimitIncludesPublishedEdit(t *testing.T) {
+	item := studioNativeFixtureModel(t, "openai.image.generate")
+	edit := studioNativeFixtureModel(t, "openai.image.edit")
+	var profile, editProfile platformintegration.MediaProfile
+	if err := json.Unmarshal(item.MediaGenerationProfile, &profile); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(edit.MediaGenerationProfile, &editProfile); err != nil {
+		t.Fatal(err)
+	}
+	alternative := editProfile.Variants[0]
+	alternative.ID = "edit"
+	limit := int64(16)
+	alternative.NativeRequest.References = []platformintegration.NativeReferenceSlot{{ID: "image", Role: "reference_image", MaxItems: &limit, Pointer: "/image", Transport: "image-reference-array"}}
+	profile.Variants = append(profile.Variants, alternative)
+	item.MediaGenerationProfile, _ = json.Marshal(profile)
+	projected := studioCatalogPublicModel(item, nil)
+	if !projected.Available || projected.CapabilityConfig["image"].(map[string]any)["references"].(map[string]any)["maxImages"] != int64(16) {
+		t.Fatalf("missing image edit capacity: %+v", projected.CapabilityConfig)
+	}
+	selected, err := platformintegration.SelectModel(item, "")
+	if err != nil || len(selected.NativeRequest.References) != 0 {
+		t.Fatalf("default execution contract changed: %v", err)
+	}
+}
+
 func TestStudioDoubaoCatalogProjectsNativeRatioAndFourSecond720p(t *testing.T) {
 	selected := platformintegration.ModelSelection{Kind: "video", MediaRoute: platformclient.DoubaoVideoGeneration, NativeEndpoint: platformintegration.NativeEndpoint{
 		Schema:   json.RawMessage(`{"properties":{"ratio":{"type":"string","enum":["16:9","1:1","adaptive"]},"resolution":{"type":"string","enum":["480p","720p"]},"duration":{"type":"integer","enum":[-1,4,5,6,7,8,9,10,11,12,13,14,15]}}}`),

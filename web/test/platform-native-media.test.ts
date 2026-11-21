@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
 import { defaultConfig } from "@/stores/use-config-store";
 import { systemChannelModelChannels } from "@/lib/user-session";
-import { nativeCreationModeOptions, nativeCreationSettings, nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues } from "@/lib/platform-native-media";
+import { nativeCreationModeOptions, nativeCreationSettings, nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues, publishedImageReferenceLimit } from "@/lib/platform-native-media";
 import { maxModelInputCapacity, modelCompatibilityError, resolveModelGenerationDefaults } from "@/lib/model-selection";
 import { studioMediaPriceRequest } from "@/services/studio-media-price";
 import { backendProviderConfig, prepareBackendGenerationTask, runBackendGenerationTaskBatch } from "@/services/api/generation-task";
 import { buildNodeConfig } from "@/components/canvas/canvas-node-prompt-config";
-import { buildGenerationConfig } from "@/lib/canvas/canvas-project-generation";
+import { buildGenerationConfig, canvasImageReferenceLimitError } from "@/lib/canvas/canvas-project-generation";
 import { specFromConfig, generationSpecMetadata, synchronizeGenerationSpec } from "@/lib/canvas/generation-contract";
 import { normalizeCreationComposerPreferences } from "@/stores/use-creation-preferences-store";
 import { agentMediaSettings, agentApprovalMatchesSettings } from "@/lib/canvas/agent-media-approval";
@@ -204,10 +204,11 @@ test("creation history preferences and Agent approval retain native values", () 
     expect(agentApprovalMatchesSettings(agent, { ...agent, nativeParameters: "{}" })).toBe(false);
 });
 
-test("creation selects a published edit only for attached images and retains compatible settings", () => {
+test("TC-STUDIO-IMG-REF-001: image picker, canvas, estimate and admission follow attachments", async () => {
     const generate = {
         ...variant,
         id: "generate",
+        media_generation_v1: true,
         gateway_protocol: "openai.image.generate",
         defaults: { "/size": "auto", "/quality": "low" },
         specifications_schema: { properties: { "/size": { type: "string" }, "/quality": { enum: ["low", "high"] } } },
@@ -235,16 +236,42 @@ test("creation selects a published edit only for attached images and retains com
     expect(attached.settings.nativeVariantId).toBe("edit");
     expect(JSON.parse(attached.settings.nativeParameters)).toEqual({ "/size": "1024x1024", "/quality": "medium" });
     const input = { textCount: 1, imageCount: 1, videoCount: 0, audioCount: 0, characterCount: 0 };
-    expect(modelCompatibilityError(cfg, selected, { capability: "image", input, useImageEditForReferences: true })).toBe("");
-    expect(modelCompatibilityError(cfg, selected, { capability: "image", input })).toContain("0");
-    expect(modelCompatibilityError(cfg, selected, { capability: "image", input: { ...input, imageCount: 17 }, useImageEditForReferences: true })).toContain("16");
+    expect(modelCompatibilityError(cfg, selected, { capability: "image", input })).toBe("");
+    expect(modelCompatibilityError(cfg, selected, { capability: "image", input: { ...input, imageCount: 17 } })).toContain("16");
     expect(nativeCreationSettings(cfg, selected, { nativeVariantId: "retired" }, true).settings.nativeVariantId).toBe("edit");
     const cleared = nativeCreationSettings(cfg, selected, { nativeVariantId: "edit" }, false);
     expect(nativeCreationModeOptions([generate, edit], edit, true)).toEqual([{ label: "图片参考", value: "edit" }]);
     expect(cleared.referenceVariant?.id).toBe("edit");
     expect(cleared.settings.nativeVariantId).toBe("generate");
-    image.platform!.media_generation_profile!.variants = [generate, edit, { ...edit, id: "another" }];
-    expect(nativeCreationSettings(cfg, selected, saved, true).settings.nativeVariantId).toBe("generate");
+    const images = Array.from({ length: 17 }, (_, i) => ({ id: String(i), name: "pin", type: "image/png", dataUrl: "", storageKey: "resource:pin" + i }));
+    let draft = { ...cfg, ...saved };
+    for (const count of [0, 1, 16, 0]) {
+        const referenceImages = images.slice(0, count);
+        expect(canvasImageReferenceLimitError(draft, referenceImages)).toBe("");
+        const task = await prepareBackendGenerationTask({ mode: "image", config: draft, prompt: "draw", referenceImages });
+        const quote = studioMediaPriceRequest(
+            draft,
+            "image",
+            "draw",
+            referenceImages.map((pin) => ({ ...pin, kind: "image" })),
+            "owner",
+        );
+        expect(task.platform?.variantId).toBe(count ? "edit" : "generate");
+        expect(quote?.platform?.variantId).toBe(task.platform!.variantId);
+        expect(quote?.input?.config).toEqual(task.input?.config);
+        draft = { ...draft, ...nativeCreationSettings(cfg, selected, draft, count > 0).settings };
+    }
+    expect(canvasImageReferenceLimitError(draft, images)).toContain("16");
+    await expect(prepareBackendGenerationTask({ mode: "image", config: draft, prompt: "draw", referenceImages: images })).rejects.toThrow("16");
+    expect(
+        studioMediaPriceRequest(
+            draft,
+            "image",
+            "draw",
+            images.map((pin) => ({ ...pin, kind: "image" })),
+            "owner",
+        ),
+    ).toBeNull();
 });
 
 test("Platform controls discard API-only and stale overrides while retaining explicit zero", () => {
@@ -252,6 +279,30 @@ test("Platform controls discard API-only and stale overrides while retaining exp
     const source = { ...variant, workbench_parameters: ["/seed"], defaults: { "/seed": 3, "/n": 1 } };
     expect(nativeParameterValues(source, '{"/seed":0,"/n":8}')).toEqual({ "/seed": 0 });
     expect(nativeParameterValues({ ...source, workbench_parameters: [] }, '{"/n":8}')).toEqual({});
+});
+
+test("TC-STUDIO-IMG-REF-002: optional single endpoint, text-only supply and incomplete summaries", async () => {
+    const referenceImages = Array.from({ length: 14 }, (_, i) => ({ id: String(i), name: "pin", type: "image/png", dataUrl: "", storageKey: "resource:p" + i }));
+    const slot = { id: "images", pointer: "/contents", transport: "content-array", role: "reference_image", min_items: 0, max_items: 14 };
+    const route = { ...variant, id: "gemini", gateway_protocol: "gemini.image", native_request_variant: { ...variant.native_request_variant, native_reference_inputs: [slot] } };
+    const image = { ...model, capability: "image", platform: { ...model.platform!, model_type: "image", media_generation_profile: { gateway_protocol: route.gateway_protocol, default_variant: route.id, variants: [route] } } };
+    const active = (item: PublicChannelModel) => ({ ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OW", displayName: "OW", models: [item] }]) });
+    const cfg = active(image);
+    expect(publishedImageReferenceLimit(cfg)).toBe(14);
+    for (const refs of [[], referenceImages]) {
+        const task = await prepareBackendGenerationTask({ mode: "image", prompt: "draw", config: cfg, referenceImages: refs });
+        expect(task.input?.config).toMatchObject({ nativeVariantId: "gemini" });
+    }
+    const textOnly = { ...route, id: "generate", gateway_protocol: "openai.image.generate", native_request_variant: { ...route.native_request_variant, native_reference_inputs: [] } };
+    const bare = active({ ...image, platform: { ...image.platform, media_generation_profile: { gateway_protocol: textOnly.gateway_protocol, default_variant: textOnly.id, variants: [textOnly] } } });
+    expect(publishedImageReferenceLimit(bare)).toBe(0);
+    await expect(prepareBackendGenerationTask({ mode: "image", prompt: "draw", config: bare, referenceImages: referenceImages.slice(0, 1) })).rejects.toThrow("0 张");
+    const summary = { ...image.platform, state: "summary" as const, variants_complete: true, variants: [{ id: "edit", references_complete: true, references: [{ ...slot, mime_types: [] }] }], media_generation_profile: undefined };
+    expect(publishedImageReferenceLimit(active({ ...image, platform: summary }))).toBe(14);
+    const pending = active({ ...image, platform: { ...summary, variants: [{ ...summary.variants[0], references_complete: false }] } });
+    expect(publishedImageReferenceLimit(pending)).toBeUndefined();
+    expect(maxModelInputCapacity(pending, "image", "image")).toBeNull();
+    await expect(prepareBackendGenerationTask({ mode: "image", prompt: "draw", config: pending })).rejects.toThrow("尚未加载");
 });
 
 test("one published v1 image command owns all selected outputs even without native editor details", async () => {

@@ -732,7 +732,10 @@ export function CanvasNodePromptPanel({
                                     if (items.filter((i) => i.kind === kind).length + activeReferences.filter((r) => r.kind === kind || (kind === "image" && r.kind === "character")).length > max) throw new Error("所选素材超过当前模式的参考数量上限");
                                 }
                             }
-                            const settings = mode === "image" && referenceVariant?.id !== variant?.id ? nativeCreationSettings(config, config.model, config, true).settings : undefined;
+                            const settings =
+                                mode === "image" && native
+                                    ? nativeCreationSettings(config, config.model, config, activeReferences.filter((r) => r.kind === "image" || r.kind === "character").length + items.filter((item) => item.kind === "image").length).settings
+                                    : undefined;
                             await onInsertMedia(node.id, items, pickSlot === "reference" ? undefined : pickSlot, frameSlots.find((s) => s.role === pickSlot)?.attachment?.nodeId, settings);
                         }}
                     />
