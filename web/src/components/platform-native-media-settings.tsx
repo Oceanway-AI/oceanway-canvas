@@ -3,11 +3,11 @@ import { useState } from "react";
 import { ImageParameterInput } from "./image-parameter-fields";
 import { Select } from "@/components/ui/base/select";
 import type { ImageParameter } from "@/lib/image-parameters";
-import { creativeParameterLabel, nativeMediaProfile, nativeMediaVariant, nativeMediaVariantOptions, nativeCreationModeOptions, nativeParameterObject, nativeParameterValues, type NativeSchemaField } from "@/lib/platform-native-media";
+import { creativeParameterLabel, nativeMediaProfile, nativeMediaVariant, nativeMediaVariantOptions, nativeCreationModeOptions, nativeParameterObject, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
 import { nativeImageSizePointers } from "@/lib/platform-native-image-size";
 import { supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
-import { PlatformNativeImageSize } from "./platform-native-image-size";
+import { imageSizeDisplayValues, PlatformNativeImageSize } from "./platform-native-image-size";
 
 export type NativeMediaSettingKey = "nativeParameters" | "nativeVariantId";
 
@@ -24,10 +24,11 @@ export function PlatformNativeMediaSettings({ config, references, onChange }: { 
     try {
         if (variant) {
             explicit = nativeParameterObject(config.nativeParameters);
-            values = nativeParameterValues(variant, config.nativeParameters);
+            const selection = supplySelection(variant, explicit, references);
+            values = selection.values;
             const pointers = nativeImageSizePointers(variant);
             if (!controls || pointers.every((key) => controls.includes(key))) sizePointers = pointers;
-            if (!sizePointers.length) selectionIssue = supplySelection(variant, explicit, references).issue;
+            if (!sizePointers.length) selectionIssue = selection.issue;
         }
     } catch {
         error = "原生参数格式无效，请恢复模型默认值";
@@ -65,7 +66,7 @@ export function PlatformNativeMediaSettings({ config, references, onChange }: { 
                             key={`${config.model}:${variant.id}:${sizeResetRevision}`}
                             variant={variant}
                             explicit={explicit}
-                            values={{ ...variant.defaults, ...values }}
+                            values={imageSizeDisplayValues(variant, values, references)}
                             references={references}
                             onChange={(next) => onChange("nativeParameters", JSON.stringify(next))}
                         />

@@ -108,6 +108,8 @@ test("summary models remain discoverable but cannot submit without complete deta
     const summary = { ...model, platform: { ...model.platform!, state: "summary" as const, model_name: model.modelKey, media_generation_profile: undefined, variants_complete: false, variants: [] } };
     const active = { ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OceanWay", displayName: "OceanWay", models: [summary] }]) };
     expect(modelCompatibilityError(active, selected, { capability: "video" })).toBe("");
+    expect(maxModelInputCapacity(active, "video", "image")).toBeNull();
+    expect(maxModelInputCapacity(active, "video", "audio")).toBeNull();
     expect(resolveModelGenerationDefaults(active, selected, "video", { nativeParameters: '{"/duration":8}', nativeVariantId: "saved" })).toEqual({ nativeParameters: '{"/duration":8}', nativeVariantId: "saved" });
     await expect(prepareBackendGenerationTask({ mode: "video", config: active, prompt: "A scene" })).rejects.toThrow("模型参数尚未加载");
 });

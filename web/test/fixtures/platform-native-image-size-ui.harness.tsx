@@ -1,5 +1,6 @@
 import { afterAll, afterEach, expect, test } from "bun:test";
 import { Window } from "happy-dom";
+import { catalogVariants } from "./platform-partial-catalog";
 import type { NativeMediaVariant } from "@/lib/platform-native-media";
 import type { MaterialCounts } from "@/lib/platform-media-supply";
 import type { AiConfig } from "@/stores/use-config-store";
@@ -82,7 +83,7 @@ function configFor(variant: NativeMediaVariant, capability: "image" | "video" = 
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot> | undefined;
 let current: AiConfig;
-async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVariant; imageCount: number }, references?: MaterialCounts) {
+async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVariant; imageCount: number; mode?: "image" | "video" }, references?: MaterialCounts) {
     current = initial;
     function Form() {
         const [config, setConfig] = useState(initial);
@@ -92,7 +93,7 @@ async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVari
                 return current;
             });
         }
-        if (dock) return <MediaParameterControls mode="video" config={config} variants={[dock.variant]} references={{ reference_image: dock.imageCount }} onChange={change} />;
+        if (dock) return <MediaParameterControls mode={dock.mode ?? "video"} config={config} variants={[dock.variant]} references={{ reference_image: dock.imageCount }} onChange={change} />;
         return <PlatformNativeMediaSettings config={config} references={references} onChange={change} />;
     }
     host = document.createElement("div");
@@ -232,6 +233,25 @@ test("the narrow image panel lets a resolution change select a published pixel t
     expect(selectedText("宽高比")).toContain("16:9");
     expect(JSON.parse(current.nativeParameters!)).toEqual({ "/size": "2560x1440" });
     expect(backendProviderConfig(current, "image").nativeParameters).toEqual({ "/size": "2560x1440" });
+});
+
+test.each(["before/", ""])("both image controls show the same effective dimensions as an empty draft in the %spartial product detail", async (prefix) => {
+    const [variant] = catalogVariants(`${prefix}studio-detail-partial-1`);
+    const config = configFor(variant);
+    await renderConfig(config);
+    const width = host.querySelector<HTMLInputElement>('[aria-label="自定义宽度"]');
+    if (width) expect(width.value).toBe("1536");
+    else expect(host.textContent).toContain("1536 × 1024 px");
+    expect(host.textContent).not.toContain("1K");
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(backendProviderConfig(current, "image").nativeParameters).toEqual({ "/size": "1536x1024" });
+    await unmount();
+    await renderConfig(config, { variant, imageCount: 0, mode: "image" });
+    expect(host.querySelector('[aria-label^="尺寸与分辨率："]')?.textContent).toContain("1536");
+    await openDock("尺寸与分辨率");
+    expect(document.querySelector<HTMLInputElement>('input[aria-label="宽度"]')?.value).toBe("1536");
+    expect(document.querySelector(".studio-video-menu")?.textContent).not.toContain("1K");
+    expect(current.nativeParameters).toBe("{}");
 });
 
 test("the narrow image panel uses the current materials to explain pixel limits and the availability of auto", async () => {

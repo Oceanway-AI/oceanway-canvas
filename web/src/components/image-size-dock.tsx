@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link2, Unlink2 } from "lucide-react";
 import { Input } from "antd";
-import { applyNativeImagePreset, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
-import { nativeImageSizeGuidance } from "./platform-native-image-size";
+import { applyNativeImagePreset, resolutionLabel, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
+import { nativeImageSizeGuidance, publishedImageSizePresets } from "./platform-native-image-size";
 import type { MaterialCounts } from "@/lib/platform-media-supply";
 import type { NativeMediaVariant } from "@/lib/platform-native-media";
 
@@ -19,7 +19,8 @@ export function ImageSizeDock({
     references?: MaterialCounts;
     onChange: (next: Record<string, unknown>) => void;
 }) {
-    const { size_presets: presets = [], output_size: limits } = variant.native_request_variant;
+    const presets = publishedImageSizePresets(variant);
+    const limits = variant.native_request_variant.output_size;
     const preset = selectedNativeImagePreset(variant, values);
     const [custom, setCustom] = useState(false);
     const [lock, setLock] = useState<number>();
@@ -73,7 +74,7 @@ export function ImageSizeDock({
                 <div className="studio-video-choices">
                     {[...choices].map((v) => (
                         <button type="button" key={v} aria-pressed={v === selected} disabled={(v === "auto" && !guidance.limits.some((s) => s.allow_auto)) || (v === "custom" && !guidance.limits.some((s) => s.allow_custom))} onClick={() => pick(axis, v)}>
-                            {v === "auto" ? "自动" : v === "custom" ? "自定义" : v.toUpperCase()}
+                            {v === "auto" ? "自动" : v === "custom" ? "自定义" : ratio ? v : resolutionLabel(v)}
                         </button>
                     ))}
                 </div>

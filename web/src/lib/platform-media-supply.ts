@@ -51,15 +51,37 @@ function requiredParameter(variant: NativeMediaVariant, pointer: string, explici
     };
 }
 
+function sizeIssue(variant: NativeMediaVariant, values: Record<string, unknown>, limits?: NativeImageOutputSize) {
+    try {
+        return nativeImageSizeIssue({ ...variant, native_request_variant: { ...variant.native_request_variant, output_size: limits } }, values);
+    } catch {
+        return "模型尺寸规格无效，请刷新模型目录";
+    }
+}
+
 // The form owns only the published parameter pointers. Transport, resolved
 // resources and prompt are validated on the fully assembled body by the host.
 export function supplyParameters(variant: NativeMediaVariant, explicit: Record<string, unknown>, supply?: NativeSupply) {
     const values = { ...explicit };
+    const native = variant.native_request_variant;
+    const limits = supply?.output_size ?? native.output_size;
     for (const [pointer, field] of Object.entries(variant.specifications_schema.properties)) {
         if (Object.hasOwn(values, pointer)) continue;
         const { required, branch, common } = requiredParameter(variant, pointer, explicit, supply);
         if (!required) continue;
-        const value = [branch?.const, common?.const, field.const, branch?.default, common?.default, variant.defaults?.[pointer], field.default].find((v) => v !== undefined);
+        const candidates = [branch?.const, common?.const, field.const, branch?.default, common?.default, variant.defaults?.[pointer], field.default];
+        for (const source of [branch, common, field]) {
+            if (source?.enum?.length === 1) candidates.push(source.enum[0]);
+        }
+        if (pointer === "/size" && limits && !limits.allow_auto && limits.min_width > 0 && limits.min_width === limits.max_width && limits.min_height > 0 && limits.min_height === limits.max_height) {
+            candidates.push(`${limits.min_width}x${limits.min_height}`);
+        }
+        const value = candidates.find((candidate) => {
+            if (candidate === undefined) return false;
+            if (!validField(branch, candidate) || !validField(common, candidate) || !validField(field as Schema, candidate)) return false;
+            if (pointer !== "/size") return true;
+            return !sizeIssue(variant, { ...values, [pointer]: candidate }, limits);
+        });
         if (value !== undefined) values[pointer] = value;
     }
     return values;
@@ -94,23 +116,22 @@ export function materialsIssue(supply: NativeSupply, counts: MaterialCounts) {
 const validators = new WeakMap<object, Validator>();
 function validField(schema: Schema | undefined, value: unknown) {
     if (!schema) return true;
-    let validator = validators.get(schema);
-    if (!validator) {
-        validator = new Validator(structuredClone(schema), "2020-12");
-        validators.set(schema, validator);
+    try {
+        let validator = validators.get(schema);
+        if (!validator) {
+            validator = new Validator(structuredClone(schema), "2020-12");
+            validators.set(schema, validator);
+        }
+        return validator.validate(value).valid;
+    } catch {
+        return false;
     }
-    return validator.validate(value).valid;
 }
 
-export function supplyParameterIssue(variant: NativeMediaVariant, supply: NativeSupply, explicit: Record<string, unknown>) {
-    const values = supplyParameters(variant, explicit, supply);
+export function supplyParameterIssue(variant: NativeMediaVariant, supply: NativeSupply, explicit: Record<string, unknown>, values = supplyParameters(variant, explicit, supply)) {
     const native = variant.native_request_variant;
-    try {
-        const sizeIssue = nativeImageSizeIssue({ ...variant, native_request_variant: { ...native, output_size: supply.output_size ?? native.output_size } }, values);
-        if (sizeIssue) return sizeIssue;
-    } catch {
-        return "模型尺寸规格无效，请刷新模型目录";
-    }
+    const sizeError = sizeIssue(variant, values, supply.output_size ?? native.output_size);
+    if (sizeError) return sizeError;
     for (const pointer of Object.keys(variant.specifications_schema.properties)) {
         if (!Object.hasOwn(values, pointer) && requiredParameter(variant, pointer, explicit, supply).required) return `请选择必填参数 ${pointer}`;
     }
@@ -119,11 +140,7 @@ export function supplyParameterIssue(variant: NativeMediaVariant, supply: Native
         if (!field || (Object.hasOwn(explicit, pointer) && variant.workbench_parameters && !variant.workbench_parameters.includes(pointer))) return `当前组合未开放参数 ${pointer}`;
         const branch = schemaField(supply.request_schema, pointer, explicit);
         const common = schemaField(native.request_schema, pointer, explicit);
-        try {
-            if (branch.forbidden || common.forbidden || !validField(branch.schema, value) || !validField(common.schema, value) || !validField(field as Schema, value)) return `当前组合不支持 ${field.title || pointer} 的所选值`;
-        } catch {
-            return "模型参数规格无效，请刷新模型目录";
-        }
+        if (branch.forbidden || common.forbidden || !validField(branch.schema, value) || !validField(common.schema, value) || !validField(field as Schema, value)) return `当前组合不支持 ${field.title || pointer} 的所选值`;
     }
     return "";
 }
@@ -134,7 +151,8 @@ export function supplySelection(variant: NativeMediaVariant, explicit: Record<st
     const base = supplyParameters(variant, explicit);
     const candidates = new Map<string, { supply: NativeSupply; values: Record<string, unknown>; issue: string }>();
     for (const supply of suppliesFor(variant)) {
-        const issue = supplyParameterIssue(variant, supply, explicit);
+        const values = supplyParameters(variant, explicit, supply);
+        const issue = supplyParameterIssue(variant, supply, explicit, values);
         if (issue) {
             parameterIssue ||= issue;
             continue;
@@ -144,7 +162,6 @@ export function supplySelection(variant: NativeMediaVariant, explicit: Record<st
             materialIssue ||= conflict;
             continue;
         }
-        const values = supplyParameters(variant, explicit, supply);
         const result = { supply, values, issue: "" };
         const signature = JSON.stringify(values);
         if (signature === JSON.stringify(base)) return result;

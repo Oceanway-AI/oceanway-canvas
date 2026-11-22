@@ -3,20 +3,11 @@ import { Popover } from "antd";
 import "./media-parameter-controls.css";
 import { Check, Clapperboard, Clock3, Layers, Monitor, Proportions, SlidersHorizontal } from "lucide-react";
 import { ImageSizeDock } from "@/components/image-size-dock";
-import { nativeImageSizePointers, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
+import { imageSizeDisplayValues } from "@/components/platform-native-image-size";
+import { nativeImageSizePointers, resolutionLabel, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
 import { imageQualityLabel } from "@/lib/image-quality";
 import { NativeParameterInput, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
-import {
-    creativeParameterLabel,
-    imageExecutionChoices,
-    nativeCreationModeOptions,
-    nativeMediaVariantOptions,
-    nativeParameterChoices,
-    nativeParameterObject,
-    nativeParameterValues,
-    type NativeMediaVariant,
-    type NativeSchemaField,
-} from "@/lib/platform-native-media";
+import { creativeParameterLabel, imageExecutionChoices, nativeCreationModeOptions, nativeMediaVariantOptions, nativeParameterChoices, nativeParameterObject, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
 import { supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
 import type { AiConfig } from "@/stores/use-config-store";
 
@@ -134,8 +125,9 @@ export function MediaParameterControls({
     let sizePointers: string[] = [];
     try {
         explicit = nativeParameterObject(config.nativeParameters);
-        values = { ...variant.defaults, ...nativeParameterValues(variant, config.nativeParameters) };
+        values = supplySelection(variant, explicit, references).values;
         if (image) {
+            values = imageSizeDisplayValues(variant, values, references);
             const pointers = nativeImageSizePointers(variant);
             if (pointers.every((key) => !variant.workbench_parameters || variant.workbench_parameters.includes(key))) sizePointers = pointers;
         }
@@ -160,7 +152,7 @@ export function MediaParameterControls({
         if (!items.length && !sizePicker) return null;
         const preset = sizePicker && selectedNativeImagePreset(variant, values);
         const sizeLabel = preset
-            ? [preset.resolution, preset.aspect_ratio].join(" · ")
+            ? [resolutionLabel(preset.resolution), preset.aspect_ratio].join(" · ")
             : sizePointers
                   .map((key) => display(values[key], group))
                   .filter(Boolean)

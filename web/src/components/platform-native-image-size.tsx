@@ -1,12 +1,32 @@
 import { useState } from "react";
 import { Input } from "antd";
 import { Select } from "@/components/ui/base/select";
-import { applyNativeImagePreset, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
+import { applyNativeImagePreset, nativeImageSizeIssue, resolutionLabel, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
 import { materialsIssue, suppliesFor, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
 import type { NativeImageOutputSize, NativeImageSizePreset, NativeMediaVariant } from "@/lib/platform-native-media";
 
 const geminiSize = "/generationConfig/imageConfig/imageSize";
 const geminiRatio = "/generationConfig/imageConfig/aspectRatio";
+
+export function publishedImageSizePresets(variant: NativeMediaVariant) {
+    const native = variant.native_request_variant;
+    const presets = native.size_presets ?? [];
+    if (!native.supply_alternatives || !native.output_size) return presets;
+    const supplies = suppliesFor(variant);
+    return presets.filter((preset) => {
+        const values = applyNativeImagePreset(variant, {}, preset.id);
+        return supplies.some((supply) => !nativeImageSizeIssue({ ...variant, native_request_variant: { ...native, output_size: supply.output_size ?? native.output_size } }, values));
+    });
+}
+
+export function imageSizeDisplayValues(variant: NativeMediaVariant, values: Record<string, unknown>, references?: MaterialCounts) {
+    if (!variant.native_request_variant.protocol.startsWith("gemini.")) return values;
+    const suggestions = { ...values };
+    for (const key of [geminiSize, geminiRatio]) {
+        if (!Object.hasOwn(values, key) && variant.defaults?.[key] !== undefined) suggestions[key] = variant.defaults[key];
+    }
+    return supplySelection(variant, suggestions, references).issue ? values : suggestions;
+}
 
 export function nativeImageSizeGuidance(variant: NativeMediaVariant, explicit: Record<string, unknown>, references?: MaterialCounts) {
     const native = variant.native_request_variant;
@@ -37,7 +57,7 @@ export function PlatformNativeImageSize({
     onChange: (next: Record<string, unknown>) => void;
 }) {
     const native = variant.native_request_variant;
-    const presets = native.size_presets || [];
+    const presets = publishedImageSizePresets(variant);
     const selected = selectedNativeImagePreset(variant, values);
     const gemini = native.protocol.startsWith("gemini.");
     const limits = gemini ? undefined : native.output_size;
@@ -91,7 +111,7 @@ export function PlatformNativeImageSize({
                             className="w-full"
                             placeholder="选择分辨率"
                             value={currentTier}
-                            options={tiers.map((tier) => ({ value: tier, label: limits ? `${tier} 级` : tier }))}
+                            options={tiers.map((tier) => ({ value: tier, label: resolutionLabel(tier, Boolean(limits)) }))}
                             onChange={(tier) => {
                                 const p = presets.find((p) => p.resolution === tier && p.aspect_ratio === currentRatio) || presets.find((p) => p.resolution === tier);
                                 if (p) choose(p, "resolution");

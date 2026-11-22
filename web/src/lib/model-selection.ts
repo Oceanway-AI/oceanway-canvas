@@ -2,8 +2,17 @@ import { defaultImageCapabilityConfig, modelCapabilityConfigFor, normalizeImageV
 import { videoResolutionComparisonKey } from "@/lib/video-generation-options";
 import { imageParameterRequest, imageParameterDefaults, imageParameterAccepts } from "./image-parameters";
 import { imageSizePresets } from "@/lib/image-size-presets";
-import { nativeVideoComposerVariants, imageReferenceError, publishedImageReferenceLimit, nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, platformModelDetailPending } from "@/lib/platform-native-media";
-import { slotRange, suppliesFor } from "./platform-media-supply";
+import {
+    nativeVideoComposerVariants,
+    imageReferenceError,
+    publishedImageReferenceLimit,
+    publishedReferenceCapacity,
+    nativeMediaDefaults,
+    nativeMediaProfile,
+    nativeMediaReferenceLimits,
+    nativeMediaVariant,
+    platformModelDetailPending,
+} from "@/lib/platform-native-media";
 import { modelOptionName, PUBLIC_MODEL_CATALOG_ID, resolveModelChannel, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
 
 export type ModelInputSummary = {
@@ -158,7 +167,7 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
         if (!input) return "";
         if (capability === "image") {
             if (input.videoCount || input.audioCount) return "图片模型仅支持参考图片";
-            return imageReferenceError(config, model, visualInputCount);
+            return imageReferenceError(config, model, visualInputCount, 0, false);
         }
         for (const [kind, count] of [
             ["image", visualInputCount],
@@ -483,24 +492,22 @@ export function resolveModelVideoBooleanOptions(config: AiConfig, model: string,
 export function maxModelInputCapacity(config: AiConfig, capability: "image" | "video", kind: "image" | "video" | "audio") {
     const options = selectableModelsByCapability(config, capability);
     if (!options.length) return null;
-    if (capability === "image" && kind === "image" && options.some((model) => platformModelDetailPending(config, model) && publishedImageReferenceLimit(config, model) === undefined)) return null;
-    return options.reduce((maximum, model) => {
-        if (capability === "image" && kind === "image") {
-            const limit = publishedImageReferenceLimit(config, model);
-            if (limit !== undefined) return Math.max(maximum, limit);
+    // A video node assigns ordinary image and frame roles after a Canvas connection is made.
+    const roles = capability === "video" && kind === "image" ? ["reference_image", "first_frame", "last_frame"] : [`reference_${kind}`];
+    let maximum = 0;
+    for (const model of options) {
+        const limit = publishedReferenceCapacity(config, model, roles);
+        if (limit !== undefined) {
+            maximum = Math.max(maximum, limit);
+            continue;
         }
-        const native = nativeMediaProfile(config, model);
-        if (native) {
-            // Canvas connections are unlabelled until the target assigns their roles.
-            const roles = kind === "image" ? ["reference_image", "first_frame", "last_frame"] : [`reference_${kind}`];
-            const capacities = native.variants.flatMap((variant) => suppliesFor(variant).map((supply) => roles.reduce((n, role) => n + slotRange(supply.native_reference_inputs, role).max, 0)));
-            return Math.max(maximum, ...capacities);
-        }
+        if (platformModelDetailPending(config, model)) return null;
         const profile = modelCapabilityConfigFor(config, model);
         const value =
             capability === "image" ? (kind === "image" ? profile.image!.references.maxImages : 0) : kind === "image" ? profile.video!.references.maxImages : kind === "video" ? profile.video!.references.maxVideos : profile.video!.references.maxAudios;
-        return Math.max(maximum, value);
-    }, 0);
+        maximum = Math.max(maximum, value);
+    }
+    return maximum;
 }
 
 export function modelGroupReferenceLimits(config: AiConfig, selected: string, capability: ModelCapability, requirements?: ModelRequirements): ModelReferenceLimits | undefined {

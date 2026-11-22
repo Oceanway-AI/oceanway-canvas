@@ -174,6 +174,25 @@ test("platform media options show the exact display name and call ID with only c
     expect(render()).not.toContain("模型标签");
 });
 
+test.each(["image", "video"] as const)("%s catalog rows show ordinary image capacity across variants, even when a different role is required", (kind) => {
+    const { cost, render } = platformMediaFixture(kind);
+    const platform = cost.platform!;
+    platform.state = "summary";
+    platform.presentation!.tags = ["参考图0张", "官方长期稳定"];
+    const slot = (role: string, max: number) => ({ role, min_items: 1, max_items: max, mime_types: [] });
+    platform.variants = [
+        { id: "default", references_complete: true, references: [] },
+        { id: "edit", references_complete: true, references: [slot("reference_image", 3), slot(kind === "video" ? "last_frame" : "mask", 1)] },
+    ];
+    platform.variants_complete = true;
+    expect(render()).toContain("参考图 3 张");
+    expect(render()).not.toContain("参考图0张");
+    platform.variants[1].references_complete = false;
+    expect(render()).not.toContain("参考图");
+    platform.variants = [{ id: "frames", references_complete: true, references: [slot("first_frame", 1), slot("last_frame", 1)] }];
+    expect(render()).toContain("参考图 0 张");
+});
+
 test.each(["text", "image", "video"] as const)("%s variants under the same model keep separate callability and recent results", (capability) => {
     const { channel, cost, render } = platformMediaFixture(capability);
     const sibling = structuredClone(cost);

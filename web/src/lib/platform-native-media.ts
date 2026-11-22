@@ -1,5 +1,5 @@
 import { modelOptionName, resolveModelChannel, type AiConfig } from "@/stores/use-config-store";
-import { slotRange, suppliesFor, supplyParameterIssue, supplyParameters, supplySelection, type MaterialCounts, type NativeSupply } from "./platform-media-supply";
+import { slotRange, suppliesFor, supplyParameterIssue, supplySelection, type MaterialCounts, type NativeSupply } from "./platform-media-supply";
 
 export type NativeSchemaField = Record<string, unknown> & { type?: string | string[]; enum?: unknown[]; const?: unknown; title?: string; description?: string };
 export type NativeImageSizePreset = { id: string; resolution: string; aspect_ratio: string; width?: number; height?: number; values: Record<string, unknown> };
@@ -112,20 +112,6 @@ export function nativeMediaVariant(config: AiConfig, model = config.model, id = 
     return profile?.variants.find((v) => v.id === (id || profile.defaultId));
 }
 
-type ReferenceSlot = { role: string; min_items?: number; max_items?: number };
-
-function imageRange(slots: ReferenceSlot[]) {
-    let min = 0,
-        max = 0;
-    for (const slot of slots) {
-        if (slot.role === "reference_image") {
-            min += slot.min_items ?? 0;
-            max += slot.max_items ?? Infinity;
-        } else if (slot.min_items) return undefined;
-    }
-    return { min, max };
-}
-
 function imageRoutes(profile: NonNullable<ReturnType<typeof nativeMediaProfile>>, count: number, explicit: Record<string, unknown> = {}, mask = 0, choiceId?: string) {
     const routes = profile.variants
         .flatMap((variant) => suppliesFor(variant).map((supply) => ({ variant, supply, ...slotRange(supply.native_reference_inputs, "reference_image") })))
@@ -153,24 +139,30 @@ export function imageExecutionChoices(config: AiConfig, counts: MaterialCounts) 
     return profile ? imageRoutes(profile, counts.reference_image ?? 0, draftParameterObject(config.nativeParameters), counts.mask, config.nativeImageChoiceId).choices : [];
 }
 
-export function publishedImageReferenceLimit(config: AiConfig, model = config.model) {
+export function publishedReferenceCapacity(config: AiConfig, model: string, roles: string[]) {
     const platform = resolveModelChannel(config, model).modelDetails?.find((v) => v.model === modelOptionName(model))?.platform;
-    if (platform?.model_type !== "image") return undefined;
+    if (platform?.model_type !== "image" && platform?.model_type !== "video") return undefined;
+    const capacity = (slots: NativeSupply["native_reference_inputs"]) => roles.reduce((sum, role) => sum + slotRange(slots, role).max, 0);
     if (platform.state === "summary") {
         if (!platform.variants_complete || !platform.variants?.length || !platform.variants.every((v) => v.references_complete)) return undefined;
-        return Math.max(0, ...platform.variants.map((v) => imageRange(v.references)?.max ?? 0));
+        return Math.max(0, ...platform.variants.map((v) => capacity(v.references)));
     }
     const profile = nativeMediaProfile(config, model);
-    return profile ? Math.max(0, ...profile.variants.flatMap((variant) => suppliesFor(variant).map((s) => slotRange(s.native_reference_inputs, "reference_image").max))) : undefined;
+    return profile ? Math.max(0, ...profile.variants.flatMap((variant) => suppliesFor(variant).map((s) => capacity(s.native_reference_inputs)))) : undefined;
 }
 
-export function imageReferenceError(config: AiConfig, model: string, count: number, mask = 0) {
+export function publishedImageReferenceLimit(config: AiConfig, model = config.model) {
+    const platform = resolveModelChannel(config, model).modelDetails?.find((v) => v.model === modelOptionName(model))?.platform;
+    return platform?.model_type === "image" ? publishedReferenceCapacity(config, model, ["reference_image"]) : undefined;
+}
+
+export function imageReferenceError(config: AiConfig, model: string, count: number, mask = 0, requireChoice = true) {
     const profile = nativeMediaProfile(config, model);
     if (!profile) return "";
     try {
         const sameModel = model === config.model;
-        const { requestVariant, maxImages, issue } = imageRoutes(profile, count, nativeParameterObject(sameModel ? config.nativeParameters : undefined), mask, sameModel ? config.nativeImageChoiceId : undefined);
-        return requestVariant ? "" : issue || (count > maxImages ? `当前图片模型最多支持 ${maxImages} 张参考图` : "当前图片模型需要符合编辑要求的参考图");
+        const { requestVariant, maxImages, issue, choices } = imageRoutes(profile, count, nativeParameterObject(sameModel ? config.nativeParameters : undefined), mask, sameModel ? config.nativeImageChoiceId : undefined);
+        return requestVariant || (!requireChoice && choices.length) ? "" : issue || (count > maxImages ? `当前图片模型最多支持 ${maxImages} 张参考图` : "当前图片模型需要符合编辑要求的参考图");
     } catch {
         return "模型参数格式无效，请恢复默认值";
     }
@@ -259,7 +251,7 @@ function draftParameterObject(raw?: string) {
 }
 
 export function nativeParameterValues(variant: NativeMediaVariant, raw?: string) {
-    return supplyParameters(variant, nativeParameterObject(raw));
+    return supplySelection(variant, nativeParameterObject(raw)).values;
 }
 
 export function nativeSelectionIssue(config: AiConfig, counts: MaterialCounts) {
