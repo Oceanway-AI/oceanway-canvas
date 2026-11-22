@@ -1,4 +1,5 @@
 import { Validator, type Schema } from "@cfworker/json-schema";
+import { creativeParameterLabel } from "./platform-media-label";
 import { isNativeImageVariant, nativeImageSizeIssue } from "./platform-native-image-size";
 import type { NativeImageOutputSize, NativeMediaVariant } from "./platform-native-media";
 
@@ -115,7 +116,7 @@ export function slotRange(slots: SupplySlot[], role: string) {
 
 const roleLabels: Record<string, string> = { reference_image: "参考图", first_frame: "首帧", last_frame: "尾帧", reference_video: "参考视频", reference_audio: "参考音频", mask: "蒙版" };
 
-export function materialsIssue(supply: NativeSupply, counts: MaterialCounts) {
+export function materialsIssue(supply: NativeSupply, counts: MaterialCounts, allowMissing = false) {
     const roles = new Set([...Object.keys(counts), ...supply.native_reference_inputs.map((slot) => slot.role)]);
     for (const role of roles) {
         const count = counts[role] ?? 0;
@@ -123,11 +124,11 @@ export function materialsIssue(supply: NativeSupply, counts: MaterialCounts) {
         const { min, max } = slotRange(supply.native_reference_inputs, role);
         const unit = role === "reference_image" ? "张" : "个";
         if (count > max) return `当前档位最多支持 ${max} ${unit}${roleLabels[role] || role}，已添加 ${count} ${unit}`;
-        if (count < min) return `当前档位至少需要 ${min} ${unit}${roleLabels[role] || role}`;
+        if (!allowMissing && count < min) return `当前档位至少需要 ${min} ${unit}${roleLabels[role] || role}`;
     }
     const policy = supply.material_constraints;
     if (policy?.max_items !== undefined && Object.values(counts).reduce((a, b) => a + b, 0) > policy.max_items) return `当前档位最多支持 ${policy.max_items} 个参考素材`;
-    if (policy?.audio_requires_visual && counts.reference_audio && !(counts.reference_image || counts.first_frame || counts.last_frame || counts.reference_video)) return "参考音频需要搭配图片或视频";
+    if (!allowMissing && policy?.audio_requires_visual && counts.reference_audio && !(counts.reference_image || counts.first_frame || counts.last_frame || counts.reference_video)) return "参考音频需要搭配图片或视频";
     return "";
 }
 
@@ -157,23 +158,27 @@ function resolutionParameter(pointer: string) {
     return ["size", "width", "height", "resolution", "videosize", "imagesize"].includes(pointerPath(pointer).at(-1)?.replaceAll("_", "").toLowerCase() ?? "");
 }
 
-// Resolution selects the tier. Other fields follow it and the current materials
-// where possible, even when an old draft has several invalid selections.
+export function suppliesAtResolution(variant: NativeMediaVariant, explicit: Record<string, unknown>, supplies = suppliesFor(variant)) {
+    const selection = Object.entries(explicit).filter(([key]) => resolutionParameter(key));
+    return supplies.filter((supply) =>
+        selection.every(([key, value]) => {
+            if (!supplyAllowsValue(variant, supply, key, value, explicit)) return false;
+            return key !== "/size" || !sizeIssue(variant, { [key]: value }, supply.output_size ?? variant.native_request_variant.output_size);
+        }),
+    );
+}
+
 export function supplyChoiceAllowed(variant: NativeMediaVariant, pointer: string, explicit: Record<string, unknown>, counts?: MaterialCounts) {
     let supplies = suppliesFor(variant);
     if (!resolutionParameter(pointer)) {
+        supplies = suppliesAtResolution(variant, explicit, supplies);
+        if (counts) {
+            const complete = supplies.filter((supply) => !materialsIssue(supply, counts));
+            // A missing required frame can be added; an excess attachment needs removing first.
+            supplies = complete.length ? complete : supplies.filter((supply) => !materialsIssue(supply, counts, true));
+        }
         const other = Object.entries(explicit).filter(([key]) => key !== pointer);
-        const matches = (supply: NativeSupply, entries: typeof other) => entries.every(([key, value]) => supplyAllowsValue(variant, supply, key, value, explicit));
-        const tier = supplies.filter((supply) =>
-            matches(
-                supply,
-                other.filter(([key]) => resolutionParameter(key)),
-            ),
-        );
-        if (tier.length) supplies = tier;
-        const materials = counts && supplies.filter((supply) => !materialsIssue(supply, counts));
-        if (materials?.length) supplies = materials;
-        const compatible = supplies.filter((supply) => matches(supply, other));
+        const compatible = supplies.filter((supply) => other.every(([key, value]) => supplyAllowsValue(variant, supply, key, value, explicit)));
         if (compatible.length) supplies = compatible;
     }
     return (value: unknown) => supplies.some((supply) => supplyAllowsValue(variant, supply, pointer, value, explicit));
@@ -189,7 +194,10 @@ export function supplyParameterIssue(variant: NativeMediaVariant, supply: Native
     for (const [pointer, value] of Object.entries(values)) {
         const field = variant.specifications_schema.properties[pointer];
         if (!field || (Object.hasOwn(explicit, pointer) && variant.workbench_parameters && !variant.workbench_parameters.includes(pointer))) return `当前组合未开放参数 ${pointer}`;
-        if (!supplyAllowsValue(variant, supply, pointer, value, explicit)) return `当前组合不支持 ${field.title || pointer} 的所选值`;
+        if (!supplyAllowsValue(variant, supply, pointer, value, explicit)) {
+            const label = field.title ? creativeParameterLabel(pointer, field.title) : pointer;
+            return `当前组合不支持 ${label} 的所选值`;
+        }
     }
     return "";
 }
@@ -198,8 +206,13 @@ export function supplySelection(variant: NativeMediaVariant, explicit: Record<st
     let materialIssue = "";
     let parameterIssue = "";
     const base = supplyParameters(variant, explicit);
+    const all = suppliesFor(variant);
+    const tier = suppliesAtResolution(variant, explicit, all);
+    if (counts && tier.length && tier.every((supply) => materialsIssue(supply, counts, true))) {
+        return { supply: undefined, values: explicit, issue: materialsIssue(tier[0], counts, true) };
+    }
     const candidates = new Map<string, { supply: NativeSupply; values: Record<string, unknown>; issue: string }>();
-    for (const supply of suppliesFor(variant)) {
+    for (const supply of tier.length ? tier : all) {
         const values = supplyParameters(variant, explicit, supply);
         const issue = supplyParameterIssue(variant, supply, explicit, values);
         if (issue) {

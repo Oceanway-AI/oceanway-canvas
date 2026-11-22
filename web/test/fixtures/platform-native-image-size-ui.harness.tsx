@@ -437,7 +437,9 @@ test("the video production controls retain a conflicting duration after a resolu
     expect(hd.disabled).toBe(false);
     await act(async () => hd.click());
     expect(JSON.parse(current.nativeParameters!)).toEqual({ "/resolution": "1080p", "/duration": 5 });
-    expect(() => backendProviderConfig(current, "video", { reference_image: 3 })).toThrow();
+    expect(() => backendProviderConfig(current, "video", { reference_image: 3 })).toThrow("最多支持 1 张参考图");
+    const blocked = await openDock("时长");
+    for (const time of [4, 5, 6, 8, 10]) expect(blocked(`${time}秒`).disabled).toBe(true);
     const saved = current;
     await unmount();
     await renderConfig(saved, { variant, imageCount: 1 });

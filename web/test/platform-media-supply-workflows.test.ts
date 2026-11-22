@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { catalogVariants } from "./fixtures/platform-partial-catalog";
 import publishedGpt from "../../backend/internal/platformintegration/testdata/image-output-size/gpt-default.model.json";
 import { imageExecutionChoices, nativeMediaReferenceLimits, type NativeMediaVariant } from "@/lib/platform-native-media";
-import { supplySelection } from "@/lib/platform-media-supply";
+import { supplyChoiceAllowed, supplySelection } from "@/lib/platform-media-supply";
 import { modelCompatibilityError } from "@/lib/model-selection";
 import { systemChannelModelChannels } from "@/lib/user-session";
 import { prepareBackendGenerationTask } from "@/services/api/generation-task";
@@ -53,7 +53,7 @@ const video: NativeMediaVariant = {
     media_generation_v1: true,
     gateway_protocol: "newapi.video",
     defaults: { "/metadata/resolution": "720p", "/seconds": "5", "/metadata/generate_audio": true },
-    specifications_schema: { properties: { "/metadata/resolution": { enum: ["720p", "1080p"] }, "/seconds": { enum: seconds }, "/metadata/generate_audio": { type: "boolean" } } },
+    specifications_schema: { properties: { "/metadata/resolution": { enum: ["720p", "1080p"] }, "/seconds": { title: "seconds", enum: seconds }, "/metadata/generate_audio": { type: "boolean" } } },
     native_request_variant: {
         protocol: "newapi.video",
         path: "/v1/videos",
@@ -92,6 +92,28 @@ test.each([
     await expect(submit()).rejects.toThrow(issue);
     expect(JSON.parse(config.nativeParameters)).toEqual(explicit);
     expect(pins).toEqual(originalPins);
+});
+
+test("a stale duration keeps the chosen resolution's reference limit and names the time to repair", async () => {
+    const explicit = { "/metadata/resolution": "1080p", "/seconds": "5" };
+    for (const ordered of [video.native_request_variant.supply_alternatives!, [...video.native_request_variant.supply_alternatives!].reverse()]) {
+        const variant = { ...video, native_request_variant: { ...video.native_request_variant, supply_alternatives: ordered } };
+        const { config, quote, submit } = requests("video", [variant], explicit, images(1));
+        expect(nativeMediaReferenceLimits(config)?.maxImages).toBe(1);
+        expect(quote).toBeNull();
+        await expect(submit()).rejects.toThrow("时长");
+        expect(JSON.parse(config.nativeParameters)).toEqual(explicit);
+        const counts = { reference_image: 3 };
+        expect(supplySelection(variant, explicit, counts).issue).toContain("最多支持 1 张参考图");
+        expect(seconds.filter(supplyChoiceAllowed(variant, "/seconds", explicit, counts))).toEqual([]);
+        expect(seconds.filter(supplyChoiceAllowed(variant, "/seconds", explicit, { reference_image: 1 }))).toEqual(["4", "6", "8", "10"]);
+    }
+});
+
+test("a missing required frame can still be added to a draft with published durations", () => {
+    const frame = { ...video, native_request_variant: { ...video.native_request_variant, supply_alternatives: [{ request_schema: {}, native_reference_inputs: [slot("first_frame", 1, 1)] }] } };
+    expect(supplyChoiceAllowed(frame, "/seconds", {}, {})("5")).toBe(true);
+    expect(supplySelection(frame, {}, {}).issue).toContain("至少需要");
 });
 
 test("ordinary video references cannot silently occupy available first and last frame slots", async () => {
