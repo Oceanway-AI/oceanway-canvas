@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import publishedGpt from "../../backend/internal/platformintegration/testdata/image-output-size/gpt-default.model.json";
-import { nativeMediaReferenceLimits, type NativeMediaVariant } from "@/lib/platform-native-media";
+import { imageExecutionChoices, nativeMediaReferenceLimits, type NativeMediaVariant } from "@/lib/platform-native-media";
 import { systemChannelModelChannels } from "@/lib/user-session";
 import { prepareBackendGenerationTask } from "@/services/api/generation-task";
 import type { PublicChannelModel } from "@/services/api/logical-models";
@@ -113,6 +113,22 @@ test("ordinary video references cannot silently occupy available first and last 
 
 const gpt = publishedGpt.media_generation_profile.variants[0] as unknown as NativeMediaVariant;
 const generate = { ...gpt, id: "generate", media_generation_v1: true };
+test("equivalent image endpoints can be automatic, different paths require an explicit choice before quote or submit", async () => {
+    const same = { ...generate, id: "same" };
+    const alternative = { ...generate, id: "different", native_request_variant: { ...generate.native_request_variant, path: "/alternate/images" } };
+    const params = { "/size": "1024x1024" };
+    const automatic = requests("image", [generate, same], params, []);
+    expect(imageExecutionChoices(automatic.config, {})).toEqual([]);
+    expect((await automatic.submit()).platform?.variantId).toBe("generate");
+    const ambiguous = requests("image", [generate, alternative], params, []);
+    expect(imageExecutionChoices(ambiguous.config, {}).map((v) => v.id)).toEqual(["generate", "different"]);
+    expect(ambiguous.quote).toBeNull();
+    await expect(ambiguous.submit()).rejects.toThrow("请选择生成规格");
+    const config = { ...ambiguous.config, nativeImageChoiceId: alternative.id };
+    const task = await prepareBackendGenerationTask({ mode: "image", config, prompt: "A scene", referenceImages: [] });
+    expect(task.platform?.variantId).toBe(alternative.id);
+    expect(studioMediaPriceRequest(config, "image", "A scene", [], "owner")?.platform?.variantId).toBe(alternative.id);
+});
 const eightMP = { ...gpt.native_request_variant.output_size!, max_pixels: 8294400, allow_auto: true };
 const fourMP = { ...eightMP, max_pixels: 4194304, allow_auto: false };
 function edit(highLimit = 16): NativeMediaVariant {

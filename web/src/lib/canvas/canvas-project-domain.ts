@@ -291,6 +291,7 @@ const NODE_MODEL_GENERATION_PARAMS: ReadonlyArray<keyof CanvasNodeMetadata> = [
     "nativeParameters",
     "nativeVariantId",
     "nativeModeVariantId",
+    "nativeImageChoiceId",
     "videoStartFrameNodeId",
     "videoEndFrameNodeId",
     "watermark",

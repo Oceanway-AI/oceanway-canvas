@@ -1,4 +1,5 @@
 import { modelOptionName, resolveModelChannel, type AiConfig } from "@/stores/use-config-store";
+import { slotRange, suppliesFor, supplyParameterIssue, supplyParameters, supplySelection, type MaterialCounts, type NativeSupply } from "./platform-media-supply";
 
 export type NativeSchemaField = Record<string, unknown> & { type?: string | string[]; enum?: unknown[]; const?: unknown; title?: string; description?: string };
 export type NativeImageSizePreset = { id: string; resolution: string; aspect_ratio: string; width?: number; height?: number; values: Record<string, unknown> };
@@ -31,6 +32,8 @@ export type NativeMediaVariant = {
         request_schema: Record<string, unknown>;
         size_presets?: NativeImageSizePreset[];
         output_size?: NativeImageOutputSize;
+        supply_alternatives?: NativeSupply[];
+        material_constraints?: NativeSupply["material_constraints"];
         native_reference_inputs: { id: string; pointer: string; role: string; transport: string; min_items?: number; max_items?: number; mime_types?: string[] }[];
     };
 };
@@ -98,9 +101,10 @@ export function studioMediaGenerationVariant(config: AiConfig, model = config.mo
 
 export function nativeMediaProfile(config: AiConfig, model = config.model) {
     const source = publishedMediaProfile(config, model);
-    if (!source?.native_request_variant && !source?.gateway_protocol) return undefined;
+    if (!source) return undefined;
     const variants = (Array.isArray(source.variants) ? source.variants : []) as NativeMediaVariant[];
-    return { defaultId: typeof source.default_variant === "string" ? source.default_variant : "", variants: variants.filter((v) => v.native_request_variant && v.specifications_schema?.properties) };
+    const nativeVariants = variants.filter((v) => v.native_request_variant && v.specifications_schema?.properties);
+    return nativeVariants.length ? { defaultId: typeof source.default_variant === "string" ? source.default_variant : "", variants: nativeVariants } : undefined;
 }
 
 export function nativeMediaVariant(config: AiConfig, model = config.model, id = model === config.model ? config.nativeVariantId : undefined) {
@@ -122,17 +126,31 @@ function imageRange(slots: ReferenceSlot[]) {
     return { min, max };
 }
 
-// Ties follow the published default, then catalog order, independent of draft history.
-function imageRoutes(profile: NonNullable<ReturnType<typeof nativeMediaProfile>>, count: number) {
+function imageRoutes(profile: NonNullable<ReturnType<typeof nativeMediaProfile>>, count: number, explicit: Record<string, unknown> = {}, mask = 0, choiceId?: string) {
     const routes = profile.variants
-        .flatMap((variant) => {
-            const range = imageRange(variant.native_request_variant.native_reference_inputs ?? []);
-            return range ? [{ variant, ...range }] : [];
-        })
+        .flatMap((variant) => suppliesFor(variant).map((supply) => ({ variant, supply, ...slotRange(supply.native_reference_inputs, "reference_image") })))
         .sort((a, b) => Number(b.variant.id === profile.defaultId) - Number(a.variant.id === profile.defaultId));
     const widest = routes.reduce<(typeof routes)[number] | undefined>((best, route) => (!best || route.max > best.max ? route : best), undefined);
-    const request = routes.find((route) => route.min <= count && count <= route.max);
-    return { referenceVariant: widest?.variant, requestVariant: request?.variant, maxImages: widest?.max ?? 0 };
+    const possible = [...new Set(routes.filter((route) => route.min <= count && count <= route.max).map((route) => route.variant))];
+    const counts = { reference_image: count, mask };
+    const matches = possible.map((variant) => ({ variant, ...supplySelection(variant, explicit, counts) }));
+    const eligible = matches.filter((row) => !row.issue);
+    const contracts = new Set(
+        eligible.map(({ variant, values }) => {
+            const native = variant.native_request_variant;
+            const bindings = native.native_reference_inputs.filter((slot) => counts[slot.role as keyof typeof counts] > 0).map(({ role, pointer, transport }) => [role, pointer, transport]);
+            return JSON.stringify([variant.media_generation_v1 === true, variant.gateway_protocol, native.protocol, native.method, native.path, bindings, values]);
+        }),
+    );
+    const choices = contracts.size > 1 ? eligible.map((row) => row.variant) : [];
+    const chosen = choices.length ? eligible.find((row) => row.variant.id === choiceId) : eligible[0];
+    const issue = !chosen && choices.length ? "当前素材和参数支持多个执行规格，请选择生成规格" : matches[0]?.issue;
+    return { referenceVariant: widest?.variant, requestVariant: chosen?.variant, choices, fallback: eligible[0]?.variant ?? possible[0], issue, maxImages: widest?.max ?? 0 };
+}
+
+export function imageExecutionChoices(config: AiConfig, counts: MaterialCounts) {
+    const profile = nativeMediaProfile(config);
+    return profile ? imageRoutes(profile, counts.reference_image ?? 0, draftParameterObject(config.nativeParameters), counts.mask, config.nativeImageChoiceId).choices : [];
 }
 
 export function publishedImageReferenceLimit(config: AiConfig, model = config.model) {
@@ -143,23 +161,28 @@ export function publishedImageReferenceLimit(config: AiConfig, model = config.mo
         return Math.max(0, ...platform.variants.map((v) => imageRange(v.references)?.max ?? 0));
     }
     const profile = nativeMediaProfile(config, model);
-    return profile ? imageRoutes(profile, 0).maxImages : undefined;
+    return profile ? Math.max(0, ...profile.variants.flatMap((variant) => suppliesFor(variant).map((s) => slotRange(s.native_reference_inputs, "reference_image").max))) : undefined;
 }
 
-export function imageReferenceError(config: AiConfig, model: string, count: number) {
+export function imageReferenceError(config: AiConfig, model: string, count: number, mask = 0) {
     const profile = nativeMediaProfile(config, model);
     if (!profile) return "";
-    const { requestVariant, maxImages } = imageRoutes(profile, count);
-    return requestVariant ? "" : count > maxImages ? `当前图片模型最多支持 ${maxImages} 张参考图` : "当前图片模型不支持这一参考图数量";
+    try {
+        const sameModel = model === config.model;
+        const { requestVariant, maxImages, issue } = imageRoutes(profile, count, nativeParameterObject(sameModel ? config.nativeParameters : undefined), mask, sameModel ? config.nativeImageChoiceId : undefined);
+        return requestVariant ? "" : issue || (count > maxImages ? `当前图片模型最多支持 ${maxImages} 张参考图` : "当前图片模型需要符合编辑要求的参考图");
+    } catch {
+        return "模型参数格式无效，请恢复默认值";
+    }
 }
 
-export function imageRequestConfig(config: AiConfig, count: number) {
+export function imageRequestConfig(config: AiConfig, count: number, mask = 0) {
     if (platformModelDetailPending(config)) throw new Error("模型参数尚未加载，请在模型选择器中加载后生成");
     if (!nativeMediaProfile(config)) return config;
     if (config.nativeVariantId && !nativeMediaVariant(config)) throw new Error("所选模型参数版本已失效，请刷新模型目录");
-    const issue = imageReferenceError(config, config.model, count);
-    if (issue) throw new Error(issue);
-    return { ...config, ...nativeCreationSettings(config, config.model, config, count).settings };
+    const routes = imageRoutes(nativeMediaProfile(config)!, count, nativeParameterObject(config.nativeParameters), mask, config.nativeImageChoiceId);
+    if (!routes.requestVariant) throw new Error(routes.issue || imageReferenceError(config, config.model, count, mask));
+    return { ...config, nativeVariantId: routes.requestVariant.id };
 }
 
 export function nativeVideoComposerVariants(variants: NativeMediaVariant[], base: NativeMediaVariant, preferredId?: string) {
@@ -171,11 +194,11 @@ export function nativeVideoComposerVariants(variants: NativeMediaVariant[], base
     };
 }
 
-export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId"> & { nativeModeVariantId?: string }, referenceCount: number | boolean) {
+export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId" | "nativeImageChoiceId"> & { nativeModeVariantId?: string }, referenceCount: number | boolean) {
     const profile = nativeMediaProfile(config, model);
     const savedVariant = profile?.variants.find((v) => v.id === saved.nativeVariantId);
     const fallback = profile?.variants.find((v) => v.id === profile.defaultId) ?? profile?.variants[0];
-    const base = nativeMediaDefaults(config, model, savedVariant || (!saved.nativeVariantId && fallback?.id === profile?.defaultId) ? saved : { nativeVariantId: fallback?.id });
+    const base = nativeMediaDefaults(config, model, { ...saved, nativeVariantId: savedVariant?.id ?? fallback?.id });
     const variant = nativeMediaVariant(config, model, base.nativeVariantId);
     const preferred = profile?.variants.find((v) => v.id === saved.nativeModeVariantId) ?? variant;
     let referenceVariant = variant;
@@ -186,22 +209,17 @@ export function nativeCreationSettings(config: AiConfig, model: string, saved: P
         referenceVariant = video.reference;
         const text = video.text;
         requestVariant = (referenceCount ? referenceVariant : text) ?? referenceVariant ?? variant;
+        if (!referenceCount && text && referenceVariant) {
+            const explicit = draftParameterObject(base.nativeParameters);
+            if (supplySelection(text, explicit, {}).issue && !supplySelection(referenceVariant, explicit, {}).issue) requestVariant = referenceVariant;
+        }
     } else if (profile) {
-        const routes = imageRoutes(profile, Number(referenceCount));
+        const routes = imageRoutes(profile, Number(referenceCount), draftParameterObject(base.nativeParameters), 0, saved.nativeImageChoiceId);
         referenceVariant = routes.referenceVariant;
-        requestVariant = routes.requestVariant ?? referenceVariant ?? variant;
+        requestVariant = routes.requestVariant ?? routes.fallback ?? referenceVariant ?? variant;
     }
     if (!requestVariant || !variant || requestVariant.id === variant.id) return { settings: base, referenceVariant };
-    const values = nativeParameterValues(requestVariant);
-    // An untouched video draft uses the request variant's defaults, even when its upload slots belong to another mode.
-    const previous = isVideo ? (savedVariant ? nativeParameterObject(saved.nativeParameters) : {}) : nativeParameterObject(base.nativeParameters);
-    for (const [key, field] of Object.entries(requestVariant.specifications_schema.properties)) {
-        if (requestVariant.workbench_parameters && !requestVariant.workbench_parameters.includes(key)) continue;
-        if (!Object.hasOwn(previous, key)) continue;
-        const value = previous[key];
-        if (JSON.stringify(field) === JSON.stringify(variant.specifications_schema.properties[key]) || (isVideo && nativeParameterChoices(field)?.includes(value))) values[key] = value;
-    }
-    return { settings: { nativeVariantId: requestVariant.id, nativeParameters: JSON.stringify(values) }, referenceVariant };
+    return { settings: { nativeVariantId: requestVariant.id, nativeParameters: base.nativeParameters }, referenceVariant };
 }
 
 export function nativeParameterChoices(field: NativeSchemaField, includeRange = true): unknown[] | undefined {
@@ -216,9 +234,13 @@ export function nativeParameterChoices(field: NativeSchemaField, includeRange = 
 
 export function nativeMediaReferenceLimits(config: AiConfig, model = config.model, variant = nativeMediaVariant(config, model)) {
     if (!variant) return undefined;
-    const refs = variant.native_request_variant.native_reference_inputs || [];
-    const capacity = (roles: string[]) => refs.filter((ref) => roles.includes(ref.role)).reduce((sum, ref) => sum + (ref.max_items ?? Number.POSITIVE_INFINITY), 0);
-    return { maxImages: capacity(["reference_image", "first_frame", "last_frame"]), maxVideos: capacity(["reference_video"]), maxAudios: capacity(["reference_audio"]) };
+    const values = draftParameterObject(model === config.model ? config.nativeParameters : undefined);
+    const all = suppliesFor(variant);
+    const compatible = all.filter((supply) => !supplyParameterIssue(variant, supply, values));
+    // Keep slots editable when a saved value conflicts. Exact admission still uses the whole draft.
+    const supplies = compatible.length ? compatible : all;
+    const capacity = (role: string) => Math.max(0, ...supplies.map((supply) => slotRange(supply.native_reference_inputs, role).max));
+    return { maxImages: capacity("reference_image"), maxVideos: capacity("reference_video"), maxAudios: capacity("reference_audio"), maxFirstFrames: capacity("first_frame"), maxLastFrames: capacity("last_frame") };
 }
 
 export function nativeParameterObject(raw?: string): Record<string, unknown> {
@@ -228,20 +250,34 @@ export function nativeParameterObject(raw?: string): Record<string, unknown> {
     return value as Record<string, unknown>;
 }
 
-export function nativeParameterValues(variant: NativeMediaVariant, raw?: string) {
-    const values = { ...variant.defaults };
-    for (const [pointer, field] of Object.entries(variant.specifications_schema.properties)) {
-        if (!(pointer in values) && Object.hasOwn(field, "const")) values[pointer] = field.const;
+function draftParameterObject(raw?: string) {
+    try {
+        return nativeParameterObject(raw);
+    } catch {
+        return {};
     }
-    const merged = { ...values, ...nativeParameterObject(raw) };
-    if (!variant.workbench_parameters) return merged;
-    return Object.fromEntries(variant.workbench_parameters.filter((key) => Object.hasOwn(merged, key)).map((key) => [key, merged[key]]));
+}
+
+export function nativeParameterValues(variant: NativeMediaVariant, raw?: string) {
+    return supplyParameters(variant, nativeParameterObject(raw));
+}
+
+export function nativeSelectionIssue(config: AiConfig, counts: MaterialCounts) {
+    const variant = nativeMediaVariant(config);
+    if (!variant) return "";
+    const published = resolveModelChannel(config, config.model).modelDetails?.find((v) => v.model === modelOptionName(config.model))?.platform;
+    if (published?.model_type === "image") return imageReferenceError(config, config.model, counts.reference_image ?? 0, counts.mask);
+    try {
+        return supplySelection(variant, nativeParameterObject(config.nativeParameters), counts).issue;
+    } catch {
+        return "模型参数格式无效，请恢复默认值";
+    }
 }
 
 export function nativeMediaDefaults(config: AiConfig, model: string, explicit: Pick<AiConfig, "nativeParameters" | "nativeVariantId"> = {}) {
     const variant = nativeMediaVariant(config, model, explicit.nativeVariantId || "");
     if (!variant) return { nativeVariantId: explicit.nativeVariantId || "", nativeParameters: explicit.nativeParameters || "{}" };
-    return { nativeVariantId: variant.id, nativeParameters: variant.workbench_parameters ? JSON.stringify(nativeParameterValues(variant, explicit.nativeParameters)) : (explicit.nativeParameters ?? JSON.stringify(nativeParameterValues(variant))) };
+    return { nativeVariantId: variant.id, nativeParameters: explicit.nativeParameters || "{}" };
 }
 
 export function nativeMediaSummary(config: AiConfig) {

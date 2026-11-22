@@ -12,8 +12,9 @@ import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation"
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
-import { nativeCreationSettings, nativeMediaProfile, studioMediaGenerationVariant, nativeMediaReferenceLimits, platformModelDetailPending } from "@/lib/platform-native-media";
-import { assignFrameSlots, publishedFrameRoles, type FrameRole } from "@/lib/media-reference-slots";
+import { nativeCreationSettings, nativeMediaProfile, studioMediaGenerationVariant, nativeMediaReferenceLimits, nativeSelectionIssue, platformModelDetailPending } from "@/lib/platform-native-media";
+import { mediaRoleCounts } from "@/lib/platform-media-supply";
+import { assignFrameSlots, type FrameRole } from "@/lib/media-reference-slots";
 import { creationResultAssetIds, creationResultResourceIds, type CreationCanvasSelection } from "@/lib/canvas/canvas-asset-handoff";
 import { loadCanvasResourceHandoffPayloads } from "@/services/canvas-resource-handoff";
 import { getActiveUserScope } from "@/lib/user-scope";
@@ -280,9 +281,10 @@ export default function CreatePage() {
           )
         : undefined;
     const nativeSettings: { nativeParameters?: string; nativeVariantId?: string } = nativeCreation?.settings || {};
+    const nativeImageChoiceId = mode === "image" && savedNativePreferences.image?.model === selectedModel ? savedNativePreferences.image.nativeImageChoiceId : undefined;
     const generationConfig = useMemo(
-        () => (nativeProfile ? { ...config, model: selectedModel, ...nativeSettings } : mode === "video" && videoProfile ? creationVideoConfig(config, selectedModel, { ratio, seconds, videoQuality }) : config),
-        [config, mode, ratio, seconds, selectedModel, videoQuality, videoProfile, nativeSettings.nativeParameters, nativeSettings.nativeVariantId, Boolean(nativeProfile)],
+        () => (nativeProfile ? { ...config, model: selectedModel, ...nativeSettings, nativeImageChoiceId } : mode === "video" && videoProfile ? creationVideoConfig(config, selectedModel, { ratio, seconds, videoQuality }) : config),
+        [config, mode, ratio, seconds, selectedModel, videoQuality, videoProfile, nativeSettings.nativeParameters, nativeSettings.nativeVariantId, nativeImageChoiceId, Boolean(nativeProfile)],
     );
     const textThinkingConfig = useMemo(() => (mode === "text" ? modelCapabilityConfigFor(config, selectedModel).text?.thinking || LEGACY_TEXT_THINKING_CONFIG : undefined), [config, mode, selectedModel]);
     const textThinkingLevels = useMemo(() => thinkingLevelsFor(textThinkingConfig), [textThinkingConfig]);
@@ -302,6 +304,7 @@ export default function CreatePage() {
     // 入口需要展示整个模型组的引用能力，添加素材后再由兼容路由选择具体模型。
     const nativeReferenceLimits = nativeProfile ? nativeMediaReferenceLimits(generationConfig, selectedModel, nativeCreation?.referenceVariant) : undefined;
     const videoReferenceLimits = nativeReferenceLimits || (mode === "video" && videoProfile ? modelGroupReferenceLimits(config, selectedModel, "video") || { maxImages: 0, maxVideos: 0, maxAudios: 0 } : undefined);
+    const pickerLimits = framePicker ? { maxImages: 1, maxVideos: 0, maxAudios: 0 } : videoReferenceLimits;
     const maxReferences = nativeReferenceLimits
         ? nativeReferenceLimits.maxImages + nativeReferenceLimits.maxVideos + nativeReferenceLimits.maxAudios
         : mode === "video"
@@ -310,12 +313,13 @@ export default function CreatePage() {
             ? imageProfile?.references.maxImages || 0
             : 6;
     const requiredImages = mode === "image" ? nativeProfile?.variants.find((v) => v.id === nativeSettings.nativeVariantId)?.native_request_variant.native_reference_inputs?.find((ref) => ref.role === "reference_image")?.min_items || 0 : 0;
-    const frameRoles = mode === "video" ? publishedFrameRoles(nativeCreation?.referenceVariant) : [];
-    const frameSlots = assignFrameSlots(frameRoles, splitCreationAttachments(attachments).referenceImages, (image) => image.role);
+    const frameSlots = assignFrameSlots(mode === "video" ? nativeCreation?.referenceVariant : undefined, splitCreationAttachments(attachments).referenceImages, (image) => image.role);
     const missingFrame =
         nativeSettings.nativeVariantId === nativeCreation?.referenceVariant?.id &&
         frameSlots.find((slot) => !slot.attachment && nativeCreation?.referenceVariant?.native_request_variant.native_reference_inputs.some((ref) => ref.role === slot.role && (ref.min_items || 0) > 0));
-    const missingReferenceImages = Boolean(missingFrame) || (modelRequirements.input?.imageCount || 0) < requiredImages;
+    const selectedCounts = mediaRoleCounts(attachments.map((item) => ({ kind: creationAttachmentKind(item), role: frameSlots.find((slot) => slot.attachment?.id === item.id)?.role ?? ("role" in item ? item.role : undefined) })));
+    const selectionIssue = nativeProfile ? nativeSelectionIssue(generationConfig, selectedCounts) : "";
+    const missingReferenceImages = nativeProfile ? Boolean(selectionIssue) : Boolean(missingFrame) || (modelRequirements.input?.imageCount || 0) < requiredImages;
     const referenceImageSize = useMemo(() => {
         const imageAttachments = attachments.filter(isImageAttachment);
         if (imageAttachments.length !== 1) return undefined;
@@ -399,12 +403,12 @@ export default function CreatePage() {
     }, [composerPreferencesHydrated, composerPreferencesInitialized, mode, selectedModel, videoProfile]);
 
     useEffect(() => {
-        if (!selectedModel || detailPending) return;
+        if (!selectedModel || detailPending || nativeProfile) return;
         const reconciled = mode === "video" && videoReferenceLimits ? reconcileCreationAttachmentLimits(attachments, mentionReferences, videoReferenceLimits) : reconcileCreationAttachmentLimit(attachments, mentionReferences, maxReferences);
         if (reconciled.attachments === attachments) return;
         setAttachments(reconciled.attachments);
         if (reconciled.removedReferences.length) setPrompt((current) => removeCreationReferenceTokens(current, reconciled.removedReferences));
-    }, [attachments, maxReferences, mentionReferences, mode, videoReferenceLimits, selectedModel, detailPending]);
+    }, [attachments, maxReferences, mentionReferences, mode, videoReferenceLimits, selectedModel, detailPending, nativeProfile]);
 
     useEffect(() => {
         if (!userSessionHydrated) return;
@@ -738,9 +742,9 @@ export default function CreatePage() {
         () =>
             externalAssetSources.items.map((item) => ({
                 ...item,
-                disabledReason: creationLibraryDisabledReason(mode, item.external?.item.kind, videoReferenceLimits),
+                disabledReason: creationLibraryDisabledReason(mode, item.external?.item.kind, pickerLimits),
             })),
-        [externalAssetSources.items, mode, videoReferenceLimits],
+        [externalAssetSources.items, mode, pickerLimits],
     );
     const libraryItems = useMemo<AssetLibraryPickerItem[]>(
         () => [
@@ -753,11 +757,11 @@ export default function CreatePage() {
                     kindLabel: asset.kind === "video" ? t("create.kind.video") : asset.kind === "audio" ? t("create.kind.audio") : t("create.kind.image"),
                     asset,
                     searchText: (asset.tags || []).join(" "),
-                    disabledReason: creationLibraryDisabledReason(mode, asset.kind, videoReferenceLimits),
+                    disabledReason: creationLibraryDisabledReason(mode, asset.kind, pickerLimits),
                 })),
             ...externalLibraryItems,
         ],
-        [assets, externalLibraryItems, mode, videoReferenceLimits],
+        [assets, externalLibraryItems, mode, pickerLimits],
     );
     const uploadCreationAsset = async (file: File) => {
         const { uploadImage, uploadMediaFile } = await loadCreationRuntime();
@@ -794,10 +798,26 @@ export default function CreatePage() {
         if (frameSlots.some((slot) => slot.role !== framePicker && slot.attachment?.id === image.id)) throw new Error("该图片已用于另一帧");
         const replacement = { ...image, role: framePicker };
         if (target.attachment && target.attachment.id !== image.id) replaceAttachmentReference(target.attachment.id, replacement);
-        else if (!target.attachment) setAttachments((current) => [...current, replacement]);
+        else setAttachments((current) => (current.some((item) => item.id === replacement.id) ? current.map((item) => (item.id === replacement.id ? replacement : item)) : [...current, replacement]));
         setLibraryOpen(false);
         setFramePicker(null);
         return true;
+    };
+    const addSelectedReferences = (items: CreationAttachment[]) => {
+        if (applySelectedFrame(items)) return;
+        const frameIds = new Set(frameSlots.flatMap((slot) => (slot.attachment ? [slot.attachment.id] : [])));
+        setAttachments((current) => {
+            const candidates = [...current];
+            for (const item of items) {
+                if (!candidates.some((existing) => existing.id === item.id || (item.storageKey && existing.storageKey === item.storageKey))) candidates.push(item);
+            }
+            const ordinary = candidates.filter((item) => !frameIds.has(item.id));
+            const { attachments: allowed } = mode === "video" && videoReferenceLimits ? reconcileCreationAttachmentLimits(ordinary, [], videoReferenceLimits) : reconcileCreationAttachmentLimit(ordinary, [], maxReferences);
+            if (allowed.length === ordinary.length) return candidates;
+            toast.warning(t("create.page.referenceLimitExceeded"));
+            return nativeProfile ? current : candidates.filter((item) => frameIds.has(item.id) || allowed.includes(item));
+        });
+        setLibraryOpen(false);
     };
     const addPlatformReferences = (items: InsertAssetPayload[]) => {
         const next: CreationAttachment[] = [];
@@ -812,14 +832,7 @@ export default function CreatePage() {
                 next.push({ ...common, type: item.mimeType || "audio/mpeg", url: item.url, previewUrl: item.url, durationMs: item.durationMs });
             }
         }
-        if (applySelectedFrame(next)) return;
-        setAttachments((current) => {
-            const candidates = [...current, ...next.filter((item) => !current.some((existing) => existing.storageKey === item.storageKey))];
-            const result = mode === "video" && videoReferenceLimits ? reconcileCreationAttachmentLimits(candidates, [], videoReferenceLimits) : reconcileCreationAttachmentLimit(candidates, [], maxReferences);
-            if (result.attachments.length < candidates.length) toast.warning(t("create.page.referenceLimitExceeded"));
-            return result.attachments;
-        });
-        setLibraryOpen(false);
+        addSelectedReferences(next);
     };
 
     const uploadLibraryAssets = async (files: FileList | File[]) => {
@@ -839,20 +852,13 @@ export default function CreatePage() {
     };
 
     const handleLibrarySelect = async (selectedIds: string[], pickedItems = libraryItems) => {
-        const next = creationLibrarySelectionToAttachments(selectedIds, pickedItems, mode, videoReferenceLimits);
+        const next = creationLibrarySelectionToAttachments(selectedIds, pickedItems, mode, pickerLimits);
         if (!next.length) return;
         const selected = new Set(selectedIds);
         const cachedIds = new Set(useAssetStore.getState().assets.map((asset) => asset.id));
         const uncachedAssetIds = pickedItems.filter((item) => item.asset && selected.has(item.id) && !cachedIds.has(item.id)).map((item) => item.id);
         if (uncachedAssetIds.length) await loadAssetsForUse(uncachedAssetIds);
-        if (applySelectedFrame(next)) return;
-        setAttachments((current) => {
-            const candidates = [...current.filter((item) => !next.some((candidate) => candidate.id === item.id)), ...next];
-            const reconciled = mode === "video" && videoReferenceLimits ? reconcileCreationAttachmentLimits(candidates, [], videoReferenceLimits) : reconcileCreationAttachmentLimit(candidates, [], maxReferences);
-            if (reconciled.attachments.length < candidates.length) toast.warning(t("create.page.referenceLimitExceeded"));
-            return reconciled.attachments;
-        });
-        setLibraryOpen(false);
+        addSelectedReferences(next);
     };
 
     const removeAttachment = (id: string) => {
@@ -962,7 +968,7 @@ export default function CreatePage() {
             return;
         }
         if (missingReferenceImages) {
-            toast.warning(missingFrame ? `请添加${missingFrame.role === "first_frame" ? "首帧" : "尾帧"}图片` : `请添加至少 ${requiredImages} 张参考图`);
+            toast.warning(selectionIssue || (missingFrame ? `请添加${missingFrame.role === "first_frame" ? "首帧" : "尾帧"}图片` : `请添加至少 ${requiredImages} 张参考图`));
             releaseRetryLock();
             releaseSubmitGate();
             return;
@@ -974,17 +980,17 @@ export default function CreatePage() {
             return;
         }
         const reconciledAttachments = mode === "video" && videoReferenceLimits ? reconcileCreationAttachmentLimits(attachments, mentionReferences, videoReferenceLimits) : reconcileCreationAttachmentLimit(attachments, mentionReferences, maxReferences);
-        if (reconciledAttachments.attachments !== attachments) {
+        if (!nativeProfile && reconciledAttachments.attachments !== attachments) {
             toast.warning(t("create.page.referencesAdjusting"));
             releaseRetryLock();
             releaseSubmitGate();
             return;
         }
-        const settings = { ratio, seconds, quality, videoQuality, count, ...nativeSettings };
+        const settings = { ratio, seconds, quality, videoQuality, count, ...nativeSettings, nativeImageChoiceId };
         const references = selectedCreationReferences(text, mentionReferences);
         // 后端对图片和视频使用不同的参考字段；这里先拆分，避免媒体类型在写入任务时被误判。
         const { referenceImages: images, referenceVideos, referenceAudios } = splitCreationAttachments(attachments);
-        const referenceImages = frameSlots.length ? frameSlots.flatMap(({ role, attachment }) => (attachment ? [{ ...attachment, role }] : [])) : images.map((image) => ({ ...image, role: undefined }));
+        const referenceImages = images.map((image) => ({ ...image, role: frameSlots.find((slot) => slot.attachment?.id === image.id)?.role ?? image.role }));
         const videoOperation = inferVideoOperation({
             textCount: text ? 1 : 0,
             imageCount: referenceImages.length,
@@ -1466,6 +1472,7 @@ export default function CreatePage() {
                 ratio: nextSettings.ratio,
                 quality: nextSettings.quality,
                 count: nextSettings.count,
+                nativeImageChoiceId: nextSettings.nativeImageChoiceId,
                 nativeParameters: nextSettings.nativeParameters,
                 nativeVariantId: nextSettings.nativeVariantId,
                 nativeModeVariantId: nextSettings.nativeVariantId,
@@ -1605,6 +1612,8 @@ export default function CreatePage() {
         referenceImageSize,
         maxReferences,
         missingReferenceImages,
+        selectionIssue,
+        selectedCounts,
         references: mentionReferences,
         onRemoveAttachment: removeAttachment,
         onClearAttachments: clearAttachments,
@@ -1643,10 +1652,10 @@ export default function CreatePage() {
         onNativeSettingsChange: (key: "nativeParameters" | "nativeVariantId", value: string) => {
             const remember = mode === "video" ? rememberVideoSettings : rememberImageSettings;
             if (key === "nativeVariantId") {
-                clearAttachments();
-                remember({ model: selectedModel, nativeVariantId: value, nativeModeVariantId: value, nativeParameters: "{}" });
+                if (mode === "image") rememberImageSettings({ model: selectedModel, nativeVariantId: value, nativeImageChoiceId: value, nativeParameters: nativeSettings.nativeParameters || "{}" });
+                else rememberVideoSettings({ model: selectedModel, nativeVariantId: value, nativeModeVariantId: value, nativeParameters: nativeSettings.nativeParameters || "{}" });
             } else {
-                remember({ model: selectedModel, nativeVariantId: nativeSettings.nativeVariantId, nativeModeVariantId: nativeCreation?.referenceVariant?.id, nativeParameters: value });
+                remember({ model: selectedModel, nativeVariantId: nativeSettings.nativeVariantId, nativeModeVariantId: nativeCreation?.referenceVariant?.id, ...(mode === "image" ? { nativeImageChoiceId } : {}), nativeParameters: value });
             }
         },
         setImageParameters: (value: string) => {
@@ -1852,7 +1861,7 @@ export default function CreatePage() {
                             open={libraryOpen}
                             imageReferences={mode === "image" || Boolean(framePicker)}
                             multiple={!framePicker}
-                            disabledReason={(kind) => creationLibraryDisabledReason(mode, kind, videoReferenceLimits)}
+                            disabledReason={(kind) => creationLibraryDisabledReason(mode, kind, pickerLimits)}
                             onClose={() => {
                                 setLibraryOpen(false);
                                 setFramePicker(null);
@@ -1864,7 +1873,7 @@ export default function CreatePage() {
                             remoteLibrary
                             acceptRemoteItems
                             multiple={!framePicker}
-                            remoteItemDisabledReason={(asset) => creationLibraryDisabledReason(mode, asset.kind, videoReferenceLimits)}
+                            remoteItemDisabledReason={(asset) => creationLibraryDisabledReason(mode, asset.kind, pickerLimits)}
                             open={libraryOpen}
                             items={libraryItems}
                             categoryLabels={{ ...creationAssetCategoryLabels, ...externalAssetSources.categoryLabels }}

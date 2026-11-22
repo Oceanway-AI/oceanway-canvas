@@ -239,6 +239,7 @@ export function synchronizeGenerationSpec(node: CanvasNodeData, patch: Partial<C
         if (patch.model !== node.metadata?.model && !Object.prototype.hasOwnProperty.call(patch, "imageParameters")) delete next.options.imageParameters;
         if (patch.model !== node.metadata?.model) {
             for (const key of ["nativeParameters", "nativeVariantId"] as const) if (!Object.hasOwn(patch, key)) delete next.options[key];
+            if (!Object.hasOwn(patch, "nativeImageChoiceId")) delete metadata.nativeImageChoiceId;
         }
         const model = patch.model ? decodeChannelModel(patch.model) : null;
         next.modelSelection = model ? { kind: "channel", channelId: model.channelId, modelKey: model.model } : undefined;
@@ -246,7 +247,6 @@ export function synchronizeGenerationSpec(node: CanvasNodeData, patch: Partial<C
         delete (metadata as Record<string, unknown>).channelId;
         delete (metadata as Record<string, unknown>).channelModelKey;
     }
-    if (Object.hasOwn(patch, "nativeVariantId") && patch.nativeVariantId !== current.options.nativeVariantId && !Object.hasOwn(patch, "nativeParameters")) delete next.options.nativeParameters;
     return { ...node, metadata: { ...metadata, ...generationSpecMetadata(validateGenerationSpec(next)) } };
 }
 

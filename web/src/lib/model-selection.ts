@@ -3,6 +3,7 @@ import { videoResolutionComparisonKey } from "@/lib/video-generation-options";
 import { imageParameterRequest, imageParameterDefaults, imageParameterAccepts } from "./image-parameters";
 import { imageSizePresets } from "@/lib/image-size-presets";
 import { nativeVideoComposerVariants, imageReferenceError, publishedImageReferenceLimit, nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, platformModelDetailPending } from "@/lib/platform-native-media";
+import { slotRange, suppliesFor } from "./platform-media-supply";
 import { modelOptionName, PUBLIC_MODEL_CATALOG_ID, resolveModelChannel, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
 
 export type ModelInputSummary = {
@@ -490,8 +491,10 @@ export function maxModelInputCapacity(config: AiConfig, capability: "image" | "v
         }
         const native = nativeMediaProfile(config, model);
         if (native) {
-            const key = kind === "image" ? "maxImages" : kind === "video" ? "maxVideos" : "maxAudios";
-            return native.variants.reduce((limit, variant) => Math.max(limit, nativeMediaReferenceLimits(config, model, variant)?.[key] ?? 0), maximum);
+            // Canvas connections are unlabelled until the target assigns their roles.
+            const roles = kind === "image" ? ["reference_image", "first_frame", "last_frame"] : [`reference_${kind}`];
+            const capacities = native.variants.flatMap((variant) => suppliesFor(variant).map((supply) => roles.reduce((n, role) => n + slotRange(supply.native_reference_inputs, role).max, 0)));
+            return Math.max(maximum, ...capacities);
         }
         const profile = modelCapabilityConfigFor(config, model);
         const value =

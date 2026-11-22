@@ -1,19 +1,31 @@
 import { useState, type ReactNode } from "react";
 import { Popover } from "antd";
 import "./media-parameter-controls.css";
-import { Check, Clapperboard, Clock3, Layers, Monitor, Palette, SlidersHorizontal, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { Check, Clapperboard, Clock3, Layers, Monitor, Proportions, SlidersHorizontal } from "lucide-react";
 import { ImageSizeDock } from "@/components/image-size-dock";
 import { nativeImageSizePointers, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
 import { imageQualityLabel } from "@/lib/image-quality";
 import { NativeParameterInput, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
-import { creativeParameterLabel, nativeCreationModeOptions, nativeParameterChoices, nativeParameterValues, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
+import {
+    creativeParameterLabel,
+    imageExecutionChoices,
+    nativeCreationModeOptions,
+    nativeMediaVariantOptions,
+    nativeParameterChoices,
+    nativeParameterObject,
+    nativeParameterValues,
+    type NativeMediaVariant,
+    type NativeSchemaField,
+} from "@/lib/platform-native-media";
+import { supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
 import type { AiConfig } from "@/stores/use-config-store";
 
-type Group = "生成模式" | "尺寸与分辨率" | "背景" | "画质" | "张数" | "时长" | "声音" | "更多参数";
+type Group = "生成模式" | "生成规格" | "尺寸与分辨率" | "比例" | "背景" | "画质" | "张数" | "时长" | "声音" | "更多参数";
 type Field = [string, NativeSchemaField];
 
 function fieldGroup([pointer, field]: Field, image: boolean): Group {
     const key = pointer.split("/").pop()?.replaceAll("_", "").toLowerCase();
+    if (!image && ["ratio", "aspectratio"].includes(key || "")) return "比例";
     if (["size", "width", "height", "ratio", "aspectratio", "resolution", "videosize", "imagesize"].includes(key || "")) return "尺寸与分辨率";
     if (image) {
         if (key === "quality") return "画质";
@@ -42,6 +54,7 @@ export function MediaParameterControls({
     config,
     variants,
     modeVariantId,
+    references,
     onChange,
     canvas = false,
 }: {
@@ -49,6 +62,7 @@ export function MediaParameterControls({
     config: AiConfig;
     variants: NativeMediaVariant[];
     modeVariantId?: string;
+    references?: MaterialCounts;
     onChange: (key: NativeMediaSettingKey, value: string) => void;
     canvas?: boolean;
 }) {
@@ -57,8 +71,10 @@ export function MediaParameterControls({
     const variant = variants.find((v) => v.id === config.nativeVariantId);
     const modeVariant = variants.find((v) => v.id === modeVariantId) ?? variant;
     const image = mode === "image";
-    const modes = image ? [] : nativeCreationModeOptions(variants, modeVariant, true);
-    const modeLabel = modes.find((mode) => mode.value === modeVariant?.id)?.label ?? "选择模式";
+    const modeGroup = image ? "生成规格" : "生成模式";
+    const selectedModeId = image ? config.nativeImageChoiceId : modeVariant?.id;
+    const modes = image ? nativeMediaVariantOptions(imageExecutionChoices(config, references ?? {})) : nativeCreationModeOptions(variants, modeVariant, true);
+    const modeLabel = modes.find((mode) => mode.value === selectedModeId)?.label ?? `选择${image ? "规格" : "模式"}`;
     function menu(group: Group, label: string, icon: ReactNode, content: ReactNode) {
         return (
             <Popover
@@ -84,24 +100,24 @@ export function MediaParameterControls({
     const modeMenu =
         modes.length > 0 &&
         menu(
-            "生成模式",
+            modeGroup,
             modeLabel,
             <Clapperboard />,
             <>
-                <strong>生成模式</strong>
+                <strong>{modeGroup}</strong>
                 {modes.map((option) => (
                     <button
                         className="studio-video-option"
                         key={option.value}
                         type="button"
-                        aria-pressed={option.value === modeVariant?.id}
+                        aria-pressed={option.value === selectedModeId}
                         onClick={() => {
-                            if (option.value !== modeVariant?.id) onChange("nativeVariantId", option.value);
+                            if (option.value !== selectedModeId) onChange("nativeVariantId", option.value);
                             setOpen(null);
                         }}
                     >
                         {option.label}
-                        {option.value === modeVariant?.id && <Check size={15} />}
+                        {option.value === selectedModeId && <Check size={15} />}
                     </button>
                 ))}
             </>,
@@ -113,10 +129,12 @@ export function MediaParameterControls({
                 <span role="status">{image ? "请重新选择图片模型" : "请选择有效的生成模式"}</span>
             </>
         );
+    let explicit: Record<string, unknown>;
     let values: Record<string, unknown>;
     let sizePointers: string[] = [];
     try {
-        values = nativeParameterValues(variant, config.nativeParameters);
+        explicit = nativeParameterObject(config.nativeParameters);
+        values = { ...variant.defaults, ...nativeParameterValues(variant, config.nativeParameters) };
         if (image) {
             const pointers = nativeImageSizePointers(variant);
             if (pointers.every((key) => !variant.workbench_parameters || variant.workbench_parameters.includes(key))) sizePointers = pointers;
@@ -133,15 +151,16 @@ export function MediaParameterControls({
     }
     const fields = Object.entries(variant.specifications_schema.properties).filter(([key]) => !variant.workbench_parameters || variant.workbench_parameters.includes(key));
     function update(key: string, value: unknown) {
-        onChange("nativeParameters", JSON.stringify({ ...values, [key]: value }));
+        onChange("nativeParameters", JSON.stringify({ ...explicit, [key]: value }));
     }
     const parameterMenu = (group: Group, icon: ReactNode) => {
-        const items = fields.filter((entry) => !sizePointers.includes(entry[0]) && fieldGroup(entry, image) === group);
+        const advanced: Group[] = ["背景", "画质", "声音", "更多参数"];
+        const items = fields.filter((entry) => !sizePointers.includes(entry[0]) && (group === "更多参数" ? advanced.includes(fieldGroup(entry, image)) : fieldGroup(entry, image) === group));
         const sizePicker = group === "尺寸与分辨率" && sizePointers.length > 0;
         if (!items.length && !sizePicker) return null;
         const preset = sizePicker && selectedNativeImagePreset(variant, values);
         const sizeLabel = preset
-            ? [preset.aspect_ratio, preset.resolution].join(" · ")
+            ? [preset.resolution, preset.aspect_ratio].join(" · ")
             : sizePointers
                   .map((key) => display(values[key], group))
                   .filter(Boolean)
@@ -152,26 +171,33 @@ export function MediaParameterControls({
             summary,
             icon,
             <>
-                {sizePicker && <ImageSizeDock key={sizeResetRevision} variant={variant} values={values} onChange={(next) => onChange("nativeParameters", JSON.stringify(next))} />}
+                {sizePicker && <ImageSizeDock key={sizeResetRevision} variant={variant} values={values} explicit={explicit} references={references} onChange={(next) => onChange("nativeParameters", JSON.stringify(next))} />}
                 {items.map(([key, field]) => {
                     const label = creativeParameterLabel(key, field.title);
-                    const choices = nativeParameterChoices(field, group === "时长" || group === "张数");
+                    const kind = fieldGroup([key, field], image);
+                    const choices = nativeParameterChoices(field, group === "时长" || group === "张数") ?? (field.type === "boolean" ? [true, false] : undefined);
                     return (
                         <section key={key}>
                             <strong>{label}</strong>
                             {choices?.length ? (
                                 <div className="studio-video-choices">
+                                    {!variant.specifications_schema.required?.includes(key) && !Object.hasOwn(field, "const") && (
+                                        <button type="button" aria-pressed={!Object.hasOwn(explicit, key)} onClick={() => update(key, undefined)}>
+                                            模型默认
+                                        </button>
+                                    )}
                                     {choices.map((value) => (
                                         <button
                                             type="button"
                                             key={JSON.stringify(value)}
-                                            aria-pressed={values[key] === value}
+                                            aria-pressed={Object.hasOwn(field, "const") || explicit[key] === value}
+                                            disabled={Object.hasOwn(field, "const") || Boolean(variant.native_request_variant.supply_alternatives && group !== "尺寸与分辨率" && supplySelection(variant, { ...explicit, [key]: value }, references).issue)}
                                             onClick={() => {
                                                 update(key, value);
                                                 if (group === "时长" || group === "画质" || group === "背景" || group === "张数") setOpen(null);
                                             }}
                                         >
-                                            {display(value, group)}
+                                            {typeof value === "boolean" ? (value ? "开" : "关") : display(value, kind)}
                                         </button>
                                     ))}
                                 </div>
@@ -181,7 +207,7 @@ export function MediaParameterControls({
                         </section>
                     );
                 })}
-                {image && (
+                {(image || group === "更多参数") && (
                     <button
                         type="button"
                         className="justify-self-start text-xs underline"
@@ -197,23 +223,13 @@ export function MediaParameterControls({
             </>,
         );
     };
-    const audio = fields.find((entry) => fieldGroup(entry, image) === "声音");
-    const switchable = audio && !Object.hasOwn(audio[1], "const") && (!audio[1].enum || [true, false].every((value) => audio[1].enum?.includes(value)));
-    const sound = audio && (values[audio[0]] ?? audio[1].default) === true;
     return (
         <>
-            {modeMenu}
             {parameterMenu("尺寸与分辨率", <Monitor />)}
+            {modeMenu}
             {image && parameterMenu("张数", <Layers />)}
-            {image && parameterMenu("背景", <Palette />)}
-            {image && parameterMenu("画质", <Sparkles />)}
             {parameterMenu("时长", <Clock3 />)}
-            {switchable && (
-                <button type="button" role="switch" aria-checked={Boolean(sound)} aria-label="生成声音" className="creation-chat-control" onClick={() => update(audio[0], !sound)}>
-                    {sound ? <Volume2 /> : <VolumeX />}
-                    <span>{sound ? "声音开" : "声音关"}</span>
-                </button>
-            )}
+            {!image && parameterMenu("比例", <Proportions />)}
             {parameterMenu("更多参数", <SlidersHorizontal />)}
         </>
     );

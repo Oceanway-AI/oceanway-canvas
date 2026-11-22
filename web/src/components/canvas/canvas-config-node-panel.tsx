@@ -6,8 +6,9 @@ import { ChevronDown, Dice5, Image as ImageIcon, LoaderCircle, MessageSquare, Mu
 import { Switch } from "@/components/ui/base/switch";
 import { MediaParameterControls } from "@/components/media-parameter-controls";
 import { ModelPicker } from "@/components/model-picker";
-import { nativeMediaProfile, nativeMediaVariant } from "@/lib/platform-native-media";
-import { assignFrameSlots, publishedFrameRoles } from "@/lib/media-reference-slots";
+import { nativeMediaProfile, nativeMediaVariant, nativeSelectionIssue } from "@/lib/platform-native-media";
+import { requestFrameImages } from "@/lib/media-reference-slots";
+import { mediaRoleCounts } from "@/lib/platform-media-supply";
 import { buildNodeConfig as buildModelNodeConfig, nativeCanvasParameterPatch } from "./canvas-node-prompt-config";
 
 import {
@@ -44,7 +45,7 @@ import {
     workflowVideoFieldsFromJson,
     type WorkflowVideoFieldLike,
 } from "@/lib/model-capabilities";
-import { modelCompatibilityError, modelRequestOptions, type ModelRequirements } from "@/lib/model-selection";
+import { modelRequestOptions, type ModelRequirements } from "@/lib/model-selection";
 import { resolveCanvasWorkflowProvider } from "@/lib/canvas/canvas-workflow";
 import { canonicalGenerationMetadata, nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
 import type { CanvasAudioSettingKey } from "./canvas-audio-settings-popover";
@@ -196,16 +197,17 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
     const hasComposerContent = Boolean(nodeGenerationPrompt(node).trim());
     const workflowParameterError = firstWorkflowParameterError(dynamicWorkflowFields, node.metadata?.workflowParameters || {});
     const variant = native ? nativeMediaVariant(config) : undefined;
-    const frames = assignFrameSlots(
-        publishedFrameRoles(variant),
-        inputSummary.imageNodeIds.map((id) => ({ id })),
-        ({ id }) => (id === node.metadata?.videoStartFrameNodeId ? "first_frame" : id === node.metadata?.videoEndFrameNodeId ? "last_frame" : undefined),
+    const images = requestFrameImages(
+        variant,
+        inputSummary.imageNodeIds.map((id) => ({ kind: "image", role: id === node.metadata?.videoStartFrameNodeId ? "first_frame" : id === node.metadata?.videoEndFrameNodeId ? "last_frame" : undefined })),
     );
-    const missingFrame = frames.find((slot) => !slot.attachment && variant?.native_request_variant.native_reference_inputs.some((ref) => ref.role === slot.role && (ref.min_items || 0) > 0));
+    const counts = mediaRoleCounts(images);
+    counts.reference_image = (counts.reference_image ?? 0) + inputSummary.characterCount;
+    counts.reference_video = inputSummary.videoCount;
+    counts.reference_audio = inputSummary.audioCount;
     const capabilityError =
         workflowParameterError ||
-        (missingFrame && `请添加${missingFrame.role === "first_frame" ? "首帧" : "尾帧"}图片`) ||
-        (native && modelCompatibilityError(config, config.model, requirements)) ||
+        (native && nativeSelectionIssue(config, counts)) ||
         (workflowProvider === "runninghub"
             ? !workflowProviderPluginEnabled(runtimeStatuses, "runninghub")
                 ? "RunningHub 工作流插件未启用"
@@ -240,6 +242,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                                     generationMode: value as CanvasGenerationMode,
                                     model: undefined,
                                     nativeVariantId: undefined,
+                                    nativeImageChoiceId: undefined,
                                     nativeModeVariantId: undefined,
                                     nativeParameters: undefined,
                                     videoStartFrameNodeId: undefined,
@@ -391,7 +394,8 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                                     config={config}
                                     variants={native.variants}
                                     modeVariantId={selectedMode}
-                                    onChange={(key, value) => onConfigChange(node.id, nativeCanvasParameterPatch(config, selectedMode, key, value))}
+                                    references={counts}
+                                    onChange={(key, value) => onConfigChange(node.id, nativeCanvasParameterPatch(config, selectedMode, key, value, mode))}
                                 />
                             </div>
                         ) : null}

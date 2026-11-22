@@ -168,6 +168,7 @@ export type AiConfig = {
     imageParameters?: string;
     nativeParameters?: string;
     nativeVariantId?: string;
+    nativeImageChoiceId?: string;
     size: string;
     transparentBackground: string;
     count: string;

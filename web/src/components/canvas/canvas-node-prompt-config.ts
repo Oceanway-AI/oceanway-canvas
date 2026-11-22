@@ -52,8 +52,9 @@ export function videoConfigPatch(key: keyof AiConfig, value: string) {
     return { [key]: value };
 }
 
-export function nativeCanvasParameterPatch(config: AiConfig, selectedMode: string | undefined, key: "nativeVariantId" | "nativeParameters", value: string): Partial<CanvasNodeMetadata> {
-    if (key === "nativeVariantId") return { nativeModeVariantId: value, nativeVariantId: value, nativeParameters: undefined, videoStartFrameNodeId: undefined, videoEndFrameNodeId: undefined };
+export function nativeCanvasParameterPatch(config: AiConfig, selectedMode: string | undefined, key: "nativeVariantId" | "nativeParameters", value: string, mode?: string): Partial<CanvasNodeMetadata> {
+    if (key === "nativeVariantId" && mode === "image") return { nativeImageChoiceId: value, nativeVariantId: value, nativeParameters: config.nativeParameters };
+    if (key === "nativeVariantId") return { nativeModeVariantId: value, nativeVariantId: value, nativeParameters: config.nativeParameters };
     return { nativeModeVariantId: selectedMode, nativeVariantId: config.nativeVariantId, nativeParameters: value };
 }
 

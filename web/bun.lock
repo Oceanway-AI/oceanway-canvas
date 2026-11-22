@@ -7,6 +7,7 @@
       "dependencies": {
         "@ant-design/icons": "^6.3.2",
         "@ant-design/x": "^2.9.0",
+        "@cfworker/json-schema": "4.1.1",
         "@codemirror/lang-json": "^6.0.2",
         "@excalidraw/excalidraw": "0.18.1",
         "@ffmpeg/core": "0.12.10",
@@ -222,6 +223,8 @@
     "@base-ui/utils": ["@base-ui/utils@0.3.1", "https://registry.npmmirror.com/@base-ui/utils/-/utils-0.3.1.tgz", { "dependencies": { "@babel/runtime": "^7.29.2", "@floating-ui/utils": "^0.2.11", "reselect": "^5.2.0", "use-sync-external-store": "^1.6.0" }, "peerDependencies": { "@types/react": "^17 || ^18 || ^19", "react": "^17 || ^18 || ^19", "react-dom": "^17 || ^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-gFFiltORVmW/N6IILTGxizP3PBpVpysqML1ALY5Vk0mH+7faVkCknOU31goYHN5Aoek2dkjxva1XOD2Ce9WuIg=="],
 
     "@braintree/sanitize-url": ["@braintree/sanitize-url@6.0.2", "https://registry.npmmirror.com/@braintree/sanitize-url/-/sanitize-url-6.0.2.tgz", {}, "sha512-Tbsj02wXCbqGmzdnXNk0SOF19ChhRU70BsroIi4Pm6Ehp56in6vch94mfbdQ17DozxkL3BAVjbZ4Qc1a0HFRAg=="],
+
+    "@cfworker/json-schema": ["@cfworker/json-schema@4.1.1", "", {}, "sha512-gAmrUZSGtKc3AiBL71iNWxDsyUC5uMaKKGdvzYsBoTW/xi42JQHl7eKV2OYzCUqvc+D2RCcf7EXY2iCyFIk6og=="],
 
     "@chevrotain/cst-dts-gen": ["@chevrotain/cst-dts-gen@11.0.3", "https://registry.npmmirror.com/@chevrotain/cst-dts-gen/-/cst-dts-gen-11.0.3.tgz", { "dependencies": { "@chevrotain/gast": "11.0.3", "@chevrotain/types": "11.0.3", "lodash-es": "4.17.21" } }, "sha512-BvIKpRLeS/8UbfxXxgC33xOumsacaeCKAjAeLyOn7Pcp95HiRbrpl14S+9vaZLolnbssPIUuiUd8IvgkRyt6NQ=="],
 

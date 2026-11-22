@@ -1,0 +1,167 @@
+import { Validator, type Schema } from "@cfworker/json-schema";
+import { nativeImageSizeIssue } from "./platform-native-image-size";
+import type { NativeImageOutputSize, NativeMediaVariant } from "./platform-native-media";
+
+export type MaterialCounts = Record<string, number>;
+export type SupplySlot = { role: string; min_items?: number; max_items?: number };
+export type NativeSupply = {
+    request_schema?: Schema;
+    native_reference_inputs: SupplySlot[];
+    output_size?: NativeImageOutputSize;
+    material_constraints?: { max_items?: number; audio_requires_visual?: boolean };
+};
+
+export function suppliesFor(variant: NativeMediaVariant): NativeSupply[] {
+    const native = variant.native_request_variant;
+    if (native.supply_alternatives === undefined) return [{ native_reference_inputs: native.native_reference_inputs ?? [], material_constraints: native.material_constraints, output_size: native.output_size }];
+    if (!Array.isArray(native.supply_alternatives)) return [];
+    return native.supply_alternatives.filter(
+        (supply) => supply?.request_schema && typeof supply.request_schema === "object" && Array.isArray(supply.native_reference_inputs) && supply.native_reference_inputs.every((slot) => typeof slot?.role === "string"),
+    );
+}
+
+function pointerPath(pointer: string) {
+    return pointer
+        .slice(1)
+        .split("/")
+        .map((key) => key.replaceAll("~1", "/").replaceAll("~0", "~"));
+}
+
+function schemaField(schema: Schema | undefined, pointer: string, explicit: Record<string, unknown>) {
+    let required = true;
+    let prefix = "";
+    for (const key of pointerPath(pointer)) {
+        const parentPresent = !prefix || Object.keys(explicit).some((path) => path.startsWith(prefix + "/"));
+        required = (required || parentPresent) && Boolean(schema?.required?.includes(key));
+        const child: Schema | boolean | undefined = schema?.properties?.[key] ?? schema?.additionalProperties;
+        if (child === false) return { required, forbidden: true, schema: undefined };
+        schema = typeof child === "object" ? child : undefined;
+        prefix += "/" + key.replaceAll("~", "~0").replaceAll("/", "~1");
+    }
+    return { schema, required, forbidden: false };
+}
+
+function requiredParameter(variant: NativeMediaVariant, pointer: string, explicit: Record<string, unknown>, supply?: NativeSupply) {
+    const branch = schemaField(supply?.request_schema, pointer, explicit);
+    const common = schemaField(variant.native_request_variant.request_schema, pointer, explicit);
+    return {
+        branch: branch.schema,
+        common: common.schema,
+        required: variant.specifications_schema.required?.includes(pointer) || common.required || branch.required || (pointer === "/size" && Boolean(supply?.output_size || variant.native_request_variant.output_size)),
+    };
+}
+
+// The form owns only the published parameter pointers. Transport, resolved
+// resources and prompt are validated on the fully assembled body by the host.
+export function supplyParameters(variant: NativeMediaVariant, explicit: Record<string, unknown>, supply?: NativeSupply) {
+    const values = { ...explicit };
+    for (const [pointer, field] of Object.entries(variant.specifications_schema.properties)) {
+        if (Object.hasOwn(values, pointer)) continue;
+        const { required, branch, common } = requiredParameter(variant, pointer, explicit, supply);
+        if (!required) continue;
+        const value = [branch?.const, common?.const, field.const, branch?.default, common?.default, variant.defaults?.[pointer], field.default].find((v) => v !== undefined);
+        if (value !== undefined) values[pointer] = value;
+    }
+    return values;
+}
+
+export function slotRange(slots: SupplySlot[], role: string) {
+    const matching = slots.filter((slot) => slot.role === role);
+    return {
+        min: matching.reduce((sum, slot) => sum + (slot.min_items ?? 0), 0),
+        max: matching.reduce((sum, slot) => sum + (slot.max_items ?? Infinity), 0),
+    };
+}
+
+const roleLabels: Record<string, string> = { reference_image: "参考图", first_frame: "首帧", last_frame: "尾帧", reference_video: "参考视频", reference_audio: "参考音频", mask: "蒙版" };
+
+export function materialsIssue(supply: NativeSupply, counts: MaterialCounts) {
+    const roles = new Set([...Object.keys(counts), ...supply.native_reference_inputs.map((slot) => slot.role)]);
+    for (const role of roles) {
+        const count = counts[role] ?? 0;
+        if (!Number.isSafeInteger(count) || count < 0) return "参考素材数量无效";
+        const { min, max } = slotRange(supply.native_reference_inputs, role);
+        const unit = role === "reference_image" ? "张" : "个";
+        if (count > max) return `当前档位最多支持 ${max} ${unit}${roleLabels[role] || role}，已添加 ${count} ${unit}`;
+        if (count < min) return `当前档位至少需要 ${min} ${unit}${roleLabels[role] || role}`;
+    }
+    const policy = supply.material_constraints;
+    if (policy?.max_items !== undefined && Object.values(counts).reduce((a, b) => a + b, 0) > policy.max_items) return `当前档位最多支持 ${policy.max_items} 个参考素材`;
+    if (policy?.audio_requires_visual && counts.reference_audio && !(counts.reference_image || counts.first_frame || counts.last_frame || counts.reference_video)) return "参考音频需要搭配图片或视频";
+    return "";
+}
+
+const validators = new WeakMap<object, Validator>();
+function validField(schema: Schema | undefined, value: unknown) {
+    if (!schema) return true;
+    let validator = validators.get(schema);
+    if (!validator) {
+        validator = new Validator(structuredClone(schema), "2020-12");
+        validators.set(schema, validator);
+    }
+    return validator.validate(value).valid;
+}
+
+export function supplyParameterIssue(variant: NativeMediaVariant, supply: NativeSupply, explicit: Record<string, unknown>) {
+    const values = supplyParameters(variant, explicit, supply);
+    const native = variant.native_request_variant;
+    try {
+        const sizeIssue = nativeImageSizeIssue({ ...variant, native_request_variant: { ...native, output_size: supply.output_size ?? native.output_size } }, values);
+        if (sizeIssue) return sizeIssue;
+    } catch {
+        return "模型尺寸规格无效，请刷新模型目录";
+    }
+    for (const pointer of Object.keys(variant.specifications_schema.properties)) {
+        if (!Object.hasOwn(values, pointer) && requiredParameter(variant, pointer, explicit, supply).required) return `请选择必填参数 ${pointer}`;
+    }
+    for (const [pointer, value] of Object.entries(values)) {
+        const field = variant.specifications_schema.properties[pointer];
+        if (!field || (Object.hasOwn(explicit, pointer) && variant.workbench_parameters && !variant.workbench_parameters.includes(pointer))) return `当前组合未开放参数 ${pointer}`;
+        const branch = schemaField(supply.request_schema, pointer, explicit);
+        const common = schemaField(native.request_schema, pointer, explicit);
+        try {
+            if (branch.forbidden || common.forbidden || !validField(branch.schema, value) || !validField(common.schema, value) || !validField(field as Schema, value)) return `当前组合不支持 ${field.title || pointer} 的所选值`;
+        } catch {
+            return "模型参数规格无效，请刷新模型目录";
+        }
+    }
+    return "";
+}
+
+export function supplySelection(variant: NativeMediaVariant, explicit: Record<string, unknown>, counts?: MaterialCounts) {
+    let materialIssue = "";
+    let parameterIssue = "";
+    const base = supplyParameters(variant, explicit);
+    const candidates = new Map<string, { supply: NativeSupply; values: Record<string, unknown>; issue: string }>();
+    for (const supply of suppliesFor(variant)) {
+        const issue = supplyParameterIssue(variant, supply, explicit);
+        if (issue) {
+            parameterIssue ||= issue;
+            continue;
+        }
+        const conflict = counts && materialsIssue(supply, counts);
+        if (conflict) {
+            materialIssue ||= conflict;
+            continue;
+        }
+        const values = supplyParameters(variant, explicit, supply);
+        const result = { supply, values, issue: "" };
+        const signature = JSON.stringify(values);
+        if (signature === JSON.stringify(base)) return result;
+        if (!candidates.has(signature)) candidates.set(signature, result);
+    }
+    if (candidates.size === 1) return [...candidates.values()][0];
+    if (candidates.size > 1) return { supply: undefined, values: explicit, issue: "多个供给规格需要不同的必填值，请明确选择生成参数" };
+    return { supply: undefined, values: explicit, issue: materialIssue || parameterIssue || "当前型号没有可用的供给组合" };
+}
+
+export function mediaRoleCounts(materials: ReadonlyArray<{ kind: string; role?: string }>): MaterialCounts {
+    const counts: MaterialCounts = {};
+    for (const material of materials) {
+        const kind = material.kind === "character" ? "image" : material.kind;
+        if (!["image", "video", "audio", "mask"].includes(kind)) continue;
+        const role = kind === "mask" ? "mask" : material.role && material.role !== "reference" ? material.role : `reference_${kind}`;
+        counts[role] = (counts[role] ?? 0) + 1;
+    }
+    return counts;
+}

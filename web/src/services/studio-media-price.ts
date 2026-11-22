@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { imageRequestConfig, studioMediaGenerationVariant } from "@/lib/platform-native-media";
+import { imageRequestConfig, nativeMediaVariant, studioMediaGenerationVariant } from "@/lib/platform-native-media";
+import { requestFrameImages } from "@/lib/media-reference-slots";
+import { mediaRoleCounts } from "@/lib/platform-media-supply";
 import { resourceIdFromStorageKey, resourceStorageKey } from "@/services/api/resources";
 import { backendProviderConfig } from "@/services/api/generation-provider-config";
 import type { CreateTaskInput } from "@/services/api/task-center";
@@ -16,22 +18,21 @@ export function studioMediaPriceRequest(config: AiConfig, mode: string, prompt: 
     if (!owner || !prompt.trim() || (mode !== "image" && mode !== "video")) return null;
     const selected = resolveModelChannel(config, config.model).modelDetails?.find((item) => item.model === modelOptionName(config.model))?.platform;
     if (!selected?.price.version) return null;
-    const refs = { image: [] as EstimateReference[], video: [] as EstimateReference[], audio: [] as EstimateReference[] };
+    const refs = { image: [] as EstimateReference[], video: [] as EstimateReference[], audio: [] as EstimateReference[], mask: [] as EstimateReference[] };
     for (const ref of references) {
         const kind = ref.kind === "character" ? "image" : ref.kind;
-        if (kind !== "image" && kind !== "video" && kind !== "audio") continue;
+        if (kind !== "image" && kind !== "video" && kind !== "audio" && kind !== "mask") continue;
         const id = resourceIdFromStorageKey(ref.storageKey);
         if (!id) return null;
         refs[kind].push({ kind, storageKey: resourceStorageKey(id), role: ref.role });
     }
-    if (refs.image.some((r) => r.role === "first_frame" || r.role === "last_frame")) {
-        refs.image.sort((a, b) => Number(a.role === "last_frame") - Number(b.role === "last_frame"));
-    }
     try {
-        if (mode === "image") config = imageRequestConfig(config, refs.image.length);
+        if (refs.mask.length > 1) return null;
+        if (mode === "image") config = imageRequestConfig(config, refs.image.length, refs.mask.length);
+        else refs.image = requestFrameImages(nativeMediaVariant(config), refs.image);
         const variantId = studioMediaGenerationVariant(config);
         if (!variantId) return null;
-        const parameters = backendProviderConfig(config, mode);
+        const parameters = backendProviderConfig(config, mode, mediaRoleCounts([...refs.image, ...refs.video, ...refs.audio, ...refs.mask]));
         if (!("channelId" in parameters) || parameters.channelId !== "oceanway-platform") return null;
         const pins = (entries: EstimateReference[]) => entries.map(({ storageKey, role }) => ({ storageKey, role }));
         return {
@@ -46,7 +47,7 @@ export function studioMediaPriceRequest(config: AiConfig, mode: string, prompt: 
                 expectedPriceVersion: selected.price.version,
                 ...(selected.capability_revision ? { expectedCapabilityRevision: selected.capability_revision, expectedConnectionRevision: selected.connection_revision } : {}),
             },
-            input: { mode, config: parameters, referenceImages: pins(refs.image), referenceVideos: pins(refs.video), referenceAudios: pins(refs.audio) },
+            input: { mode, config: parameters, referenceImages: pins(refs.image), referenceVideos: pins(refs.video), referenceAudios: pins(refs.audio), ...(refs.mask.length ? { mask: pins(refs.mask)[0] } : {}) },
         };
     } catch {
         // Incomplete native parameter edits can still be corrected in the composer.

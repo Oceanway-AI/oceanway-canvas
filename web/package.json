@@ -20,6 +20,7 @@
         "@oceanway/model-picker": "file:vendor/oceanway-model-picker-0.1.4.tgz",
         "@ant-design/icons": "^6.3.2",
         "@ant-design/x": "^2.9.0",
+        "@cfworker/json-schema": "4.1.1",
         "@codemirror/lang-json": "^6.0.2",
         "@excalidraw/excalidraw": "0.18.1",
         "@ffmpeg/core": "0.12.10",

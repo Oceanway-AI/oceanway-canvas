@@ -210,6 +210,7 @@ export function buildImageGenerationMetadata(type: CanvasImageGenerationType, co
         model: config.model,
         nativeParameters: config.nativeParameters,
         nativeVariantId: config.nativeVariantId,
+        nativeImageChoiceId: config.nativeImageChoiceId,
         producedModelCandidate: producedModelCandidateForGeneration(config),
         size: config.size,
         quality: config.quality,
@@ -345,7 +346,7 @@ export function buildVideoGenerationMetadata(
     const startFrame = workflowVideo ? undefined : requireConnectedVideoFrame(metadata?.videoStartFrameNodeId, "首帧", referenceImageIds);
     const endFrame = workflowVideo ? undefined : requireConnectedVideoFrame(metadata?.videoEndFrameNodeId, "尾帧", referenceImageIds);
     const variant = !workflowVideo && config ? nativeMediaVariant(config) : undefined;
-    const slots = assignFrameSlots(publishedFrameRoles(variant), context?.referenceImages ?? [], (image) => (image.id === startFrame ? "first_frame" : image.id === endFrame ? "last_frame" : image.role));
+    const slots = assignFrameSlots(variant, context?.referenceImages ?? [], (image) => (image.id === startFrame ? "first_frame" : image.id === endFrame ? "last_frame" : image.role));
     for (const slot of slots) {
         if (!slot.attachment && variant?.native_request_variant.native_reference_inputs.some((ref) => ref.role === slot.role && (ref.min_items || 0) > 0)) throw new Error(`请添加${slot.role === "first_frame" ? "首帧" : "尾帧"}图片`);
     }
@@ -541,7 +542,12 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
         const boundRoles = [metadata?.videoStartFrameNodeId && "first_frame", metadata?.videoEndFrameNodeId && "last_frame"].filter(Boolean);
         const frames = !saved && mode === "video" && boundRoles.length ? profile?.variants.find((v) => boundRoles.every((role) => publishedFrameRoles(v).some((r) => r === role))) : undefined;
         const count = input.imageCount + input.videoCount + input.audioCount + input.characterCount;
-        const creation = nativeCreationSettings(config, model, { nativeVariantId: metadata?.nativeVariantId, nativeParameters: metadata?.nativeParameters, nativeModeVariantId: frames?.id ?? saved?.id }, count);
+        const creation = nativeCreationSettings(
+            config,
+            model,
+            { nativeVariantId: metadata?.nativeVariantId, nativeParameters: metadata?.nativeParameters, nativeModeVariantId: frames?.id ?? saved?.id, nativeImageChoiceId: metadata?.nativeImageChoiceId },
+            count,
+        );
         Object.assign(generationDefaults, creation.settings);
         nativeModeVariantId = creation.referenceVariant?.id;
     }
@@ -573,6 +579,7 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
         nativeParameters: generationDefaults.nativeParameters,
         nativeVariantId: generationDefaults.nativeVariantId,
         nativeModeVariantId,
+        nativeImageChoiceId: node ? node.metadata?.nativeImageChoiceId : config.nativeImageChoiceId,
         size: generationDefaults.size ?? requestedConfig.size,
         transparentBackground: generationDefaults.transparentBackground || (requestedConfig.transparentBackground === "true" ? "true" : "false"),
         videoSeconds: generationDefaults.videoSeconds ?? requestedConfig.videoSeconds,

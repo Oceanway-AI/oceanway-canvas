@@ -374,6 +374,7 @@ export type CanvasNodeMetadata = {
     imageParameters?: string;
     nativeParameters?: string;
     nativeVariantId?: string;
+    nativeImageChoiceId?: string;
     /** User-selected video mode. An empty reference slot can use the sibling text request. */
     nativeModeVariantId?: string;
     transparentBackground?: string;

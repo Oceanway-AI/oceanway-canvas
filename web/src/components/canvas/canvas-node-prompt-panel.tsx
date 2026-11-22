@@ -8,8 +8,9 @@ import { MediaParameterControls } from "@/components/media-parameter-controls";
 import { FrameReferenceSlots, ReferenceSlot } from "@/components/reference-slot";
 import { PlatformMaterialPicker } from "@/components/assets/platform-material-picker";
 import type { InsertAssetPayload } from "./asset-picker-modal";
-import { assignFrameSlots, publishedFrameRoles, type FrameRole } from "@/lib/media-reference-slots";
-import { nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, platformModelDetailPending } from "@/lib/platform-native-media";
+import { assignFrameSlots, type FrameRole } from "@/lib/media-reference-slots";
+import { nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, nativeSelectionIssue, platformModelDetailPending } from "@/lib/platform-native-media";
+import { mediaRoleCounts } from "@/lib/platform-media-supply";
 import { modelOptionName, resolveModelChannel, selectableModelsByCapability, useEffectiveConfig } from "@/stores/use-config-store";
 import { modelCapabilityConfigFor } from "@/lib/model-capabilities";
 import { canonicalGenerationMetadata, nodeGenerationPrompt } from "@/lib/canvas/generation-contract";
@@ -19,7 +20,7 @@ import { CanvasPromptFontSizeControl } from "./canvas-prompt-font-size-control";
 import { CreditSymbol } from "@/constant/credits";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { useStudioMediaPrice } from "@/services/studio-media-price";
-import { modelCompatibilityError, modelRequestOptions, defaultImageParamsForModel, type ModelRequirements } from "@/lib/model-selection";
+import { modelRequestOptions, defaultImageParamsForModel, type ModelRequirements } from "@/lib/model-selection";
 import { referenceImageSizeSelection, type ImageDimensions } from "@/lib/canvas/canvas-reference-image-size";
 import { navigateToSettings } from "@/lib/settings-navigation";
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
@@ -213,18 +214,20 @@ export function CanvasNodePromptPanel({
     const selectedMode = config.nativeModeVariantId ?? config.nativeVariantId;
     const referenceVariant = nativeMediaVariant(config, config.model, selectedMode);
     const limits = nativeMediaReferenceLimits(config, config.model, referenceVariant);
-    const frameRoles = publishedFrameRoles(referenceVariant);
+    const boundRole = (item: { nodeId: string }) => (item.nodeId === node.metadata?.videoStartFrameNodeId ? "first_frame" : item.nodeId === node.metadata?.videoEndFrameNodeId ? "last_frame" : undefined);
     const frameSlots = assignFrameSlots(
-        frameRoles,
+        referenceVariant,
         activeReferences.filter((r) => r.kind === "image"),
-        (r) => (r.nodeId === node.metadata?.videoStartFrameNodeId ? "first_frame" : r.nodeId === node.metadata?.videoEndFrameNodeId ? "last_frame" : undefined),
+        boundRole,
     );
+    const pricedReferences = activeReferences.map((item) => ({ kind: item.kind, storageKey: item.storageKey, role: frameSlots.find((slot) => slot.attachment?.id === item.id)?.role ?? boundRole(item) }));
+    const selectedCounts = mediaRoleCounts(pricedReferences);
     const [pickSlot, setPickSlot] = useState<FrameRole | "reference" | null>(null);
-    const hasSlots = Boolean(onInsertMedia && native && limits && (limits.maxImages || limits.maxVideos || limits.maxAudios));
+    const hasSlots = Boolean(onInsertMedia && native && limits && (limits.maxImages || limits.maxVideos || limits.maxAudios || limits.maxFirstFrames || limits.maxLastFrames));
     const fullKind = (kind: string) => {
         if (!limits) return true;
         const max = kind === "image" ? limits.maxImages : kind === "audio" ? limits.maxAudios : kind === "video" ? limits.maxVideos : 0;
-        return activeReferences.filter((r) => r.kind === kind || (kind === "image" && r.kind === "character")).length >= max;
+        return (selectedCounts["reference_" + kind] ?? 0) >= max;
     };
     const profile = modelCapabilityConfigFor(config, config.model);
     const modelDetailPending = platformModelDetailPending(config);
@@ -241,13 +244,7 @@ export function CanvasNodePromptPanel({
     }, [globalConfig, promptOptimizerEnabled, promptOptimizerInstallation]);
     const generationCount = Math.max(1, Math.min(15, Math.floor(Math.abs(Number(config.count)) || 1)));
     const priceChannel = resolveModelChannel(config, config.model);
-    const standardPrice = useStudioMediaPrice(
-        config,
-        mode,
-        prompt,
-        activeReferences.map((item) => ({ kind: item.kind, storageKey: item.storageKey, role: frameSlots.find((slot) => slot.attachment?.id === item.id)?.role })),
-        projectId,
-    );
+    const standardPrice = useStudioMediaPrice(config, mode, prompt, pricedReferences, projectId);
     const activeReferenceCount = activeReferences.length;
     const videoFrameOptions = resolvedMentionReferences.filter((item) => item.active && item.kind === "image").map((item) => ({ nodeId: item.nodeId, label: item.label, title: item.title, previewUrl: item.previewUrl }));
     const hasVideoPromptTools = mode === "video" && !native && !simpleMode && videoFrameOptions.length > 0;
@@ -276,7 +273,7 @@ export function CanvasNodePromptPanel({
         return { width: Math.round(rect.width), height: Math.round(rect.height) };
     };
     const missingFrame = frameSlots.some((slot) => !slot.attachment && variant?.native_request_variant.native_reference_inputs.some((ref) => ref.role === slot.role && (ref.min_items || 0) > 0));
-    const incompatibleReference = native && modelCompatibilityError(config, config.model, requirements);
+    const incompatibleReference = native && nativeSelectionIssue(config, selectedCounts);
     const isSubmitDisabled = !modelAvailable || !prompt.trim() || missingFrame || Boolean(incompatibleReference);
     const canExpandPrompt = mode === "image" || mode === "video";
     const canOptimizePrompt = Boolean(promptOptimizerProvider) && canExpandPrompt;
@@ -604,7 +601,8 @@ export function CanvasNodePromptPanel({
                                 config={config}
                                 variants={native.variants}
                                 modeVariantId={selectedMode}
-                                onChange={(key, value) => onConfigChange(node.id, nativeCanvasParameterPatch(config, selectedMode, key, value))}
+                                references={selectedCounts}
+                                onChange={(key, value) => onConfigChange(node.id, nativeCanvasParameterPatch(config, selectedMode, key, value, mode))}
                             />
                         </>
                     ) : mode === "image" && modelAvailable ? (
@@ -651,12 +649,13 @@ export function CanvasNodePromptPanel({
                                         />
                                     ))}
                                 </FrameReferenceSlots>
-                            ) : !activeReferences.length ? (
-                                <ReferenceSlot label={mode === "image" ? "参考图" : "参考内容"} onPick={() => setPickSlot("reference")} disabled={isRunning || node.metadata?.locked || ["image", "video", "audio"].every(fullKind)} />
                             ) : null)}
+                        {hasSlots && !activeReferences.length && Boolean(limits?.maxImages || limits?.maxVideos || limits?.maxAudios) && (
+                            <ReferenceSlot label={mode === "image" ? "参考图" : "参考内容"} onPick={() => setPickSlot("reference")} disabled={isRunning || node.metadata?.locked || ["image", "video", "audio"].every(fullKind)} />
+                        )}
                         <ConnectedReferenceShelf
                             addSlot={
-                                hasSlots && !frameSlots.length ? (
+                                hasSlots && Boolean(limits?.maxImages || limits?.maxVideos || limits?.maxAudios) ? (
                                     <ReferenceSlot label={mode === "image" ? "参考图" : "参考内容"} onPick={() => setPickSlot("reference")} disabled={isRunning || node.metadata?.locked || ["image", "video", "audio"].every(fullKind)} />
                                 ) : undefined
                             }
@@ -729,7 +728,7 @@ export function CanvasNodePromptPanel({
                                     ["video", limits.maxVideos],
                                     ["audio", limits.maxAudios],
                                 ] as const) {
-                                    if (items.filter((i) => i.kind === kind).length + activeReferences.filter((r) => r.kind === kind || (kind === "image" && r.kind === "character")).length > max) throw new Error("所选素材超过当前模式的参考数量上限");
+                                    if (items.filter((i) => i.kind === kind).length + (selectedCounts["reference_" + kind] ?? 0) > max) throw new Error("所选素材超过当前模式的参考数量上限");
                                 }
                             }
                             const settings =
@@ -741,6 +740,11 @@ export function CanvasNodePromptPanel({
                     />
                 )}
                 {renderComposerHeader(false)}
+                {incompatibleReference && (
+                    <span role="status" className="text-xs">
+                        {incompatibleReference}
+                    </span>
+                )}
 
                 {renderPromptEditor(false)}
 
