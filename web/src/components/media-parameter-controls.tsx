@@ -7,14 +7,22 @@ import { imageSizeDisplayValues } from "@/components/platform-native-image-size"
 import { nativeImageSizePointers, resolutionLabel, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
 import { imageQualityLabel } from "@/lib/image-quality";
 import { NativeParameterInput, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
-import { creativeParameterLabel, imageExecutionChoices, nativeCreationModeOptions, nativeMediaVariantOptions, nativeParameterChoices, nativeParameterObject, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
-import { isImageOutputCountPointer, supplyChoiceAllowed, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
+import {
+    creativeParameterLabel,
+    imageExecutionChoices,
+    nativeCreationModeOptions,
+    nativeMediaVariantOptions,
+    nativeParameterChoices,
+    nativeParameterObject,
+    publishedDraftRoute,
+    type NativeMediaVariant,
+    type NativeSchemaField,
+} from "@/lib/platform-native-media";
+import { isImageOutputCountPointer, supplyControlFields, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
 import type { AiConfig } from "@/stores/use-config-store";
 
 type Group = "生成模式" | "生成规格" | "尺寸与分辨率" | "比例" | "背景" | "画质" | "张数" | "时长" | "声音" | "更多参数";
-type Field = [string, NativeSchemaField];
-
-function fieldGroup([pointer, field]: Field, image: boolean): Group {
+function fieldGroup(pointer: string, field: NativeSchemaField, image: boolean): Group {
     const key = pointer.split("/").pop()?.replaceAll("_", "").toLowerCase();
     if (!image && ["ratio", "aspectratio"].includes(key || "")) return "比例";
     if (["size", "width", "height", "ratio", "aspectratio", "resolution", "videosize", "imagesize"].includes(key || "")) return "尺寸与分辨率";
@@ -63,8 +71,8 @@ export function MediaParameterControls({
     const modeVariant = variants.find((v) => v.id === modeVariantId) ?? variant;
     const image = mode === "image";
     const modeGroup = image ? "生成规格" : "生成模式";
-    const selectedModeId = image ? config.nativeImageChoiceId : modeVariant?.id;
-    const modes = image ? nativeMediaVariantOptions(imageExecutionChoices(config, references ?? {})) : nativeCreationModeOptions(variants, modeVariant, true);
+    const selectedModeId = image ? publishedDraftRoute(variants, config.nativeImageChoiceId)?.id : modeVariant?.id;
+    const modes = image ? nativeMediaVariantOptions(imageExecutionChoices(config, references ?? {})) : nativeCreationModeOptions(variants, modeVariant, Boolean(variant));
     const modeLabel = modes.find((mode) => mode.value === selectedModeId)?.label ?? `选择${image ? "规格" : "模式"}`;
     function menu(group: Group, label: string, icon: ReactNode, content: ReactNode) {
         return (
@@ -141,13 +149,13 @@ export function MediaParameterControls({
             </>
         );
     }
-    const fields = Object.entries(variant.specifications_schema.properties).filter(([key]) => !variant.workbench_parameters || variant.workbench_parameters.includes(key));
+    const fields = supplyControlFields(variant, explicit, values, references);
     function update(key: string, value: unknown) {
         onChange("nativeParameters", JSON.stringify({ ...explicit, [key]: value }));
     }
     const parameterMenu = (group: Group, icon: ReactNode) => {
         const advanced: Group[] = ["背景", "画质", "声音", "更多参数"];
-        const items = fields.filter((entry) => !sizePointers.includes(entry[0]) && (group === "更多参数" ? advanced.includes(fieldGroup(entry, image)) : fieldGroup(entry, image) === group));
+        const items = fields.filter(({ pointer, field }) => !sizePointers.includes(pointer) && (group === "更多参数" ? advanced.includes(fieldGroup(pointer, field, image)) : fieldGroup(pointer, field, image) === group));
         const sizePicker = group === "尺寸与分辨率" && sizePointers.length > 0;
         if (!items.length && !sizePicker) return null;
         const preset = sizePicker && selectedNativeImagePreset(variant, values);
@@ -157,27 +165,26 @@ export function MediaParameterControls({
                   .map((key) => display(values[key], group))
                   .filter(Boolean)
                   .join(" · ");
-        const summary = group === "更多参数" ? group : [sizePicker ? sizeLabel : "", ...items.map(([key]) => display(values[key], group))].filter(Boolean).join(" · ") || group;
+        const summary = group === "更多参数" ? group : [sizePicker ? sizeLabel : "", ...items.map(({ pointer }) => display(values[pointer], group))].filter(Boolean).join(" · ") || group;
         return menu(
             group,
             summary,
             icon,
             <>
                 {sizePicker && <ImageSizeDock key={sizeResetRevision} variant={variant} values={values} explicit={explicit} references={references} onChange={(next) => onChange("nativeParameters", JSON.stringify(next))} />}
-                {items.map(([key, field]) => {
+                {items.map(({ pointer: key, field, allowed, unavailable }) => {
                     const label = creativeParameterLabel(key, field.title);
-                    const kind = fieldGroup([key, field], image);
+                    const kind = fieldGroup(key, field, image);
                     const choices = nativeParameterChoices(field, group === "时长" || group === "张数") ?? (field.type === "boolean" ? [true, false] : undefined);
-                    const allowed = supplyChoiceAllowed(variant, key, explicit, references);
                     const required = variant.specifications_schema.required?.includes(key);
                     return (
                         <section key={key}>
                             <strong>{label}</strong>
                             {choices?.length ? (
                                 <div className="studio-video-choices">
-                                    {!required && !Object.hasOwn(field, "const") && (
+                                    {(unavailable || (!required && !Object.hasOwn(field, "const"))) && (
                                         <button type="button" aria-pressed={!Object.hasOwn(explicit, key)} onClick={() => update(key, undefined)}>
-                                            模型默认
+                                            {unavailable ? "清除此参数" : "模型默认"}
                                         </button>
                                     )}
                                     {choices.map((value) => (

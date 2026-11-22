@@ -46,22 +46,30 @@ function publishedCountIssue(variant: NativeMediaVariant, explicit: Record<strin
     return "";
 }
 
-function schemaField(schema: Schema | undefined, pointer: string, explicit: Record<string, unknown>) {
+function forbidsProperty(schema: Schema | undefined, key: string): boolean {
+    const excluded = schema?.not;
+    if (excluded?.required?.length === 1 && excluded.required[0] === key && Object.keys(excluded).length === 1) return true;
+    return schema?.allOf?.some((rule) => forbidsProperty(rule, key)) ?? false;
+}
+
+function schemaField(schema: Schema | undefined, pointer: string, explicit: Record<string, unknown>, paired?: Schema) {
     let required = true;
     let prefix = "";
     for (const key of pointerPath(pointer)) {
         const parentPresent = !prefix || Object.keys(explicit).some((path) => path.startsWith(prefix + "/"));
-        required = (required || parentPresent) && Boolean(schema?.required?.includes(key));
+        required = (required || parentPresent) && Boolean(schema?.required?.includes(key) || paired?.required?.includes(key));
         const child: Schema | boolean | undefined = schema?.properties?.[key] ?? schema?.additionalProperties;
-        if (child === false) return { required, forbidden: true, schema: undefined };
+        if (child === false || forbidsProperty(schema, key)) return { required, forbidden: true, schema: undefined };
         schema = typeof child === "object" ? child : undefined;
+        const other: Schema | boolean | undefined = paired?.properties?.[key] ?? paired?.additionalProperties;
+        paired = typeof other === "object" ? other : undefined;
         prefix += "/" + key.replaceAll("~", "~0").replaceAll("/", "~1");
     }
     return { schema, required, forbidden: false };
 }
 
 function requiredParameter(variant: NativeMediaVariant, pointer: string, explicit: Record<string, unknown>, supply?: NativeSupply) {
-    const branch = schemaField(supply?.request_schema, pointer, explicit);
+    const branch = schemaField(supply?.request_schema, pointer, explicit, variant.native_request_variant.request_schema);
     const common = schemaField(variant.native_request_variant.request_schema, pointer, explicit);
     return {
         branch: branch.schema,
@@ -78,6 +86,11 @@ function sizeIssue(variant: NativeMediaVariant, values: Record<string, unknown>,
     }
 }
 
+function orderedVideoControl(variant: NativeMediaVariant, pointer: string) {
+    const name = pointerPath(pointer).at(-1)?.replaceAll("_", "").toLowerCase();
+    return variant.gateway_protocol.endsWith(".video") && variant.workbench_parameters?.includes(pointer) && ["duration", "seconds", "ratio", "aspectratio"].includes(name ?? "");
+}
+
 // The form owns only the published parameter pointers. Transport, resolved
 // resources and prompt are validated on the fully assembled body by the host.
 export function supplyParameters(variant: NativeMediaVariant, explicit: Record<string, unknown>, supply?: NativeSupply) {
@@ -92,6 +105,7 @@ export function supplyParameters(variant: NativeMediaVariant, explicit: Record<s
         for (const source of [branch, common, field]) {
             if (source?.enum?.length === 1) candidates.push(source.enum[0]);
         }
+        if (supply && orderedVideoControl(variant, pointer) && field.enum) candidates.push(...field.enum);
         if (pointer === "/size" && limits && !limits.allow_auto && limits.min_width > 0 && limits.min_width === limits.max_width && limits.min_height > 0 && limits.min_height === limits.max_height) {
             candidates.push(`${limits.min_width}x${limits.min_height}`);
         }
@@ -122,7 +136,6 @@ function missingReferenceGroup(schema: Schema | undefined, slots: SupplySlot[], 
     if (!schema) return;
     for (const pointer of new Set(slots.map((slot) => slot.pointer).filter((p): p is string => typeof p === "string" && p.startsWith("/")))) {
         const field = schemaField(schema, pointer, {});
-        if (!field.required) continue;
         const bound = slots.filter((slot) => slot.pointer === pointer);
         const roles = [...new Set(bound.map((slot) => slot.role))];
         const countFor = (group: string[]) => group.reduce((sum, role) => sum + (counts[role] ?? 0), 0);
@@ -137,7 +150,7 @@ function missingReferenceGroup(schema: Schema | undefined, slots: SupplySlot[], 
                 const matching = roles.filter((role) => validField(roleField, role));
                 if (matching.length && countFor(matching) < (rule.minContains ?? 1)) return matching;
             }
-        } else if (bound.every((slot) => ["url", "url-array", "image-reference", "image-reference-array"].includes(slot.transport ?? "")) && !countFor(roles)) {
+        } else if (field.required && bound.every((slot) => ["url", "url-array", "image-reference", "image-reference-array"].includes(slot.transport ?? "")) && !countFor(roles)) {
             return roles;
         }
     }
@@ -227,6 +240,17 @@ export function supplyChoiceAllowed(variant: NativeMediaVariant, pointer: string
     return (value: unknown) => supplies.some((supply) => supplyAllowsValue(variant, supply, pointer, value, explicit));
 }
 
+export function supplyControlFields(variant: NativeMediaVariant, explicit: Record<string, unknown>, values: Record<string, unknown>, counts?: MaterialCounts) {
+    const tier = { ...Object.fromEntries(Object.entries(values).filter(([pointer]) => resolutionParameter(pointer))), ...explicit };
+    return Object.entries(variant.specifications_schema.properties).flatMap(([pointer, field]) => {
+        if (variant.workbench_parameters && !variant.workbench_parameters.includes(pointer)) return [];
+        const allowed = supplyChoiceAllowed(variant, pointer, tier, counts);
+        const choices = Object.hasOwn(field, "const") ? [field.const] : (field.enum ?? (field.type === "boolean" ? [true, false] : undefined));
+        const unavailable = choices !== undefined && !choices.some(allowed);
+        return unavailable && !Object.hasOwn(explicit, pointer) ? [] : [{ pointer, field, allowed, unavailable }];
+    });
+}
+
 export function supplyParameterIssue(variant: NativeMediaVariant, supply: NativeSupply, explicit: Record<string, unknown>, values = supplyParameters(variant, explicit, supply)) {
     const native = variant.native_request_variant;
     const sizeError = sizeIssue(variant, values, supply.output_size ?? native.output_size);
@@ -273,7 +297,12 @@ export function supplySelection(variant: NativeMediaVariant, explicit: Record<st
         if (!candidates.has(signature)) candidates.set(signature, result);
     }
     if (candidates.size === 1) return [...candidates.values()][0];
-    if (candidates.size > 1) return { supply: undefined, values: explicit, issue: "多个供给规格需要不同的必填值，请明确选择生成参数" };
+    if (candidates.size > 1) {
+        // A tier can require a public duration or ratio that is optional at the model level.
+        const preferred = [...candidates.values()].filter(({ values }) => Object.entries(base).every(([key, value]) => Object.is(values[key], value)) && Object.keys(values).every((key) => Object.hasOwn(base, key) || orderedVideoControl(variant, key)));
+        if (preferred.length === 1) return preferred[0];
+        return { supply: undefined, values: explicit, issue: "多个供给规格需要不同的必填值，请明确选择生成参数" };
+    }
     return { supply: undefined, values: explicit, issue: materialIssue || publishedCountIssue(variant, explicit) || parameterIssue || "当前型号没有可用的供给组合" };
 }
 

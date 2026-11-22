@@ -1,11 +1,23 @@
 import { expect, test } from "bun:test";
 import { defaultConfig } from "@/stores/use-config-store";
 import { systemChannelModelChannels } from "@/lib/user-session";
-import { nativeCreationModeOptions, nativeCreationSettings, nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues, publishedImageReferenceLimit } from "@/lib/platform-native-media";
+import {
+    nativeCreationModeOptions,
+    nativeCreationSettings,
+    nativeDraftRouteKey,
+    nativeMediaDefaults,
+    nativeMediaReferenceLimits,
+    nativeMediaVariant,
+    nativeMediaVariantOptions,
+    nativeParameterValues,
+    nativeSelectionIssue,
+    publishedImageReferenceLimit,
+    type NativeMediaVariant,
+} from "@/lib/platform-native-media";
 import { maxModelInputCapacity, modelCompatibilityError, resolveModelGenerationDefaults } from "@/lib/model-selection";
 import { studioMediaPriceRequest } from "@/services/studio-media-price";
 import { backendProviderConfig, prepareBackendGenerationTask, runBackendGenerationTaskBatch } from "@/services/api/generation-task";
-import { buildNodeConfig } from "@/components/canvas/canvas-node-prompt-config";
+import { buildNodeConfig, nativeCanvasParameterPatch } from "@/components/canvas/canvas-node-prompt-config";
 import { buildGenerationConfig, canvasImageReferenceLimitError } from "@/lib/canvas/canvas-project-generation";
 import { specFromConfig, generationSpecMetadata, synchronizeGenerationSpec } from "@/lib/canvas/generation-contract";
 import { normalizeCreationComposerPreferences } from "@/stores/use-creation-preferences-store";
@@ -155,6 +167,78 @@ test("reopening an editable draft restores a published endpoint and retains expl
     expect(JSON.parse(empty.settings.nativeParameters)).toEqual({ "/seed": 999 });
     expect(backendProviderConfig({ ...config, ...empty.settings }, "video").nativeParameters).toEqual({ "/seed": 999 });
     expect(nativeCreationSettings(config, selected, { nativeVariantId: "other" }, true).settings.nativeVariantId).toBe("ark");
+});
+
+const reissuedRoutes = ["modelark.video", "newapi.video", "sora.video"].flatMap((protocol) =>
+    ["text", "omni"].map((mode): NativeMediaVariant => {
+        const resolution = protocol === "modelark.video" ? "/resolution" : "/metadata/resolution";
+        const refs = mode === "text" ? [] : [{ id: "image", role: "reference_image", pointer: "/reference", transport: "url-array", max_items: 3 }];
+        const supply = (tier: string, max: number) => {
+            const size = { const: tier };
+            return {
+                request_schema: { properties: resolution === "/resolution" ? { resolution: size } : { metadata: { properties: { resolution: size } } } },
+                native_reference_inputs: refs.map((ref) => ({ ...ref, max_items: max })),
+            };
+        };
+        return {
+            id: "new-" + protocol + "-" + mode,
+            gateway_protocol: protocol,
+            defaults: {},
+            workbench_parameters: [resolution, "/duration"],
+            specifications_schema: { properties: { [resolution]: { enum: ["720p", "1080p"] }, "/duration": { enum: [4, 6] } } },
+            native_request_variant: {
+                id: mode,
+                protocol,
+                method: "POST",
+                path: "/" + protocol,
+                modes: ["async"],
+                request_schema: {},
+                native_reference_inputs: refs,
+                supply_alternatives: [supply("1080p", 1), supply("720p", 3)],
+            },
+        };
+    }),
+);
+const draftModel = { ...model, platform: { ...model.platform, media_generation_profile: { default_variant: reissuedRoutes[1].id, variants: reissuedRoutes } } } as PublicChannelModel;
+const draftConfig = { ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "Studio", displayName: "Studio", models: [draftModel] }]) };
+const priorSettings = { nativeVariantId: "retired-video-release", nativeModeVariantId: "retired-mode", nativeParameters: '{"/metadata/resolution":"1080p","/duration":6}' };
+
+test.each([0, 1])("reissued legacy video draft keeps the entire valid request with %i images in creation and canvas", (refs) => {
+    const input = { textCount: 1, imageCount: refs, videoCount: 0, audioCount: 0, characterCount: 0 };
+    const draft = nativeCreationSettings(draftConfig, selected, priorSettings, { reference_image: refs });
+    const node = { id: "draft", type: CanvasNodeType.Video, position: { x: 0, y: 0 }, metadata: { model: selected, ...priorSettings } } as CanvasNodeData;
+    const panel = buildNodeConfig(draftConfig, node, "video", { capability: "video", input });
+    const execute = buildGenerationConfig(draftConfig, node, "video", { capability: "video", input });
+    const spec = specFromConfig("video", "ocean", { ...draftConfig, ...priorSettings }, refs ? [{ id: "r", nodeId: "r", mediaType: "image", role: "reference", order: 0, resolution: "latest" }] : []);
+    const retry = buildGenerationConfig(draftConfig, { ...node, metadata: { ...node.metadata, ...generationSpecMetadata(spec) } }, "video");
+    for (const restored of [{ ...draftConfig, ...draft.settings }, panel, execute, retry]) {
+        expect(restored.nativeVariantId).toBe("new-newapi.video-" + (refs ? "omni" : "text"));
+        expect(restored.nativeParameters).toBe(priorSettings.nativeParameters);
+        expect(nativeSelectionIssue(restored, { reference_image: refs })).toBe("");
+    }
+});
+
+test("a stable mode survives a new release, and a retired mode remains an explicit selection to repair", () => {
+    const sora = reissuedRoutes[5];
+    const patch = nativeCanvasParameterPatch(draftConfig, undefined, "nativeVariantId", sora.id, "video");
+    const key = nativeDraftRouteKey(sora);
+    expect(patch).toMatchObject({ nativeModeVariantId: key, nativeVariantId: sora.id });
+    const saved = normalizeCreationComposerPreferences({ video: { ...priorSettings, nativeModeVariantId: key } }).video!;
+    const restored = nativeCreationSettings(draftConfig, selected, saved, { reference_image: 1 });
+    expect(restored.settings.nativeVariantId).toBe(sora.id);
+    const retired = nativeCreationSettings(draftConfig, selected, { ...saved, nativeModeVariantId: nativeDraftRouteKey({ ...sora, native_request_variant: { ...sora.native_request_variant, path: "/retired" } }) }, {});
+    expect(nativeSelectionIssue({ ...draftConfig, ...retired.settings }, {})).toContain("重新选择");
+    const node = { id: "draft", type: CanvasNodeType.Video, position: { x: 0, y: 0 }, metadata: { model: selected, ...patch } } as CanvasNodeData;
+    expect(synchronizeGenerationSpec(node, { model: "channel::other" }).metadata?.nativeModeVariantId).toBeUndefined();
+});
+
+test("an unavailable combination keeps the saved values editable without mixing the 720p capacity into 1080p", () => {
+    const counts = { reference_image: 2 };
+    const draft = nativeCreationSettings(draftConfig, selected, priorSettings, counts);
+    const recovered = { ...draftConfig, ...draft.settings };
+    expect(nativeMediaVariant(recovered)?.workbench_parameters).toContain("/metadata/resolution");
+    expect(recovered.nativeParameters).toBe(priorSettings.nativeParameters);
+    expect(nativeSelectionIssue(recovered, counts)).toContain("最多支持 1 张参考图");
 });
 
 test("selected protocol owns reference capacity without merging alternatives", () => {

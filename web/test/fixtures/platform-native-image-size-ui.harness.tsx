@@ -383,6 +383,53 @@ test("video presets retain the normal video parameters and do not show an image 
     expect(host.querySelector('[aria-label="/size"]')).not.toBeNull();
 });
 
+test.each(["settings", "create", "canvas"])("%s only offers a ratio in its tier and lets a saved unsupported ratio be cleared", async (surface) => {
+    const variant: NativeMediaVariant = {
+        id: "tiered-video",
+        gateway_protocol: "modelark.video",
+        defaults: { "/resolution": "480p" },
+        workbench_parameters: ["/resolution", "/ratio"],
+        specifications_schema: { required: ["/resolution"], properties: { "/resolution": { enum: ["480p", "720p"] }, "/ratio": { enum: ["21:9", "16:9"] } } },
+        native_request_variant: {
+            protocol: "modelark.video",
+            path: "/video",
+            modes: ["async"],
+            request_schema: {},
+            native_reference_inputs: [],
+            supply_alternatives: [
+                { request_schema: { properties: { resolution: { const: "480p" } }, allOf: [{ not: { required: ["ratio"] } }] }, native_reference_inputs: [] },
+                { request_schema: { properties: { resolution: { const: "720p" } } }, native_reference_inputs: [] },
+            ],
+        },
+    };
+    const cfg = configFor(variant, "video");
+    const dock = surface === "settings" ? undefined : { variant, imageCount: 0, canvas: surface === "canvas" };
+    const showsRatio = () => Boolean(host.querySelector(surface === "settings" ? '[aria-label="/ratio"]' : '[aria-label^="比例："]'));
+    const change = async (group: string, key: string, value: string) => {
+        if (surface === "settings") await select(key, value);
+        else {
+            const option = await openDock(group);
+            await act(async () => option(value).click());
+            await act(async () => host.querySelector<HTMLButtonElement>(`[aria-label^="${group}："]`)?.click());
+        }
+    };
+    await renderConfig(cfg, dock);
+    expect(showsRatio()).toBe(false);
+    await change("尺寸与分辨率", "/resolution", "720p");
+    expect(showsRatio()).toBe(true);
+    await change("比例", "/ratio", "16:9");
+    await change("尺寸与分辨率", "/resolution", "480p");
+    expect(showsRatio()).toBe(true);
+    expect(JSON.parse(current.nativeParameters!)).toEqual({ "/resolution": "480p", "/ratio": "16:9" });
+    expect(() => backendProviderConfig(current, "video")).toThrow();
+    if (surface !== "settings") await openDock("比例");
+    const clear = [...document.querySelectorAll<HTMLButtonElement>("button")].find((el) => el.textContent === "清除此参数");
+    expect(clear).toBeDefined();
+    await act(async () => clear!.click());
+    expect(showsRatio()).toBe(false);
+    expect(backendProviderConfig(current, "video").nativeParameters).toEqual({ "/resolution": "480p" });
+});
+
 test.each([false, true])("video controls show resolution before reference roles, duration and ratio (canvas=%p)", async (canvas) => {
     const base: NativeMediaVariant = {
         id: "text",

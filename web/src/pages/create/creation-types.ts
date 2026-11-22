@@ -10,7 +10,7 @@ import { currentLocale, translate } from "@/i18n";
 export type { CreationMode };
 
 export type CreationStatus = "streaming" | "pending" | "done" | "error" | "cancelled";
-export type CreationSettings = { ratio: string; seconds: string; quality: string; videoQuality: string; count: string; nativeParameters?: string; nativeVariantId?: string; nativeImageChoiceId?: string };
+export type CreationSettings = { ratio: string; seconds: string; quality: string; videoQuality: string; count: string; nativeParameters?: string; nativeVariantId?: string; nativeImageChoiceId?: string; nativeModeVariantId?: string };
 export type CreationRetryContext = GenerationRetryContext & { retryContextsByBatchIndex?: GenerationRetryContext[] };
 
 export type CreationMessage = {
