@@ -1,5 +1,7 @@
 import { modelOptionName, resolveModelChannel, type AiConfig } from "@/stores/use-config-store";
-import { slotRange, suppliesFor, supplyParameterIssue, supplySelection, type MaterialCounts, type NativeSupply } from "./platform-media-supply";
+import { slotRange, suppliesAtResolution, suppliesFor, supplyParameterIssue, supplySelection, type MaterialCounts, type NativeSupply } from "./platform-media-supply";
+import { creativeParameterLabel } from "./platform-media-label";
+export { creativeParameterLabel };
 
 export type NativeSchemaField = Record<string, unknown> & { type?: string | string[]; enum?: unknown[]; const?: unknown; title?: string; description?: string };
 export type NativeImageSizePreset = { id: string; resolution: string; aspect_ratio: string; width?: number; height?: number; values: Record<string, unknown> };
@@ -227,10 +229,9 @@ export function nativeParameterChoices(field: NativeSchemaField, includeRange = 
 export function nativeMediaReferenceLimits(config: AiConfig, model = config.model, variant = nativeMediaVariant(config, model)) {
     if (!variant) return undefined;
     const values = draftParameterObject(model === config.model ? config.nativeParameters : undefined);
-    const all = suppliesFor(variant);
-    const compatible = all.filter((supply) => !supplyParameterIssue(variant, supply, values));
-    // Keep slots editable when a saved value conflicts. Exact admission still uses the whole draft.
-    const supplies = compatible.length ? compatible : all;
+    const tier = suppliesAtResolution(variant, values);
+    const compatible = tier.filter((supply) => !supplyParameterIssue(variant, supply, values));
+    const supplies = compatible.length ? compatible : tier;
     const capacity = (role: string) => Math.max(0, ...supplies.map((supply) => slotRange(supply.native_reference_inputs, role).max));
     return { maxImages: capacity("reference_image"), maxVideos: capacity("reference_video"), maxAudios: capacity("reference_audio"), maxFirstFrames: capacity("first_frame"), maxLastFrames: capacity("last_frame") };
 }
@@ -284,28 +285,6 @@ export function nativeMediaSummary(config: AiConfig) {
     } catch {
         return "参数格式无效";
     }
-}
-
-export function creativeParameterLabel(pointer: string, title?: string) {
-    const labels: Record<string, string> = {
-        size: "尺寸",
-        imageSize: "分辨率",
-        resolution: "分辨率",
-        quality: "画质",
-        aspectRatio: "画幅",
-        aspect_ratio: "画幅",
-        ratio: "画幅",
-        duration: "时长",
-        seconds: "时长",
-        generate_audio: "生成音频",
-        n: "生成数量",
-        output_format: "输出格式",
-        output_compression: "压缩率",
-        background: "背景",
-        seed: "随机种子",
-    };
-    const leaf = pointer.split("/").at(-1) || pointer;
-    return labels[leaf] || title || leaf;
 }
 
 export function nativeParameterSummary(values: Record<string, unknown>, creative = false) {
