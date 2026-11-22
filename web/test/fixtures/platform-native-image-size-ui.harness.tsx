@@ -83,7 +83,7 @@ function configFor(variant: NativeMediaVariant, capability: "image" | "video" = 
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot> | undefined;
 let current: AiConfig;
-async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVariant; imageCount: number; mode?: "image" | "video" }, references?: MaterialCounts) {
+async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVariant; variants?: NativeMediaVariant[]; imageCount: number; mode?: "image" | "video"; canvas?: boolean }, references?: MaterialCounts) {
     current = initial;
     function Form() {
         const [config, setConfig] = useState(initial);
@@ -93,7 +93,7 @@ async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVari
                 return current;
             });
         }
-        if (dock) return <MediaParameterControls mode={dock.mode ?? "video"} config={config} variants={[dock.variant]} references={{ reference_image: dock.imageCount }} onChange={change} />;
+        if (dock) return <MediaParameterControls mode={dock.mode ?? "video"} config={config} variants={dock.variants ?? [dock.variant]} references={{ reference_image: dock.imageCount }} onChange={change} canvas={dock.canvas} />;
         return <PlatformNativeMediaSettings config={config} references={references} onChange={change} />;
     }
     host = document.createElement("div");
@@ -331,6 +331,33 @@ test("video presets retain the normal video parameters and do not show an image 
     await renderConfig(configFor(video, "video"));
     expect(host.textContent).not.toContain("输出尺寸");
     expect(host.querySelector('[aria-label="/size"]')).not.toBeNull();
+});
+
+test.each([false, true])("video controls show resolution before reference roles, duration and ratio (canvas=%p)", async (canvas) => {
+    const base: NativeMediaVariant = {
+        id: "text",
+        gateway_protocol: "modelark.video",
+        defaults: { "/resolution": "720p", "/duration": 5, "/ratio": "16:9" },
+        specifications_schema: { properties: { "/ratio": { enum: ["16:9", "1:1"] }, "/duration": { enum: [5, 10] }, "/resolution": { enum: ["720p", "1080p"] } } },
+        workbench_parameters: ["/ratio", "/duration", "/resolution"],
+        native_request_variant: { protocol: "modelark.video", path: "/video", modes: ["async"], request_schema: {}, native_reference_inputs: [] },
+    };
+    const roles = (id: string, inputs: string[]): NativeMediaVariant => ({
+        ...base,
+        id,
+        native_request_variant: { ...base.native_request_variant, native_reference_inputs: inputs.map((role) => ({ role, id: role, pointer: `/${role}`, transport: "url", max_items: 1 })) },
+    });
+    const ordinary = roles("ordinary", ["reference_image"]);
+    const frames = roles("frames", ["first_frame", "last_frame"]);
+    const variants = [base, ordinary, frames];
+    await renderConfig(configFor(base, "video", variants), { variant: base, variants, imageCount: 0, canvas });
+    const groups = [...host.querySelectorAll(".studio-video-trigger")].map((control) => control.getAttribute("aria-label")?.split("：")[0]);
+    expect(groups).toEqual(["尺寸与分辨率", "生成模式", "时长", "比例"]);
+    const options = await openDock("生成模式");
+    expect(document.querySelector('.studio-video-menu[aria-label="生成模式"]')?.textContent).not.toContain("文生视频");
+    expect(options("图片参考")).toBeDefined();
+    await act(async () => options("首尾帧").click());
+    expect(current.nativeVariantId).toBe(frames.id);
 });
 
 test("the video production controls retain a conflicting duration after a resolution change and offer only that tier's durations", async () => {
