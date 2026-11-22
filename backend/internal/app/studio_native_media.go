@@ -146,6 +146,14 @@ func studioNativeResolvedBody(prompt string, selected platformintegration.ModelS
 	if body["stream"] == true || body["async"] == true {
 		return nil, BadAuthRequest("生成模式必须使用已发布的非流式协议")
 	}
+	if err := studioWriteNativeEnvelope(body, prompt, selected, refs); err != nil {
+		return nil, err
+	}
+	return studioPrepareNativeCombination(v, refs, body)
+}
+
+func studioWriteNativeEnvelope(body map[string]any, prompt any, selected platformintegration.ModelSelection, refs []studioNativeReferenceResource) error {
+	v := selected.NativeRequest
 	switch v.Protocol {
 	case "gemini.image":
 		body["contents"] = []any{map[string]any{"role": "user", "parts": []any{map[string]any{"text": prompt}}}}
@@ -158,10 +166,7 @@ func studioNativeResolvedBody(prompt string, selected platformintegration.ModelS
 	default:
 		body["model"], body["prompt"] = selected.Name, prompt
 	}
-	if err := studioWriteNativeReferences(v, refs, body); err != nil {
-		return nil, err
-	}
-	return studioPrepareNativeCombination(v, refs, body)
+	return studioWriteNativeReferences(v, refs, body)
 }
 
 func studioMergeNativeObjects(base, override map[string]any) map[string]any {

@@ -398,3 +398,47 @@ test("the video production controls retain a conflicting duration after a resolu
     expect(JSON.parse(current.nativeParameters!)).toEqual({ "/resolution": "1080p", "/duration": 6 });
     expect(backendProviderConfig(current, "video", { reference_image: 1 }).nativeParameters).toEqual({ "/resolution": "1080p", "/duration": 6 });
 });
+
+test.each(["settings", "create", "canvas"])("%s keeps withdrawn Seedance 480p in the old draft until the user selects a supported resolution", async (surface) => {
+    const pointer = "/metadata/resolution";
+    const variant: NativeMediaVariant = {
+        id: "seedance-2.0-ch01",
+        gateway_protocol: "newapi.video",
+        defaults: { [pointer]: "720p", "/duration": 5 },
+        workbench_parameters: [pointer, "/duration"],
+        specifications_schema: { required: [pointer, "/duration"], properties: { [pointer]: { enum: ["1080p", "480p", "4k", "720p"] }, "/duration": { enum: [5, 10] } } },
+        native_request_variant: {
+            protocol: "newapi.video",
+            path: "/v1/video/generations",
+            modes: ["async"],
+            request_schema: {},
+            native_reference_inputs: [],
+            supply_alternatives: ["1080p", "4k", "720p"].map((resolution) => ({ request_schema: { properties: { metadata: { properties: { resolution: { enum: [resolution] } } }, duration: { enum: [5, 10] } } }, native_reference_inputs: [] })),
+        },
+    };
+    const base = configFor(variant, "video");
+    const dock = surface === "settings" ? undefined : { variant, imageCount: 0, canvas: surface === "canvas" };
+    await renderConfig(base, dock);
+    expect(host.textContent).toContain("720p");
+    expect(backendProviderConfig(current, "video").nativeParameters).toEqual({ [pointer]: "720p", "/duration": 5 });
+    await unmount();
+    await renderConfig({ ...base, nativeParameters: JSON.stringify({ [pointer]: "480p", "/duration": 99 }) }, dock);
+    expect(host.textContent).toContain("480p");
+    expect(() => backendProviderConfig(current, "video")).toThrow();
+    if (surface === "settings") {
+        const input = host.querySelector<HTMLElement>(`[role="combobox"][aria-label="${pointer}"]`)!;
+        await act(async () => input.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })));
+        const option = (text: string) => [...document.querySelectorAll<HTMLElement>(".ant-select-item-option")].find((node) => node.textContent === text)!;
+        expect(option("480p").getAttribute("aria-disabled")).toBe("true");
+        await act(async () => option("720p").click());
+        await select("/duration", "5");
+    } else {
+        const resolution = await openDock("尺寸与分辨率");
+        expect(resolution("480p").disabled).toBe(true);
+        expect(resolution("720p").disabled).toBe(false);
+        await act(async () => resolution("720p").click());
+        const duration = await openDock("时长");
+        await act(async () => duration("5秒").click());
+    }
+    expect(backendProviderConfig(current, "video").nativeParameters).toEqual({ [pointer]: "720p", "/duration": 5 });
+});

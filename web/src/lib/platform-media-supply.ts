@@ -128,6 +128,39 @@ function validField(schema: Schema | undefined, value: unknown) {
     }
 }
 
+function supplyAllowsValue(variant: NativeMediaVariant, supply: NativeSupply, pointer: string, value: unknown, explicit: Record<string, unknown>) {
+    const field = variant.specifications_schema.properties[pointer];
+    const branch = schemaField(supply.request_schema, pointer, explicit);
+    const common = schemaField(variant.native_request_variant.request_schema, pointer, explicit);
+    return Boolean(field && !branch.forbidden && !common.forbidden && validField(branch.schema, value) && validField(common.schema, value) && validField(field as Schema, value));
+}
+
+function resolutionParameter(pointer: string) {
+    return ["size", "width", "height", "resolution", "videosize", "imagesize"].includes(pointerPath(pointer).at(-1)?.replaceAll("_", "").toLowerCase() ?? "");
+}
+
+// Resolution selects the tier. Other fields follow it and the current materials
+// where possible, even when an old draft has several invalid selections.
+export function supplyChoiceAllowed(variant: NativeMediaVariant, pointer: string, explicit: Record<string, unknown>, counts?: MaterialCounts) {
+    let supplies = suppliesFor(variant);
+    if (!resolutionParameter(pointer)) {
+        const other = Object.entries(explicit).filter(([key]) => key !== pointer);
+        const matches = (supply: NativeSupply, entries: typeof other) => entries.every(([key, value]) => supplyAllowsValue(variant, supply, key, value, explicit));
+        const tier = supplies.filter((supply) =>
+            matches(
+                supply,
+                other.filter(([key]) => resolutionParameter(key)),
+            ),
+        );
+        if (tier.length) supplies = tier;
+        const materials = counts && supplies.filter((supply) => !materialsIssue(supply, counts));
+        if (materials?.length) supplies = materials;
+        const compatible = supplies.filter((supply) => matches(supply, other));
+        if (compatible.length) supplies = compatible;
+    }
+    return (value: unknown) => supplies.some((supply) => supplyAllowsValue(variant, supply, pointer, value, explicit));
+}
+
 export function supplyParameterIssue(variant: NativeMediaVariant, supply: NativeSupply, explicit: Record<string, unknown>, values = supplyParameters(variant, explicit, supply)) {
     const native = variant.native_request_variant;
     const sizeError = sizeIssue(variant, values, supply.output_size ?? native.output_size);
@@ -138,9 +171,7 @@ export function supplyParameterIssue(variant: NativeMediaVariant, supply: Native
     for (const [pointer, value] of Object.entries(values)) {
         const field = variant.specifications_schema.properties[pointer];
         if (!field || (Object.hasOwn(explicit, pointer) && variant.workbench_parameters && !variant.workbench_parameters.includes(pointer))) return `当前组合未开放参数 ${pointer}`;
-        const branch = schemaField(supply.request_schema, pointer, explicit);
-        const common = schemaField(native.request_schema, pointer, explicit);
-        if (branch.forbidden || common.forbidden || !validField(branch.schema, value) || !validField(common.schema, value) || !validField(field as Schema, value)) return `当前组合不支持 ${field.title || pointer} 的所选值`;
+        if (!supplyAllowsValue(variant, supply, pointer, value, explicit)) return `当前组合不支持 ${field.title || pointer} 的所选值`;
     }
     return "";
 }

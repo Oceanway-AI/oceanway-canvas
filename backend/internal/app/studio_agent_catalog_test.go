@@ -179,6 +179,111 @@ func TestStudioFrameMetadataReachesNativeRoles(t *testing.T) {
 	}
 }
 
+func TestStudioAgentCatalogRequiresMaterialFromPublishedSchema(t *testing.T) {
+	s, db, _, _ := creationTestService(t)
+	if err := db.AutoMigrate(&model.StudioExecution{}, &model.StudioMaterialReference{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range []any{
+		&model.CanvasProject{ID: "canvas", UserID: "user", PayloadJSON: `{"nodes":[{"id":"image","type":"image","metadata":{"storageKey":"resource:ref"}}]}`},
+		&model.Resource{ID: "ref", UserID: "user", Provider: "platform", Kind: "image", Status: model.ResourceStatusReady, MimeType: "image/png", Size: 12},
+		&model.StudioMaterialReference{ResourceID: "ref", UserID: "user", AssetID: "asset", VersionID: "version", FileID: "file"},
+	} {
+		if err := db.Create(row).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, protocol := range []string{"sora.video", "newapi.video", "modelark.video"} {
+		t.Run(protocol, func(t *testing.T) {
+			item := studioNativeFixtureModel(t, protocol)
+			var profile platformintegration.MediaProfile
+			if err := json.Unmarshal(item.MediaGenerationProfile, &profile); err != nil {
+				t.Fatal(err)
+			}
+			base := profile.Variants[0]
+			requiredMaterial := json.RawMessage(`{"type":"object","anyOf":[
+				{"required":["metadata"],"properties":{"metadata":{"required":["images"],"properties":{"images":{"minItems":1}}}}},
+				{"required":["metadata"],"properties":{"metadata":{"required":["videos"],"properties":{"videos":{"minItems":1}}}}}
+			]}`)
+			slots := []platformintegration.NativeReferenceSlot{
+				{ID: "image", Role: "reference_image", Pointer: "/metadata/images", Transport: "url-array"},
+				{ID: "video", Role: "reference_video", Pointer: "/metadata/videos", Transport: "url-array"},
+			}
+			if protocol == "modelark.video" {
+				requiredMaterial = json.RawMessage(`{"type":"object","properties":{"content":{"allOf":[{"contains":{"required":["role"],"properties":{"role":{"enum":["reference_image","reference_video"]}}},"minContains":1}]}}}`)
+				for i := range slots {
+					slots[i].Pointer, slots[i].Transport = "/content", "content-array"
+				}
+			}
+			zero, three := int64(0), int64(3)
+			for i := range slots {
+				slots[i].MinItems, slots[i].MaxItems = &zero, &three
+			}
+			profile.Variants = nil
+			for _, id := range []string{"optional", "common", "only-supply", "optional-supply", "user-parameter"} {
+				v := base
+				n := *base.NativeRequest
+				v.ID, n.ID, n.References = id, id, slots
+				v.Bindings = map[string]string{"/resolution": "/resolution"}
+				v.Schema = json.RawMessage(`{"type":"object","properties":{"/resolution":{"enum":["720p","1080p"]}}}`)
+				n.Schema = json.RawMessage(`{"type":"object"}`)
+				switch id {
+				case "common":
+					n.Schema = requiredMaterial
+				case "only-supply", "optional-supply":
+					options := []platformintegration.NativeSupplyAlternative{{Schema: requiredMaterial, References: slots}}
+					if id == "optional-supply" {
+						options = append(options, platformintegration.NativeSupplyAlternative{Schema: n.Schema, References: slots})
+					}
+					n.SupplyAlternatives, _ = json.Marshal(options)
+				case "user-parameter":
+					v.Defaults = map[string]any{}
+					v.Schema = json.RawMessage(`{"type":"object","required":["/resolution"],"properties":{"/resolution":{"enum":["720p","1080p"]}}}`)
+					n.Schema = json.RawMessage(`{"type":"object","required":["resolution"],"properties":{"resolution":{"enum":["720p","1080p"]}}}`)
+				}
+				v.NativeRequest = &n
+				profile.Variants = append(profile.Variants, v)
+			}
+			item.MediaGenerationProfile, _ = json.Marshal(profile)
+			frozen, err := s.encryptStudioValue(studioExecutionEnvelope{Catalog: []platformclient.Model{item}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := db.Create(&model.StudioExecution{TaskID: protocol, CommandID: protocol, UserID: "user", EnvelopeEncrypted: frozen}).Error; err != nil {
+				t.Fatal(err)
+			}
+			state := &cloudAgentRuntime{RuntimeRunID: protocol, Request: CloudAgentRequest{CanvasID: "canvas"}}
+			for _, tc := range []struct {
+				args string
+				want string
+			}{
+				{`{}`, "optional,optional-supply,user-parameter"},
+				{`{"referenceNodeIds":["image"]}`, "optional,common,only-supply,optional-supply,user-parameter"},
+				{`{"channelModelKey":"image-model","nativeVariantId":"common"}`, ""},
+				{`{"channelModelKey":"image-model","nativeVariantId":"user-parameter"}`, "user-parameter"},
+			} {
+				call := cloudAgentCall{}
+				call.Function.Name, call.Function.Arguments = "model_list", tc.args
+				result, err := s.studioAgentModelList("user", state, call)
+				if err != nil {
+					t.Fatal(err)
+				}
+				page := result.(map[string]any)
+				var ids []string
+				for _, row := range page["models"].([]map[string]any) {
+					ids = append(ids, row["selection"].(map[string]any)["nativeVariantId"].(string))
+					if row["detailsLoaded"] == true && row["requiresParameters"] != true {
+						t.Fatal("exact user-parameter candidate must identify the unfilled settings")
+					}
+				}
+				if strings.Join(ids, ",") != tc.want || page["totalMatches"] != len(ids) {
+					t.Errorf("model_list(%s) returned %v, want %s", tc.args, ids, tc.want)
+				}
+			}
+		})
+	}
+}
+
 func TestStudioAgentUniqueCatalogSelectionKeepsVariantAndFrameScope(t *testing.T) {
 	for _, tc := range []struct {
 		name             string
