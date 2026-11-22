@@ -73,7 +73,13 @@ export function ImageSizeDock({
                 </legend>
                 <div className="studio-video-choices">
                     {[...choices].map((v) => (
-                        <button type="button" key={v} aria-pressed={v === selected} disabled={(v === "auto" && !guidance.limits.some((s) => s.allow_auto)) || (v === "custom" && !guidance.limits.some((s) => s.allow_custom))} onClick={() => pick(axis, v)}>
+                        <button
+                            type="button"
+                            key={v}
+                            aria-pressed={v === selected}
+                            disabled={(v === "auto" && limits?.allow_auto && !guidance.limits.some((s) => s.allow_auto)) || (v === "custom" && !guidance.limits.some((s) => s.allow_custom))}
+                            onClick={() => pick(axis, v)}
+                        >
                             {v === "auto" ? "自动" : v === "custom" ? "自定义" : ratio ? v : resolutionLabel(v)}
                         </button>
                     ))}

@@ -146,6 +146,56 @@ afterAll(() => {
     }
 });
 
+test.each(["settings", "create", "canvas"])("%s renders independent resolution and ratio presets with editable output counts", async (surface) => {
+    const variant: NativeMediaVariant = {
+        ...image,
+        defaults: { "/resolution": "1k", "/aspect_ratio": "auto", "/n": 1 },
+        workbench_parameters: ["/resolution", "/aspect_ratio", "/n"],
+        specifications_schema: { properties: { "/resolution": { enum: ["1k", "2k"] }, "/aspect_ratio": { enum: ["auto", "16:9"] }, "/n": { type: "integer", minimum: 1, maximum: 10 } } },
+        native_request_variant: {
+            ...image.native_request_variant,
+            output_size: undefined,
+            size_presets: [
+                { id: "1k-auto", resolution: "1k", aspect_ratio: "auto", values: { resolution: "1k", aspect_ratio: "auto" } },
+                { id: "2k-auto", resolution: "2k", aspect_ratio: "auto", values: { resolution: "2k", aspect_ratio: "auto" } },
+                { id: "2k-wide", resolution: "2k", aspect_ratio: "16:9", values: { resolution: "2k", aspect_ratio: "16:9" } },
+                { id: "withdrawn", resolution: "4k", aspect_ratio: "1:1", values: { unpublished: "4k" } },
+            ],
+        },
+    };
+    const dock = surface === "settings" ? undefined : { variant, mode: "image" as const, imageCount: 0, canvas: surface === "canvas" };
+    const base = configFor(variant);
+    await renderConfig(base, dock);
+    expect(host.textContent).not.toContain("参数无效");
+    expect(host.textContent).toContain("1k");
+    if (surface === "settings") {
+        await select("分辨率", "2k");
+        await select("宽高比", "16:9");
+        await type("/n", "10");
+    } else {
+        const size = await openDock("尺寸与分辨率");
+        await act(async () => size("2k").click());
+        await act(async () => size("16:9").click());
+        expect(size("自动").disabled).toBe(false);
+        await act(async () => size("自动").click());
+        expect(JSON.parse(current.nativeParameters!)["/aspect_ratio"]).toBe("auto");
+        await act(async () => size("16:9").click());
+        const counts = await openDock("张数");
+        await act(async () => counts("10 张").click());
+    }
+    const target = { "/resolution": "2k", "/aspect_ratio": "16:9", "/n": 10 };
+    expect(backendProviderConfig(current, "image").nativeParameters).toEqual(target);
+    await unmount();
+    await renderConfig({ ...base, nativeParameters: JSON.stringify({ ...target, "/n": 11 }) }, dock);
+    expect(() => backendProviderConfig(current, "image")).toThrow();
+    if (surface === "settings") await type("/n", "2");
+    else {
+        const counts = await openDock("张数");
+        await act(async () => counts("2 张").click());
+    }
+    expect(backendProviderConfig(current, "image").nativeParameters).toEqual({ ...target, "/n": 2 });
+});
+
 test("real image settings select exact tuples, reject unaligned custom sizes, and reset the local custom mode", async () => {
     await renderConfig(configFor(image, "image", [image, { ...image, id: "edit", gateway_protocol: "openai.image.edit" }]));
     expect(host.querySelector('[aria-label="生成模式"], [aria-label="请求协议"]')).toBeNull();

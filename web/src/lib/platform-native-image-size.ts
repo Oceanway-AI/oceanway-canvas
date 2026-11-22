@@ -13,28 +13,30 @@ export function resolutionLabel(resolution: string, tier = false) {
 // Presets are executable native values from the published catalog. A K label
 // never instructs this consumer to calculate or infer a width/height pair.
 function presetParameters(variant: NativeMediaVariant, preset: NativeImageSizePreset) {
-    if (!isNativeImageVariant(variant)) throw new Error("当前接口不使用图片尺寸配置");
+    if (!isNativeImageVariant(variant)) return undefined;
     const result: Record<string, unknown> = {};
-    const allowed = variant.native_request_variant.protocol.startsWith("gemini.") ? ["/generationConfig/imageConfig/imageSize", "/generationConfig/imageConfig/aspectRatio"] : ["/size"];
-    const visit = (value: unknown, pointer: string) => {
-        if (allowed.includes(pointer) && Object.hasOwn(variant.specifications_schema.properties, pointer)) {
-            result[pointer] = value;
-        } else if (value && typeof value === "object" && !Array.isArray(value)) {
-            for (const [key, child] of Object.entries(value)) visit(child, `${pointer}/${key.replace(/~/g, "~0").replace(/\//g, "~1")}`);
-        } else {
-            throw new Error("尺寸预设包含未发布的参数，请刷新模型目录");
+    const visit = (value: unknown, pointer: string): boolean => {
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+            return Object.entries(value).every(([key, child]) => visit(child, `${pointer}/${key.replace(/~/g, "~0").replace(/\//g, "~1")}`));
         }
+        if (Object.hasOwn(variant.specifications_schema.properties, pointer) && (typeof value === "string" || typeof value === "number")) {
+            result[pointer] = value;
+            return true;
+        }
+        return false;
     };
-    visit(preset.values, "");
-    if (!Object.keys(result).length) throw new Error("尺寸预设缺少原生参数，请刷新模型目录");
-    return result;
+    return visit(preset.values, "") && Object.keys(result).length ? result : undefined;
+}
+
+export function usableNativeImagePresets(variant: NativeMediaVariant) {
+    return (variant.native_request_variant.size_presets ?? []).filter((preset) => presetParameters(variant, preset) !== undefined);
 }
 
 export function nativeImageSizePointers(variant: NativeMediaVariant): string[] {
     if (!isNativeImageVariant(variant)) return [];
     const pointers = new Set<string>();
     for (const preset of variant.native_request_variant.size_presets || []) {
-        for (const pointer of Object.keys(presetParameters(variant, preset))) pointers.add(pointer);
+        for (const pointer of Object.keys(presetParameters(variant, preset) ?? {})) pointers.add(pointer);
     }
     if (variant.native_request_variant.output_size) pointers.add("/size");
     return [...pointers];
@@ -42,13 +44,17 @@ export function nativeImageSizePointers(variant: NativeMediaVariant): string[] {
 
 export function selectedNativeImagePreset(variant: NativeMediaVariant, values: Record<string, unknown>) {
     if (!isNativeImageVariant(variant)) return undefined;
-    return variant.native_request_variant.size_presets?.find((preset) => Object.entries(presetParameters(variant, preset)).every(([key, value]) => JSON.stringify(values[key]) === JSON.stringify(value)));
+    return variant.native_request_variant.size_presets?.find((preset) => {
+        const params = presetParameters(variant, preset);
+        return params && Object.entries(params).every(([key, value]) => values[key] === value);
+    });
 }
 
 export function applyNativeImagePreset(variant: NativeMediaVariant, values: Record<string, unknown>, id: string) {
     const preset = variant.native_request_variant.size_presets?.find((p) => p.id === id);
-    if (!preset) throw new Error("尺寸预设已失效，请刷新模型目录");
-    return { ...values, ...presetParameters(variant, preset) };
+    const params = preset && presetParameters(variant, preset);
+    if (!params) throw new Error("尺寸预设已失效，请刷新模型目录");
+    return { ...values, ...params };
 }
 
 export function nativeImageSizeIssue(variant: NativeMediaVariant, values: Record<string, unknown>): string {
