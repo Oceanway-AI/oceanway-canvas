@@ -240,6 +240,7 @@ export function synchronizeGenerationSpec(node: CanvasNodeData, patch: Partial<C
         if (patch.model !== node.metadata?.model) {
             for (const key of ["nativeParameters", "nativeVariantId"] as const) if (!Object.hasOwn(patch, key)) delete next.options[key];
             if (!Object.hasOwn(patch, "nativeImageChoiceId")) delete metadata.nativeImageChoiceId;
+            if (!Object.hasOwn(patch, "nativeModeVariantId")) delete metadata.nativeModeVariantId;
         }
         const model = patch.model ? decodeChannelModel(patch.model) : null;
         next.modelSelection = model ? { kind: "channel", channelId: model.channelId, modelKey: model.model } : undefined;

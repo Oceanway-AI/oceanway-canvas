@@ -12,7 +12,7 @@ import { PlatformBudgetDeclined } from "@/services/platform-budget-confirmation"
 import { generationErrorCode, generationErrorMessage } from "@/lib/generation-error";
 import { isGenerationCostUncertainError } from "@/lib/canvas/canvas-generation-batch";
 import { imageParameterRequest, normalizeImageParameters } from "@/lib/image-parameters";
-import { nativeCreationSettings, nativeMediaProfile, studioMediaGenerationVariant, nativeMediaReferenceLimits, nativeSelectionIssue, platformModelDetailPending } from "@/lib/platform-native-media";
+import { nativeCreationSettings, nativeDraftRouteKey, nativeMediaProfile, studioMediaGenerationVariant, nativeMediaReferenceLimits, nativeSelectionIssue, platformModelDetailPending } from "@/lib/platform-native-media";
 import { mediaRoleCounts } from "@/lib/platform-media-supply";
 import { assignFrameSlots, type FrameRole } from "@/lib/media-reference-slots";
 import { creationResultAssetIds, creationResultResourceIds, type CreationCanvasSelection } from "@/lib/canvas/canvas-asset-handoff";
@@ -273,12 +273,7 @@ export default function CreatePage() {
     const nativeProfile = preferredNativeProfile ?? nativeMediaProfile(config, selectedModel);
     const nativeSaved = mode === "video" ? savedNativePreferences.video : savedNativePreferences.image;
     const nativeCreation = nativeProfile
-        ? nativeCreationSettings(
-              config,
-              selectedModel,
-              nativeSaved?.model === selectedModel ? nativeSaved : {},
-              (modelRequirements.input?.imageCount ?? 0) + (modelRequirements.input?.characterCount ?? 0) + (mode === "video" ? (modelRequirements.input?.videoCount ?? 0) + (modelRequirements.input?.audioCount ?? 0) : 0),
-          )
+        ? nativeCreationSettings(config, selectedModel, nativeSaved?.model === selectedModel ? nativeSaved : {}, mediaRoleCounts(attachments.map((item) => ({ kind: creationAttachmentKind(item), role: "role" in item ? item.role : undefined }))))
         : undefined;
     const nativeSettings: { nativeParameters?: string; nativeVariantId?: string } = nativeCreation?.settings || {};
     const nativeImageChoiceId = mode === "image" && savedNativePreferences.image?.model === selectedModel ? savedNativePreferences.image.nativeImageChoiceId : undefined;
@@ -986,7 +981,7 @@ export default function CreatePage() {
             releaseSubmitGate();
             return;
         }
-        const settings = { ratio, seconds, quality, videoQuality, count, ...nativeSettings, nativeImageChoiceId };
+        const settings = { ratio, seconds, quality, videoQuality, count, ...nativeSettings, nativeImageChoiceId, nativeModeVariantId: nativeDraftRouteKey(nativeCreation?.referenceVariant) };
         const references = selectedCreationReferences(text, mentionReferences);
         // 后端对图片和视频使用不同的参考字段；这里先拆分，避免媒体类型在写入任务时被误判。
         const { referenceImages: images, referenceVideos, referenceAudios } = splitCreationAttachments(attachments);
@@ -1475,7 +1470,7 @@ export default function CreatePage() {
                 nativeImageChoiceId: nextSettings.nativeImageChoiceId,
                 nativeParameters: nextSettings.nativeParameters,
                 nativeVariantId: nextSettings.nativeVariantId,
-                nativeModeVariantId: nextSettings.nativeVariantId,
+                nativeModeVariantId: nextSettings.nativeModeVariantId ?? nextSettings.nativeVariantId,
             });
         if (nextMode === "video")
             rememberVideoSettings({
@@ -1485,7 +1480,7 @@ export default function CreatePage() {
                 videoQuality: nextSettings.videoQuality,
                 nativeParameters: nextSettings.nativeParameters,
                 nativeVariantId: nextSettings.nativeVariantId,
-                nativeModeVariantId: nextSettings.nativeVariantId,
+                nativeModeVariantId: nextSettings.nativeModeVariantId ?? nextSettings.nativeVariantId,
             });
     };
 
@@ -1652,10 +1647,11 @@ export default function CreatePage() {
         onNativeSettingsChange: (key: "nativeParameters" | "nativeVariantId", value: string) => {
             const remember = mode === "video" ? rememberVideoSettings : rememberImageSettings;
             if (key === "nativeVariantId") {
-                if (mode === "image") rememberImageSettings({ model: selectedModel, nativeVariantId: value, nativeImageChoiceId: value, nativeParameters: nativeSettings.nativeParameters || "{}" });
-                else rememberVideoSettings({ model: selectedModel, nativeVariantId: value, nativeModeVariantId: value, nativeParameters: nativeSettings.nativeParameters || "{}" });
+                const routeKey = nativeDraftRouteKey(nativeProfile?.variants.find((v) => v.id === value)) ?? value;
+                if (mode === "image") rememberImageSettings({ model: selectedModel, nativeVariantId: value, nativeImageChoiceId: routeKey, nativeParameters: nativeSettings.nativeParameters || "{}" });
+                else rememberVideoSettings({ model: selectedModel, nativeVariantId: value, nativeModeVariantId: routeKey, nativeParameters: nativeSettings.nativeParameters || "{}" });
             } else {
-                remember({ model: selectedModel, nativeVariantId: nativeSettings.nativeVariantId, nativeModeVariantId: nativeCreation?.referenceVariant?.id, ...(mode === "image" ? { nativeImageChoiceId } : {}), nativeParameters: value });
+                remember({ model: selectedModel, nativeVariantId: nativeSettings.nativeVariantId, nativeModeVariantId: nativeDraftRouteKey(nativeCreation?.referenceVariant), ...(mode === "image" ? { nativeImageChoiceId } : {}), nativeParameters: value });
             }
         },
         setImageParameters: (value: string) => {

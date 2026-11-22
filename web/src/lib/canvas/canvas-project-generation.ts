@@ -6,7 +6,8 @@ import { resolveImageUrl, uploadImage } from "@/services/image-storage";
 import { resolveMediaUrl, resolveVideoMediaUrl } from "@/services/file-storage";
 import { resourceIdFromStorageKey } from "@/services/api/resources";
 import { NODE_DEFAULT_SIZE } from "@/constant/canvas";
-import { imageReferenceError, nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, platformModelDetailPending } from "@/lib/platform-native-media";
+import { imageReferenceError, isNativeDraftRouteKey, nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, platformModelDetailPending, publishedDraftRoute } from "@/lib/platform-native-media";
+import { mediaRoleCounts } from "@/lib/platform-media-supply";
 import { assignFrameSlots, publishedFrameRoles } from "@/lib/media-reference-slots";
 import { normalizeVideoDuration, normalizeVideoResolution } from "@/lib/video-generation-options";
 import { modelCapabilityConfigFor, workflowFieldCurrentValue, workflowFieldHasStoredValue, workflowFieldKey, workflowFieldRandomKey, workflowFieldSubmissionValue, workflowOutputSizeValue, workflowVideoFieldsFromJson } from "@/lib/model-capabilities";
@@ -533,20 +534,30 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
             : {};
     // Keep the node's chosen slot layout while resolving parameters against the request that its connected inputs will use.
     const input = requirements?.input;
+    const metadata = node?.metadata;
+    const profile = generationDefaults.nativeVariantId ? nativeMediaProfile(config, model) : undefined;
+    const retiredRequest = metadata?.nativeVariantId && !profile?.variants.some((v) => v.id === metadata.nativeVariantId);
     let nativeModeVariantId: string | undefined;
-    if (node && input && generationDefaults.nativeVariantId && workflowProvider === "model" && (mode === "video" || mode === "image")) {
-        const metadata = node.metadata;
-        const profile = nativeMediaProfile(config, model);
-        const saved = profile?.variants.find((v) => v.id === (metadata?.nativeModeVariantId || metadata?.nativeVariantId));
+    if (node && profile && (input || retiredRequest) && workflowProvider === "model" && (mode === "video" || mode === "image")) {
+        const saved = publishedDraftRoute(profile.variants, metadata?.nativeModeVariantId || metadata?.nativeVariantId);
         // A retired contract can still have a first/last frame explicitly bound to a node.
-        const boundRoles = [metadata?.videoStartFrameNodeId && "first_frame", metadata?.videoEndFrameNodeId && "last_frame"].filter(Boolean);
-        const frames = !saved && mode === "video" && boundRoles.length ? profile?.variants.find((v) => boundRoles.every((role) => publishedFrameRoles(v).some((r) => r === role))) : undefined;
-        const count = input.imageCount + input.videoCount + input.audioCount + input.characterCount;
+        const boundRoles = [metadata?.videoStartFrameNodeId && "first_frame", metadata?.videoEndFrameNodeId && "last_frame"].filter((role): role is string => Boolean(role));
+        const frames = !saved && !isNativeDraftRouteKey(metadata?.nativeModeVariantId) && mode === "video" && boundRoles.length ? profile.variants.find((v) => boundRoles.every((role) => publishedFrameRoles(v).some((r) => r === role))) : undefined;
+        const counts = mediaRoleCounts((generationSpec?.referenceBindings ?? []).map(({ mediaType, role }) => ({ kind: mediaType, role: role.replace("-", "_") })));
+        if (input) {
+            const images = input.imageCount + input.characterCount;
+            const boundCount = Math.min(images, boundRoles.length);
+            Object.assign(counts, { reference_image: images - boundCount, reference_video: input.videoCount, reference_audio: input.audioCount });
+            for (const role of ["first_frame", "last_frame"]) delete counts[role];
+            for (const role of boundRoles.slice(0, boundCount)) counts[role] = 1;
+        } else {
+            for (const role of boundRoles) counts[role] = 1;
+        }
         const creation = nativeCreationSettings(
             config,
             model,
-            { nativeVariantId: metadata?.nativeVariantId, nativeParameters: metadata?.nativeParameters, nativeModeVariantId: frames?.id ?? saved?.id, nativeImageChoiceId: metadata?.nativeImageChoiceId },
-            count,
+            { nativeVariantId: metadata?.nativeVariantId, nativeParameters: metadata?.nativeParameters, nativeModeVariantId: frames?.id ?? metadata?.nativeModeVariantId, nativeImageChoiceId: metadata?.nativeImageChoiceId },
+            counts,
         );
         Object.assign(generationDefaults, creation.settings);
         nativeModeVariantId = creation.referenceVariant?.id;

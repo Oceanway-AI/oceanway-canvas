@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import type { Schema } from "@cfworker/json-schema";
 import { catalogVariants } from "./fixtures/platform-partial-catalog";
 import publishedGpt from "../../backend/internal/platformintegration/testdata/image-output-size/gpt-default.model.json";
-import { imageExecutionChoices, nativeMediaReferenceLimits, type NativeMediaVariant } from "@/lib/platform-native-media";
+import { imageExecutionChoices, nativeCreationSettings, nativeDraftRouteKey, nativeMediaReferenceLimits, type NativeMediaVariant } from "@/lib/platform-native-media";
 import { supplyChoiceAllowed, supplySelection } from "@/lib/platform-media-supply";
 import { modelCompatibilityError } from "@/lib/model-selection";
 import { systemChannelModelChannels } from "@/lib/user-session";
@@ -134,6 +134,7 @@ const contentGroup: Schema = {
 const referenceGroups = [
     { transport: "url-array", pointers: mediaUrls.map((name) => `/metadata/${name}`), group: urlGroup },
     { transport: "content-array", pointers: referenceRoles.map(() => "/content"), group: contentGroup },
+    { transport: "content-array", pointers: referenceRoles.map(() => "/content"), group: { required: ["content"], allOf: [{ anyOf: [{ properties: contentGroup.properties }, { properties: contentGroup.properties }] }] } },
 ];
 
 test.each(referenceGroups)("a published $transport group is required in the chosen tier before quote or submission", async ({ transport, pointers, group }) => {
@@ -219,6 +220,20 @@ test("equivalent image endpoints can be automatic, different paths require an ex
     expect(task.platform?.variantId).toBe(alternative.id);
     expect(studioMediaPriceRequest(config, "image", "A scene", [], "owner")?.platform?.variantId).toBe(alternative.id);
 });
+
+test("a saved image choice quotes and submits its reissued endpoint", async () => {
+    const previous = { ...generate, id: "previous", native_request_variant: { ...generate.native_request_variant, id: "alternate", path: "/alternate/images" } };
+    const current = { ...previous, id: "current" };
+    const config = configFor("image", [generate, current], { "/size": "1024x1024" });
+    const saved = { nativeVariantId: previous.id, nativeImageChoiceId: nativeDraftRouteKey(previous), nativeParameters: config.nativeParameters };
+    const { settings } = nativeCreationSettings(config, config.model, saved, {});
+    const draft = { ...config, ...saved, ...settings };
+    expect(settings.nativeVariantId).toBe(current.id);
+    expect(studioMediaPriceRequest(draft, "image", "A scene", [], "owner")?.platform?.variantId).toBe(current.id);
+    const task = await prepareBackendGenerationTask({ mode: "image", config: draft, prompt: "A scene" });
+    expect(task.platform?.variantId).toBe(current.id);
+});
+
 const eightMP = { ...gpt.native_request_variant.output_size!, max_pixels: 8294400, allow_auto: true };
 const fourMP = { ...eightMP, max_pixels: 4194304, allow_auto: false };
 function edit(highLimit = 16): NativeMediaVariant {

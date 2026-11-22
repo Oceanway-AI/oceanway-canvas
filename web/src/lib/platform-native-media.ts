@@ -114,6 +114,25 @@ export function nativeMediaVariant(config: AiConfig, model = config.model, id = 
     return profile?.variants.find((v) => v.id === (id || profile.defaultId));
 }
 
+const draftRoutePrefix = "native-route:v1:";
+
+export function isNativeDraftRouteKey(key?: string) {
+    return Boolean(key?.startsWith(draftRoutePrefix));
+}
+
+export function nativeDraftRouteKey(variant?: NativeMediaVariant) {
+    const route = variant?.native_request_variant;
+    return variant && route?.id ? draftRoutePrefix + JSON.stringify([variant.gateway_protocol, route.id, route.method ?? "", route.path]) : variant?.id;
+}
+
+export function publishedDraftRoute(variants: NativeMediaVariant[], key?: string) {
+    if (!key) return;
+    const exact = variants.find((v) => v.id === key);
+    if (exact) return exact;
+    const matches = variants.filter((v) => nativeDraftRouteKey(v) === key);
+    return matches.length === 1 ? matches[0] : undefined;
+}
+
 function imageRoutes(profile: NonNullable<ReturnType<typeof nativeMediaProfile>>, count: number, explicit: Record<string, unknown> = {}, mask = 0, choiceId?: string) {
     const routes = profile.variants
         .flatMap((variant) => suppliesFor(variant).map((supply) => ({ variant, supply, ...slotRange(supply.native_reference_inputs, "reference_image") })))
@@ -131,7 +150,8 @@ function imageRoutes(profile: NonNullable<ReturnType<typeof nativeMediaProfile>>
         }),
     );
     const choices = contracts.size > 1 ? eligible.map((row) => row.variant) : [];
-    const chosen = choices.length ? eligible.find((row) => row.variant.id === choiceId) : eligible[0];
+    const choice = publishedDraftRoute(choices, choiceId);
+    const chosen = choices.length ? eligible.find((row) => row.variant === choice) : eligible[0];
     const issue = !chosen && choices.length ? "当前素材和参数支持多个执行规格，请选择生成规格" : matches[0]?.issue;
     return { referenceVariant: widest?.variant, requestVariant: chosen?.variant, choices, fallback: eligible[0]?.variant ?? possible[0], issue, maxImages: widest?.max ?? 0 };
 }
@@ -188,27 +208,52 @@ export function nativeVideoComposerVariants(variants: NativeMediaVariant[], base
     };
 }
 
-export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId" | "nativeImageChoiceId"> & { nativeModeVariantId?: string }, referenceCount: number | boolean) {
+function videoDraftRoutes(variants: NativeMediaVariant[], base: NativeMediaVariant, preferred: NativeMediaVariant | undefined, explicit: Record<string, unknown>, counts: MaterialCounts) {
+    const { reference, text } = nativeVideoComposerVariants(variants, preferred ?? base, preferred?.id);
+    const hasReferences = Object.values(counts).some((count) => count > 0);
+    const request = (hasReferences ? reference : text) ?? reference ?? base;
+    if (!hasReferences && text && reference && supplySelection(text, explicit, counts).issue && !supplySelection(reference, explicit, counts).issue) {
+        return { request: reference, reference };
+    }
+    return { request, reference };
+}
+
+export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId" | "nativeImageChoiceId"> & { nativeModeVariantId?: string }, inputs: number | boolean | MaterialCounts) {
     const profile = nativeMediaProfile(config, model);
-    const savedVariant = profile?.variants.find((v) => v.id === saved.nativeVariantId);
+    const variants = profile?.variants ?? [];
+    const savedVariant = publishedDraftRoute(variants, saved.nativeVariantId);
+    const selectedMode = publishedDraftRoute(variants, saved.nativeModeVariantId);
     const fallback = profile?.variants.find((v) => v.id === profile.defaultId) ?? profile?.variants[0];
-    const base = nativeMediaDefaults(config, model, { ...saved, nativeVariantId: savedVariant?.id ?? fallback?.id });
-    const variant = nativeMediaVariant(config, model, base.nativeVariantId);
-    const preferred = profile?.variants.find((v) => v.id === saved.nativeModeVariantId) ?? variant;
+    const variant = savedVariant ?? selectedMode ?? fallback;
+    const base = nativeMediaDefaults(config, model, { ...saved, nativeVariantId: variant?.id });
+    const counts = typeof inputs === "object" ? inputs : { reference_image: Number(inputs) };
+    const explicit = draftParameterObject(base.nativeParameters);
     let referenceVariant = variant;
     let requestVariant = variant;
-    const isVideo = variant?.gateway_protocol.endsWith(".video");
-    if (variant && isVideo) {
-        const video = nativeVideoComposerVariants(profile?.variants ?? [], preferred ?? variant, saved.nativeModeVariantId ?? savedVariant?.id);
-        referenceVariant = video.reference;
-        const text = video.text;
-        requestVariant = (referenceCount ? referenceVariant : text) ?? referenceVariant ?? variant;
-        if (!referenceCount && text && referenceVariant) {
-            const explicit = draftParameterObject(base.nativeParameters);
-            if (supplySelection(text, explicit, {}).issue && !supplySelection(referenceVariant, explicit, {}).issue) requestVariant = referenceVariant;
+    if (variant?.gateway_protocol.endsWith(".video")) {
+        if (saved.nativeModeVariantId && isNativeDraftRouteKey(saved.nativeModeVariantId) && !selectedMode) {
+            return { settings: { ...base, nativeVariantId: saved.nativeModeVariantId }, referenceVariant: undefined };
         }
+        let video = videoDraftRoutes(variants, variant, selectedMode ?? savedVariant, explicit, counts);
+        // Older drafts only stored release hashes. Recover one entire published
+        // request that accepts the saved fields and attachments together.
+        if (saved.nativeVariantId && !savedVariant && !selectedMode && supplySelection(video.request, explicit, counts).issue) {
+            let editable: typeof video | undefined;
+            for (const candidate of variants) {
+                const alternative = videoDraftRoutes(variants, candidate, candidate, explicit, counts);
+                if (!supplySelection(alternative.request, explicit, counts).issue) {
+                    editable = alternative;
+                    break;
+                }
+                const controls = alternative.request.workbench_parameters ?? Object.keys(alternative.request.specifications_schema.properties);
+                if (!editable && Object.keys(explicit).every((key) => controls.includes(key))) editable = alternative;
+            }
+            video = editable ?? video;
+        }
+        referenceVariant = video.reference;
+        requestVariant = video.request;
     } else if (profile) {
-        const routes = imageRoutes(profile, Number(referenceCount), draftParameterObject(base.nativeParameters), 0, saved.nativeImageChoiceId);
+        const routes = imageRoutes(profile, counts.reference_image ?? 0, explicit, counts.mask, saved.nativeImageChoiceId);
         referenceVariant = routes.referenceVariant;
         requestVariant = routes.requestVariant ?? routes.fallback ?? referenceVariant ?? variant;
     }
@@ -257,7 +302,7 @@ export function nativeParameterValues(variant: NativeMediaVariant, raw?: string)
 
 export function nativeSelectionIssue(config: AiConfig, counts: MaterialCounts) {
     const variant = nativeMediaVariant(config);
-    if (!variant) return "";
+    if (!variant) return config.nativeVariantId && nativeMediaProfile(config) ? "已保存的生成规格已下线，请重新选择" : "";
     const published = resolveModelChannel(config, config.model).modelDetails?.find((v) => v.model === modelOptionName(config.model))?.platform;
     try {
         if (published?.model_type === "image") {

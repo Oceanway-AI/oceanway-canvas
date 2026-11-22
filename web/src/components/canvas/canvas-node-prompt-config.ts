@@ -3,6 +3,7 @@
 import { type CanvasNodeData, type CanvasNodeMetadata, CanvasNodeType } from "@/types/canvas";
 import { type AiConfig, defaultConfig } from "@/stores/use-config-store";
 import type { ModelRequirements } from "@/lib/model-selection";
+import { nativeDraftRouteKey, nativeMediaVariant } from "@/lib/platform-native-media";
 import { buildGenerationConfig, type CanvasGenerationConfig } from "@/lib/canvas/canvas-project-generation";
 import type { ImageDimensions } from "@/lib/canvas/canvas-reference-image-size";
 import type { CanvasAudioSettingKey } from "./canvas-audio-settings-popover";
@@ -53,9 +54,11 @@ export function videoConfigPatch(key: keyof AiConfig, value: string) {
 }
 
 export function nativeCanvasParameterPatch(config: AiConfig, selectedMode: string | undefined, key: "nativeVariantId" | "nativeParameters", value: string, mode?: string): Partial<CanvasNodeMetadata> {
-    if (key === "nativeVariantId" && mode === "image") return { nativeImageChoiceId: value, nativeVariantId: value, nativeParameters: config.nativeParameters };
-    if (key === "nativeVariantId") return { nativeModeVariantId: value, nativeVariantId: value, nativeParameters: config.nativeParameters };
-    return { nativeModeVariantId: selectedMode, nativeVariantId: config.nativeVariantId, nativeParameters: value };
+    const selected = key === "nativeVariantId" ? value : selectedMode;
+    const routeKey = selected && (nativeDraftRouteKey(nativeMediaVariant(config, config.model, selected)) ?? selected);
+    if (key === "nativeVariantId" && mode === "image") return { nativeImageChoiceId: routeKey, nativeVariantId: value, nativeParameters: config.nativeParameters };
+    if (key === "nativeVariantId") return { nativeModeVariantId: routeKey, nativeVariantId: value, nativeParameters: config.nativeParameters };
+    return { nativeModeVariantId: routeKey, nativeVariantId: config.nativeVariantId, nativeParameters: value };
 }
 
 export function audioConfigPatch(key: CanvasAudioSettingKey, value: string) {

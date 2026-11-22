@@ -6,7 +6,7 @@ import type { ImageParameter } from "@/lib/image-parameters";
 import { creativeParameterLabel, nativeMediaProfile, nativeMediaVariant, nativeMediaVariantOptions, nativeCreationModeOptions, nativeParameterObject, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
 import { nativeImageSizePointers } from "@/lib/platform-native-image-size";
-import { supplyChoiceAllowed, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
+import { supplyControlFields, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
 import { imageSizeDisplayValues, PlatformNativeImageSize } from "./platform-native-image-size";
 
 export type NativeMediaSettingKey = "nativeParameters" | "nativeVariantId";
@@ -71,23 +71,21 @@ export function PlatformNativeMediaSettings({ config, references, onChange }: { 
                             onChange={(next) => onChange("nativeParameters", JSON.stringify(next))}
                         />
                     ) : null}
-                    {Object.entries(variant.specifications_schema.properties)
-                        .filter(([pointer]) => !sizePointers.includes(pointer) && (!controls || controls.includes(pointer)))
-                        .sort((a, b) => Number(a[1]["x-order"] || 0) - Number(b[1]["x-order"] || 0))
-                        .map(([pointer, field]) => (
+                    {supplyControlFields(variant, explicit, values, references)
+                        .filter(({ pointer }) => !sizePointers.includes(pointer))
+                        .sort((a, b) => Number(a.field["x-order"] || 0) - Number(b.field["x-order"] || 0))
+                        .map(({ pointer, field, allowed, unavailable }) => (
                             <div key={`${variant.id}:${pointer}`} className="min-w-0 space-y-1">
                                 <div className="break-all text-xs">
                                     {controls ? creativeParameterLabel(pointer, field.title) : pointer}
                                     {variant.specifications_schema.required?.includes(pointer) ? " *" : ""}
                                 </div>
-                                <NativeParameterInput
-                                    pointer={pointer}
-                                    field={field}
-                                    value={values[pointer]}
-                                    required={variant.specifications_schema.required?.includes(pointer)}
-                                    choiceAllowed={supplyChoiceAllowed(variant, pointer, explicit, references)}
-                                    onChange={(value) => change(pointer, value)}
-                                />
+                                <NativeParameterInput pointer={pointer} field={field} value={values[pointer]} required={variant.specifications_schema.required?.includes(pointer)} choiceAllowed={allowed} onChange={(value) => change(pointer, value)} />
+                                {unavailable && (
+                                    <button type="button" className="text-xs underline" onClick={() => change(pointer, undefined)}>
+                                        清除此参数
+                                    </button>
+                                )}
                                 {field.description ? <p className="text-xs opacity-60">{field.description}</p> : null}
                             </div>
                         ))}
