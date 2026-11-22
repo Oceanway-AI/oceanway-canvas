@@ -30,11 +30,11 @@ export function imageSizeDisplayValues(variant: NativeMediaVariant, values: Reco
 export function nativeImageSizeGuidance(variant: NativeMediaVariant, explicit: Record<string, unknown>, references?: MaterialCounts) {
     const native = variant.native_request_variant;
     const supplies = suppliesFor(variant);
-    const eligible = references ? supplies.filter((supply) => !materialsIssue(supply, references)) : supplies;
+    const eligible = references ? supplies.filter((supply) => !materialsIssue(variant, supply, references)) : supplies;
     const limits = eligible.map((supply) => supply.output_size ?? native.output_size).filter((size): size is NativeImageOutputSize => Boolean(size));
     // A size error should describe the supplies that can actually carry the user's materials.
     const scoped = eligible.length !== supplies.length && eligible.length ? { ...variant, native_request_variant: { ...native, supply_alternatives: eligible } } : variant;
-    const issue = !eligible.length && references && supplies.length ? materialsIssue(supplies[0], references) : supplySelection(scoped, explicit, references).issue;
+    const issue = !eligible.length && references && supplies.length ? materialsIssue(variant, supplies[0], references) : supplySelection(scoped, explicit, references).issue;
     const maxPixels = limits.length ? Math.max(...limits.map((size) => size.max_pixels)) : undefined;
     const alignments = new Set(limits.map((size) => size.multiple_of));
     return { issue, maxPixels, alignment: alignments.size === 1 ? limits[0].multiple_of : undefined, limits };

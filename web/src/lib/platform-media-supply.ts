@@ -4,7 +4,7 @@ import { isNativeImageVariant, nativeImageSizeIssue } from "./platform-native-im
 import type { NativeImageOutputSize, NativeMediaVariant } from "./platform-native-media";
 
 export type MaterialCounts = Record<string, number>;
-export type SupplySlot = { role: string; min_items?: number; max_items?: number };
+export type SupplySlot = { role: string; pointer?: string; transport?: string; min_items?: number; max_items?: number };
 export type NativeSupply = {
     request_schema?: Schema;
     native_reference_inputs: SupplySlot[];
@@ -116,7 +116,42 @@ export function slotRange(slots: SupplySlot[], role: string) {
 
 const roleLabels: Record<string, string> = { reference_image: "参考图", first_frame: "首帧", last_frame: "尾帧", reference_video: "参考视频", reference_audio: "参考音频", mask: "蒙版" };
 
-export function materialsIssue(supply: NativeSupply, counts: MaterialCounts, allowMissing = false) {
+// A missing media field can rule out a schema choice. Prompt, transport and
+// other non-material conditions remain the host's responsibility.
+function missingReferenceGroup(schema: Schema | undefined, slots: SupplySlot[], counts: MaterialCounts): string[] | undefined {
+    if (!schema) return;
+    for (const pointer of new Set(slots.map((slot) => slot.pointer).filter((p): p is string => typeof p === "string" && p.startsWith("/")))) {
+        const field = schemaField(schema, pointer, {});
+        if (!field.required) continue;
+        const bound = slots.filter((slot) => slot.pointer === pointer);
+        const roles = [...new Set(bound.map((slot) => slot.role))];
+        const countFor = (group: string[]) => group.reduce((sum, role) => sum + (counts[role] ?? 0), 0);
+        if (bound.every((slot) => slot.transport === "content-array")) {
+            // A content array already contains the prompt. Only a positive
+            // contains predicate requiring a media role implies missing input.
+            for (const rule of [field.schema, ...(field.schema?.allOf ?? [])]) {
+                const item = rule?.contains;
+                if (!item || typeof item !== "object" || !item.required?.includes("role")) continue;
+                const roleField = item.properties?.role;
+                if (!roleField || typeof roleField !== "object") continue;
+                const matching = roles.filter((role) => validField(roleField, role));
+                if (matching.length && countFor(matching) < (rule.minContains ?? 1)) return matching;
+            }
+        } else if (bound.every((slot) => ["url", "url-array", "image-reference", "image-reference-array"].includes(slot.transport ?? "")) && !countFor(roles)) {
+            return roles;
+        }
+    }
+    for (const rule of schema.allOf ?? []) {
+        const missing = missingReferenceGroup(rule, slots, counts);
+        if (missing) return missing;
+    }
+    if (schema.anyOf?.length) {
+        const alternatives = schema.anyOf.map((rule) => missingReferenceGroup(rule, slots, counts));
+        if (alternatives.every((roles) => roles !== undefined)) return [...new Set(alternatives.flat())];
+    }
+}
+
+export function materialsIssue(variant: NativeMediaVariant, supply: NativeSupply, counts: MaterialCounts, allowMissing = false) {
     const roles = new Set([...Object.keys(counts), ...supply.native_reference_inputs.map((slot) => slot.role)]);
     for (const role of roles) {
         const count = counts[role] ?? 0;
@@ -129,6 +164,14 @@ export function materialsIssue(supply: NativeSupply, counts: MaterialCounts, all
     const policy = supply.material_constraints;
     if (policy?.max_items !== undefined && Object.values(counts).reduce((a, b) => a + b, 0) > policy.max_items) return `当前档位最多支持 ${policy.max_items} 个参考素材`;
     if (!allowMissing && policy?.audio_requires_visual && counts.reference_audio && !(counts.reference_image || counts.first_frame || counts.last_frame || counts.reference_video)) return "参考音频需要搭配图片或视频";
+    if (!allowMissing) {
+        const native = variant.native_request_variant;
+        const missing = missingReferenceGroup(native.request_schema, native.native_reference_inputs ?? [], counts) ?? missingReferenceGroup(supply.request_schema, supply.native_reference_inputs, counts);
+        if (missing) {
+            const options = missing.filter((role) => slotRange(supply.native_reference_inputs, role).max > 0).map((role) => roleLabels[role] || role);
+            return options.length ? `请补充当前规格要求的${options.join("或")}` : "当前规格缺少可用的必需参考素材";
+        }
+    }
     return "";
 }
 
@@ -173,9 +216,9 @@ export function supplyChoiceAllowed(variant: NativeMediaVariant, pointer: string
     if (!resolutionParameter(pointer)) {
         supplies = suppliesAtResolution(variant, explicit, supplies);
         if (counts) {
-            const complete = supplies.filter((supply) => !materialsIssue(supply, counts));
+            const complete = supplies.filter((supply) => !materialsIssue(variant, supply, counts));
             // A missing required frame can be added; an excess attachment needs removing first.
-            supplies = complete.length ? complete : supplies.filter((supply) => !materialsIssue(supply, counts, true));
+            supplies = complete.length ? complete : supplies.filter((supply) => !materialsIssue(variant, supply, counts, true));
         }
         const other = Object.entries(explicit).filter(([key]) => key !== pointer);
         const compatible = supplies.filter((supply) => other.every(([key, value]) => supplyAllowsValue(variant, supply, key, value, explicit)));
@@ -208,8 +251,8 @@ export function supplySelection(variant: NativeMediaVariant, explicit: Record<st
     const base = supplyParameters(variant, explicit);
     const all = suppliesFor(variant);
     const tier = suppliesAtResolution(variant, explicit, all);
-    if (counts && tier.length && tier.every((supply) => materialsIssue(supply, counts, true))) {
-        return { supply: undefined, values: explicit, issue: materialsIssue(tier[0], counts, true) };
+    if (counts && tier.length && tier.every((supply) => materialsIssue(variant, supply, counts, true))) {
+        return { supply: undefined, values: explicit, issue: materialsIssue(variant, tier[0], counts, true) };
     }
     const candidates = new Map<string, { supply: NativeSupply; values: Record<string, unknown>; issue: string }>();
     for (const supply of tier.length ? tier : all) {
@@ -219,7 +262,7 @@ export function supplySelection(variant: NativeMediaVariant, explicit: Record<st
             parameterIssue ||= issue;
             continue;
         }
-        const conflict = counts && materialsIssue(supply, counts);
+        const conflict = counts && materialsIssue(variant, supply, counts);
         if (conflict) {
             materialIssue ||= conflict;
             continue;
