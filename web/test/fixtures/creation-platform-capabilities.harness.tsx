@@ -342,7 +342,7 @@ test.each(["canvas_image", "canvas_video"])("%s previews and submits directly wi
     const alice = { id: "direct-media-test-user", username: "alice", displayName: "Alice", role: "user", status: "active" } as const;
     setActiveUserScope(alice.id);
     useUserStore.setState({ platformIdentity: true, user: alice });
-    const input = { prompt: "ocean", type, commandId: "direct-media", platform: { expectedPriceVersion: "p1" } };
+    const input = { prompt: "ocean", type, commandId: `direct-${type}`, platform: { expectedPriceVersion: "p1" } };
     const quote = { previewUserId: alice.id, previewBinding: "bound-quote", capability_revision: "a".repeat(64), connection_revision: 7, price_version: "p1", wallet_points: "0.1234567890123456789", allowed: true, combination_supported: true };
     const post = spyOn(http, "post").mockResolvedValueOnce(quote).mockResolvedValueOnce({ id: "media", type, status: "queued" });
     try {
