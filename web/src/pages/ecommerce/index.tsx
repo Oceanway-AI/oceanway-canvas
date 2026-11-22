@@ -84,6 +84,7 @@ import {
     commerceImageReferences,
     manuallyEditedCommerceImage,
     assertCommerceImageReferenceCapacity,
+    commerceImageReferenceLimit,
     commerceRegenerationVariation,
 } from "./workflow";
 import { normalizeCreativeOptions } from "./creative-controls";
@@ -204,7 +205,7 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
     };
     const mergeCanvasModels = (current: EcommerceDraft): EcommerceDraft => {
         const next = { ...current, creativeOptions: normalizeCreativeOptions(current) };
-        next.imageModel ||= imageModels.find((model) => (modelCapabilityConfigFor(config, model).image?.references.maxImages || 0) > 0) || "";
+        next.imageModel ||= imageModels.find((model) => commerceImageReferenceLimit(config, model) !== 0) || "";
         const currentProfile = next.imageModel ? modelCapabilityConfigFor(config, next.imageModel).image : undefined;
         if (currentProfile && !currentProfile.size.values.includes(next.ratio)) next.ratio = currentProfile.size.default;
         if (currentProfile?.resolution.supported && !currentProfile.resolution.values.includes(next.resolution)) next.resolution = currentProfile.resolution.default;
@@ -417,7 +418,7 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
     };
     useEffect(() => {
         setDraft((current) => {
-            const imageModel = current.imageModel || imageModels.find((model) => (modelCapabilityConfigFor(config, model).image?.references.maxImages || 0) > 0) || "";
+            const imageModel = current.imageModel || imageModels.find((model) => commerceImageReferenceLimit(config, model) !== 0) || "";
             const profile = imageModel ? modelCapabilityConfigFor(config, imageModel).image : undefined;
             return {
                 ...current,
@@ -957,8 +958,10 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
             message.error("请选择可用的图片模型");
             return;
         }
-        if ((imageProfile?.references.maxImages || 0) < commerceRequiredImageReferenceCount(draft)) {
-            message.error("图片模型无法接收当前商品参考图，请更换模型");
+        try {
+            assertCommerceImageReferenceCapacity(commerceRequiredImageReferenceCount(draft), commerceImageReferenceLimit(config, draft.imageModel));
+        } catch (cause) {
+            message.error(errorText(cause));
             return;
         }
         if (!ratioChoices.includes(draft.ratio) || !resolutionChoices.includes(draft.resolution)) {
@@ -1135,7 +1138,7 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
             return;
         }
         try {
-            assertCommerceImageReferenceCapacity(commerceRequiredImageReferenceCount(planningDraft), imageProfile?.references.maxImages || 0);
+            assertCommerceImageReferenceCapacity(commerceRequiredImageReferenceCount(planningDraft), commerceImageReferenceLimit(config, planningDraft.imageModel));
         } catch (cause) {
             message.error(errorText(cause));
             return;
@@ -1246,7 +1249,11 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
             return;
         }
         try {
-            for (const image of selectedPlan.images) assertCommerceImageReferenceCapacity(commerceRequiredImageReferenceCount(selectedDraft), modelCapabilityConfigFor(config, image.imageModel).image?.references.maxImages || 0);
+            for (const [index, image] of selectedPlan.images.entries()) {
+                if (image.taskId) continue;
+                const count = selectedDraft.referenceMode === "detail" && !image.referenceScreen?.resourceId ? commerceRequiredImageReferenceCount(selectedDraft) : commerceImageReferences(selectedDraft, image, index, false).length;
+                assertCommerceImageReferenceCapacity(count, commerceImageReferenceLimit(config, image.imageModel));
+            }
         } catch (cause) {
             message.error(errorText(cause));
             return;
@@ -1282,7 +1289,7 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
                 const profile = modelCapabilityConfigFor(config, planned.imageModel).image;
                 if (!profile || !imageModels.includes(planned.imageModel)) throw new Error("图片模型已不可用，请重新选择");
                 const refs = commerceImageReferences(selectedDraft, planned, index, false);
-                assertCommerceImageReferenceCapacity(refs.length, profile.references.maxImages);
+                assertCommerceImageReferenceCapacity(refs.length, commerceImageReferenceLimit(config, planned.imageModel));
                 if (!profile.size.values.includes(planned.ratio) || (profile.resolution.supported && !profile.resolution.values.includes(planned.resolution))) throw new Error("当前模型不支持所选画幅或分辨率");
                 // 自动 is generated at the platform recommendation when the model supports it; the plan keeps "auto".
                 const image = { ...planned, ratio: commerceGenerationRatio(config, selectedDraft, planned) };
@@ -1408,7 +1415,7 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
         const profile = modelCapabilityConfigFor(config, edited.imageModel).image;
         const refs = commerceImageReferences(source, edited, Math.max(0, originalImage.referenceScreen ? originalImage.referenceScreen.screenIndex - 1 : plan.images.findIndex((image) => image.id === edited.id)), false);
         if (!imageModels.includes(edited.imageModel) || !profile) throw new Error("该模型不能接收本图所需商品素材，请选择支持的模型");
-        assertCommerceImageReferenceCapacity(refs.length, profile.references.maxImages);
+        assertCommerceImageReferenceCapacity(refs.length, commerceImageReferenceLimit(config, edited.imageModel));
         if (!profile.size.values.includes(edited.ratio) || (profile.resolution.supported && !profile.resolution.values.includes(edited.resolution))) throw new Error("当前模型不支持所选比例或分辨率");
         const generated = { ...edited, ratio: commerceGenerationRatio(config, source, edited) };
         const parameters = commerceImageParameters(profile, generated.ratio, generated.resolution);
@@ -1745,7 +1752,7 @@ function EcommerceWorkspace({ scope }: { scope: string }) {
         try {
             const source = ensureModelDraft({ ...draft, count: requestedCount });
             const next = continueCommercePlan(directCommercePlan(source), plan, owner.project ? projectDraft(owner.project) : undefined);
-            assertCommerceImageReferenceCapacity(commerceRequiredImageReferenceCount(source), imageProfile?.references.maxImages || 0);
+            assertCommerceImageReferenceCapacity(commerceRequiredImageReferenceCount(source), commerceImageReferenceLimit(config, source.imageModel));
             await save(source, next, owner);
             if (isCurrent(owner)) {
                 setDraft(source);

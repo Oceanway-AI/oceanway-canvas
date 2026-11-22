@@ -12,7 +12,7 @@ type SubmissionDependencies = {
     scope(): string;
 };
 
-const submissions = new WeakMap<CreateTaskInput, { owner: string; commandId: string; prepared?: CreateTaskInput }>();
+const submissions = new WeakMap<CreateTaskInput, { owner: string; commandId: string }>();
 
 // A lost create response only reads the original command. No second POST is
 // made, and an account switch cannot adopt another account's pending task.
@@ -31,43 +31,10 @@ export async function submitPlatformTask(input: CreateTaskInput, deps: Submissio
     }
     if (submission.owner !== scope) throw new Error("账号已切换，请在原账号中查看任务状态");
     const { commandId } = submission;
-    if (input.platform?.mediaGenerationV1 === true) return submitGenerationV1(input, scope, commandId, deps, assertScope);
-    let prepared = submission.prepared;
-    if (!prepared) {
-        prepared = { ...input, commandId };
-        if (input.platform && (input.type === "canvas_image" || input.type === "canvas_video")) {
-            if (!deps.preview) throw new Error("平台报价暂不可用");
-            const quote = await deps.preview(prepared);
-            assertScope();
-            if (
-                !quote.allowed ||
-                !quote.combination_supported ||
-                quote.price_version !== input.platform.expectedPriceVersion ||
-                !validPlatformPoints(quote.wallet_points) ||
-                !/^[a-f0-9]{64}$/.test(quote.capability_revision || "") ||
-                !Number.isSafeInteger(quote.connection_revision) ||
-                (quote.connection_revision ?? 0) <= 0
-            )
-                throw new Error("平台未批准当前参数或额度，请刷新报价");
-            if (typeof quote.previewBinding !== "string" || !quote.previewBinding || quote.previewUserId !== scope) throw new Error("账号已切换或报价已失效，请重新获取报价");
-            const maximum = input.platform.walletMaxPoints;
-            if (maximum !== undefined && !validPlatformBudget(maximum, quote.wallet_points)) throw new Error("最高消费额度无效或低于预估");
-            prepared = {
-                ...prepared,
-                platform: {
-                    ...input.platform,
-                    previewUserId: quote.previewUserId,
-                    previewBinding: quote.previewBinding,
-                    expectedCapabilityRevision: quote.capability_revision,
-                    expectedConnectionRevision: quote.connection_revision,
-                },
-            };
-        }
-        submission.prepared = prepared;
-    }
+    if (input.platform && (input.platform.mediaGenerationV1 || input.type === "canvas_image" || input.type === "canvas_video")) return submitMediaCommand(input, scope, commandId, deps, assertScope);
     let task: GenerationTask;
     try {
-        task = await deps.create(prepared);
+        task = await deps.create({ ...input, commandId });
     } catch (error) {
         assertScope();
         if (error instanceof ApiError && error.reason === "studio_preview_account_changed") throw error;
@@ -81,6 +48,28 @@ export async function submitPlatformTask(input: CreateTaskInput, deps: Submissio
     }
     assertScope();
     return task;
+}
+
+async function prepareQuotedCommand(input: CreateTaskInput, scope: string, deps: SubmissionDependencies, assertScope: () => void): Promise<CreateTaskInput> {
+    if (!deps.preview || !input.platform) throw new Error("平台报价暂不可用");
+    const quote = await deps.preview(input);
+    assertScope();
+    const platform = input.platform;
+    if (
+        !quote.allowed ||
+        !quote.combination_supported ||
+        quote.price_version !== platform.expectedPriceVersion ||
+        !validPlatformPoints(quote.wallet_points) ||
+        !/^[a-f0-9]{64}$/.test(quote.capability_revision || "") ||
+        !Number.isSafeInteger(quote.connection_revision) ||
+        (quote.connection_revision ?? 0) <= 0 ||
+        (platform.expectedCapabilityRevision && platform.expectedCapabilityRevision !== quote.capability_revision) ||
+        (platform.expectedConnectionRevision !== undefined && platform.expectedConnectionRevision !== quote.connection_revision)
+    )
+        throw new Error("平台未批准当前参数或额度，请刷新报价");
+    if (!quote.previewBinding || quote.previewUserId !== scope) throw new Error("账号已切换或报价已失效，请重新获取报价");
+    if (platform.walletMaxPoints !== undefined && !validPlatformBudget(platform.walletMaxPoints, quote.wallet_points)) throw new Error("最高消费额度无效或低于预估");
+    return { ...input, platform: { ...platform, previewUserId: quote.previewUserId, previewBinding: quote.previewBinding, expectedCapabilityRevision: quote.capability_revision, expectedConnectionRevision: quote.connection_revision } };
 }
 
 const activeCommands = new Map<string, { intent: string; promise: Promise<GenerationTask> }>();
@@ -108,7 +97,7 @@ export function studioGenerationCommandWasSent(owner: string, commandId: string,
     return sentCommands.has(key) || (typeof window !== "undefined" && window.localStorage.getItem(key) !== null);
 }
 
-async function submitGenerationV1(input: CreateTaskInput, owner: string, commandId: string, deps: SubmissionDependencies, assertScope: () => void) {
+async function submitMediaCommand(input: CreateTaskInput, owner: string, commandId: string, deps: SubmissionDependencies, assertScope: () => void) {
     const key = commandKey(owner, input.platform?.workspaceId || "", commandId);
     const intent = stableIntent({ ...input, commandId });
     const running = activeCommands.get(key);
@@ -122,15 +111,23 @@ async function submitGenerationV1(input: CreateTaskInput, owner: string, command
         const sent = sentCommands.get(key) ?? (typeof window === "undefined" ? null : window.localStorage.getItem(key));
         if (sent && sent !== digest) throw new Error("此任务命令已用于不同的创作意图");
         if (!sent) {
+            const prepared = input.platform!.mediaGenerationV1 ? { ...input, commandId, platform: { ...input.platform!, expectedUserId: owner } } : await prepareQuotedCommand({ ...input, commandId }, owner, deps, assertScope);
+            assertScope();
             if (typeof window !== "undefined") window.localStorage.setItem(key, digest);
             sentCommands.set(key, digest);
             try {
-                const task = await deps.create({ ...input, commandId, platform: { ...input.platform!, expectedUserId: owner } });
+                const task = await deps.create(prepared);
                 assertScope();
                 return task;
             } catch (error) {
                 assertScope();
-                if (error instanceof ApiError && error.status && error.status >= 400 && error.status < 500) throw error;
+                if (error instanceof ApiError && error.status && error.status >= 400 && error.status < 500) {
+                    if (["studio_preview_account_changed", "studio_preview_selection_changed"].includes(error.reason || "")) {
+                        sentCommands.delete(key);
+                        if (typeof window !== "undefined") window.localStorage.removeItem(key);
+                    }
+                    throw error;
+                }
             }
         }
         const task = await deps.recover(commandId, owner);

@@ -22,6 +22,7 @@ type NativeRequestVariant struct {
 	SizePresets        []platformclient.ImageSizePreset `json:"size_presets,omitempty"`
 	OutputSize         *platformclient.ImageOutputSize  `json:"output_size,omitempty"`
 	SupplyAlternatives json.RawMessage                  `json:"supply_alternatives,omitempty"`
+	Materials          *NativeMaterialConstraints       `json:"material_constraints,omitempty"`
 	Defaults           map[string]any                   `json:"defaults"`
 	References         []NativeReferenceSlot            `json:"native_reference_inputs"`
 	Modes              []string                         `json:"modes"`
@@ -30,16 +31,59 @@ type NativeRequestVariant struct {
 }
 
 type NativeReferenceSlot struct {
-	ID               string   `json:"id"`
-	Pointer          string   `json:"pointer"`
-	Transport        string   `json:"transport"`
-	Role             string   `json:"role"`
-	MIMETypes        []string `json:"mime_types"`
-	MinItems         *int64   `json:"min_items"`
-	MaxItems         *int64   `json:"max_items"`
-	MaxItemBytes     *int64   `json:"max_item_bytes"`
-	MaxTotalBytes    *int64   `json:"max_total_bytes"`
-	SameDimensionsAs string   `json:"same_dimensions_as"`
+	ID                 string   `json:"id"`
+	Pointer            string   `json:"pointer"`
+	Transport          string   `json:"transport"`
+	Role               string   `json:"role"`
+	MIMETypes          []string `json:"mime_types"`
+	MinItems           *int64   `json:"min_items"`
+	MaxItems           *int64   `json:"max_items"`
+	MaxItemBytes       *int64   `json:"max_item_bytes"`
+	MaxTotalBytes      *int64   `json:"max_total_bytes"`
+	SameDimensionsAs   string   `json:"same_dimensions_as"`
+	MinDurationMS      *int64   `json:"min_duration_ms,omitempty"`
+	MaxDurationMS      *int64   `json:"max_duration_ms,omitempty"`
+	MaxTotalDurationMS *int64   `json:"max_total_duration_ms,omitempty"`
+	MinWidth           *int64   `json:"min_width,omitempty"`
+	MaxWidth           *int64   `json:"max_width,omitempty"`
+	MinHeight          *int64   `json:"min_height,omitempty"`
+	MaxHeight          *int64   `json:"max_height,omitempty"`
+	MinPixels          *int64   `json:"min_pixels,omitempty"`
+	MaxPixels          *int64   `json:"max_pixels,omitempty"`
+	MinAspectRatio     *float64 `json:"min_aspect_ratio,omitempty"`
+	MaxAspectRatio     *float64 `json:"max_aspect_ratio,omitempty"`
+}
+
+type NativeMaterialConstraints struct {
+	ReferenceOrder              string `json:"reference_order,omitempty"`
+	MaxItems                    *int64 `json:"max_items,omitempty"`
+	MaxTotalBytes               *int64 `json:"max_total_bytes,omitempty"`
+	MaxVideoAndOutputDurationMS *int64 `json:"max_video_and_output_duration_ms,omitempty"`
+	AudioRequiresVisual         bool   `json:"audio_requires_visual,omitempty"`
+}
+
+type NativeSupplyAlternative struct {
+	Schema     json.RawMessage                 `json:"request_schema"`
+	References []NativeReferenceSlot           `json:"native_reference_inputs"`
+	Materials  *NativeMaterialConstraints      `json:"material_constraints,omitempty"`
+	OutputSize *platformclient.ImageOutputSize `json:"output_size,omitempty"`
+}
+
+// Keep the original alternatives in stored selections across SDK upgrades.
+func (v NativeRequestVariant) Alternatives() ([]NativeSupplyAlternative, error) {
+	if len(v.SupplyAlternatives) == 0 {
+		return nil, nil
+	}
+	var alternatives []NativeSupplyAlternative
+	if json.Unmarshal(v.SupplyAlternatives, &alternatives) != nil || len(alternatives) == 0 || len(alternatives) > 32 {
+		return nil, errNativeContract
+	}
+	for _, alternative := range alternatives {
+		if len(alternative.Schema) == 0 || alternative.References == nil {
+			return nil, errNativeContract
+		}
+	}
+	return alternatives, nil
 }
 
 var errNativeContract = errors.New("模型原生请求合同无效或尚未接通")

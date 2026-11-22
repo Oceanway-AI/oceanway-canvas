@@ -162,6 +162,75 @@ describe("Platform task submission", () => {
     const mediaInput = (): CreateTaskInput => ({ type: "canvas_image", prompt: "fixture", platform: { expectedPriceVersion: "p1" } });
     const offer = { previewUserId: "alice", previewBinding: "bound-quote", price_version: "p1", capability_revision: "a".repeat(64), connection_revision: 7, wallet_points: "1", allowed: true, combination_supported: true };
 
+    test("an invalidated selection receipt requires a fresh preview before the same draft can submit", async () => {
+        const input: CreateTaskInput = {
+            ...mediaInput(),
+            commandId: "native-stale-selection",
+            input: { config: { nativeVariantId: "edit", nativeParameters: { "/size": "3072x2048" } }, referenceImages: [{ storageKey: "resource:input", role: "reference" }] },
+        };
+        const intent = structuredClone(input);
+        const previews: CreateTaskInput[] = [];
+        const creates: CreateTaskInput[] = [];
+        const recoveries: string[] = [];
+        const selectionChanged = new ApiError("选择已变化", { status: 409, reason: "studio_preview_selection_changed" });
+        const deps = {
+            scope: () => "alice",
+            preview: async (body: CreateTaskInput) => {
+                previews.push(structuredClone(body));
+                return { ...offer, previewBinding: `receipt-${previews.length}`, connection_revision: 6 + previews.length };
+            },
+            create: async (body: CreateTaskInput) => {
+                creates.push(structuredClone(body));
+                if (creates.length === 1) throw selectionChanged;
+                return { id: "updated" } as GenerationTask;
+            },
+            recover: async (id: string) => {
+                recoveries.push(id);
+                throw new Error("no task was admitted");
+            },
+        };
+        await expect(submitPlatformTask(input, deps)).rejects.toBe(selectionChanged);
+        expect([previews.length, creates.length, recoveries.length]).toEqual([1, 1, 0]);
+        expect((await submitPlatformTask(input, deps)).id).toBe("updated");
+        expect(previews).toHaveLength(2);
+        expect(creates.map((command) => [command.platform?.previewBinding, command.platform?.expectedConnectionRevision])).toEqual([
+            ["receipt-1", 7],
+            ["receipt-2", 8],
+        ]);
+        for (const body of [...previews, ...creates]) {
+            expect(body.input).toEqual(intent.input);
+            expect(body.commandId).toBe(intent.commandId);
+        }
+        expect(recoveries).toEqual([]);
+        expect(input).toEqual(intent);
+    });
+
+    test("retrying a native media command after both its POST and recovery responses are lost only reads that command", async () => {
+        const input: CreateTaskInput = { ...mediaInput(), commandId: "native-lost-response" };
+        const operations: string[] = [];
+        let lookupAvailable = false;
+        const deps = {
+            scope: () => "alice",
+            preview: async () => {
+                operations.push("preview");
+                return offer;
+            },
+            create: async (body: CreateTaskInput) => {
+                operations.push(`create:${body.commandId}`);
+                throw new Error("connection lost after POST");
+            },
+            recover: async (id: string, owner: string) => {
+                operations.push(`recover:${owner}:${id}`);
+                if (!lookupAvailable) throw new Error("GET temporarily unavailable");
+                return { id: "original" } as GenerationTask;
+            },
+        };
+        await expect(submitPlatformTask(input, deps)).rejects.toThrow();
+        lookupAvailable = true;
+        expect((await submitPlatformTask(structuredClone(input), deps)).id).toBe("original");
+        expect(operations).toEqual(["preview", "create:native-lost-response", "recover:alice:native-lost-response", "recover:alice:native-lost-response"]);
+    });
+
     test.each([{ previewUserId: "bob" }, { previewUserId: "" }, { previewBinding: "" }])("refuses another account or an unbound quote before creating a task: %j", async (changed) => {
         const calls: string[] = [];
         await expect(

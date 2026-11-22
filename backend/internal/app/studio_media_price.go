@@ -30,7 +30,7 @@ func (s *Service) StudioEstimateMediaPrice(ctx context.Context, userID string, s
 	if err := s.ensureTaskProjectActive(userID, req.ProjectID); err != nil {
 		return nil, response, err
 	}
-	selected, err := s.studioSelectTaskModel(ctx, session, req, response, studioCatalogScopeFor(userID, session, sessionID))
+	selected, err := s.studioSelectTaskModel(ctx, userID, session, req, response, studioCatalogScopeFor(userID, session, sessionID))
 	if err != nil {
 		return nil, response, err
 	}

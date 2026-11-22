@@ -163,6 +163,8 @@ type ComposerProps = {
     referenceImageSize?: { width: number; height: number };
     maxReferences: number;
     missingReferenceImages?: boolean;
+    selectionIssue?: string;
+    selectedCounts?: Record<string, number>;
     references: CreationReference[];
     onRemoveAttachment: (id: string) => void;
     onClearAttachments: () => void;
@@ -239,7 +241,7 @@ export function CreationComposer(props: ComposerProps) {
         props.config,
         props.mode,
         props.prompt,
-        props.attachments.map((item) => ({ kind: creationAttachmentKind(item), storageKey: item.storageKey, role: props.frameSlots?.find((slot) => slot.attachment?.id === item.id)?.role })),
+        props.attachments.map((item) => ({ kind: creationAttachmentKind(item), storageKey: item.storageKey, role: props.frameSlots?.find((slot) => slot.attachment?.id === item.id)?.role ?? ("role" in item ? item.role : undefined) })),
     );
     const actionLabel = props.referenceReplacementBusy ? "正在替换参考图" : interactionBusy || (props.generationActive && !canSubmit) ? "生成中" : standardPrice ? `${standardPrice}，发送` : "发送";
     // Send-button working state must span the WHOLE generation (not just the
@@ -250,7 +252,8 @@ export function CreationComposer(props: ComposerProps) {
     const showWorkingGlow = props.generationActive && !canSubmit;
     const placeholder = props.mode === "text" ? "描述你的故事、角色或想继续讨论的创意" : props.mode === "image" ? "描述画面、人物、场景、构图与风格" : "描述镜头内容、运动、光线与节奏";
     const referencesSupported = props.mode === "text" || props.maxReferences > 0;
-    const canAddMoreReferences = referencesSupported && props.attachments.length < props.maxReferences;
+    const ordinaryCount = props.attachments.length - (props.frameSlots?.filter((slot) => slot.attachment).length ?? 0);
+    const canAddMoreReferences = referencesSupported && ordinaryCount < props.maxReferences;
     const addReferenceLabel = interactionBusy ? (props.referenceReplacementBusy ? "正在替换参考图" : "生成中暂不能添加参考内容") : canAddMoreReferences ? "添加更多参考内容" : `已达到当前模型的参考内容上限（${props.maxReferences} 个）`;
     const referenceCounts = useMemo(
         () =>
@@ -374,10 +377,11 @@ export function CreationComposer(props: ComposerProps) {
                                     <ReferenceSlot key={role} role={role} src={attachment?.previewUrl} disabled={interactionBusy} onPick={() => props.onOpenFrame?.(role)} onRemove={attachment ? () => props.onRemoveAttachment(attachment.id) : undefined} />
                                 ))}
                             </FrameReferenceSlots>
-                        ) : referencesSupported && !props.attachments.length ? (
+                        ) : null}
+                        {referencesSupported && ordinaryCount === 0 ? (
                             <ReferenceSlot label={props.mode === "image" ? "参考图" : "参考内容"} disabled={interactionBusy || !canAddMoreReferences} onPick={props.onOpenLibrary} title={addReferenceLabel} />
                         ) : null}
-                        {props.attachments.length && !props.frameSlots?.length ? (
+                        {props.attachments.length && (!props.frameSlots?.length || props.attachments.some((item) => !props.frameSlots?.some((slot) => slot.attachment?.id === item.id))) ? (
                             <ReferenceStack count={props.attachments.length} pinned={trackState.isExpanded || trackState.isDragging}>
                                 {(spread) => (
                                     <div className={`creation-reference-panel${spread ? " is-expanded" : ""}`} aria-busy={interactionBusy}>
@@ -574,6 +578,11 @@ export function CreationComposer(props: ComposerProps) {
                         </Tooltip>
                     ) : null}
                 </div>
+                {props.selectionIssue && (
+                    <span role="status" className="text-xs">
+                        {props.selectionIssue}
+                    </span>
+                )}
                 <Button
                     type="text"
                     className={`creation-submit ${standardPrice ? "has-cost" : ""}`}
@@ -594,7 +603,7 @@ export function CreationComposer(props: ComposerProps) {
                                   ? "正在获取模型目录，请稍候"
                                   : "请先选择当前模式的可用模型"
                               : props.missingReferenceImages
-                                ? "请添加当前协议要求的参考图"
+                                ? props.selectionIssue || "请添加当前协议要求的参考图"
                                 : !canSubmit && !interactionBusy
                                   ? "输入创作想法后即可生成"
                                   : actionLabel
@@ -737,7 +746,17 @@ function GenerationSettingsMenu(props: ComposerProps) {
     const nativeConfig = { ...props.config, model: props.model, nativeParameters: props.nativeParameters, nativeVariantId: props.nativeVariantId };
     const native = nativeMediaProfile(nativeConfig);
     if ((props.mode === "video" || props.mode === "image") && native && props.onNativeSettingsChange) {
-        return <MediaParameterControls key={props.model + ":" + props.nativeVariantId} mode={props.mode} config={nativeConfig} variants={native.variants} modeVariantId={props.nativeModeVariantId} onChange={props.onNativeSettingsChange} />;
+        return (
+            <MediaParameterControls
+                key={props.model + ":" + props.nativeVariantId}
+                mode={props.mode}
+                config={nativeConfig}
+                variants={native.variants}
+                modeVariantId={props.nativeModeVariantId}
+                references={props.selectedCounts}
+                onChange={props.onNativeSettingsChange}
+            />
+        );
     }
     const activeQualityOptions = (props.imageProfile?.quality.values || []).map((value) => qualityOptions.find((item) => item.value === value) || { value, label: imageQualityLabel(value), description: "模型支持的质量/分辨率" });
     const qualityLabel = activeQualityOptions.find((item) => item.value === props.quality)?.label || qualityOptions.find((item) => item.value === props.quality)?.label || props.quality || "自动";
@@ -766,7 +785,7 @@ function GenerationSettingsMenu(props: ComposerProps) {
     const panel =
         native && props.onNativeSettingsChange ? (
             <div className="creation-parameter-menu max-h-[65vh] overflow-y-auto">
-                <PlatformNativeMediaSettings config={nativeConfig} onChange={props.onNativeSettingsChange} />
+                <PlatformNativeMediaSettings config={nativeConfig} references={props.selectedCounts} onChange={props.onNativeSettingsChange} />
             </div>
         ) : props.mode === "image" && props.imageProfile?.parameters ? (
             <div className="creation-parameter-menu max-h-[65vh] overflow-y-auto">

@@ -80,7 +80,7 @@ func TestStudioOpenTabUsesOnlyAnExactPublishedSchemaAfterCatalogExpiry(t *testin
 				s.studioMediaCatalog.snapshots[i].expires = time.Now().Add(-time.Minute)
 			}
 			req := CreateTaskRequest{Type: "canvas_image", Model: "shown", Prompt: "test", Platform: &StudioTaskOptions{VariantID: tc.chosen, ExpectedPriceVersion: tc.expectedPrice}}
-			selected, err := s.studioSelectTaskModel(context.Background(), session, req, &platformclient.Response{Header: make(http.Header)}, scope)
+			selected, err := s.studioSelectTaskModel(context.Background(), scope.user, session, req, &platformclient.Response{Header: make(http.Header)}, scope)
 			if tc.useDisplayed {
 				if err != nil || selected.ID != variant || !selected.GenerationV1 || catalogGets != 0 {
 					t.Fatalf("exact displayed schema: model=%s reads=%d err=%v", selected.ID, catalogGets, err)

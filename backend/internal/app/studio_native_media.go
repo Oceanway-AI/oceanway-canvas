@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -20,59 +21,111 @@ func studioNativeSpecifications(input canvasGenerationInput, selected platformin
 	if len(input.Config.ImageParameters) > 0 {
 		return nil, BadAuthRequest("请使用所选模型的原生参数表单")
 	}
-	var projected struct {
-		Properties map[string]json.RawMessage `json:"properties"`
-	}
+	var projected studioNativeSchemaNode
 	if json.Unmarshal(selected.Schema, &projected) != nil {
 		return nil, BadAuthRequest("模型参数合同无效")
 	}
 	values := map[string]any{}
-	for k, val := range selected.Defaults {
-		values[k] = val
-	}
-	for k, raw := range projected.Properties {
-		var field map[string]any
-		if json.Unmarshal(raw, &field) != nil {
-			return nil, BadAuthRequest("模型参数合同无效")
-		}
-		if _, exists := values[k]; !exists {
-			if value, ok := field["const"]; ok {
-				values[k] = value
-			}
-		}
-	}
 	for k, val := range input.Config.NativeParameters {
 		values[k] = val
 	}
+	spec := selected.Schema
+	if _, chosen := values["/size"]; !chosen && v.OutputSize != nil && slices.Contains(projected.Required, "/size") {
+		// The matching supply provides the required size after materials and
+		// explicit settings have been assembled.
+		projected.Required = slices.DeleteFunc(projected.Required, func(p string) bool { return p == "/size" })
+		var schema map[string]json.RawMessage
+		if err := json.Unmarshal(spec, &schema); err != nil {
+			return nil, BadAuthRequest("模型参数合同无效")
+		}
+		schema["required"], _ = json.Marshal(projected.Required)
+		spec, _ = json.Marshal(schema)
+	}
+	studioFillNativeRequired(projected, values, selected.Defaults)
 	for pointer := range values {
 		if _, ok := projected.Properties[pointer]; !ok || selected.Bindings[pointer] != pointer || !v.ParameterAllowed(pointer) {
 			return nil, BadAuthRequest("参数不属于所选模型的发布规格")
 		}
 	}
-	if err := platformintegration.ValidateSpecifications(selected.Schema, values); err != nil {
+	if err := platformintegration.ValidateSpecifications(spec, values); err != nil {
 		return nil, BadAuthRequest(err.Error())
 	}
 	return values, nil
 }
 
+type studioNativeSchemaNode struct {
+	Properties map[string]studioNativeSchemaNode `json:"properties"`
+	Required   []string                          `json:"required"`
+	Const      json.RawMessage                   `json:"const"`
+	Enum       []json.RawMessage                 `json:"enum"`
+	Default    json.RawMessage                   `json:"default"`
+}
+
+func studioFillNativeRequired(schema studioNativeSchemaNode, body, defaults map[string]any) {
+	keys := make([]string, 0, len(schema.Properties)+len(schema.Required))
+	for key := range schema.Properties {
+		keys = append(keys, key)
+	}
+	for _, key := range schema.Required {
+		if _, declared := schema.Properties[key]; !declared {
+			keys = append(keys, key)
+		}
+	}
+	for _, key := range keys {
+		child := schema.Properties[key]
+		value, supplied := body[key]
+		if !supplied && !slices.Contains(schema.Required, key) {
+			continue
+		}
+		if !supplied {
+			raw := child.Const
+			if len(raw) == 0 && len(child.Enum) == 1 {
+				raw = child.Enum[0]
+			}
+			if len(raw) == 0 {
+				raw = child.Default
+			}
+			if len(raw) > 0 {
+				supplied = json.Unmarshal(raw, &value) == nil
+			} else {
+				value, supplied = defaults[key]
+			}
+			if !supplied && len(child.Properties) == 0 {
+				continue
+			}
+			// A required object inherits its required children, not every
+			// optional publishing default in the same protocol container.
+			if _, object := value.(map[string]any); object && len(child.Properties) > 0 && len(child.Const) == 0 || !supplied {
+				value = map[string]any{}
+			}
+		}
+		if object, ok := value.(map[string]any); ok && len(child.Properties) > 0 {
+			copied := maps.Clone(object)
+			nestedDefaults, _ := defaults[key].(map[string]any)
+			studioFillNativeRequired(child, copied, nestedDefaults)
+			value = copied
+		}
+		body[key] = value
+	}
+}
+
 func (s *Service) studioNativeMediaBody(ctx context.Context, userID string, req CreateTaskRequest, input canvasGenerationInput, selected platformintegration.ModelSelection) ([]byte, error) {
-	v := selected.NativeRequest
 	values, err := studioNativeSpecifications(input, selected)
 	if err != nil {
 		return nil, err
 	}
-	// Clone before overlaying: neither a preview nor an Agent edit may mutate the
-	// frozen catalog. Keep nested defaults and explicit false/zero/null intact.
-	raw, err := json.Marshal(v.Defaults)
+	refs, err := s.studioNativeReferenceResources(ctx, userID, input)
 	if err != nil {
-		return nil, BadAuthRequest("模型默认参数无效")
+		return nil, err
 	}
+	return studioNativeResolvedBody(req.Prompt, selected, values, refs)
+}
+
+func studioNativeResolvedBody(prompt string, selected platformintegration.ModelSelection, values map[string]any, refs []studioNativeReferenceResource) ([]byte, error) {
+	v := selected.NativeRequest
 	body := map[string]any{}
-	if json.Unmarshal(raw, &body) != nil || body == nil {
-		return nil, BadAuthRequest("模型默认参数无效")
-	}
 	for _, pointer := range v.EnvelopePointers() {
-		if _, exists := platformintegration.NativeValue(body, pointer); exists {
+		if _, exists := platformintegration.NativeValue(v.Defaults, pointer); exists {
 			return nil, BadAuthRequest("模型默认参数包含调用方内容")
 		}
 	}
@@ -84,9 +137,7 @@ func (s *Service) studioNativeMediaBody(ctx context.Context, userID string, req 
 	for _, pointer := range keys {
 		value := values[pointer]
 		if object, ok := value.(map[string]any); ok {
-			previous, _ := platformintegration.NativeValue(body, pointer)
-			base, _ := previous.(map[string]any)
-			value = studioMergeNativeObjects(base, object)
+			value = studioMergeNativeObjects(nil, object)
 		}
 		if err := platformintegration.SetNativeValue(body, pointer, value); err != nil {
 			return nil, BadAuthRequest(err.Error())
@@ -97,34 +148,20 @@ func (s *Service) studioNativeMediaBody(ctx context.Context, userID string, req 
 	}
 	switch v.Protocol {
 	case "gemini.image":
-		body["contents"] = []any{map[string]any{"role": "user", "parts": []any{map[string]any{"text": req.Prompt}}}}
+		body["contents"] = []any{map[string]any{"role": "user", "parts": []any{map[string]any{"text": prompt}}}}
 	case "gemini.chat.image":
 		body["model"] = selected.Name
-		body["messages"] = []any{map[string]any{"role": "user", "content": []any{map[string]any{"type": "text", "text": req.Prompt}}}}
+		body["messages"] = []any{map[string]any{"role": "user", "content": []any{map[string]any{"type": "text", "text": prompt}}}}
 	case "modelark.video":
 		body["model"] = selected.Name
-		body["content"] = []any{map[string]any{"type": "text", "text": req.Prompt}}
+		body["content"] = []any{map[string]any{"type": "text", "text": prompt}}
 	default:
-		body["model"], body["prompt"] = selected.Name, req.Prompt
+		body["model"], body["prompt"] = selected.Name, prompt
 	}
-	if err := s.studioNativeMediaReferences(ctx, userID, v, input, body); err != nil {
+	if err := studioWriteNativeReferences(v, refs, body); err != nil {
 		return nil, err
 	}
-	if err := platformintegration.ValidateSpecifications(v.Schema, body); err != nil {
-		return nil, BadAuthRequest(err.Error())
-	}
-	prepared, err := json.Marshal(body)
-	if err != nil {
-		return nil, BadAuthRequest("模型请求参数无效")
-	}
-	variantJSON, err := json.Marshal(v)
-	if err != nil {
-		return nil, BadAuthRequest("模型能力合同无效")
-	}
-	if err := platformclient.ValidateNativeImageSize(variantJSON, prepared); err != nil {
-		return nil, BadAuthRequest("图片尺寸不符合所选型号的限制")
-	}
-	return prepared, nil
+	return studioPrepareNativeCombination(v, refs, body)
 }
 
 func studioMergeNativeObjects(base, override map[string]any) map[string]any {
@@ -186,59 +223,15 @@ func (s *Service) studioNativeReferenceResources(ctx context.Context, userID str
 	return resolved, nil
 }
 
-// Catalog filtering and request construction enforce the same published limits.
-func studioValidateNativeReferences(slots []platformintegration.NativeReferenceSlot, refs []studioNativeReferenceResource) error {
-	counts, totals := map[string]int64{}, map[string]int64{}
-	resources := map[string][]*model.Resource{}
-	for _, ref := range refs {
-		resource := ref.Resource
-		var slot *platformintegration.NativeReferenceSlot
-		for i := range slots {
-			candidate := &slots[i]
-			if candidate.Role != ref.Role {
-				continue
-			}
-			if slot != nil {
-				return BadAuthRequest("模型参考角色声明不明确")
-			}
-			slot = candidate
-		}
-		if slot == nil {
-			return BadAuthRequest("所选模型不支持当前参考素材角色")
-		}
-		counts[slot.ID]++
-		totals[slot.ID] += resource.Size
-		if slot.MaxItems != nil && counts[slot.ID] > *slot.MaxItems || slot.MaxItemBytes != nil && resource.Size > *slot.MaxItemBytes || slot.MaxTotalBytes != nil && totals[slot.ID] > *slot.MaxTotalBytes || len(slot.MIMETypes) > 0 && !slices.Contains(slot.MIMETypes, resource.MimeType) {
-			return BadAuthRequest("参考素材超出所选模型的文件限制")
-		}
-		resources[slot.Pointer] = append(resources[slot.Pointer], resource)
-	}
-	for _, slot := range slots {
-		if slot.MinItems != nil && counts[slot.ID] < *slot.MinItems {
-			return BadAuthRequest("缺少所选模型要求的参考素材")
-		}
-		if slot.SameDimensionsAs != "" && counts[slot.ID] > 0 {
-			targets := resources[slot.SameDimensionsAs]
-			if len(targets) == 0 {
-				return BadAuthRequest("参考素材尺寸约束缺少明确的目标")
-			}
-			for _, resource := range resources[slot.Pointer] {
-				for _, target := range targets {
-					if resource.Width <= 0 || resource.Height <= 0 || resource.Width != target.Width || resource.Height != target.Height {
-						return BadAuthRequest("参考素材尺寸不一致或未完成尺寸校验")
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
-
 func (s *Service) studioNativeMediaReferences(ctx context.Context, userID string, v *platformintegration.NativeRequestVariant, input canvasGenerationInput, body map[string]any) error {
 	refs, err := s.studioNativeReferenceResources(ctx, userID, input)
 	if err != nil {
 		return err
 	}
+	return studioWriteNativeReferences(v, refs, body)
+}
+
+func studioWriteNativeReferences(v *platformintegration.NativeRequestVariant, refs []studioNativeReferenceResource, body map[string]any) error {
 	if err := studioValidateNativeReferences(v.References, refs); err != nil {
 		return err
 	}

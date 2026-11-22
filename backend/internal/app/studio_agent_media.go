@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"strconv"
 	"time"
@@ -59,53 +60,94 @@ func (s *Service) SetStudioAgentMode(userID, runID, from, mode string) error {
 }
 
 func (s *Service) studioAgentMediaSelection(userID, runID, name string, variant ...string) (platformintegration.ModelSelection, error) {
-	root, err := s.repo.StudioExecution(userID, runID)
+	id := ""
+	if len(variant) > 0 {
+		id = variant[0]
+	}
+	item, err := s.studioAgentMediaModel(userID, runID, name, id)
 	if err != nil {
 		return platformintegration.ModelSelection{}, err
+	}
+	selected, err := platformintegration.SelectModel(item, id)
+	if err != nil {
+		return selected, BadAuthRequest(err.Error())
+	}
+	return selected, nil
+}
+
+func (s *Service) studioAgentMediaModel(userID, runID, name, variant string) (platformclient.Model, error) {
+	root, err := s.repo.StudioExecution(userID, runID)
+	if err != nil {
+		return platformclient.Model{}, err
 	}
 	var frozen studioExecutionEnvelope
 	if err := s.decryptStudioValue(root.EnvelopeEncrypted, &frozen); err != nil {
-		return platformintegration.ModelSelection{}, err
+		return platformclient.Model{}, err
 	}
 	if frozen.CatalogVersion != "" {
-		id := ""
-		if len(variant) > 0 {
-			id = variant[0]
-		}
-		detail, err := s.studioAgentCatalogDetail(userID, runID, name, id)
-		if err != nil {
-			return platformintegration.ModelSelection{}, err
-		}
-		selected, err := platformintegration.SelectModel(detail.Model, id)
-		if err != nil {
-			return selected, BadAuthRequest(err.Error())
-		}
-		return selected, nil
+		detail, err := s.studioAgentCatalogDetail(userID, runID, name, variant)
+		return detail.Model, err
 	}
 	for _, item := range frozen.Catalog {
 		if item.ModelName == name {
-			id := ""
-			if len(variant) > 0 {
-				id = variant[0]
-			}
-			selected, err := platformintegration.SelectModel(item, id)
-			if err != nil {
-				return selected, BadAuthRequest(err.Error())
-			}
-			return selected, nil
+			return item, nil
 		}
 	}
-	return platformintegration.ModelSelection{}, BadAuthRequest("模型不在本轮平台目录中，请重新开始会话")
+	return platformclient.Model{}, BadAuthRequest("模型不在本轮平台目录中，请重新开始会话")
 }
 
-func (s *Service) resolveStudioAgentMediaOptions(userID string, a *cloudAgentMediaArgs, state *cloudAgentRuntime) error {
+func (s *Service) resolveStudioAgentMediaOptions(userID string, a *cloudAgentMediaArgs, state *cloudAgentRuntime, references map[string]any) error {
 	if a.ChannelID != StudioPlatformChannelID || a.LogicalModelID != "" || a.Mode != "image" && a.Mode != "video" || a.VideoArkPrivateAssetUpload != nil {
 		return BadAuthRequest("请选择平台图片或视频模型；供应商素材库暂不可用")
 	}
-	selected, err := s.studioAgentMediaSelection(userID, state.RuntimeRunID, a.ChannelModelKey, a.NativeVariantID)
+	item, err := s.studioAgentMediaModel(userID, state.RuntimeRunID, a.ChannelModelKey, a.NativeVariantID)
 	if err != nil {
 		return err
 	}
+	profile, choices := studioNativeChoices(item)
+	if a.NativeVariantID == "" && choices {
+		input := maps.Clone(references)
+		if input == nil {
+			input = map[string]any{}
+		}
+		input["config"] = map[string]any{"channelId": StudioPlatformChannelID}
+		input["metadata"] = map[string]any{"videoStartFrameNodeId": a.VideoStartFrameNodeID, "videoEndFrameNodeId": a.VideoEndFrameNodeID}
+		decoded, err := studioDecodeInput(CreateTaskRequest{Input: input})
+		if err != nil {
+			return err
+		}
+		refs, err := s.studioNativeReferenceResources(context.Background(), userID, decoded)
+		if err != nil {
+			return err
+		}
+		return studioChooseAgentNativeVariant(a, state, item, profile, refs)
+	}
+	selected, err := platformintegration.SelectModel(item, a.NativeVariantID)
+	if err != nil {
+		return BadAuthRequest(err.Error())
+	}
+	return studioApplyAgentMediaOptions(a, state, selected)
+}
+
+func studioChooseAgentNativeVariant(a *cloudAgentMediaArgs, state *cloudAgentRuntime, item platformclient.Model, profile platformintegration.MediaProfile, refs []studioNativeReferenceResource) error {
+	selected, err := studioChooseNativeVariant(item, profile, func(selected platformintegration.ModelSelection) ([]byte, error) {
+		candidate := *a
+		if err := studioApplyAgentMediaOptions(&candidate, state, selected); err != nil {
+			return nil, err
+		}
+		var values map[string]any
+		if err := json.Unmarshal([]byte(candidate.NativeParameters), &values); err != nil {
+			return nil, BadAuthRequest("原生参数格式无效")
+		}
+		return studioNativeResolvedBody(a.Prompt, selected, values, refs)
+	})
+	if err != nil {
+		return err
+	}
+	return studioApplyAgentMediaOptions(a, state, selected)
+}
+
+func studioApplyAgentMediaOptions(a *cloudAgentMediaArgs, state *cloudAgentRuntime, selected platformintegration.ModelSelection) error {
 	if selected.Kind != a.Mode {
 		return BadAuthRequest("模型与创作类型不匹配")
 	}
@@ -118,7 +160,7 @@ func (s *Service) resolveStudioAgentMediaOptions(userID string, a *cloudAgentMed
 		if a.NativeParameters != "" && (json.Unmarshal([]byte(a.NativeParameters), &parameters) != nil || parameters == nil) {
 			return BadAuthRequest("原生参数格式无效")
 		}
-		parameters, err = studioAgentNativeParameters(*a, selected, parameters)
+		parameters, err := studioAgentNativeParameters(*a, selected, parameters)
 		if err != nil {
 			return err
 		}
@@ -232,7 +274,7 @@ func studioAgentNativeParameters(args cloudAgentMediaArgs, selected platforminte
 	}
 	qualityKeys := []string{"/quality"}
 	if args.Mode == "video" {
-		qualityKeys = []string{"/resolution"}
+		qualityKeys = []string{"/resolution", "/metadata/resolution"}
 	}
 	type parameterAlias struct {
 		keys    []string
@@ -241,15 +283,15 @@ func studioAgentNativeParameters(args cloudAgentMediaArgs, selected platforminte
 	}
 	aliases := []parameterAlias{
 		{[]string{"/duration", "/seconds"}, args.Duration, args.Duration != 0},
-		{[]string{"/aspect_ratio", "/ratio", "/size"}, args.Size, args.Size != ""},
+		{[]string{"/aspect_ratio", "/metadata/aspect_ratio", "/ratio", "/generationConfig/imageConfig/aspectRatio", "/size"}, args.Size, args.Size != ""},
 		{qualityKeys, args.Quality, args.Quality != ""},
-		{[]string{"/resolution", "/image_size", "/generationConfig/imageConfig/imageSize"}, args.ImageResolution, args.ImageResolution != ""},
+		{[]string{"/resolution", "/metadata/resolution", "/image_size", "/generationConfig/imageConfig/imageSize"}, args.ImageResolution, args.ImageResolution != ""},
 	}
 	if args.VideoGenerateAudio != nil {
-		aliases = append(aliases, parameterAlias{[]string{"/generate_audio", "/audio"}, *args.VideoGenerateAudio, true})
+		aliases = append(aliases, parameterAlias{[]string{"/generate_audio", "/metadata/generate_audio", "/audio"}, *args.VideoGenerateAudio, true})
 	}
 	if args.VideoWatermark != nil {
-		aliases = append(aliases, parameterAlias{[]string{"/watermark"}, *args.VideoWatermark, true})
+		aliases = append(aliases, parameterAlias{[]string{"/watermark", "/metadata/watermark"}, *args.VideoWatermark, true})
 	}
 	for _, alias := range aliases {
 		if !alias.present {
@@ -472,7 +514,7 @@ func (s *Service) QuoteStudioAgentMedia(ctx context.Context, userID string, sess
 			break
 		}
 	}
-	selected, err := s.studioSelectTaskModel(ctx, session, req, response)
+	selected, err := s.studioSelectTaskModel(ctx, userID, session, req, response)
 	if err != nil {
 		return nil, response, err
 	}

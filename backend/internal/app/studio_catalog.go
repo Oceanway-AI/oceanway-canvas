@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -37,7 +38,26 @@ func (s *Service) StudioModelCatalog(ctx context.Context, session platformclient
 }
 
 func studioCatalogPublicModel(item platformclient.Model, wire json.RawMessage) PublicChannelModel {
-	selected, selectErr := platformintegration.SelectModel(item, "")
+	return studioCatalogModelVariant(item, wire, "")
+}
+
+func studioCatalogModelVariant(item platformclient.Model, wire json.RawMessage, variantID string) PublicChannelModel {
+	selected, selectErr := platformintegration.SelectModel(item, variantID)
+	var candidates []platformintegration.ModelSelection
+	if variantID == "" && (item.ModelType == "image" || item.ModelType == "video") {
+		var profile platformintegration.MediaProfile
+		if json.Unmarshal(item.MediaGenerationProfile, &profile) == nil {
+			for _, variant := range profile.Variants {
+				candidate, err := platformintegration.SelectModelFromProfile(item, variant.ID, profile)
+				if err == nil {
+					candidates = append(candidates, candidate)
+				}
+			}
+			if selectErr != nil && len(candidates) > 0 {
+				selected, selectErr = candidates[0], nil
+			}
+		}
+	}
 	var content struct {
 		DisplayName string   `json:"display_name"`
 		Tagline     string   `json:"tagline"`
@@ -56,8 +76,115 @@ func studioCatalogPublicModel(item platformclient.Model, wire json.RawMessage) P
 		m.TextWire = studioTextWire(selected.TextProtocol)
 		m.DefaultOptions = selected.Defaults
 		m.CapabilityConfig = studioCapabilityProjection(selected)
+		if selected.NativeRequest != nil {
+			if len(candidates) == 0 {
+				candidates = []platformintegration.ModelSelection{selected}
+			}
+			media := m.CapabilityConfig[selected.Kind].(map[string]any)
+			studioProjectReferenceChoices(media, candidates)
+			if variantID == "" {
+				media["referenceScope"] = "model"
+			} else {
+				media["referenceScope"] = "variant"
+			}
+		}
 	}
 	return m
+}
+
+// Each displayed maximum is the largest on any one complete supply branch.
+func studioProjectReferenceChoices(media map[string]any, candidates []platformintegration.ModelSelection) {
+	refs := media["references"].(map[string]any)
+	fields := map[string]string{"reference_image": "maxImages", "first_frame": "maxFirstFrames", "last_frame": "maxLastFrames", "reference_video": "maxVideos", "reference_audio": "maxAudios"}
+	maxima, unknown := map[string]int64{}, map[string]bool{}
+	operations := []string{}
+	mask, complete := false, false
+	for _, candidate := range candidates {
+		if candidate.NativeRequest == nil {
+			continue
+		}
+		v := candidate.NativeRequest
+		options, err := v.Alternatives()
+		if err != nil {
+			continue
+		}
+		if len(options) == 0 {
+			options = []platformintegration.NativeSupplyAlternative{{References: v.References, Materials: v.Materials}}
+		}
+		for _, option := range options {
+			complete = true
+			branch := []string{}
+			empty := true
+			var required int64
+			for _, slot := range option.References {
+				if slot.MinItems != nil {
+					required += *slot.MinItems
+				}
+			}
+			for _, slot := range option.References {
+				if slot.MinItems != nil && *slot.MinItems > 0 {
+					empty = false
+				}
+				limit := slot.MaxItems
+				if c := option.Materials; c != nil && c.MaxItems != nil {
+					remaining := *c.MaxItems - required
+					if slot.MinItems != nil {
+						remaining += *slot.MinItems
+					}
+					remaining = max(0, remaining)
+					if limit == nil || remaining < *limit {
+						limit = &remaining
+					}
+				}
+				if limit != nil && *limit == 0 {
+					continue
+				}
+				if slot.Role == "mask" {
+					mask = true
+				}
+				if field, ok := fields[slot.Role]; ok {
+					if limit == nil {
+						unknown[field] = true
+					} else {
+						maxima[field] = max(maxima[field], *limit)
+					}
+				}
+				switch slot.Role {
+				case "first_frame", "last_frame":
+					branch = append(branch, "image_to_video")
+				case "reference_image", "reference_video", "reference_audio":
+					branch = append(branch, "reference_to_video")
+				}
+			}
+			if empty {
+				branch = append([]string{"text_to_video"}, branch...)
+			}
+			for _, op := range branch {
+				if !slices.Contains(operations, op) {
+					operations = append(operations, op)
+				}
+			}
+		}
+	}
+	for _, field := range fields {
+		if !complete || unknown[field] {
+			delete(refs, field)
+		} else {
+			refs[field] = maxima[field]
+		}
+	}
+	if complete {
+		refs["maskSupported"] = mask
+	} else {
+		delete(refs, "maskSupported")
+	}
+	if _, video := media["operations"]; video {
+		media["operations"] = operations
+		delete(media, "defaultOperation")
+		if len(operations) == 1 {
+			media["defaultOperation"] = operations[0]
+		}
+	}
 }
 
 // Forward the authorized public wire objects intact. Re-encoding a narrow SDK
@@ -179,6 +306,16 @@ func studioCapabilityProjection(s platformintegration.ModelSelection) map[string
 		Required   []string                  `json:"required"`
 	}
 	_ = json.Unmarshal(s.Schema, &schema)
+	fieldKey := func(names ...string) string {
+		for _, name := range names {
+			if _, exists := schema.Properties[name]; exists {
+				return name
+			}
+		}
+		return ""
+	}
+	resolutionKey := fieldKey("/resolution", "/metadata/resolution", "/generationConfig/imageConfig/imageSize", "/image_size", "resolution", "image_size")
+	ratioKey := fieldKey("/aspect_ratio", "/metadata/aspect_ratio", "/ratio", "/generationConfig/imageConfig/aspectRatio", "aspect_ratio", "ratio")
 	values := func(name string) []any {
 		return studioPublishedValues(schema.Properties[name])
 	}
@@ -192,9 +329,13 @@ func studioCapabilityProjection(s platformintegration.ModelSelection) map[string
 	for _, r := range s.References {
 		for _, role := range r.Roles {
 			switch role {
-			case "reference_image", "first_frame", "last_frame":
+			case "reference_image":
 				refs["maxImages"] = max(refs["maxImages"].(int), r.MaxItems)
 				refs["maxImageBytes"] = r.MaxItemBytes
+			case "first_frame":
+				refs["maxFirstFrames"] = r.MaxItems
+			case "last_frame":
+				refs["maxLastFrames"] = r.MaxItems
 			case "mask":
 				refs["maskSupported"] = true
 			case "reference_video":
@@ -242,24 +383,66 @@ func studioCapabilityProjection(s platformintegration.ModelSelection) map[string
 			}
 			parameters = append(parameters, param)
 		}
-		sizeKey := "size"
-		if schema.Properties[sizeKey] == nil && schema.Properties["aspect_ratio"] != nil {
-			sizeKey = "aspect_ratio"
+		sizeKey, sizeParameter := fieldKey("/size", "size"), "size"
+		if sizeKey == "" {
+			sizeKey, sizeParameter = ratioKey, "aspect_ratio"
 		}
-		sizeParameter := "none"
-		if schema.Properties[sizeKey] != nil {
-			sizeParameter = sizeKey
+		if sizeKey == "" {
+			sizeParameter = "none"
+		}
+		qualityKey := fieldKey("/quality", "quality")
+		background := fieldKey("/background", "background")
+		transparent := fieldKey("/transparent_background", "transparent_background")
+		transparentAllowed := slices.Contains(values(background), any("transparent"))
+		if transparent != "" {
+			options := values(transparent)
+			transparentAllowed = len(options) == 0 && schema.Properties[transparent]["type"] == "boolean" || slices.Contains(options, any(true))
+		}
+		size := map[string]any{"parameter": sizeParameter, "values": values(sizeKey), "default": stringDefault(sizeKey), "allowCustom": sizeKey != "" && len(values(sizeKey)) == 0}
+		resolution := map[string]any{"supported": resolutionKey != "", "values": values(resolutionKey), "default": stringDefault(resolutionKey)}
+		if v := s.NativeRequest; v != nil {
+			if v.OutputSize != nil {
+				size["allowCustom"] = v.OutputSize.AllowCustom
+			}
+			var presets []ImageSizePreset
+			var tiers, publishedSizes []any
+			for _, preset := range v.SizePresets {
+				wired, _ := platformintegration.NativeValue(preset.Values, sizeKey)
+				value, _ := wired.(string)
+				if value == "" || preset.Resolution == "" || preset.AspectRatio == "" {
+					continue
+				}
+				presets = append(presets, ImageSizePreset{Tier: preset.Resolution, Ratio: preset.AspectRatio, Size: value, Width: int(preset.Width), Height: int(preset.Height)})
+				if !slices.Contains(tiers, any(preset.Resolution)) {
+					tiers = append(tiers, preset.Resolution)
+				}
+				if !slices.Contains(publishedSizes, any(value)) {
+					publishedSizes = append(publishedSizes, value)
+				}
+			}
+			if len(presets) > 0 {
+				size["presets"] = presets
+				if len(values(sizeKey)) == 0 {
+					size["values"] = publishedSizes
+				}
+				if resolutionKey == "" {
+					resolution["supported"], resolution["values"] = true, tiers
+				}
+			}
 		}
 		maxOutputs := 1
-		if n, ok := schema.Properties["n"]["maximum"].(float64); ok && n > 0 {
+		if n, ok := schema.Properties[fieldKey("/n", "n")]["maximum"].(float64); ok && n > 0 {
 			maxOutputs = int(n)
 		}
-		return map[string]any{"version": 1, "image": map[string]any{"parameters": parameters, "references": refs, "size": map[string]any{"parameter": sizeParameter, "values": values(sizeKey), "default": stringDefault(sizeKey), "allowCustom": schema.Properties[sizeKey] != nil && len(values(sizeKey)) == 0}, "resolution": map[string]any{"supported": schema.Properties["resolution"] != nil, "values": values("resolution"), "default": stringDefault("resolution")}, "quality": map[string]any{"supported": schema.Properties["quality"] != nil, "values": values("quality"), "default": stringDefault("quality")}, "transparentBackground": map[string]any{"supported": false, "default": false}, "responseFormat": map[string]any{"supported": false}, "outputFormat": map[string]any{"supported": false}, "maxOutputs": maxOutputs}}
+		return map[string]any{"version": 1, "image": map[string]any{
+			"parameters": parameters, "references": refs, "size": size, "resolution": resolution, "maxOutputs": maxOutputs,
+			"quality":               map[string]any{"supported": qualityKey != "", "values": values(qualityKey), "default": stringDefault(qualityKey)},
+			"transparentBackground": map[string]any{"supported": transparentAllowed, "default": stringDefault(background) == "transparent" || boolDefault(transparent)},
+			"responseFormat":        map[string]any{"supported": fieldKey("/response_format", "response_format") != ""},
+			"outputFormat":          map[string]any{"supported": fieldKey("/output_format", "output_format") != ""},
+		}}
 	}
-	durationKey := "duration"
-	if schema.Properties[durationKey] == nil && schema.Properties["seconds"] != nil {
-		durationKey = "seconds"
-	}
+	durationKey := fieldKey("/duration", "/seconds", "duration", "seconds")
 	duration := map[string]any{"selection": "range", "default": numberDefault(durationKey)}
 	for from, to := range map[string]string{"minimum": "min", "maximum": "max", "multipleOf": "step"} {
 		if v, ok := schema.Properties[durationKey][from]; ok {
@@ -273,24 +456,37 @@ func studioCapabilityProjection(s platformintegration.ModelSelection) map[string
 		duration["selection"] = "enum"
 		duration["values"] = values(durationKey)
 	}
-	operations := []string{"text_to_video"}
+	operations := []string{}
+	allowsEmpty := true
 	for _, ref := range s.References {
+		if ref.MinItems > 0 {
+			allowsEmpty = false
+		}
 		for _, role := range ref.Roles {
-			if role == "first_frame" {
+			if (role == "first_frame" || role == "last_frame") && !slices.Contains(operations, "image_to_video") {
 				operations = append(operations, "image_to_video")
 			}
-			if role == "reference_image" || role == "reference_video" {
+			if (role == "reference_image" || role == "reference_video" || role == "reference_audio") && !slices.Contains(operations, "reference_to_video") {
 				operations = append(operations, "reference_to_video")
 			}
 		}
 	}
-	ratioKey := "aspect_ratio"
-	if schema.Properties[ratioKey] == nil && schema.Properties["ratio"] != nil {
-		ratioKey = "ratio"
+	if allowsEmpty {
+		operations = append([]string{"text_to_video"}, operations...)
 	}
-	audioKey := "generate_audio"
-	if schema.Properties[audioKey] == nil && schema.Properties["audio"] != nil {
-		audioKey = "audio"
+	audioKey := fieldKey("/generate_audio", "/metadata/generate_audio", "/audio", "generate_audio", "audio")
+	watermarkKey := fieldKey("/watermark", "/metadata/watermark", "watermark")
+	video := map[string]any{
+		"references": refs, "duration": duration, "durationSupported": durationKey != "", "operations": operations,
+		"ratios": values(ratioKey), "defaultRatio": stringDefault(ratioKey), "resolutions": values(resolutionKey), "defaultResolution": stringDefault(resolutionKey),
+		"generateAudio": map[string]any{"supported": audioKey != "", "default": boolDefault(audioKey)},
+		"watermark":     map[string]any{"supported": watermarkKey != "", "default": boolDefault(watermarkKey)},
 	}
-	return map[string]any{"version": 1, "video": map[string]any{"references": refs, "duration": duration, "durationSupported": schema.Properties[durationKey] != nil, "ratios": values(ratioKey), "defaultRatio": stringDefault(ratioKey), "resolutions": values("resolution"), "defaultResolution": stringDefault("resolution"), "generateAudio": map[string]any{"supported": schema.Properties[audioKey] != nil, "default": boolDefault(audioKey)}, "watermark": map[string]any{"supported": schema.Properties["watermark"] != nil, "default": boolDefault("watermark")}, "operations": operations, "defaultOperation": operations[0]}}
+	if len(operations) == 1 {
+		video["defaultOperation"] = operations[0]
+	}
+	if s.NativeRequest != nil {
+		studioProjectReferenceChoices(video, []platformintegration.ModelSelection{s})
+	}
+	return map[string]any{"version": 1, "video": video}
 }

@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
 import { defaultConfig } from "@/stores/use-config-store";
 import { systemChannelModelChannels } from "@/lib/user-session";
-import { nativeCreationModeOptions, nativeCreationSettings, nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues } from "@/lib/platform-native-media";
+import { nativeCreationModeOptions, nativeCreationSettings, nativeMediaDefaults, nativeMediaReferenceLimits, nativeMediaVariant, nativeMediaVariantOptions, nativeParameterValues, publishedImageReferenceLimit } from "@/lib/platform-native-media";
 import { maxModelInputCapacity, modelCompatibilityError, resolveModelGenerationDefaults } from "@/lib/model-selection";
 import { studioMediaPriceRequest } from "@/services/studio-media-price";
 import { backendProviderConfig, prepareBackendGenerationTask, runBackendGenerationTaskBatch } from "@/services/api/generation-task";
 import { buildNodeConfig } from "@/components/canvas/canvas-node-prompt-config";
-import { buildGenerationConfig } from "@/lib/canvas/canvas-project-generation";
+import { buildGenerationConfig, canvasImageReferenceLimitError } from "@/lib/canvas/canvas-project-generation";
 import { specFromConfig, generationSpecMetadata, synchronizeGenerationSpec } from "@/lib/canvas/generation-contract";
 import { normalizeCreationComposerPreferences } from "@/stores/use-creation-preferences-store";
 import { agentMediaSettings, agentApprovalMatchesSettings } from "@/lib/canvas/agent-media-approval";
@@ -14,7 +14,14 @@ import type { PublicChannelModel } from "@/services/api/logical-models";
 import { CanvasNodeType, type CanvasNodeData } from "@/types/canvas";
 
 const defaults = { "/duration": 4, "/resolution": "720p", "/seed": 8, "/generate_audio": true, "/metadata": { source: "test" }, "/extensions": ["IMAGE"] };
-const properties = Object.fromEntries(Object.keys(defaults).map((key) => [key, { type: key === "/duration" || key === "/seed" ? "integer" : "string" }]));
+const properties = {
+    "/duration": { type: "integer" },
+    "/resolution": { type: "string" },
+    "/seed": { type: "integer" },
+    "/generate_audio": { type: "boolean" },
+    "/metadata": { type: ["object", "null"] },
+    "/extensions": { type: "array", items: { type: "string" } },
+};
 const variant = {
     id: "ark",
     gateway_protocol: "modelark.video",
@@ -101,6 +108,8 @@ test("summary models remain discoverable but cannot submit without complete deta
     const summary = { ...model, platform: { ...model.platform!, state: "summary" as const, model_name: model.modelKey, media_generation_profile: undefined, variants_complete: false, variants: [] } };
     const active = { ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OceanWay", displayName: "OceanWay", models: [summary] }]) };
     expect(modelCompatibilityError(active, selected, { capability: "video" })).toBe("");
+    expect(maxModelInputCapacity(active, "video", "image")).toBeNull();
+    expect(maxModelInputCapacity(active, "video", "audio")).toBeNull();
     expect(resolveModelGenerationDefaults(active, selected, "video", { nativeParameters: '{"/duration":8}', nativeVariantId: "saved" })).toEqual({ nativeParameters: '{"/duration":8}', nativeVariantId: "saved" });
     await expect(prepareBackendGenerationTask({ mode: "video", config: active, prompt: "A scene" })).rejects.toThrow("模型参数尚未加载");
 });
@@ -139,19 +148,20 @@ test("native selection preserves exact values and ignores legacy video controls"
     expect(() => backendProviderConfig({ ...value, nativeVariantId: "retired" }, "video")).toThrow();
 });
 
-test("reopening an editable draft restores a published mode and its own defaults", () => {
+test("reopening an editable draft restores a published endpoint and retains explicit parameters", () => {
     const empty = nativeCreationSettings(config, selected, { nativeVariantId: "retired", nativeParameters: '{"/seed":999}' }, false);
     expect(empty.referenceVariant?.id).toBe("ark");
     expect(empty.settings.nativeVariantId).toBe("other");
-    expect(JSON.parse(empty.settings.nativeParameters)["/seed"]).not.toBe(999);
+    expect(JSON.parse(empty.settings.nativeParameters)).toEqual({ "/seed": 999 });
+    expect(backendProviderConfig({ ...config, ...empty.settings }, "video").nativeParameters).toEqual({ "/seed": 999 });
     expect(nativeCreationSettings(config, selected, { nativeVariantId: "other" }, true).settings.nativeVariantId).toBe("ark");
 });
 
 test("selected protocol owns reference capacity without merging alternatives", () => {
     expect(maxModelInputCapacity(config, "video", "image")).toBe(2);
     expect(maxModelInputCapacity(config, "video", "audio")).toBe(0);
-    expect(nativeMediaReferenceLimits({ ...config, nativeVariantId: "ark" })?.maxImages).toBe(2);
-    expect(nativeMediaReferenceLimits({ ...config, nativeVariantId: "other" })?.maxImages).toBe(0);
+    expect(nativeMediaReferenceLimits({ ...config, nativeVariantId: "ark" })).toMatchObject({ maxImages: 0, maxFirstFrames: 1, maxLastFrames: 1 });
+    expect(nativeMediaReferenceLimits({ ...config, nativeVariantId: "other" })).toMatchObject({ maxImages: 0, maxFirstFrames: 0, maxLastFrames: 0 });
 });
 
 test("video draft keeps the selected reference mode while controls and submission follow the effective request", () => {
@@ -172,15 +182,21 @@ test("video draft keeps the selected reference mode while controls and submissio
     const video = { ...model, platform: { ...model.platform, media_generation_profile: { gateway_protocol: frames.gateway_protocol, default_variant: frames.id, variants: [frames, text] } } } as PublicChannelModel;
     const cfg = { ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OW", displayName: "OW", models: [video] }]) };
     const initial = nativeCreationSettings(cfg, selected, {}, false);
-    expect(JSON.parse(initial.settings.nativeParameters)).toEqual(text.defaults);
+    expect(JSON.parse(initial.settings.nativeParameters)).toEqual({});
+    expect(backendProviderConfig({ ...cfg, ...initial.settings }, "video").nativeParameters).toEqual({});
     const edited = { nativeModeVariantId: frames.id, nativeVariantId: text.id, nativeParameters: JSON.stringify({ "/ratio": "9:16", "/duration": 6, "/generate_audio": false }) };
     const saved = normalizeCreationComposerPreferences({ video: edited }).video!;
     const empty = nativeCreationSettings(cfg, selected, saved, false);
     expect(empty.referenceVariant?.id).toBe(frames.id);
     expect(backendProviderConfig({ ...cfg, ...empty.settings }, "video")).toMatchObject({ nativeVariantId: text.id, nativeParameters: JSON.parse(edited.nativeParameters) });
     const attached = nativeCreationSettings(cfg, selected, saved, true);
-    expect(backendProviderConfig({ ...cfg, ...attached.settings }, "video")).toMatchObject({ nativeVariantId: frames.id, nativeParameters: { "/ratio": "adaptive", "/duration": 6 } });
-    expect(JSON.parse(nativeCreationSettings(cfg, selected, { ...saved, nativeParameters: '{"/duration":5}' }, true).settings.nativeParameters)).toEqual(frames.defaults);
+    expect(attached.settings.nativeVariantId).toBe(frames.id);
+    expect(JSON.parse(attached.settings.nativeParameters)).toEqual(JSON.parse(edited.nativeParameters));
+    expect(() => backendProviderConfig({ ...cfg, ...attached.settings }, "video")).toThrow("/ratio");
+    const invalidDuration = nativeCreationSettings(cfg, selected, { ...saved, nativeParameters: '{"/duration":5}' }, true);
+    expect(JSON.parse(invalidDuration.settings.nativeParameters)).toEqual({ "/duration": 5 });
+    expect(() => backendProviderConfig({ ...cfg, ...invalidDuration.settings }, "video")).toThrow("/duration");
+    expect(backendProviderConfig({ ...cfg, ...attached.settings, nativeParameters: '{"/duration":6}' }, "video")).toMatchObject({ nativeVariantId: frames.id, nativeParameters: { "/duration": 6 } });
 });
 
 test("saved canvas, editor and executor submit the same native parameters", () => {
@@ -193,7 +209,7 @@ test("saved canvas, editor and executor submit the same native parameters", () =
     expect(backendProviderConfig(panel, "video")).toEqual(backendProviderConfig(execution, "video"));
     expect(backendProviderConfig(execution, "video").nativeParameters).toEqual(explicit);
     const changed = synchronizeGenerationSpec(restored, { nativeVariantId: "other" });
-    expect(changed.metadata?.generationSpec?.options.nativeParameters).toBeUndefined();
+    expect(JSON.parse(changed.metadata!.generationSpec!.options.nativeParameters!)).toEqual(explicit);
 });
 
 test("creation history preferences and Agent approval retain native values", () => {
@@ -204,10 +220,11 @@ test("creation history preferences and Agent approval retain native values", () 
     expect(agentApprovalMatchesSettings(agent, { ...agent, nativeParameters: "{}" })).toBe(false);
 });
 
-test("creation selects a published edit only for attached images and retains compatible settings", () => {
+test("TC-STUDIO-IMG-REF-001: image picker, canvas, estimate and admission follow attachments", async () => {
     const generate = {
         ...variant,
         id: "generate",
+        media_generation_v1: true,
         gateway_protocol: "openai.image.generate",
         defaults: { "/size": "auto", "/quality": "low" },
         specifications_schema: { properties: { "/size": { type: "string" }, "/quality": { enum: ["low", "high"] } } },
@@ -233,25 +250,83 @@ test("creation selects a published edit only for attached images and retains com
     expect(nativeMediaReferenceLimits(cfg, selected, empty.referenceVariant)?.maxImages).toBe(16);
     const attached = nativeCreationSettings(cfg, selected, saved, true);
     expect(attached.settings.nativeVariantId).toBe("edit");
-    expect(JSON.parse(attached.settings.nativeParameters)).toEqual({ "/size": "1024x1024", "/quality": "medium" });
+    expect(JSON.parse(attached.settings.nativeParameters)).toEqual({ "/size": "1024x1024", "/quality": "high" });
     const input = { textCount: 1, imageCount: 1, videoCount: 0, audioCount: 0, characterCount: 0 };
-    expect(modelCompatibilityError(cfg, selected, { capability: "image", input, useImageEditForReferences: true })).toBe("");
-    expect(modelCompatibilityError(cfg, selected, { capability: "image", input })).toContain("0");
-    expect(modelCompatibilityError(cfg, selected, { capability: "image", input: { ...input, imageCount: 17 }, useImageEditForReferences: true })).toContain("16");
+    expect(modelCompatibilityError(cfg, selected, { capability: "image", input })).toBe("");
+    expect(modelCompatibilityError(cfg, selected, { capability: "image", input: { ...input, imageCount: 17 } })).toContain("16");
     expect(nativeCreationSettings(cfg, selected, { nativeVariantId: "retired" }, true).settings.nativeVariantId).toBe("edit");
     const cleared = nativeCreationSettings(cfg, selected, { nativeVariantId: "edit" }, false);
     expect(nativeCreationModeOptions([generate, edit], edit, true)).toEqual([{ label: "图片参考", value: "edit" }]);
     expect(cleared.referenceVariant?.id).toBe("edit");
     expect(cleared.settings.nativeVariantId).toBe("generate");
-    image.platform!.media_generation_profile!.variants = [generate, edit, { ...edit, id: "another" }];
-    expect(nativeCreationSettings(cfg, selected, saved, true).settings.nativeVariantId).toBe("generate");
+    const images = Array.from({ length: 17 }, (_, i) => ({ id: String(i), name: "pin", type: "image/png", dataUrl: "", storageKey: "resource:pin" + i }));
+    await expect(prepareBackendGenerationTask({ mode: "image", config: { ...cfg, ...attached.settings }, prompt: "draw", referenceImages: images.slice(0, 1) })).rejects.toThrow("/quality");
+    expect(studioMediaPriceRequest({ ...cfg, ...attached.settings }, "image", "draw", [{ kind: "image", storageKey: images[0].storageKey }], "owner")).toBeNull();
+    let draft = { ...cfg, ...saved, nativeParameters: '{"/size":"1024x1024"}' };
+    for (const count of [0, 1, 16, 0]) {
+        const referenceImages = images.slice(0, count);
+        expect(canvasImageReferenceLimitError(draft, referenceImages)).toBe("");
+        const task = await prepareBackendGenerationTask({ mode: "image", config: draft, prompt: "draw", referenceImages });
+        const quote = studioMediaPriceRequest(
+            draft,
+            "image",
+            "draw",
+            referenceImages.map((pin) => ({ ...pin, kind: "image" })),
+            "owner",
+        );
+        expect(task.platform?.variantId).toBe(count ? "edit" : "generate");
+        expect(task.input?.config).toMatchObject({ nativeParameters: { "/size": "1024x1024" } });
+        expect(task.input?.referenceImages).toHaveLength(count);
+        expect(quote?.platform?.variantId).toBe(task.platform!.variantId);
+        expect(quote?.input?.config).toEqual(task.input?.config);
+        draft = { ...draft, ...nativeCreationSettings(cfg, selected, draft, count > 0).settings };
+    }
+    expect(canvasImageReferenceLimitError(draft, images)).toContain("16");
+    await expect(prepareBackendGenerationTask({ mode: "image", config: draft, prompt: "draw", referenceImages: images })).rejects.toThrow("16");
+    expect(
+        studioMediaPriceRequest(
+            draft,
+            "image",
+            "draw",
+            images.map((pin) => ({ ...pin, kind: "image" })),
+            "owner",
+        ),
+    ).toBeNull();
 });
 
-test("Platform controls discard API-only and stale overrides while retaining explicit zero", () => {
+test("stale parameters stay editable and are rejected at admission while explicit zero is valid", () => {
     const variant = nativeMediaVariant(config)!;
     const source = { ...variant, workbench_parameters: ["/seed"], defaults: { "/seed": 3, "/n": 1 } };
-    expect(nativeParameterValues(source, '{"/seed":0,"/n":8}')).toEqual({ "/seed": 0 });
-    expect(nativeParameterValues({ ...source, workbench_parameters: [] }, '{"/n":8}')).toEqual({});
+    const video = { ...model, platform: { ...model.platform!, media_generation_profile: { gateway_protocol: source.gateway_protocol, default_variant: source.id, variants: [source] } } };
+    const cfg = { ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OW", displayName: "OW", models: [video] }]) };
+    const stale = '{"/seed":0,"/n":8}';
+    expect(nativeParameterValues(source, stale)).toEqual({ "/seed": 0, "/n": 8 });
+    expect(() => backendProviderConfig({ ...cfg, nativeParameters: stale }, "video")).toThrow("/n");
+    expect(backendProviderConfig({ ...cfg, nativeParameters: '{"/seed":0}' }, "video").nativeParameters).toEqual({ "/seed": 0 });
+});
+
+test("TC-STUDIO-IMG-REF-002: optional single endpoint, text-only supply and incomplete summaries", async () => {
+    const referenceImages = Array.from({ length: 14 }, (_, i) => ({ id: String(i), name: "pin", type: "image/png", dataUrl: "", storageKey: "resource:p" + i }));
+    const slot = { id: "images", pointer: "/contents", transport: "content-array", role: "reference_image", min_items: 0, max_items: 14 };
+    const route = { ...variant, id: "gemini", gateway_protocol: "gemini.image", native_request_variant: { ...variant.native_request_variant, native_reference_inputs: [slot] } };
+    const image = { ...model, capability: "image", platform: { ...model.platform!, model_type: "image", media_generation_profile: { gateway_protocol: route.gateway_protocol, default_variant: route.id, variants: [route] } } };
+    const active = (item: PublicChannelModel) => ({ ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OW", displayName: "OW", models: [item] }]) });
+    const cfg = active(image);
+    expect(publishedImageReferenceLimit(cfg)).toBe(14);
+    for (const refs of [[], referenceImages]) {
+        const task = await prepareBackendGenerationTask({ mode: "image", prompt: "draw", config: cfg, referenceImages: refs });
+        expect(task.input?.config).toMatchObject({ nativeVariantId: "gemini" });
+    }
+    const textOnly = { ...route, id: "generate", gateway_protocol: "openai.image.generate", native_request_variant: { ...route.native_request_variant, native_reference_inputs: [] } };
+    const bare = active({ ...image, platform: { ...image.platform, media_generation_profile: { gateway_protocol: textOnly.gateway_protocol, default_variant: textOnly.id, variants: [textOnly] } } });
+    expect(publishedImageReferenceLimit(bare)).toBe(0);
+    await expect(prepareBackendGenerationTask({ mode: "image", prompt: "draw", config: bare, referenceImages: referenceImages.slice(0, 1) })).rejects.toThrow("0 张");
+    const summary = { ...image.platform, state: "summary" as const, variants_complete: true, variants: [{ id: "edit", references_complete: true, references: [{ ...slot, mime_types: [] }] }], media_generation_profile: undefined };
+    expect(publishedImageReferenceLimit(active({ ...image, platform: summary }))).toBe(14);
+    const pending = active({ ...image, platform: { ...summary, variants: [{ ...summary.variants[0], references_complete: false }] } });
+    expect(publishedImageReferenceLimit(pending)).toBeUndefined();
+    expect(maxModelInputCapacity(pending, "image", "image")).toBeNull();
+    await expect(prepareBackendGenerationTask({ mode: "image", prompt: "draw", config: pending })).rejects.toThrow("尚未加载");
 });
 
 test("one published v1 image command owns all selected outputs even without native editor details", async () => {

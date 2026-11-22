@@ -4,6 +4,12 @@ export function isNativeImageVariant(variant: NativeMediaVariant) {
     return ["openai.image.generate", "openai.image.edit", "gemini.image", "gemini.chat.image"].includes(variant.native_request_variant.protocol);
 }
 
+export function resolutionLabel(resolution: string, tier = false) {
+    const pixels = /^(\d+)x(\d+)$/.exec(resolution);
+    if (pixels) return `${pixels[1]} × ${pixels[2]} px`;
+    return tier && /^\d+(?:\.\d+)?k$/i.test(resolution) ? `${resolution} 级` : resolution;
+}
+
 // Presets are executable native values from the published catalog. A K label
 // never instructs this consumer to calculate or infer a width/height pair.
 function presetParameters(variant: NativeMediaVariant, preset: NativeImageSizePreset) {

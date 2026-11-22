@@ -90,10 +90,18 @@ test.each([CanvasNodeType.Video, CanvasNodeType.Config])("%s keeps its model and
         true,
     );
     const input = { ...empty, imageCount: context.imageCount };
+    const frameEditor = buildNodeConfig(config, node, "video", { capability: "video", input });
+    const conflict = buildGenerationConfig(config, node, "video", { capability: "video", input });
+    expect(frameEditor.nativeVariantId).toBe("frames");
+    expect(frameEditor.nativeParameters).toBe(conflict.nativeParameters);
+    expect(JSON.parse(conflict.nativeParameters!)).toEqual(values);
+    await expect(prepareBackendGenerationTask({ mode: "video", prompt: "镜头", config: conflict, referenceImages: context.referenceImages, metadata: buildVideoGenerationMetadata(node, context, conflict) })).rejects.toThrow("/ratio");
+    const corrected = { ...values, "/ratio": "adaptive", "/generate_audio": true };
+    node = applyNodeConfigPatch(node, nativeCanvasParameterPatch(frameEditor, "frames", "nativeParameters", JSON.stringify(corrected)));
     const requestConfig = buildGenerationConfig(config, node, "video", { capability: "video", input });
-    expect(buildNodeConfig(config, node, "video", { capability: "video", input }).nativeParameters).toBe(requestConfig.nativeParameters);
+    expect(JSON.parse(requestConfig.nativeParameters!)).toEqual(corrected);
     const request = await prepareBackendGenerationTask({ mode: "video", prompt: "镜头", config: requestConfig, referenceImages: context.referenceImages, metadata: buildVideoGenerationMetadata(node, context, requestConfig) });
-    expect(request.input?.config).toMatchObject({ model: "selected", nativeVariantId: "frames", nativeParameters: { "/ratio": "adaptive", "/generate_audio": true, "/resolution": "480p" } });
+    expect(request.input?.config).toMatchObject({ model: "selected", nativeVariantId: "frames", nativeParameters: corrected });
     expect(request.input?.referenceImages).toMatchObject([
         { storageKey: "resource:first", role: "first_frame" },
         { storageKey: "resource:tail", role: "last_frame" },

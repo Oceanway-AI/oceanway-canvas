@@ -1,11 +1,26 @@
 import { useState } from "react";
 import { Link2, Unlink2 } from "lucide-react";
 import { Input } from "antd";
-import { applyNativeImagePreset, nativeImageSizeIssue, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
+import { applyNativeImagePreset, resolutionLabel, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
+import { nativeImageSizeGuidance, publishedImageSizePresets } from "./platform-native-image-size";
+import type { MaterialCounts } from "@/lib/platform-media-supply";
 import type { NativeMediaVariant } from "@/lib/platform-native-media";
 
-export function ImageSizeDock({ variant, values, onChange }: { variant: NativeMediaVariant; values: Record<string, unknown>; onChange: (next: Record<string, unknown>) => void }) {
-    const { size_presets: presets = [], output_size: limits } = variant.native_request_variant;
+export function ImageSizeDock({
+    variant,
+    values,
+    explicit = values,
+    references,
+    onChange,
+}: {
+    variant: NativeMediaVariant;
+    values: Record<string, unknown>;
+    explicit?: Record<string, unknown>;
+    references?: MaterialCounts;
+    onChange: (next: Record<string, unknown>) => void;
+}) {
+    const presets = publishedImageSizePresets(variant);
+    const limits = variant.native_request_variant.output_size;
     const preset = selectedNativeImagePreset(variant, values);
     const [custom, setCustom] = useState(false);
     const [lock, setLock] = useState<number>();
@@ -14,8 +29,8 @@ export function ImageSizeDock({ variant, values, onChange }: { variant: NativeMe
     const width = dimensions?.[1] ?? String(preset?.width ?? "");
     const height = dimensions?.[2] ?? String(preset?.height ?? "");
     const isCustom = limits?.allow_custom && !auto && (custom || !preset);
-    const issue = nativeImageSizeIssue(variant, values);
-    const writeSize = (size: string) => onChange({ ...values, "/size": size });
+    const guidance = nativeImageSizeGuidance(variant, explicit, references);
+    const writeSize = (size: string) => onChange({ ...explicit, "/size": size });
     function pick(axis: "aspect_ratio" | "resolution", value: string) {
         setLock(undefined);
         setCustom(value === "custom");
@@ -27,7 +42,14 @@ export function ImageSizeDock({ variant, values, onChange }: { variant: NativeMe
         const other = axis === "resolution" ? "aspect_ratio" : "resolution";
         const matches = presets.filter((p) => p[axis] === value);
         const next = matches.find((p) => p[other] === preset?.[other]) ?? matches[0];
-        if (next) onChange(applyNativeImagePreset(variant, values, next.id));
+        if (!next) return;
+        const changed = applyNativeImagePreset(variant, explicit, next.id);
+        if (variant.native_request_variant.protocol.startsWith("gemini.")) {
+            const otherPointer = axis === "resolution" ? "/generationConfig/imageConfig/aspectRatio" : "/generationConfig/imageConfig/imageSize";
+            if (Object.hasOwn(explicit, otherPointer)) changed[otherPointer] = explicit[otherPointer];
+            else delete changed[otherPointer];
+        }
+        onChange(changed);
     }
     function edit(axis: "width" | "height", value: string) {
         const paired = axis === "width" ? height : width;
@@ -51,8 +73,8 @@ export function ImageSizeDock({ variant, values, onChange }: { variant: NativeMe
                 </legend>
                 <div className="studio-video-choices">
                     {[...choices].map((v) => (
-                        <button type="button" key={v} aria-pressed={v === selected} onClick={() => pick(axis, v)}>
-                            {v === "auto" ? "自动" : v === "custom" ? "自定义" : v.toUpperCase()}
+                        <button type="button" key={v} aria-pressed={v === selected} disabled={(v === "auto" && !guidance.limits.some((s) => s.allow_auto)) || (v === "custom" && !guidance.limits.some((s) => s.allow_custom))} onClick={() => pick(axis, v)}>
+                            {v === "auto" ? "自动" : v === "custom" ? "自定义" : ratio ? v : resolutionLabel(v)}
                         </button>
                     ))}
                 </div>
@@ -61,8 +83,8 @@ export function ImageSizeDock({ variant, values, onChange }: { variant: NativeMe
     }
     return (
         <div className="grid gap-3">
-            {options("aspect_ratio")}
             {options("resolution")}
+            {options("aspect_ratio")}
             {(limits?.allow_custom || (preset?.width && preset.height)) && (
                 <fieldset>
                     <legend>
@@ -97,12 +119,12 @@ export function ImageSizeDock({ variant, values, onChange }: { variant: NativeMe
                     </div>
                 </fieldset>
             )}
-            {isCustom && limits && (
+            {isCustom && guidance.maxPixels !== undefined && (
                 <small>
-                    宽高按 {limits.multiple_of} 对齐 · 单张最多 {limits.max_pixels.toLocaleString()} 像素
+                    {guidance.alignment && `宽高按 ${guidance.alignment} 对齐 · `}单张最多 {guidance.maxPixels.toLocaleString()} 像素
                 </small>
             )}
-            {issue && <p role="alert">{issue}</p>}
+            {guidance.issue && <p role="alert">{guidance.issue}</p>}
         </div>
     );
 }

@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSP
 import { Check, ChevronDown } from "lucide-react";
 import { Popover } from "antd";
 import { seedanceDisplayPrice, videoPriceSettings } from "@oceanway/model-picker/video-unit-price";
-import { nativeMediaVariant, nativeParameterValues } from "@/lib/platform-native-media";
+import { nativeMediaVariant, nativeParameterValues, publishedReferenceCapacity } from "@/lib/platform-native-media";
 import { ModelPickerPanel } from "@oceanway/model-picker";
 import { usePopoverAnchorAlign } from "@/hooks/use-popover-anchor-align";
 
@@ -435,6 +435,24 @@ function emptyModelLabel(config: AiConfig, capability?: ModelCapability) {
 
 const mediaTagColors: ModelTag["color"][] = ["green", "pink", "blue"];
 
+function mediaReferenceTags(config: AiConfig, model: string, kind: string, publishedTags: string[]) {
+    if (kind !== "image" && kind !== "video") return publishedTags;
+    const tags = publishedTags.filter((tag) => !/^(?:参考图(?:片)?\s*(?:最多\s*)?[×x:：]?\s*\d+\s*张?|\d+\s*张?\s*参考图(?:片)?|图\s*[×x]\s*\d+)$/.test(tag.trim()));
+    const limit = publishedReferenceCapacity(config, model, ["reference_image"]);
+    if (limit === undefined) return tags;
+    if (limit === 0 && kind === "video") {
+        const frames = (
+            [
+                ["first_frame", "首帧"],
+                ["last_frame", "尾帧"],
+            ] as const
+        ).filter(([role]) => (publishedReferenceCapacity(config, model, [role]) ?? 0) > 0);
+        if (frames.length) return [...frames.map(([, label]) => label), ...tags.filter((tag) => !frames.some(([, label]) => label === tag))];
+    }
+    const label = limit === 0 ? "参考图 0 张" : Number.isFinite(limit) ? `参考图最多 ${limit} 张` : "支持参考图";
+    return [label, ...tags.filter((tag) => tag !== label)];
+}
+
 export function ModelLabel({
     config,
     model,
@@ -468,7 +486,8 @@ export function ModelLabel({
     const platformStatus = platform && <PlatformHealthIndicator health={presentation?.health} available={Boolean(logicalCost?.available) && presentation?.availability.state !== "unavailable"} compact />;
     if (platform) {
         const title = platform.content?.display_name?.trim() || modelChannelLabel(config, model);
-        const tags = presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
+        const publishedTags = presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
+        const tags = mediaReferenceTags(config, model, platform.model_type, publishedTags);
         let parameters = {};
         const currentVariant = nativeMediaVariant(config);
         if (currentVariant) {

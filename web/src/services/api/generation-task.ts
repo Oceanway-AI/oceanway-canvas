@@ -2,8 +2,9 @@ import type { ThinkingRequest } from "@/lib/text-thinking";
 import { createClientUUID } from "@/lib/client-id";
 import { backendProviderConfig, omittedImageQuality } from "./generation-provider-config";
 import { imageParameterRequest } from "@/lib/image-parameters";
-import { nativeMediaVariant, studioMediaGenerationVariant } from "@/lib/platform-native-media";
-import { assignFrameSlots, publishedFrameRoles } from "@/lib/media-reference-slots";
+import { imageRequestConfig, nativeMediaVariant, studioMediaGenerationVariant } from "@/lib/platform-native-media";
+import { requestFrameImages } from "@/lib/media-reference-slots";
+import { mediaRoleCounts } from "@/lib/platform-media-supply";
 import { getMediaBlob } from "@/services/file-storage";
 import { getImageBlob } from "@/services/image-storage";
 import { resourceIdFromStorageKey, resourceStorageKey, uploadResourceFile } from "@/services/api/resources";
@@ -102,6 +103,7 @@ export async function runBackendGenerationTask(
     dependencies: GenerationTaskDependencies = defaultDependencies,
 ) {
     throwIfAborted(signal);
+    config = generationRequestConfig(config, mode, referenceImages.length, Boolean(mask));
     assertClientPromptLimit(mode, prompt, config, metadata);
     assertBackendRuntimeConfigured(config, mode);
     const prepared = await prepareGenerationReferences({ config, mode, referenceImages, referenceVideos, referenceAudios, mask });
@@ -117,6 +119,7 @@ export async function runBackendGenerationTask(
 // 后端自动回填负责，不能让页面 mutation 一直等待供应商完成。
 export async function submitBackendGenerationTask(options: BackendGenerationTaskOptions, dependencies: GenerationTaskDependencies = defaultDependencies): Promise<GenerationTask> {
     throwIfAborted(options.signal);
+    options = withGenerationRequestConfig(options);
     assertClientPromptLimit(options.mode, options.prompt, options.config, options.metadata);
     assertBackendRuntimeConfigured(options.config, options.mode);
     const prepared = await prepareGenerationReferences(options);
@@ -189,6 +192,7 @@ export async function runBackendToolGenerationTask(options: BackendToolGeneratio
 }
 
 export async function runBackendGenerationTaskBatch(options: BackendGenerationTaskOptions & { count: number }, dependencies: GenerationTaskDependencies = defaultDependencies) {
+    options = withGenerationRequestConfig(options);
     const count = studioMediaGenerationVariant(options.config) ? 1 : Math.max(1, Math.min(15, Math.floor(Number(options.count)) || 1));
     throwIfAborted(options.signal);
     assertClientPromptLimit(options.mode, options.prompt, options.config, options.metadata);
@@ -286,11 +290,20 @@ async function createBackendGenerationTask(options: BackendGenerationTaskOptions
 
 export async function prepareBackendGenerationTask(options: BackendGenerationTaskOptions): Promise<CreateTaskInput> {
     throwIfAborted(options.signal);
+    options = withGenerationRequestConfig(options);
     assertClientPromptLimit(options.mode, options.prompt, options.config, options.metadata);
     assertBackendRuntimeConfigured(options.config, options.mode);
     const prepared = await prepareGenerationReferences(options);
     throwIfAborted(options.signal);
     return backendGenerationTaskInput(options, prepared);
+}
+
+function generationRequestConfig(config: AiConfig, mode: BackendGenerationMode, images: number, mask: boolean) {
+    return mode === "image" && !resolveGenerationWorkflowExecution(config, mode) ? imageRequestConfig(config, images, Number(mask)) : config;
+}
+
+function withGenerationRequestConfig<T extends BackendGenerationTaskOptions>(options: T): T {
+    return { ...options, config: generationRequestConfig(options.config, options.mode, options.referenceImages?.length ?? 0, Boolean(options.mask)) };
 }
 
 function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepared: PreparedGenerationReferences): CreateTaskInput {
@@ -301,16 +314,14 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
     const platform = resolveModelChannel(config, config.model).modelDetails?.find((item) => item.model === modelOptionName(config.model))?.platform;
     if (platform?.state === "summary" && (mode === "image" || mode === "video")) throw new Error("模型参数尚未加载，请在模型选择器中加载后生成");
     const variantId = studioMediaGenerationVariant(config);
-    const frameRoles = !workflow && mode === "video" ? publishedFrameRoles(nativeMediaVariant(config)) : [];
     let images = prepared.referenceImages;
-    if (frameRoles.length) {
-        const slots = assignFrameSlots(frameRoles, images, (image) => {
+    if (!workflow && mode === "video" && nativeMediaVariant(config)) {
+        images = requestFrameImages(nativeMediaVariant(config), images, (image) => {
             if (image.role === "first_frame" || image.role === "last_frame") return image.role;
             if (image.id === metadata?.videoStartFrameNodeId) return "first_frame";
             if (image.id === metadata?.videoEndFrameNodeId) return "last_frame";
+            return image.role;
         });
-        if (images.length > slots.length) throw new Error("参考图片数量超过当前帧模式的上限");
-        images = slots.flatMap(({ role, attachment }) => (attachment ? [{ ...attachment, role }] : []));
     }
     return {
         ...(projectId ? { projectId } : {}),
@@ -333,7 +344,16 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
             mode,
             prompt,
             ...(workflow ? { execution: workflowPublicExecution(workflow) } : {}),
-            config: backendProviderConfig(config, mode),
+            config: backendProviderConfig(
+                config,
+                mode,
+                mediaRoleCounts([
+                    ...images.map((image) => ({ kind: "image", role: image.role })),
+                    ...prepared.referenceVideos.map(() => ({ kind: "video" })),
+                    ...prepared.referenceAudios.map(() => ({ kind: "audio" })),
+                    ...(prepared.mask ? [{ kind: "mask" }] : []),
+                ]),
+            ),
             capabilityOptions: logicalModelId ? logicalCapabilityOptions(config, mode) : undefined,
             textHistory: options.textHistory,
             ...(mode === "text" ? { textOptions: { stream: options.streamText !== false, ...(options.thinkingLevel ? { thinkingLevel: options.thinkingLevel } : {}) } } : {}),

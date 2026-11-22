@@ -2,7 +2,17 @@ import { defaultImageCapabilityConfig, modelCapabilityConfigFor, normalizeImageV
 import { videoResolutionComparisonKey } from "@/lib/video-generation-options";
 import { imageParameterRequest, imageParameterDefaults, imageParameterAccepts } from "./image-parameters";
 import { imageSizePresets } from "@/lib/image-size-presets";
-import { nativeVideoComposerVariants, nativeImageReferenceVariant, nativeMediaDefaults, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, platformModelDetailPending } from "@/lib/platform-native-media";
+import {
+    nativeVideoComposerVariants,
+    imageReferenceError,
+    publishedImageReferenceLimit,
+    publishedReferenceCapacity,
+    nativeMediaDefaults,
+    nativeMediaProfile,
+    nativeMediaReferenceLimits,
+    nativeMediaVariant,
+    platformModelDetailPending,
+} from "@/lib/platform-native-media";
 import { modelOptionName, PUBLIC_MODEL_CATALOG_ID, resolveModelChannel, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
 
 export type ModelInputSummary = {
@@ -22,7 +32,6 @@ export type ModelRequirements = {
     videoOperation?: string;
     videoSeconds?: string;
     imageSize?: string;
-    useImageEditForReferences?: boolean;
     useVideoReferenceMode?: boolean;
     options?: Record<string, unknown>;
 };
@@ -150,14 +159,16 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
         const variant =
             requirements.useVideoReferenceMode && capability === "video" && current && hasVideoInputs
                 ? (nativeVideoComposerVariants(nativeProfile.variants, current, model === config.model ? config.nativeVariantId : undefined).reference ?? current)
-                : requirements.useImageEditForReferences && visualInputCount > 0
-                  ? nativeImageReferenceVariant(config, model, current)
-                  : current;
+                : current;
         if (!variant) return "模型参数版本已失效，请重新选择";
         if (logicalCost?.platform?.model_type !== capability) return "模型与创作类型不匹配";
         // Native schema admission owns parameter combinations. Legacy size and
         // duration preferences must not hide a valid native model in the picker.
         if (!input) return "";
+        if (capability === "image") {
+            if (input.videoCount || input.audioCount) return "图片模型仅支持参考图片";
+            return imageReferenceError(config, model, visualInputCount, 0, false);
+        }
         for (const [kind, count] of [
             ["image", visualInputCount],
             ["video", input.videoCount],
@@ -481,21 +492,31 @@ export function resolveModelVideoBooleanOptions(config: AiConfig, model: string,
 export function maxModelInputCapacity(config: AiConfig, capability: "image" | "video", kind: "image" | "video" | "audio") {
     const options = selectableModelsByCapability(config, capability);
     if (!options.length) return null;
-    return options.reduce((maximum, model) => {
-        const native = nativeMediaProfile(config, model);
-        if (native) {
-            const key = kind === "image" ? "maxImages" : kind === "video" ? "maxVideos" : "maxAudios";
-            return native.variants.reduce((limit, variant) => Math.max(limit, nativeMediaReferenceLimits(config, model, variant)?.[key] ?? 0), maximum);
+    // A video node assigns ordinary image and frame roles after a Canvas connection is made.
+    const roles = capability === "video" && kind === "image" ? ["reference_image", "first_frame", "last_frame"] : [`reference_${kind}`];
+    let maximum = 0;
+    for (const model of options) {
+        const limit = publishedReferenceCapacity(config, model, roles);
+        if (limit !== undefined) {
+            maximum = Math.max(maximum, limit);
+            continue;
         }
+        if (platformModelDetailPending(config, model)) return null;
         const profile = modelCapabilityConfigFor(config, model);
         const value =
             capability === "image" ? (kind === "image" ? profile.image!.references.maxImages : 0) : kind === "image" ? profile.video!.references.maxImages : kind === "video" ? profile.video!.references.maxVideos : profile.video!.references.maxAudios;
-        return Math.max(maximum, value);
-    }, 0);
+        maximum = Math.max(maximum, value);
+    }
+    return maximum;
 }
 
 export function modelGroupReferenceLimits(config: AiConfig, selected: string, capability: ModelCapability, requirements?: ModelRequirements): ModelReferenceLimits | undefined {
     if (capability !== "image" && capability !== "video") return undefined;
+    if (capability === "image") {
+        const maxImages = publishedImageReferenceLimit(config, selected);
+        if (maxImages !== undefined) return { maxImages, maxVideos: 0, maxAudios: 0 };
+        if (platformModelDetailPending(config, selected)) return undefined;
+    }
     if (nativeMediaProfile(config, selected)) return nativeMediaReferenceLimits(config, selected);
     const options = selectableModelsByCapability(config, capability);
     const selectedGroup = groupModelsByDisplayName(config, options).find((group) => group.models.includes(selected));

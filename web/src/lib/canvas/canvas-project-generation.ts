@@ -6,7 +6,7 @@ import { resolveImageUrl, uploadImage } from "@/services/image-storage";
 import { resolveMediaUrl, resolveVideoMediaUrl } from "@/services/file-storage";
 import { resourceIdFromStorageKey } from "@/services/api/resources";
 import { NODE_DEFAULT_SIZE } from "@/constant/canvas";
-import { nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant } from "@/lib/platform-native-media";
+import { imageReferenceError, nativeCreationSettings, nativeMediaProfile, nativeMediaReferenceLimits, nativeMediaVariant, platformModelDetailPending } from "@/lib/platform-native-media";
 import { assignFrameSlots, publishedFrameRoles } from "@/lib/media-reference-slots";
 import { normalizeVideoDuration, normalizeVideoResolution } from "@/lib/video-generation-options";
 import { modelCapabilityConfigFor, workflowFieldCurrentValue, workflowFieldHasStoredValue, workflowFieldKey, workflowFieldRandomKey, workflowFieldSubmissionValue, workflowOutputSizeValue, workflowVideoFieldsFromJson } from "@/lib/model-capabilities";
@@ -84,7 +84,9 @@ export async function runBackendCanvasGenerationTask(
 export function canvasImageReferenceLimitError(config: AiConfig, referenceImages: ReferenceImage[]) {
     // 工作流的参考素材上限由字段映射槽位决定，不能再套用当前普通图片模型的能力表。
     if ((config.taskWorkflowProvider || "model") !== "model") return "";
-    const maxImages = nativeMediaReferenceLimits(config)?.maxImages ?? modelCapabilityConfigFor(config, config.model).image?.references.maxImages;
+    if (platformModelDetailPending(config)) return "模型参数尚未加载，请在模型选择器中加载后生成";
+    if (nativeMediaProfile(config)) return imageReferenceError(config, config.model, referenceImages.length);
+    const maxImages = modelCapabilityConfigFor(config, config.model).image?.references.maxImages;
     if (maxImages === undefined || referenceImages.length <= maxImages) return "";
     return `当前图片模型最多支持 ${maxImages} 张参考图，当前已连接 ${referenceImages.length} 张。请移除多余连线后重试`;
 }
@@ -208,6 +210,7 @@ export function buildImageGenerationMetadata(type: CanvasImageGenerationType, co
         model: config.model,
         nativeParameters: config.nativeParameters,
         nativeVariantId: config.nativeVariantId,
+        nativeImageChoiceId: config.nativeImageChoiceId,
         producedModelCandidate: producedModelCandidateForGeneration(config),
         size: config.size,
         quality: config.quality,
@@ -343,7 +346,7 @@ export function buildVideoGenerationMetadata(
     const startFrame = workflowVideo ? undefined : requireConnectedVideoFrame(metadata?.videoStartFrameNodeId, "首帧", referenceImageIds);
     const endFrame = workflowVideo ? undefined : requireConnectedVideoFrame(metadata?.videoEndFrameNodeId, "尾帧", referenceImageIds);
     const variant = !workflowVideo && config ? nativeMediaVariant(config) : undefined;
-    const slots = assignFrameSlots(publishedFrameRoles(variant), context?.referenceImages ?? [], (image) => (image.id === startFrame ? "first_frame" : image.id === endFrame ? "last_frame" : image.role));
+    const slots = assignFrameSlots(variant, context?.referenceImages ?? [], (image) => (image.id === startFrame ? "first_frame" : image.id === endFrame ? "last_frame" : image.role));
     for (const slot of slots) {
         if (!slot.attachment && variant?.native_request_variant.native_reference_inputs.some((ref) => ref.role === slot.role && (ref.min_items || 0) > 0)) throw new Error(`请添加${slot.role === "first_frame" ? "首帧" : "尾帧"}图片`);
     }
@@ -538,8 +541,13 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
         // A retired contract can still have a first/last frame explicitly bound to a node.
         const boundRoles = [metadata?.videoStartFrameNodeId && "first_frame", metadata?.videoEndFrameNodeId && "last_frame"].filter(Boolean);
         const frames = !saved && mode === "video" && boundRoles.length ? profile?.variants.find((v) => boundRoles.every((role) => publishedFrameRoles(v).some((r) => r === role))) : undefined;
-        const hasReferences = Boolean(input.imageCount || input.videoCount || input.audioCount || input.characterCount);
-        const creation = nativeCreationSettings(config, model, { nativeVariantId: metadata?.nativeVariantId, nativeParameters: metadata?.nativeParameters, nativeModeVariantId: frames?.id ?? saved?.id }, hasReferences);
+        const count = input.imageCount + input.videoCount + input.audioCount + input.characterCount;
+        const creation = nativeCreationSettings(
+            config,
+            model,
+            { nativeVariantId: metadata?.nativeVariantId, nativeParameters: metadata?.nativeParameters, nativeModeVariantId: frames?.id ?? saved?.id, nativeImageChoiceId: metadata?.nativeImageChoiceId },
+            count,
+        );
         Object.assign(generationDefaults, creation.settings);
         nativeModeVariantId = creation.referenceVariant?.id;
     }
@@ -571,6 +579,7 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
         nativeParameters: generationDefaults.nativeParameters,
         nativeVariantId: generationDefaults.nativeVariantId,
         nativeModeVariantId,
+        nativeImageChoiceId: node ? node.metadata?.nativeImageChoiceId : config.nativeImageChoiceId,
         size: generationDefaults.size ?? requestedConfig.size,
         transparentBackground: generationDefaults.transparentBackground || (requestedConfig.transparentBackground === "true" ? "true" : "false"),
         videoSeconds: generationDefaults.videoSeconds ?? requestedConfig.videoSeconds,

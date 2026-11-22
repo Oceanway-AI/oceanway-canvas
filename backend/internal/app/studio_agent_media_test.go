@@ -467,8 +467,12 @@ func studioPiMediaApprovalScenario(t *testing.T, scenario string, usePostgres ..
 	}
 	if kind == "video" {
 		var body map[string]any
-		if err := json.Unmarshal(quotedBody, &body); err != nil || body["resolution"] != "720p" || body["duration"] != float64(4) || body["ratio"] != "16:9" {
-			t.Fatalf("Pi lost const resolution or native parameters: %s", quotedBody)
+		if err := json.Unmarshal(quotedBody, &body); err != nil || body["duration"] != float64(4) || body["ratio"] != "16:9" {
+			t.Fatalf("Pi lost the selected native parameters: %s", quotedBody)
+		}
+		resolution, sent := body["resolution"]
+		if nativeProtocol == "" && resolution != "720p" || nativeProtocol != "" && sent {
+			t.Fatalf("Pi did not distinguish required resolution from optional default: %s", quotedBody)
 		}
 	}
 	if scenario == "image_parameters" {

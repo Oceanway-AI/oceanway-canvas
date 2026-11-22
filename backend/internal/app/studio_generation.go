@@ -28,6 +28,9 @@ func (s *Service) createStudioGeneration(ctx context.Context, userID string, ses
 	if err != nil {
 		return nil, response, err
 	}
+	if err := s.verifyStudioPreviewSelection(userID, req, selected, body); err != nil {
+		return nil, response, err
+	}
 	input, err := studioPublicTaskInput(selected.Kind, req)
 	if err != nil {
 		return nil, response, err
