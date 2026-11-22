@@ -266,11 +266,14 @@ export function nativeSelectionIssue(config: AiConfig, counts: MaterialCounts) {
     const variant = nativeMediaVariant(config);
     if (!variant) return "";
     const published = resolveModelChannel(config, config.model).modelDetails?.find((v) => v.model === modelOptionName(config.model))?.platform;
-    if (published?.model_type === "image") return imageReferenceError(config, config.model, counts.reference_image ?? 0, counts.mask);
     try {
+        if (published?.model_type === "image") {
+            const selected = imageRequestConfig(config, counts.reference_image ?? 0, counts.mask);
+            return supplySelection(nativeMediaVariant(selected)!, nativeParameterObject(selected.nativeParameters), counts).issue;
+        }
         return supplySelection(variant, nativeParameterObject(config.nativeParameters), counts).issue;
-    } catch {
-        return "模型参数格式无效，请恢复默认值";
+    } catch (error) {
+        return error instanceof Error && !(error instanceof SyntaxError) ? error.message : "模型参数格式无效，请恢复默认值";
     }
 }
 
