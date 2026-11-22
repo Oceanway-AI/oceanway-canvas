@@ -435,6 +435,24 @@ function emptyModelLabel(config: AiConfig, capability?: ModelCapability) {
 
 const mediaTagColors: ModelTag["color"][] = ["green", "pink", "blue"];
 
+function mediaReferenceTags(config: AiConfig, model: string, kind: string, publishedTags: string[]) {
+    if (kind !== "image" && kind !== "video") return publishedTags;
+    const tags = publishedTags.filter((tag) => !/^(?:参考图(?:片)?\s*(?:最多\s*)?[×x:：]?\s*\d+\s*张?|\d+\s*张?\s*参考图(?:片)?|图\s*[×x]\s*\d+)$/.test(tag.trim()));
+    const limit = publishedReferenceCapacity(config, model, ["reference_image"]);
+    if (limit === undefined) return tags;
+    if (limit === 0 && kind === "video") {
+        const frames = (
+            [
+                ["first_frame", "首帧"],
+                ["last_frame", "尾帧"],
+            ] as const
+        ).filter(([role]) => (publishedReferenceCapacity(config, model, [role]) ?? 0) > 0);
+        if (frames.length) return [...frames.map(([, label]) => label), ...tags.filter((tag) => !frames.some(([, label]) => label === tag))];
+    }
+    const label = limit === 0 ? "参考图 0 张" : Number.isFinite(limit) ? `参考图最多 ${limit} 张` : "支持参考图";
+    return [label, ...tags.filter((tag) => tag !== label)];
+}
+
 export function ModelLabel({
     config,
     model,
@@ -469,14 +487,7 @@ export function ModelLabel({
     if (platform) {
         const title = platform.content?.display_name?.trim() || modelChannelLabel(config, model);
         const publishedTags = presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
-        const imageLimit = publishedReferenceCapacity(config, model, ["reference_image"]);
-        const tags =
-            platform.model_type === "image" || platform.model_type === "video"
-                ? [
-                      ...(imageLimit === undefined ? [] : [Number.isFinite(imageLimit) ? `参考图 ${imageLimit} 张` : "支持参考图"]),
-                      ...publishedTags.filter((tag) => !/^(?:参考图(?:片)?\s*(?:最多\s*)?[×x:：]?\s*\d+\s*张?|\d+\s*张?\s*参考图(?:片)?|图\s*[×x]\s*\d+)$/.test(tag.trim())),
-                  ]
-                : publishedTags;
+        const tags = mediaReferenceTags(config, model, platform.model_type, publishedTags);
         let parameters = {};
         const currentVariant = nativeMediaVariant(config);
         if (currentVariant) {

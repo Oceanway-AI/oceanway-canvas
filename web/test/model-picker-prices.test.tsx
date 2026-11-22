@@ -185,12 +185,19 @@ test.each(["image", "video"] as const)("%s catalog rows show ordinary image capa
         { id: "edit", references_complete: true, references: [slot("reference_image", 3), slot(kind === "video" ? "last_frame" : "mask", 1)] },
     ];
     platform.variants_complete = true;
-    expect(render()).toContain("参考图 3 张");
+    expect(render()).toContain("参考图最多 3 张");
     expect(render()).not.toContain("参考图0张");
     platform.variants[1].references_complete = false;
     expect(render()).not.toContain("参考图");
     platform.variants = [{ id: "frames", references_complete: true, references: [slot("first_frame", 1), slot("last_frame", 1)] }];
-    expect(render()).toContain("参考图 0 张");
+    const frameRow = render();
+    if (kind === "video") {
+        expect(frameRow).toContain("首帧");
+        expect(frameRow).toContain("尾帧");
+        expect(frameRow).not.toContain("参考图 0 张");
+    } else {
+        expect(frameRow).toContain("参考图 0 张");
+    }
 });
 
 test.each(["text", "image", "video"] as const)("%s variants under the same model keep separate callability and recent results", (capability) => {
