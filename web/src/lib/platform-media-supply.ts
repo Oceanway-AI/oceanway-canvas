@@ -1,5 +1,5 @@
 import { Validator, type Schema } from "@cfworker/json-schema";
-import { nativeImageSizeIssue } from "./platform-native-image-size";
+import { isNativeImageVariant, nativeImageSizeIssue } from "./platform-native-image-size";
 import type { NativeImageOutputSize, NativeMediaVariant } from "./platform-native-media";
 
 export type MaterialCounts = Record<string, number>;
@@ -25,6 +25,24 @@ function pointerPath(pointer: string) {
         .slice(1)
         .split("/")
         .map((key) => key.replaceAll("~1", "/").replaceAll("~0", "~"));
+}
+
+export function isImageOutputCountPointer(pointer: string) {
+    return ["n", "candidatecount", "numimages", "numoutputs"].includes(pointerPath(pointer).at(-1)?.replaceAll("_", "").toLowerCase() ?? "");
+}
+
+function publishedCountIssue(variant: NativeMediaVariant, explicit: Record<string, unknown>) {
+    if (!isNativeImageVariant(variant)) return "";
+    for (const [pointer, value] of Object.entries(explicit)) {
+        if (!isImageOutputCountPointer(pointer)) continue;
+        const field = variant.specifications_schema.properties[pointer];
+        if (!field || validField(field as Schema, value)) continue;
+        const fixed = field.const ?? (field.enum?.length === 1 ? field.enum[0] : undefined) ?? (field.minimum === field.maximum ? field.maximum : undefined);
+        if (typeof fixed === "number") return `当前型号的生成张数仅支持 ${fixed} 张`;
+        if (typeof field.minimum === "number" && typeof field.maximum === "number") return `当前型号的生成张数支持 ${field.minimum} 至 ${field.maximum} 张`;
+        return "当前型号不支持所选生成张数";
+    }
+    return "";
 }
 
 function schemaField(schema: Schema | undefined, pointer: string, explicit: Record<string, unknown>) {
@@ -200,7 +218,7 @@ export function supplySelection(variant: NativeMediaVariant, explicit: Record<st
     }
     if (candidates.size === 1) return [...candidates.values()][0];
     if (candidates.size > 1) return { supply: undefined, values: explicit, issue: "多个供给规格需要不同的必填值，请明确选择生成参数" };
-    return { supply: undefined, values: explicit, issue: materialIssue || parameterIssue || "当前型号没有可用的供给组合" };
+    return { supply: undefined, values: explicit, issue: materialIssue || publishedCountIssue(variant, explicit) || parameterIssue || "当前型号没有可用的供给组合" };
 }
 
 export function mediaRoleCounts(materials: ReadonlyArray<{ kind: string; role?: string }>): MaterialCounts {

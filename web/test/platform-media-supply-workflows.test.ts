@@ -155,6 +155,24 @@ function edit(highLimit = 16): NativeMediaVariant {
     };
 }
 
+test.each([0, 1])("a restored image draft with %i references names the withdrawn output count", async (refCount) => {
+    const variant = refCount ? edit() : generate;
+    const limited = {
+        ...variant,
+        specifications_schema: { ...variant.specifications_schema, properties: { ...variant.specifications_schema.properties, "/n": { type: "integer", minimum: 1, maximum: 1 } } },
+        native_request_variant: {
+            ...variant.native_request_variant,
+            supply_alternatives: [fourMP, eightMP].map((output_size) => ({ output_size, native_reference_inputs: variant.native_request_variant.native_reference_inputs, request_schema: { required: ["size"] } })),
+        },
+    };
+    const stale = requests("image", [limited], { "/n": 2 }, images(refCount));
+    expect(stale.quote).toBeNull();
+    await expect(stale.submit()).rejects.toThrow("生成张数仅支持 1 张");
+    expect(JSON.parse(stale.config.nativeParameters)).toEqual({ "/n": 2 });
+    for (const parameters of [{}, { "/n": 1 }]) await requests("image", [limited], parameters, images(refCount)).submit();
+    await expect(requests("image", [limited], { "/n": 1, "/size": "1025x1024" }, images(refCount)).submit()).rejects.toThrow("16 的整数倍");
+});
+
 test.each([
     ["2048x2048", 0, "generate"],
     ["2048x2048", 16, "edit"],

@@ -8,7 +8,7 @@ import { nativeImageSizePointers, resolutionLabel, selectedNativeImagePreset } f
 import { imageQualityLabel } from "@/lib/image-quality";
 import { NativeParameterInput, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
 import { creativeParameterLabel, imageExecutionChoices, nativeCreationModeOptions, nativeMediaVariantOptions, nativeParameterChoices, nativeParameterObject, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
-import { supplyChoiceAllowed, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
+import { isImageOutputCountPointer, supplyChoiceAllowed, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
 import type { AiConfig } from "@/stores/use-config-store";
 
 type Group = "生成模式" | "生成规格" | "尺寸与分辨率" | "比例" | "背景" | "画质" | "张数" | "时长" | "声音" | "更多参数";
@@ -21,7 +21,7 @@ function fieldGroup([pointer, field]: Field, image: boolean): Group {
     if (image) {
         if (key === "quality") return "画质";
         if (key === "background") return "背景";
-        if (["n", "candidatecount", "numimages", "numoutputs"].includes(key || "")) return "张数";
+        if (isImageOutputCountPointer(pointer)) return "张数";
         return "更多参数";
     }
     if (["seconds", "duration", "durationseconds"].includes(key || "")) return "时长";
