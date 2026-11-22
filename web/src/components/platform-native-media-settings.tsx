@@ -6,7 +6,7 @@ import type { ImageParameter } from "@/lib/image-parameters";
 import { creativeParameterLabel, nativeMediaProfile, nativeMediaVariant, nativeMediaVariantOptions, nativeCreationModeOptions, nativeParameterObject, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
 import { nativeImageSizePointers } from "@/lib/platform-native-image-size";
-import { supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
+import { supplyChoiceAllowed, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
 import { imageSizeDisplayValues, PlatformNativeImageSize } from "./platform-native-image-size";
 
 export type NativeMediaSettingKey = "nativeParameters" | "nativeVariantId";
@@ -80,7 +80,14 @@ export function PlatformNativeMediaSettings({ config, references, onChange }: { 
                                     {controls ? creativeParameterLabel(pointer, field.title) : pointer}
                                     {variant.specifications_schema.required?.includes(pointer) ? " *" : ""}
                                 </div>
-                                <NativeParameterInput pointer={pointer} field={field} value={values[pointer]} required={variant.specifications_schema.required?.includes(pointer)} onChange={(value) => change(pointer, value)} />
+                                <NativeParameterInput
+                                    pointer={pointer}
+                                    field={field}
+                                    value={values[pointer]}
+                                    required={variant.specifications_schema.required?.includes(pointer)}
+                                    choiceAllowed={supplyChoiceAllowed(variant, pointer, explicit, references)}
+                                    onChange={(value) => change(pointer, value)}
+                                />
                                 {field.description ? <p className="text-xs opacity-60">{field.description}</p> : null}
                             </div>
                         ))}
@@ -116,7 +123,21 @@ function parameterText(value: unknown) {
     return typeof value === "string" ? value : JSON.stringify(value);
 }
 
-export function NativeParameterInput({ pointer, field, value, required = false, onChange }: { pointer: string; field: NativeSchemaField; value: unknown; required?: boolean; onChange: (v: unknown) => void }) {
+export function NativeParameterInput({
+    pointer,
+    field,
+    value,
+    required = false,
+    choiceAllowed,
+    onChange,
+}: {
+    pointer: string;
+    field: NativeSchemaField;
+    value: unknown;
+    required?: boolean;
+    choiceAllowed?: (v: unknown) => boolean;
+    onChange: (v: unknown) => void;
+}) {
     if (Object.hasOwn(field, "const"))
         return (
             <>
@@ -136,7 +157,7 @@ export function NativeParameterInput({ pointer, field, value, required = false, 
                 className="w-full"
                 value={value === undefined ? (required ? undefined : "default") : JSON.stringify(value)}
                 placeholder="请选择"
-                options={[...(required ? [] : [{ value: "default", label: "模型默认" }]), ...allowed.map((v) => ({ value: JSON.stringify(v), label: parameterText(v) }))]}
+                options={[...(required ? [] : [{ value: "default", label: "模型默认" }]), ...allowed.map((v) => ({ value: JSON.stringify(v), label: parameterText(v), disabled: choiceAllowed?.(v) === false }))]}
                 onChange={(v) => onChange(v === "default" ? undefined : JSON.parse(String(v)))}
             />
         );
@@ -149,7 +170,7 @@ export function NativeParameterInput({ pointer, field, value, required = false, 
                 allowClear={!required}
                 placeholder={required ? "请选择" : "模型默认"}
                 value={value === undefined ? undefined : JSON.stringify(value)}
-                options={field.enum.map((v) => ({ value: JSON.stringify(v), label: typeof v === "string" ? v : JSON.stringify(v) }))}
+                options={field.enum.map((v) => ({ value: JSON.stringify(v), label: typeof v === "string" ? v : JSON.stringify(v), disabled: choiceAllowed?.(v) === false }))}
                 onChange={(v) => onChange(v === undefined ? undefined : JSON.parse(String(v)))}
             />
         );

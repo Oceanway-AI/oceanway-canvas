@@ -8,7 +8,7 @@ import { nativeImageSizePointers, resolutionLabel, selectedNativeImagePreset } f
 import { imageQualityLabel } from "@/lib/image-quality";
 import { NativeParameterInput, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
 import { creativeParameterLabel, imageExecutionChoices, nativeCreationModeOptions, nativeMediaVariantOptions, nativeParameterChoices, nativeParameterObject, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
-import { supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
+import { supplyChoiceAllowed, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
 import type { AiConfig } from "@/stores/use-config-store";
 
 type Group = "生成模式" | "生成规格" | "尺寸与分辨率" | "比例" | "背景" | "画质" | "张数" | "时长" | "声音" | "更多参数";
@@ -168,12 +168,14 @@ export function MediaParameterControls({
                     const label = creativeParameterLabel(key, field.title);
                     const kind = fieldGroup([key, field], image);
                     const choices = nativeParameterChoices(field, group === "时长" || group === "张数") ?? (field.type === "boolean" ? [true, false] : undefined);
+                    const allowed = supplyChoiceAllowed(variant, key, explicit, references);
+                    const required = variant.specifications_schema.required?.includes(key);
                     return (
                         <section key={key}>
                             <strong>{label}</strong>
                             {choices?.length ? (
                                 <div className="studio-video-choices">
-                                    {!variant.specifications_schema.required?.includes(key) && !Object.hasOwn(field, "const") && (
+                                    {!required && !Object.hasOwn(field, "const") && (
                                         <button type="button" aria-pressed={!Object.hasOwn(explicit, key)} onClick={() => update(key, undefined)}>
                                             模型默认
                                         </button>
@@ -182,8 +184,8 @@ export function MediaParameterControls({
                                         <button
                                             type="button"
                                             key={JSON.stringify(value)}
-                                            aria-pressed={Object.hasOwn(field, "const") || explicit[key] === value}
-                                            disabled={Object.hasOwn(field, "const") || Boolean(variant.native_request_variant.supply_alternatives && group !== "尺寸与分辨率" && supplySelection(variant, { ...explicit, [key]: value }, references).issue)}
+                                            aria-pressed={Object.hasOwn(field, "const") || (required ? values[key] : explicit[key]) === value}
+                                            disabled={Object.hasOwn(field, "const") || !allowed(value)}
                                             onClick={() => {
                                                 update(key, value);
                                                 if (group === "时长" || group === "画质" || group === "背景" || group === "张数") setOpen(null);
@@ -194,7 +196,7 @@ export function MediaParameterControls({
                                     ))}
                                 </div>
                             ) : (
-                                <NativeParameterInput pointer={key} field={field} value={values[key]} onChange={(value) => update(key, value)} />
+                                <NativeParameterInput pointer={key} field={field} value={values[key]} required={required} choiceAllowed={allowed} onChange={(value) => update(key, value)} />
                             )}
                         </section>
                     );

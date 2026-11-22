@@ -219,12 +219,16 @@ func (s *Service) studioAgentModelList(userID string, state *cloudAgentRuntime, 
 				continue
 			}
 			if v := selected.NativeRequest; v != nil {
+				envelope := map[string]any{}
+				if studioWriteNativeEnvelope(envelope, nil, selected, refs) != nil || !platformintegration.MaterialSchemaCompatible(v.Schema, envelope, slots) {
+					continue
+				}
 				options, err := v.Alternatives()
 				if err != nil || studioValidateMaterialGroup(v.Materials, refs, 0) != nil {
 					continue
 				}
 				if len(options) > 0 && !slices.ContainsFunc(options, func(o platformintegration.NativeSupplyAlternative) bool {
-					return studioValidateNativeReferences(o.References, refs) == nil && studioValidateMaterialGroup(o.Materials, refs, 0) == nil
+					return studioValidateNativeReferences(o.References, refs) == nil && studioValidateMaterialGroup(o.Materials, refs, 0) == nil && platformintegration.MaterialSchemaCompatible(o.Schema, envelope, slots)
 				}) {
 					continue
 				}
@@ -246,6 +250,10 @@ func (s *Service) studioAgentModelList(userID string, state *cloudAgentRuntime, 
 				row["defaults"], row["specificationsSchema"] = selected.Defaults, json.RawMessage(selected.Schema)
 				if selected.NativeRequest != nil {
 					arguments["nativeParameters"] = "{}"
+					settings := cloudAgentMediaArgs{Mode: selected.Kind, NativeVariantID: selected.ID}
+					if studioApplyAgentMediaOptions(&settings, state, selected) != nil {
+						row["requiresParameters"] = true
+					}
 				}
 			}
 			raw, err := json.Marshal(row)
@@ -265,6 +273,6 @@ func (s *Service) studioAgentModelList(userID string, state *cloudAgentRuntime, 
 	return map[string]any{
 		"source": "platform", "models": items, "offset": args.Offset, "nextOffset": args.Offset + len(items),
 		"hasMore": args.Offset+len(items) < matched, "totalMatches": matched, "unavailableCount": unavailable,
-		"generationGuidance": "列表按真实参考与角色筛选。需要调整参数时，用 channelModelKey 和 nativeVariantId 查询所选变体详情；复制 generationArguments 并补提示词。hasMore 为 true 时可用 nextOffset 续查，也可用 query 搜索型号。生成前会重新核验版本和报价。",
+		"generationGuidance": "列表按真实参考与角色筛选。用 channelModelKey 和 nativeVariantId 查询所选变体详情，复制 generationArguments 并补提示词。requiresParameters=true 时请根据详情选择可用参数并填写 nativeParameters。hasMore=true 可用 nextOffset 续查。生成前会重新核验版本和报价。",
 	}, nil
 }

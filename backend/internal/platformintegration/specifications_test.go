@@ -19,3 +19,25 @@ func TestPublishedSpecificationsValidateFullSelectedSchema(t *testing.T) {
 		t.Fatal("external schema admitted")
 	}
 }
+
+func TestMaterialSchemaCompatibilityLeavesEditableInputsOpen(t *testing.T) {
+	envelope := map[string]any{"content": []any{map[string]any{"type": "text", "text": nil}}}
+	slots := []NativeReferenceSlot{{Pointer: "/content"}, {Pointer: "/metadata/images"}}
+	for _, tc := range []struct {
+		name, rule string
+		accept     bool
+	}{
+		{"a future prompt may satisfy its own pattern", `{"properties":{"content":{"contains":{"required":["text"],"properties":{"text":{"pattern":"^scene"}}}}}}`, true},
+		{"the prompt cannot supply a material role", `{"properties":{"content":{"contains":{"required":["role"]}}}}`, false},
+		{"optional parent does not demand references", `{"properties":{"metadata":{"required":["images"]}}}`, true},
+		{"required parent does demand references", `{"required":["metadata"],"properties":{"metadata":{"required":["images"]}}}`, false},
+		{"writable alternative can still match", `{"oneOf":[{"required":["metadata"],"properties":{"metadata":{"required":["images"]}}},{"required":["duration"]}]}`, true},
+		{"a material required only for an editable parameter is undecided", `{"if":{"properties":{"duration":{"const":12}}},"then":{"required":["metadata"],"properties":{"metadata":{"required":["images"]}}}}`, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := MaterialSchemaCompatible(json.RawMessage(tc.rule), envelope, slots); got != tc.accept {
+				t.Fatalf("compatibility = %v, want %v", got, tc.accept)
+			}
+		})
+	}
+}
