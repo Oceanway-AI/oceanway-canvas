@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "antd";
 import { Select } from "@/components/ui/base/select";
-import { applyNativeImagePreset, nativeImageSizeIssue, resolutionLabel, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
+import { applyNativeImagePreset, nativeImageSizeIssue, nativeImageSizePointers, resolutionLabel, selectedNativeImagePreset, usableNativeImagePresets } from "@/lib/platform-native-image-size";
 import { materialsIssue, suppliesFor, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
 import type { NativeImageOutputSize, NativeImageSizePreset, NativeMediaVariant } from "@/lib/platform-native-media";
 
@@ -10,7 +10,7 @@ const geminiRatio = "/generationConfig/imageConfig/aspectRatio";
 
 export function publishedImageSizePresets(variant: NativeMediaVariant) {
     const native = variant.native_request_variant;
-    const presets = native.size_presets ?? [];
+    const presets = usableNativeImagePresets(variant);
     if (!native.supply_alternatives || !native.output_size) return presets;
     const supplies = suppliesFor(variant);
     return presets.filter((preset) => {
@@ -20,9 +20,8 @@ export function publishedImageSizePresets(variant: NativeMediaVariant) {
 }
 
 export function imageSizeDisplayValues(variant: NativeMediaVariant, values: Record<string, unknown>, references?: MaterialCounts) {
-    if (!variant.native_request_variant.protocol.startsWith("gemini.")) return values;
     const suggestions = { ...values };
-    for (const key of [geminiSize, geminiRatio]) {
+    for (const key of nativeImageSizePointers(variant)) {
         if (!Object.hasOwn(values, key) && variant.defaults?.[key] !== undefined) suggestions[key] = variant.defaults[key];
     }
     return supplySelection(variant, suggestions, references).issue ? values : suggestions;
