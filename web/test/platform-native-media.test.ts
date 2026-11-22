@@ -14,7 +14,14 @@ import type { PublicChannelModel } from "@/services/api/logical-models";
 import { CanvasNodeType, type CanvasNodeData } from "@/types/canvas";
 
 const defaults = { "/duration": 4, "/resolution": "720p", "/seed": 8, "/generate_audio": true, "/metadata": { source: "test" }, "/extensions": ["IMAGE"] };
-const properties = Object.fromEntries(Object.keys(defaults).map((key) => [key, { type: key === "/duration" || key === "/seed" ? "integer" : "string" }]));
+const properties = {
+    "/duration": { type: "integer" },
+    "/resolution": { type: "string" },
+    "/seed": { type: "integer" },
+    "/generate_audio": { type: "boolean" },
+    "/metadata": { type: ["object", "null"] },
+    "/extensions": { type: "array", items: { type: "string" } },
+};
 const variant = {
     id: "ark",
     gateway_protocol: "modelark.video",
@@ -139,19 +146,20 @@ test("native selection preserves exact values and ignores legacy video controls"
     expect(() => backendProviderConfig({ ...value, nativeVariantId: "retired" }, "video")).toThrow();
 });
 
-test("reopening an editable draft restores a published mode and its own defaults", () => {
+test("reopening an editable draft restores a published endpoint and retains explicit parameters", () => {
     const empty = nativeCreationSettings(config, selected, { nativeVariantId: "retired", nativeParameters: '{"/seed":999}' }, false);
     expect(empty.referenceVariant?.id).toBe("ark");
     expect(empty.settings.nativeVariantId).toBe("other");
-    expect(JSON.parse(empty.settings.nativeParameters)["/seed"]).not.toBe(999);
+    expect(JSON.parse(empty.settings.nativeParameters)).toEqual({ "/seed": 999 });
+    expect(backendProviderConfig({ ...config, ...empty.settings }, "video").nativeParameters).toEqual({ "/seed": 999 });
     expect(nativeCreationSettings(config, selected, { nativeVariantId: "other" }, true).settings.nativeVariantId).toBe("ark");
 });
 
 test("selected protocol owns reference capacity without merging alternatives", () => {
     expect(maxModelInputCapacity(config, "video", "image")).toBe(2);
     expect(maxModelInputCapacity(config, "video", "audio")).toBe(0);
-    expect(nativeMediaReferenceLimits({ ...config, nativeVariantId: "ark" })?.maxImages).toBe(2);
-    expect(nativeMediaReferenceLimits({ ...config, nativeVariantId: "other" })?.maxImages).toBe(0);
+    expect(nativeMediaReferenceLimits({ ...config, nativeVariantId: "ark" })).toMatchObject({ maxImages: 0, maxFirstFrames: 1, maxLastFrames: 1 });
+    expect(nativeMediaReferenceLimits({ ...config, nativeVariantId: "other" })).toMatchObject({ maxImages: 0, maxFirstFrames: 0, maxLastFrames: 0 });
 });
 
 test("video draft keeps the selected reference mode while controls and submission follow the effective request", () => {
@@ -172,15 +180,21 @@ test("video draft keeps the selected reference mode while controls and submissio
     const video = { ...model, platform: { ...model.platform, media_generation_profile: { gateway_protocol: frames.gateway_protocol, default_variant: frames.id, variants: [frames, text] } } } as PublicChannelModel;
     const cfg = { ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OW", displayName: "OW", models: [video] }]) };
     const initial = nativeCreationSettings(cfg, selected, {}, false);
-    expect(JSON.parse(initial.settings.nativeParameters)).toEqual(text.defaults);
+    expect(JSON.parse(initial.settings.nativeParameters)).toEqual({});
+    expect(backendProviderConfig({ ...cfg, ...initial.settings }, "video").nativeParameters).toEqual({});
     const edited = { nativeModeVariantId: frames.id, nativeVariantId: text.id, nativeParameters: JSON.stringify({ "/ratio": "9:16", "/duration": 6, "/generate_audio": false }) };
     const saved = normalizeCreationComposerPreferences({ video: edited }).video!;
     const empty = nativeCreationSettings(cfg, selected, saved, false);
     expect(empty.referenceVariant?.id).toBe(frames.id);
     expect(backendProviderConfig({ ...cfg, ...empty.settings }, "video")).toMatchObject({ nativeVariantId: text.id, nativeParameters: JSON.parse(edited.nativeParameters) });
     const attached = nativeCreationSettings(cfg, selected, saved, true);
-    expect(backendProviderConfig({ ...cfg, ...attached.settings }, "video")).toMatchObject({ nativeVariantId: frames.id, nativeParameters: { "/ratio": "adaptive", "/duration": 6 } });
-    expect(JSON.parse(nativeCreationSettings(cfg, selected, { ...saved, nativeParameters: '{"/duration":5}' }, true).settings.nativeParameters)).toEqual(frames.defaults);
+    expect(attached.settings.nativeVariantId).toBe(frames.id);
+    expect(JSON.parse(attached.settings.nativeParameters)).toEqual(JSON.parse(edited.nativeParameters));
+    expect(() => backendProviderConfig({ ...cfg, ...attached.settings }, "video")).toThrow("/ratio");
+    const invalidDuration = nativeCreationSettings(cfg, selected, { ...saved, nativeParameters: '{"/duration":5}' }, true);
+    expect(JSON.parse(invalidDuration.settings.nativeParameters)).toEqual({ "/duration": 5 });
+    expect(() => backendProviderConfig({ ...cfg, ...invalidDuration.settings }, "video")).toThrow("/duration");
+    expect(backendProviderConfig({ ...cfg, ...attached.settings, nativeParameters: '{"/duration":6}' }, "video")).toMatchObject({ nativeVariantId: frames.id, nativeParameters: { "/duration": 6 } });
 });
 
 test("saved canvas, editor and executor submit the same native parameters", () => {
@@ -193,7 +207,7 @@ test("saved canvas, editor and executor submit the same native parameters", () =
     expect(backendProviderConfig(panel, "video")).toEqual(backendProviderConfig(execution, "video"));
     expect(backendProviderConfig(execution, "video").nativeParameters).toEqual(explicit);
     const changed = synchronizeGenerationSpec(restored, { nativeVariantId: "other" });
-    expect(changed.metadata?.generationSpec?.options.nativeParameters).toBeUndefined();
+    expect(JSON.parse(changed.metadata!.generationSpec!.options.nativeParameters!)).toEqual(explicit);
 });
 
 test("creation history preferences and Agent approval retain native values", () => {
@@ -234,7 +248,7 @@ test("TC-STUDIO-IMG-REF-001: image picker, canvas, estimate and admission follow
     expect(nativeMediaReferenceLimits(cfg, selected, empty.referenceVariant)?.maxImages).toBe(16);
     const attached = nativeCreationSettings(cfg, selected, saved, true);
     expect(attached.settings.nativeVariantId).toBe("edit");
-    expect(JSON.parse(attached.settings.nativeParameters)).toEqual({ "/size": "1024x1024", "/quality": "medium" });
+    expect(JSON.parse(attached.settings.nativeParameters)).toEqual({ "/size": "1024x1024", "/quality": "high" });
     const input = { textCount: 1, imageCount: 1, videoCount: 0, audioCount: 0, characterCount: 0 };
     expect(modelCompatibilityError(cfg, selected, { capability: "image", input })).toBe("");
     expect(modelCompatibilityError(cfg, selected, { capability: "image", input: { ...input, imageCount: 17 } })).toContain("16");
@@ -244,7 +258,9 @@ test("TC-STUDIO-IMG-REF-001: image picker, canvas, estimate and admission follow
     expect(cleared.referenceVariant?.id).toBe("edit");
     expect(cleared.settings.nativeVariantId).toBe("generate");
     const images = Array.from({ length: 17 }, (_, i) => ({ id: String(i), name: "pin", type: "image/png", dataUrl: "", storageKey: "resource:pin" + i }));
-    let draft = { ...cfg, ...saved };
+    await expect(prepareBackendGenerationTask({ mode: "image", config: { ...cfg, ...attached.settings }, prompt: "draw", referenceImages: images.slice(0, 1) })).rejects.toThrow("/quality");
+    expect(studioMediaPriceRequest({ ...cfg, ...attached.settings }, "image", "draw", [{ kind: "image", storageKey: images[0].storageKey }], "owner")).toBeNull();
+    let draft = { ...cfg, ...saved, nativeParameters: '{"/size":"1024x1024"}' };
     for (const count of [0, 1, 16, 0]) {
         const referenceImages = images.slice(0, count);
         expect(canvasImageReferenceLimitError(draft, referenceImages)).toBe("");
@@ -257,6 +273,8 @@ test("TC-STUDIO-IMG-REF-001: image picker, canvas, estimate and admission follow
             "owner",
         );
         expect(task.platform?.variantId).toBe(count ? "edit" : "generate");
+        expect(task.input?.config).toMatchObject({ nativeParameters: { "/size": "1024x1024" } });
+        expect(task.input?.referenceImages).toHaveLength(count);
         expect(quote?.platform?.variantId).toBe(task.platform!.variantId);
         expect(quote?.input?.config).toEqual(task.input?.config);
         draft = { ...draft, ...nativeCreationSettings(cfg, selected, draft, count > 0).settings };
@@ -274,11 +292,15 @@ test("TC-STUDIO-IMG-REF-001: image picker, canvas, estimate and admission follow
     ).toBeNull();
 });
 
-test("Platform controls discard API-only and stale overrides while retaining explicit zero", () => {
+test("stale parameters stay editable and are rejected at admission while explicit zero is valid", () => {
     const variant = nativeMediaVariant(config)!;
     const source = { ...variant, workbench_parameters: ["/seed"], defaults: { "/seed": 3, "/n": 1 } };
-    expect(nativeParameterValues(source, '{"/seed":0,"/n":8}')).toEqual({ "/seed": 0 });
-    expect(nativeParameterValues({ ...source, workbench_parameters: [] }, '{"/n":8}')).toEqual({});
+    const video = { ...model, platform: { ...model.platform!, media_generation_profile: { gateway_protocol: source.gateway_protocol, default_variant: source.id, variants: [source] } } };
+    const cfg = { ...config, channels: systemChannelModelChannels([{ id: "oceanway-platform", name: "OW", displayName: "OW", models: [video] }]) };
+    const stale = '{"/seed":0,"/n":8}';
+    expect(nativeParameterValues(source, stale)).toEqual({ "/seed": 0, "/n": 8 });
+    expect(() => backendProviderConfig({ ...cfg, nativeParameters: stale }, "video")).toThrow("/n");
+    expect(backendProviderConfig({ ...cfg, nativeParameters: '{"/seed":0}' }, "video").nativeParameters).toEqual({ "/seed": 0 });
 });
 
 test("TC-STUDIO-IMG-REF-002: optional single endpoint, text-only supply and incomplete summaries", async () => {

@@ -32,6 +32,7 @@ for (const [key, value] of Object.entries({
 const { act, useState } = await import("react");
 const { createRoot } = await import("react-dom/client");
 const { PlatformNativeMediaSettings } = await import("@/components/platform-native-media-settings");
+const { MediaParameterControls } = await import("@/components/media-parameter-controls");
 const { defaultConfig } = await import("@/stores/use-config-store");
 const { systemChannelModelChannels } = await import("@/lib/user-session");
 const { backendProviderConfig } = await import("@/services/api/generation-task");
@@ -80,21 +81,18 @@ function configFor(variant: NativeMediaVariant, capability: "image" | "video" = 
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot> | undefined;
 let current: AiConfig;
-async function renderConfig(initial: AiConfig) {
+async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVariant; imageCount: number }) {
     current = initial;
     function Form() {
         const [config, setConfig] = useState(initial);
-        return (
-            <PlatformNativeMediaSettings
-                config={config}
-                onChange={(key, value) =>
-                    setConfig((previous) => {
-                        current = { ...previous, [key]: value };
-                        return current;
-                    })
-                }
-            />
-        );
+        function change(key: "nativeParameters" | "nativeVariantId", value: string) {
+            setConfig((previous) => {
+                current = { ...previous, [key]: value };
+                return current;
+            });
+        }
+        if (dock) return <MediaParameterControls mode="video" config={config} variants={[dock.variant]} references={{ reference_image: dock.imageCount }} onChange={change} />;
+        return <PlatformNativeMediaSettings config={config} onChange={change} />;
     }
     host = document.createElement("div");
     document.body.append(host);
@@ -125,6 +123,17 @@ async function type(label: string, value: string) {
 function selectedText(label: string) {
     return host.querySelector(`[aria-label="${label}"]`)?.closest(".ant-select")?.textContent;
 }
+async function openDock(group: string) {
+    const trigger = host.querySelector<HTMLButtonElement>(`button[aria-label^="${group}："]`)!;
+    await act(async () => trigger.click());
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    const menu = document.querySelector(`.studio-video-menu[aria-label="${group}"]`)!;
+    return (text: string) => {
+        const choice = [...menu.querySelectorAll("button")].find((button) => button.textContent === text);
+        expect(choice).toBeDefined();
+        return choice!;
+    };
+}
 afterEach(unmount);
 afterAll(() => {
     apiClient.defaults.adapter = previousAdapter;
@@ -142,7 +151,7 @@ test("real image settings select exact tuples, reject unaligned custom sizes, an
     await select("分辨率", "2K 级");
     expect(JSON.parse(current.nativeParameters!)["/size"]).toBe("2048x2048");
     await select("宽高比", "16:9");
-    expect(JSON.parse(current.nativeParameters!)).toEqual({ "/size": "2560x1440", "/n": 2 });
+    expect(JSON.parse(current.nativeParameters!)).toEqual({ "/size": "2560x1440" });
     expect(host.textContent).toContain("2560 × 1440 px");
     await select("尺寸方式", "自定义尺寸");
     await type("自定义宽度", "1025");
@@ -152,7 +161,8 @@ test("real image settings select exact tuples, reject unaligned custom sizes, an
     await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === "恢复模型默认值")!.click());
     expect(host.querySelector('[aria-label="自定义宽度"]')).toBeNull();
     expect(host.textContent).toContain("1024 × 1024 px");
-    expect(backendProviderConfig(current, "image").nativeParameters).toEqual(image.defaults);
+    expect(JSON.parse(current.nativeParameters!)).toEqual({});
+    expect(backendProviderConfig(current, "image").nativeParameters).toEqual({ "/size": "1024x1024" });
 });
 
 test("canvas save and reopen retain the same exact custom dimensions in the editor and executor", async () => {
@@ -193,6 +203,7 @@ test("Gemini displays its native default without inventing a ratio, links valid 
     };
     await renderConfig(configFor(gemini));
     expect(current.nativeParameters).toBe("{}");
+    expect(backendProviderConfig(current, "image").nativeParameters).toEqual({});
     expect(selectedText("分辨率")).toContain("2K");
     expect(selectedText("宽高比")).toContain("选择比例");
     expect(host.querySelector('[aria-label="尺寸方式"]')).toBeNull();
@@ -210,4 +221,43 @@ test("video presets retain the normal video parameters and do not show an image 
     await renderConfig(configFor(video, "video"));
     expect(host.textContent).not.toContain("输出尺寸");
     expect(host.querySelector('[aria-label="/size"]')).not.toBeNull();
+});
+
+test("the video production controls retain a conflicting duration after a resolution change and offer only that tier's durations", async () => {
+    const ref = { id: "images", pointer: "/images", role: "reference_image", transport: "url-array", max_items: 3 };
+    const variant: NativeMediaVariant = {
+        id: "video",
+        gateway_protocol: "modelark.video",
+        defaults: { "/resolution": "720p", "/duration": 5 },
+        specifications_schema: { properties: { "/resolution": { enum: ["720p", "1080p"] }, "/duration": { enum: [4, 5, 6, 8, 10] } } },
+        workbench_parameters: ["/resolution", "/duration"],
+        native_request_variant: {
+            path: "/video",
+            protocol: "modelark.video",
+            modes: ["async"],
+            request_schema: {},
+            native_reference_inputs: [ref],
+            supply_alternatives: [
+                { request_schema: { properties: { resolution: { const: "720p" }, duration: { enum: [4, 5, 6, 8, 10] } } }, native_reference_inputs: [ref] },
+                { request_schema: { properties: { resolution: { const: "1080p" }, duration: { enum: [4, 6, 8, 10] } } }, native_reference_inputs: [{ ...ref, max_items: 1 }] },
+            ],
+        },
+    };
+    const config = { ...configFor(variant, "video"), nativeParameters: '{"/resolution":"720p","/duration":5}' };
+    await renderConfig(config, { variant, imageCount: 3 });
+    const sizes = await openDock("尺寸与分辨率");
+    const hd = sizes("1080p");
+    expect(hd.disabled).toBe(false);
+    await act(async () => hd.click());
+    expect(JSON.parse(current.nativeParameters!)).toEqual({ "/resolution": "1080p", "/duration": 5 });
+    expect(() => backendProviderConfig(current, "video", { reference_image: 3 })).toThrow();
+    const saved = current;
+    await unmount();
+    await renderConfig(saved, { variant, imageCount: 1 });
+    const durations = await openDock("时长");
+    expect(durations("5秒").disabled).toBe(true);
+    for (const time of [4, 6, 8, 10]) expect(durations(`${time}秒`).disabled).toBe(false);
+    await act(async () => durations("6秒").click());
+    expect(JSON.parse(current.nativeParameters!)).toEqual({ "/resolution": "1080p", "/duration": 6 });
+    expect(backendProviderConfig(current, "video", { reference_image: 1 }).nativeParameters).toEqual({ "/resolution": "1080p", "/duration": 6 });
 });
