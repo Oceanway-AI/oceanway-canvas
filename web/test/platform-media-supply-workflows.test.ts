@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import type { Schema } from "@cfworker/json-schema";
 import { catalogVariants } from "./fixtures/platform-partial-catalog";
 import publishedGpt from "../../backend/internal/platformintegration/testdata/image-output-size/gpt-default.model.json";
 import { imageExecutionChoices, nativeMediaReferenceLimits, type NativeMediaVariant } from "@/lib/platform-native-media";
@@ -114,6 +115,69 @@ test("a missing required frame can still be added to a draft with published dura
     const frame = { ...video, native_request_variant: { ...video.native_request_variant, supply_alternatives: [{ request_schema: {}, native_reference_inputs: [slot("first_frame", 1, 1)] }] } };
     expect(supplyChoiceAllowed(frame, "/seconds", {}, {})("5")).toBe(true);
     expect(supplySelection(frame, {}, {}).issue).toContain("至少需要");
+});
+
+const referenceRoles = ["reference_image", "reference_video", "reference_audio"];
+const mediaUrls = ["image_urls", "reference_videos", "reference_audios"];
+const urlGroup: Schema = {
+    anyOf: mediaUrls.map((name) => ({ properties: { metadata: { properties: { [name]: { minItems: 1 } }, required: [name] } }, required: ["metadata"] })),
+};
+const contentGroup: Schema = {
+    required: ["content"],
+    properties: {
+        content: {
+            contains: { properties: { type: { const: "text" } }, required: ["type", "text"] },
+            allOf: [{ contains: { properties: { role: { enum: referenceRoles } }, required: ["role"] }, minContains: 1 }],
+        },
+    },
+};
+const referenceGroups = [
+    { transport: "url-array", pointers: mediaUrls.map((name) => `/metadata/${name}`), group: urlGroup },
+    { transport: "content-array", pointers: referenceRoles.map(() => "/content"), group: contentGroup },
+];
+
+test.each(referenceGroups)("a published $transport group is required in the chosen tier before quote or submission", async ({ transport, pointers, group }) => {
+    const slots = referenceRoles.map((role, i) => ({ ...slot(role, 3), transport, pointer: pointers[i] }));
+    const tier = (resolution: string) => ({
+        request_schema: { properties: { metadata: { properties: { resolution: { const: resolution } } } } },
+        native_reference_inputs: slots.map((s) => ({ ...s, max_items: s.role === "reference_image" || resolution === "720p" ? 3 : 0 })),
+    });
+    const variant = { ...video, native_request_variant: { ...video.native_request_variant, request_schema: group, native_reference_inputs: slots, supply_alternatives: [tier("720p"), tier("1080p")] } };
+    const chosen = { "/metadata/resolution": "1080p", "/seconds": "6" };
+    const draft = requests("video", [variant], chosen, []);
+    expect(draft.quote).toBeNull();
+    await expect(draft.submit()).rejects.toThrow("参考图");
+    const issue = supplySelection(variant, chosen, {}).issue;
+    expect(issue).toContain("参考图");
+    expect(issue).not.toContain("参考视频");
+    expect(JSON.parse(draft.config.nativeParameters)).toEqual(chosen);
+    expect(supplyChoiceAllowed(variant, "/seconds", chosen, {})("8")).toBe(true);
+    expect(supplySelection(variant, chosen, { reference_video: 1 }).issue).toContain("最多支持 0");
+    for (const counts of [{ reference_image: 1 }, { reference_video: 1 }, { reference_image: 1, reference_audio: 1 }]) {
+        expect(supplySelection(variant, { "/metadata/resolution": "720p" }, counts).issue).toBe("");
+    }
+    expect((await requests("video", [variant], chosen, images(1)).submit()).input?.config?.nativeParameters).toEqual(chosen);
+});
+
+test("only mandatory material predicates block an empty draft, including branch-only rules", () => {
+    const image = { ...slot("reference_image", 3), pointer: "/metadata/image_urls" };
+    const base = { ...video.native_request_variant, request_schema: {}, native_reference_inputs: [image] };
+    const required = { ...urlGroup, anyOf: [urlGroup.anyOf![0]] };
+    const variantFor = (schema: Schema) => ({ ...video, native_request_variant: { ...base, supply_alternatives: [{ native_reference_inputs: [image], request_schema: schema }] } });
+    expect(supplySelection(variantFor(required), {}, {}).issue).toContain("参考图");
+    expect(supplySelection(variantFor({ anyOf: [...required.anyOf!, { required: ["prompt"] }] }), {}, {}).issue).toBe("");
+    expect(supplySelection(variantFor({ properties: { metadata: { properties: { image_urls: { minItems: 1 } } } } }), {}, {}).issue).toBe("");
+    expect(supplySelection(variantFor({}), {}, {}).issue).toBe("");
+    const content = {
+        ...video,
+        native_request_variant: {
+            ...base,
+            supply_alternatives: undefined,
+            native_reference_inputs: [{ ...image, transport: "content-array", pointer: "/content" }],
+            request_schema: { ...contentGroup, properties: { content: { contains: { properties: { role: { const: "reference_image" } }, required: ["role"] }, minContains: 0 } } },
+        },
+    };
+    expect(supplySelection(content, {}, {}).issue).toBe("");
 });
 
 test("ordinary video references cannot silently occupy available first and last frame slots", async () => {
