@@ -113,6 +113,7 @@ func TestStudioPublishedNativeBodyAndCompleteConditions(t *testing.T) {
 			delete(params, "/model")
 			if selected.Kind == "video" {
 				params["/duration"] = 8
+				params["/resolution"] = "720p"
 				if _, err := (&Service{}).studioMediaBody(t.Context(), "user", req, selected); err == nil {
 					t.Fatal("conditional schema ignored")
 				}

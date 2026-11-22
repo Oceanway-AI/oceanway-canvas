@@ -121,12 +121,12 @@ func (s *Service) StudioModelCatalogDetail(ctx context.Context, session platform
 	if err != nil {
 		return nil, result.Response, err
 	}
-	if owner != nil && owner.PlatformAuthenticated {
+	if owner != nil && owner.PlatformAuthenticated && query.VariantID == "" {
 		scope := studioCatalogScopeFor(owner.ID, session, owner.PlatformSessionID)
 		scope.workspace = query.WorkspaceID
 		s.studioMediaCatalog.rememberDetail(scope, result.Data.Model)
 	}
-	item := studioCatalogPublicModel(result.Data.Model, wire.Data.Model)
+	item := studioCatalogModelVariant(result.Data.Model, wire.Data.Model, query.VariantID)
 	return &item, result.Response, nil
 }
 

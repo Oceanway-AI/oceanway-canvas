@@ -774,7 +774,6 @@
     "capabilityConfig": {
       "version": 1,
       "video": {
-        "defaultOperation": "text_to_video",
         "defaultRatio": "",
         "defaultResolution": "720p",
         "duration": {

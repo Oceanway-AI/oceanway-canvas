@@ -88,6 +88,16 @@ func TestStudioMediaPreviewBindsAccountAndCommandBeforeCreation(t *testing.T) {
 	if f.catalogCalls != 2 || previews != 2 || issues != 0 {
 		t.Fatalf("stale confirmation called provider: previews=%d issues=%d", previews, issues)
 	}
+	for _, changed := range []string{strings.Replace(bobBody, `"prompt":"cat"`, `"prompt":"updated"`, 1), strings.Replace(bobBody, `"walletMaxPoints":"0.123456789"`, `"walletMaxPoints":"10"`, 1)} {
+		w := f.request(t, "POST", "/api/tasks", bob, changed, http.StatusConflict)
+		if !strings.Contains(w.Body.String(), "studio_preview_selection_changed") || previews != 2 || issues != 0 {
+			t.Fatalf("edited selection used its old preview: %s", w.Body.String())
+		}
+	}
+	var taskCount int64
+	if err := f.db.Model(&model.StudioExecution{}).Count(&taskCount).Error; err != nil || taskCount != 0 {
+		t.Fatalf("edited selection created an execution: %d %v", taskCount, err)
+	}
 	f.request(t, "POST", "/api/tasks", bob, bobBody, 200)
 	f.request(t, "POST", "/api/tasks", bob, bobBody, 200)
 	// Pre-upgrade callers can still recover the same saved intent.

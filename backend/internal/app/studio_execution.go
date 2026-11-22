@@ -115,7 +115,7 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 		if !hasReceipt && s.studioMediaCatalog.requiresPreview(scope, req) {
 			return nil, response, studioPreviewAccountChanged()
 		}
-		selected, e := s.studioSelectTaskModel(ctx, session, req, response, scope)
+		selected, e := s.studioSelectTaskModel(ctx, userID, session, req, response, scope)
 		if e != nil {
 			return nil, response, e
 		}
@@ -131,6 +131,9 @@ func (s *Service) StudioCreateTask(ctx context.Context, userID string, session p
 			body, e = s.studioTextBodyWithMaterials(ctx, userID, s.studioPlatform.Client.CurrentMaterials(session), req, selected)
 		} else {
 			body, e = s.studioMediaBody(ctx, userID, req, selected)
+			if e == nil {
+				e = s.verifyStudioPreviewSelection(userID, req, selected, body)
+			}
 			if e == nil {
 				var preview *platformclient.ConsumptionPreview
 				preview, e = s.studioPreviewMedia(ctx, session, req, selected, body, response, true)

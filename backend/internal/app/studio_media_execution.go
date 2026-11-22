@@ -56,7 +56,7 @@ func (o *StudioTaskOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (s *Service) studioSelectTaskModel(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response, scopes ...studioCatalogScope) (platformintegration.ModelSelection, error) {
+func (s *Service) studioSelectTaskModel(ctx context.Context, userID string, session platformclient.SessionContext, req CreateTaskRequest, response *platformclient.Response, scopes ...studioCatalogScope) (platformintegration.ModelSelection, error) {
 	config, _ := req.Input["config"].(map[string]any)
 	name := firstNonEmpty(stringValue(config["model"]), req.Model)
 	variant := stringValue(config["nativeVariantId"])
@@ -66,17 +66,36 @@ func (s *Service) studioSelectTaskModel(ctx context.Context, session platformcli
 		}
 		variant = firstNonEmpty(req.Platform.VariantID, variant)
 	}
+	var scope studioCatalogScope
 	selectModel := func(m platformclient.Model) (platformintegration.ModelSelection, error) {
+		if req.Type != "canvas_"+m.ModelType || strings.TrimSpace(req.Prompt) == "" {
+			return platformintegration.ModelSelection{}, BadAuthRequest("任务类型或提示词无效")
+		}
+		if variant == "" && (m.ModelType == "image" || m.ModelType == "video") {
+			if profile, choices := studioNativeChoices(m); choices {
+				input, err := studioDecodeInput(req)
+				if err != nil {
+					return platformintegration.ModelSelection{}, err
+				}
+				refs, err := s.studioNativeReferenceResources(ctx, userID, input)
+				if err != nil {
+					return platformintegration.ModelSelection{}, err
+				}
+				return studioChooseNativeVariant(m, profile, func(selected platformintegration.ModelSelection) ([]byte, error) {
+					values, err := studioNativeSpecifications(input, selected)
+					if err != nil {
+						return nil, err
+					}
+					return studioNativeResolvedBody(req.Prompt, selected, values, refs)
+				})
+			}
+		}
 		selected, err := platformintegration.SelectModel(m, variant)
 		if err != nil {
 			return selected, BadAuthRequest(err.Error())
 		}
-		if req.Type != "canvas_"+selected.Kind || strings.TrimSpace(req.Prompt) == "" {
-			return selected, BadAuthRequest("任务类型或提示词无效")
-		}
 		return selected, nil
 	}
-	var scope studioCatalogScope
 	if len(scopes) == 1 {
 		scope = scopes[0]
 		if req.Platform != nil {
@@ -155,7 +174,9 @@ func (s *Service) studioSelectTaskModel(ctx context.Context, session platformcli
 	if err := studioValidateCatalogDetail(detail.Data, query); err != nil {
 		return platformintegration.ModelSelection{}, err
 	}
-	s.studioMediaCatalog.rememberDetail(scope, detail.Data.Model)
+	if query.VariantID == "" {
+		s.studioMediaCatalog.rememberDetail(scope, detail.Data.Model)
+	}
 	return selectModel(detail.Data.Model)
 }
 
@@ -171,8 +192,7 @@ func studioPreviewAccountChanged() *AppError {
 	return err
 }
 
-// The receipt binds the authenticated account to one command. Platform checks
-// the current quote, the frozen revisions and any explicit spending limit.
+// This first component can be verified before a catalog or database read.
 func (s *Service) studioPreviewBinding(userID, commandID string) (string, error) {
 	key, err := s.settingsEncryptionKey()
 	if err != nil {
@@ -180,6 +200,27 @@ func (s *Service) studioPreviewBinding(userID, commandID string) (string, error)
 	}
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte("studio-media-preview-v1\n" + userID + "\n" + commandID))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil)), nil
+}
+
+func (s *Service) studioSelectionBinding(userID string, req CreateTaskRequest, selected platformintegration.ModelSelection, body []byte, price, capability string, connection int64) (string, error) {
+	key, err := s.settingsEncryptionKey()
+	if err != nil {
+		return "", err
+	}
+	o := req.Platform
+	nativeID := ""
+	if v := selected.NativeRequest; v != nil {
+		nativeID = v.ID
+	}
+	data, err := json.Marshal([]any{"studio-media-selection-v2", userID, req.CommandID, req.ProjectID, o.WorkspaceID,
+		selected.Name, selected.ID, nativeID, selected.GatewayProtocol, selected.MediaRoute, selected.GenerationV1,
+		sha256.Sum256(body), price, capability, connection, o.BillingPreference, o.WalletMaxPoints})
+	if err != nil {
+		return "", err
+	}
+	mac := hmac.New(sha256.New, key)
+	mac.Write(data)
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil)), nil
 }
 
@@ -191,8 +232,30 @@ func (s *Service) verifyStudioPreviewAccount(userID string, req CreateTaskReques
 	if err != nil {
 		return err
 	}
-	if !hmac.Equal([]byte(expected), []byte(req.Platform.PreviewBinding)) {
+	account, _, _ := strings.Cut(req.Platform.PreviewBinding, ".")
+	if !hmac.Equal([]byte(expected), []byte(account)) {
 		return studioPreviewAccountChanged()
+	}
+	return nil
+}
+
+func (s *Service) verifyStudioPreviewSelection(userID string, req CreateTaskRequest, selected platformintegration.ModelSelection, body []byte) error {
+	o := req.Platform
+	if o == nil || o.PreviewBinding == "" {
+		return nil
+	}
+	if !studioSHA256.MatchString(o.ExpectedCapabilityRevision) || o.ExpectedConnectionRevision <= 0 {
+		return BadAuthRequest("请提供已确认的平台能力与连接版本")
+	}
+	expected, err := s.studioSelectionBinding(userID, req, selected, body, o.ExpectedPriceVersion, o.ExpectedCapabilityRevision, o.ExpectedConnectionRevision)
+	if err != nil {
+		return err
+	}
+	_, signature, _ := strings.Cut(o.PreviewBinding, ".")
+	if !hmac.Equal([]byte(expected), []byte(signature)) {
+		e := NewAppError(http.StatusConflict, "模型、参数、素材或报价已变更，请重新预估并确认消费")
+		e.Reason = "studio_preview_selection_changed"
+		return e
 	}
 	return nil
 }
@@ -204,7 +267,7 @@ func (s *Service) StudioPreviewTask(ctx context.Context, userID string, session 
 	if !studioMaterialID.MatchString(req.CommandID) {
 		return nil, response, BadAuthRequest("请提供稳定的任务命令标识")
 	}
-	selected, err := s.studioSelectTaskModel(ctx, session, req, response, studioCatalogScopeFor(userID, session, verifiedSessionID...))
+	selected, err := s.studioSelectTaskModel(ctx, userID, session, req, response, studioCatalogScopeFor(userID, session, verifiedSessionID...))
 	if err != nil {
 		return nil, response, err
 	}
@@ -226,7 +289,11 @@ func (s *Service) StudioPreviewTask(ctx context.Context, userID string, session 
 	if err != nil {
 		return nil, response, err
 	}
-	return &StudioTaskPreview{ConsumptionPreview: quote, PreviewUserID: userID, PreviewBinding: binding}, response, nil
+	selection, err := s.studioSelectionBinding(userID, req, selected, body, quote.PriceVersion, quote.CapabilityRevision, quote.ConnectionRevision)
+	if err != nil {
+		return nil, response, err
+	}
+	return &StudioTaskPreview{ConsumptionPreview: quote, PreviewUserID: userID, PreviewBinding: binding + "." + selection}, response, nil
 }
 
 func (s *Service) studioPreviewMedia(ctx context.Context, session platformclient.SessionContext, req CreateTaskRequest, selected platformintegration.ModelSelection, body []byte, response *platformclient.Response, requireRevisions bool) (*platformclient.ConsumptionPreview, error) {

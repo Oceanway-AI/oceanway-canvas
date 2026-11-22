@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
@@ -217,6 +218,17 @@ func (s *Service) studioAgentModelList(userID string, state *cloudAgentRuntime, 
 			if studioValidateNativeReferences(slots, refs) != nil {
 				continue
 			}
+			if v := selected.NativeRequest; v != nil {
+				options, err := v.Alternatives()
+				if err != nil || studioValidateMaterialGroup(v.Materials, refs, 0) != nil {
+					continue
+				}
+				if len(options) > 0 && !slices.ContainsFunc(options, func(o platformintegration.NativeSupplyAlternative) bool {
+					return studioValidateNativeReferences(o.References, refs) == nil && studioValidateMaterialGroup(o.Materials, refs, 0) == nil
+				}) {
+					continue
+				}
+			}
 			matched++
 			if matched <= args.Offset || pageFull {
 				continue
@@ -233,8 +245,7 @@ func (s *Service) studioAgentModelList(userID string, state *cloudAgentRuntime, 
 			if detail {
 				row["defaults"], row["specificationsSchema"] = selected.Defaults, json.RawMessage(selected.Schema)
 				if selected.NativeRequest != nil {
-					defaults, _ := json.Marshal(selected.Defaults)
-					arguments["nativeParameters"] = string(defaults)
+					arguments["nativeParameters"] = "{}"
 				}
 			}
 			raw, err := json.Marshal(row)
