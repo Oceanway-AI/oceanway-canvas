@@ -1,6 +1,7 @@
 import { afterAll, afterEach, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import type { NativeMediaVariant } from "@/lib/platform-native-media";
+import type { MaterialCounts } from "@/lib/platform-media-supply";
 import type { AiConfig } from "@/stores/use-config-store";
 import type { PublicChannelModel } from "@/services/api/logical-models";
 import type { CanvasNodeData } from "@/types/canvas";
@@ -81,7 +82,7 @@ function configFor(variant: NativeMediaVariant, capability: "image" | "video" = 
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot> | undefined;
 let current: AiConfig;
-async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVariant; imageCount: number }) {
+async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVariant; imageCount: number }, references?: MaterialCounts) {
     current = initial;
     function Form() {
         const [config, setConfig] = useState(initial);
@@ -92,7 +93,7 @@ async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVari
             });
         }
         if (dock) return <MediaParameterControls mode="video" config={config} variants={[dock.variant]} references={{ reference_image: dock.imageCount }} onChange={change} />;
-        return <PlatformNativeMediaSettings config={config} onChange={change} />;
+        return <PlatformNativeMediaSettings config={config} references={references} onChange={change} />;
     }
     host = document.createElement("div");
     document.body.append(host);
@@ -214,6 +215,95 @@ test("Gemini displays its native default without inventing a ratio, links valid 
     expect(body).toEqual({ "/generationConfig/imageConfig/imageSize": "4K", "/generationConfig/imageConfig/aspectRatio": "16:9" });
     expect(body).not.toHaveProperty("/size");
     expect(() => backendProviderConfig({ ...current, nativeParameters: JSON.stringify({ ...body, "/size": "1024x1024" }) }, "image")).toThrow("imageSize");
+    await select("分辨率", "2K");
+    expect(JSON.parse(current.nativeParameters!)).toEqual({ "/generationConfig/imageConfig/imageSize": "2K", "/generationConfig/imageConfig/aspectRatio": "16:9" });
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("当前比例与 imageSize 组合没有可用供给");
+    await select("宽高比", "1:1");
+    expect(backendProviderConfig(current, "image").nativeParameters).toEqual({ "/generationConfig/imageConfig/imageSize": "2K", "/generationConfig/imageConfig/aspectRatio": "1:1" });
+});
+
+test("the narrow image panel lets a resolution change select a published pixel tuple even when the old ratio is absent", async () => {
+    const variant = { ...image, native_request_variant: { ...image.native_request_variant, size_presets: image.native_request_variant.size_presets!.filter((preset) => preset.id !== "square-2k") } };
+    await renderConfig(configFor(variant));
+    const axes = [...host.querySelectorAll('[role="combobox"]')].map((control) => control.getAttribute("aria-label")).filter((label) => ["分辨率", "宽高比"].includes(label!));
+    expect(axes).toEqual(["分辨率", "宽高比"]);
+    expect(selectedText("宽高比")).toContain("1:1");
+    await select("分辨率", "2K 级");
+    expect(selectedText("宽高比")).toContain("16:9");
+    expect(JSON.parse(current.nativeParameters!)).toEqual({ "/size": "2560x1440" });
+    expect(backendProviderConfig(current, "image").nativeParameters).toEqual({ "/size": "2560x1440" });
+});
+
+test("the narrow image panel uses the current materials to explain pixel limits and the availability of auto", async () => {
+    const low = { ...image.native_request_variant.output_size!, allow_auto: false, max_pixels: 4194304 };
+    const high = { ...low, allow_auto: true, max_pixels: 8294400 };
+    const slot = { id: "images", pointer: "/image", role: "reference_image", transport: "image-reference-array", min_items: 1, max_items: 16 };
+    const edit: NativeMediaVariant = {
+        ...image,
+        gateway_protocol: "openai.image.edit",
+        native_request_variant: {
+            ...image.native_request_variant,
+            protocol: "openai.image.edit",
+            path: "/v1/images/edits",
+            output_size: high,
+            native_reference_inputs: [slot],
+            supply_alternatives: [
+                { request_schema: { required: ["size"] }, native_reference_inputs: [slot], output_size: low },
+                { request_schema: { required: ["size"] }, native_reference_inputs: [{ ...slot, max_items: 1 }], output_size: high },
+            ],
+        },
+    };
+    const original = { ...configFor(edit), nativeParameters: '{"/size":"3072x2048"}' };
+    await renderConfig(original, undefined, { reference_image: 16 });
+    expect(host.textContent).toContain(`单张最多 ${(4194304).toLocaleString()} 像素`);
+    expect(host.textContent).not.toContain((8294400).toLocaleString());
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain((6291456).toLocaleString());
+    await select("尺寸方式", "自动尺寸");
+    expect(current.nativeParameters).toBe(original.nativeParameters);
+    await type("自定义宽度", "2048");
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(backendProviderConfig(current, "image", { reference_image: 16 }).nativeParameters).toEqual({ "/size": "2048x2048" });
+    await unmount();
+    await renderConfig(original, undefined, { reference_image: 1 });
+    expect(host.textContent).toContain(`单张最多 ${(8294400).toLocaleString()} 像素`);
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    await select("尺寸方式", "自动尺寸");
+    expect(backendProviderConfig(current, "image", { reference_image: 1 }).nativeParameters).toEqual({ "/size": "auto" });
+});
+
+test("optional booleans can go from omitted to on, off and omitted, and fixed values stay truthful", async () => {
+    const video: NativeMediaVariant = {
+        id: "video",
+        gateway_protocol: "modelark.video",
+        defaults: { "/generate_audio": true, "/watermark": false, "/seed": 3 },
+        specifications_schema: { required: ["/watermark"], properties: { "/generate_audio": { type: "boolean" }, "/watermark": { const: false }, "/profile": { const: "official" }, "/seed": { type: "integer" } } },
+        native_request_variant: { protocol: "modelark.video", path: "/video", modes: ["async"], request_schema: {}, native_reference_inputs: [] },
+    };
+    const initial = { ...configFor(video, "video"), nativeParameters: '{"/seed":0}' };
+    await renderConfig(initial);
+    expect(selectedText("/generate_audio")).toContain("模型默认");
+    const fixed = host.querySelector<HTMLInputElement>('input[aria-label="/watermark"]')!;
+    expect(fixed.readOnly).toBe(true);
+    expect(fixed.value).toBe("关");
+    expect(host.querySelector<HTMLInputElement>('input[aria-label="/profile"]')?.value).toBe("official");
+    expect(backendProviderConfig(current, "video").nativeParameters).toEqual({ "/seed": 0, "/watermark": false });
+    for (const [label, value] of [
+        ["开", true],
+        ["关", false],
+    ] as const) {
+        await select("/generate_audio", label);
+        expect(backendProviderConfig(current, "video").nativeParameters).toEqual({ "/seed": 0, "/watermark": false, "/generate_audio": value });
+    }
+    await select("/generate_audio", "模型默认");
+    expect(JSON.parse(current.nativeParameters!)).toEqual({ "/seed": 0 });
+    expect(backendProviderConfig(current, "video").nativeParameters).toEqual({ "/seed": 0, "/watermark": false });
+    await unmount();
+    await renderConfig({ ...initial, nativeParameters: '{"/seed":0,"/watermark":true}' });
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("/watermark");
+    await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === "使用固定值")!.click());
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(JSON.parse(current.nativeParameters!)).toEqual({ "/seed": 0 });
+    expect(backendProviderConfig(current, "video").nativeParameters).toEqual({ "/seed": 0, "/watermark": false });
 });
 
 test("video presets retain the normal video parameters and do not show an image size widget", async () => {

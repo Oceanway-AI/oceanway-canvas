@@ -3,32 +3,37 @@ import { useState } from "react";
 import { ImageParameterInput } from "./image-parameter-fields";
 import { Select } from "@/components/ui/base/select";
 import type { ImageParameter } from "@/lib/image-parameters";
-import { creativeParameterLabel, nativeMediaProfile, nativeMediaVariant, nativeMediaVariantOptions, nativeCreationModeOptions, nativeParameterValues, type NativeSchemaField } from "@/lib/platform-native-media";
+import { creativeParameterLabel, nativeMediaProfile, nativeMediaVariant, nativeMediaVariantOptions, nativeCreationModeOptions, nativeParameterObject, nativeParameterValues, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
 import { nativeImageSizePointers } from "@/lib/platform-native-image-size";
+import { supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
 import { PlatformNativeImageSize } from "./platform-native-image-size";
 
 export type NativeMediaSettingKey = "nativeParameters" | "nativeVariantId";
 
-export function PlatformNativeMediaSettings({ config, onChange }: { config: AiConfig; onChange: (key: NativeMediaSettingKey, value: string) => void }) {
+export function PlatformNativeMediaSettings({ config, references, onChange }: { config: AiConfig; references?: MaterialCounts; onChange: (key: NativeMediaSettingKey, value: string) => void }) {
     const [sizeResetRevision, setSizeResetRevision] = useState(0);
     const profile = nativeMediaProfile(config);
     const variant = nativeMediaVariant(config);
     const controls = variant?.workbench_parameters;
+    let explicit: Record<string, unknown> = {};
     let values: Record<string, unknown> = {};
     let error = "";
+    let selectionIssue = "";
     let sizePointers: string[] = [];
     try {
         if (variant) {
+            explicit = nativeParameterObject(config.nativeParameters);
             values = nativeParameterValues(variant, config.nativeParameters);
             const pointers = nativeImageSizePointers(variant);
             if (!controls || pointers.every((key) => controls.includes(key))) sizePointers = pointers;
+            if (!sizePointers.length) selectionIssue = supplySelection(variant, explicit, references).issue;
         }
     } catch {
         error = "原生参数格式无效，请恢复模型默认值";
     }
     const change = (pointer: string, value: unknown) => {
-        const next = { ...values };
+        const next = { ...explicit };
         if (value === undefined) delete next[pointer];
         else next[pointer] = value;
         onChange("nativeParameters", JSON.stringify(next));
@@ -45,7 +50,6 @@ export function PlatformNativeMediaSettings({ config, onChange }: { config: AiCo
                     virtual={false}
                     optionRender={(option) => <span className="block whitespace-normal break-words">{option.label}</span>}
                     onChange={(id) => {
-                        onChange("nativeParameters", "{}");
                         onChange("nativeVariantId", String(id));
                     }}
                 />
@@ -56,7 +60,16 @@ export function PlatformNativeMediaSettings({ config, onChange }: { config: AiCo
                 <p role="alert">{error}</p>
             ) : (
                 <>
-                    {sizePointers.length ? <PlatformNativeImageSize key={`${config.model}:${variant.id}:${sizeResetRevision}`} variant={variant} values={values} onChange={(next) => onChange("nativeParameters", JSON.stringify(next))} /> : null}
+                    {sizePointers.length ? (
+                        <PlatformNativeImageSize
+                            key={`${config.model}:${variant.id}:${sizeResetRevision}`}
+                            variant={variant}
+                            explicit={explicit}
+                            values={{ ...variant.defaults, ...values }}
+                            references={references}
+                            onChange={(next) => onChange("nativeParameters", JSON.stringify(next))}
+                        />
+                    ) : null}
                     {Object.entries(variant.specifications_schema.properties)
                         .filter(([pointer]) => !sizePointers.includes(pointer) && (!controls || controls.includes(pointer)))
                         .sort((a, b) => Number(a[1]["x-order"] || 0) - Number(b[1]["x-order"] || 0))
@@ -66,10 +79,15 @@ export function PlatformNativeMediaSettings({ config, onChange }: { config: AiCo
                                     {controls ? creativeParameterLabel(pointer, field.title) : pointer}
                                     {variant.specifications_schema.required?.includes(pointer) ? " *" : ""}
                                 </div>
-                                <NativeParameterInput pointer={pointer} field={field} value={values[pointer]} onChange={(value) => change(pointer, value)} />
+                                <NativeParameterInput pointer={pointer} field={field} value={values[pointer]} required={variant.specifications_schema.required?.includes(pointer)} onChange={(value) => change(pointer, value)} />
                                 {field.description ? <p className="text-xs opacity-60">{field.description}</p> : null}
                             </div>
                         ))}
+                    {selectionIssue && (
+                        <p role="alert" className="text-xs">
+                            {selectionIssue}
+                        </p>
+                    )}
                 </>
             )}
             {!controls &&
@@ -92,20 +110,49 @@ export function PlatformNativeMediaSettings({ config, onChange }: { config: AiCo
     );
 }
 
-export function NativeParameterInput({ pointer, field, value, onChange }: { pointer: string; field: NativeSchemaField; value: unknown; onChange: (v: unknown) => void }) {
-    if (Object.hasOwn(field, "const")) return <Input aria-label={pointer} value={JSON.stringify(field.const)} readOnly />;
+function parameterText(value: unknown) {
+    if (typeof value === "boolean") return value ? "开" : "关";
+    return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+export function NativeParameterInput({ pointer, field, value, required = false, onChange }: { pointer: string; field: NativeSchemaField; value: unknown; required?: boolean; onChange: (v: unknown) => void }) {
+    if (Object.hasOwn(field, "const"))
+        return (
+            <>
+                <Input aria-label={pointer} value={parameterText(field.const)} readOnly />
+                {value !== undefined && JSON.stringify(value) !== JSON.stringify(field.const) && (
+                    <button type="button" className="text-xs underline" onClick={() => onChange(undefined)}>
+                        使用固定值
+                    </button>
+                )}
+            </>
+        );
+    if (field.type === "boolean" || (field.enum?.length && field.enum.every((v) => typeof v === "boolean"))) {
+        const allowed = field.enum ?? [true, false];
+        return (
+            <Select
+                ariaLabel={pointer}
+                className="w-full"
+                value={value === undefined ? (required ? undefined : "default") : JSON.stringify(value)}
+                placeholder="请选择"
+                options={[...(required ? [] : [{ value: "default", label: "模型默认" }]), ...allowed.map((v) => ({ value: JSON.stringify(v), label: parameterText(v) }))]}
+                onChange={(v) => onChange(v === "default" ? undefined : JSON.parse(String(v)))}
+            />
+        );
+    }
     if (field.enum?.length)
         return (
             <Select
                 ariaLabel={pointer}
                 className="w-full"
-                allowClear
+                allowClear={!required}
+                placeholder={required ? "请选择" : "模型默认"}
                 value={value === undefined ? undefined : JSON.stringify(value)}
                 options={field.enum.map((v) => ({ value: JSON.stringify(v), label: typeof v === "string" ? v : JSON.stringify(v) }))}
                 onChange={(v) => onChange(v === undefined ? undefined : JSON.parse(String(v)))}
             />
         );
-    if (typeof field.type === "string" && ["string", "number", "integer", "boolean"].includes(field.type)) {
+    if (typeof field.type === "string" && ["string", "number", "integer"].includes(field.type)) {
         const parameter: ImageParameter = {
             name: pointer,
             label: pointer,
