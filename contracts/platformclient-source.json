@@ -1,9 +1,9 @@
 {
   "module": "github.com/Oceanway-AI/oceanway-platform/platformclient",
-  "publishedVersion": "v1.0.0-rc.5",
-  "providerTag": "platformclient/v1.0.0-rc.5",
-  "providerCommit": "39ebdee5cd9894c9e39993aad372217e1ceb30dc",
-  "moduleSum": "h1:zg6s6UeaQ3b+6i7hfxbQZP/OD8Elty//cGucrqkJD9I=",
+  "publishedVersion": "v1.0.0-rc.6",
+  "providerTag": "platformclient/v1.0.0-rc.6",
+  "providerCommit": "10778ca37f9f3354de6a988068b6271cfc16a788",
+  "moduleSum": "h1:b17nmldO3GAhtB0j0aIgnIL08hgOLvTEYPLItoldZRA=",
   "goModSum": "h1:bNGb+1LnSL/X/hNdSFqXzKE5olaJAhYrJxsEwBSXZZQ=",
   "dependencyMode": "published Go module; no local SDK replace",
   "contract": "DEV-X-01-016",

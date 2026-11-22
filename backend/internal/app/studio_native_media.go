@@ -29,13 +29,25 @@ func studioNativeSpecifications(input canvasGenerationInput, selected platformin
 	for k, val := range input.Config.NativeParameters {
 		values[k] = val
 	}
+	spec := selected.Schema
+	if _, chosen := values["/size"]; !chosen && v.OutputSize != nil && slices.Contains(projected.Required, "/size") {
+		// The matching supply provides the required size after materials and
+		// explicit settings have been assembled.
+		projected.Required = slices.DeleteFunc(projected.Required, func(p string) bool { return p == "/size" })
+		var schema map[string]json.RawMessage
+		if err := json.Unmarshal(spec, &schema); err != nil {
+			return nil, BadAuthRequest("模型参数合同无效")
+		}
+		schema["required"], _ = json.Marshal(projected.Required)
+		spec, _ = json.Marshal(schema)
+	}
 	studioFillNativeRequired(projected, values, selected.Defaults)
 	for pointer := range values {
 		if _, ok := projected.Properties[pointer]; !ok || selected.Bindings[pointer] != pointer || !v.ParameterAllowed(pointer) {
 			return nil, BadAuthRequest("参数不属于所选模型的发布规格")
 		}
 	}
-	if err := platformintegration.ValidateSpecifications(selected.Schema, values); err != nil {
+	if err := platformintegration.ValidateSpecifications(spec, values); err != nil {
 		return nil, BadAuthRequest(err.Error())
 	}
 	return values, nil
@@ -45,6 +57,7 @@ type studioNativeSchemaNode struct {
 	Properties map[string]studioNativeSchemaNode `json:"properties"`
 	Required   []string                          `json:"required"`
 	Const      json.RawMessage                   `json:"const"`
+	Enum       []json.RawMessage                 `json:"enum"`
 	Default    json.RawMessage                   `json:"default"`
 }
 
@@ -66,6 +79,9 @@ func studioFillNativeRequired(schema studioNativeSchemaNode, body, defaults map[
 		}
 		if !supplied {
 			raw := child.Const
+			if len(raw) == 0 && len(child.Enum) == 1 {
+				raw = child.Enum[0]
+			}
 			if len(raw) == 0 {
 				raw = child.Default
 			}
@@ -145,11 +161,6 @@ func studioNativeResolvedBody(prompt string, selected platformintegration.ModelS
 	if err := studioWriteNativeReferences(v, refs, body); err != nil {
 		return nil, err
 	}
-	var schema studioNativeSchemaNode
-	if json.Unmarshal(v.Schema, &schema) != nil {
-		return nil, BadAuthRequest("模型参数合同无效")
-	}
-	studioFillNativeRequired(schema, body, v.Defaults)
 	return studioPrepareNativeCombination(v, refs, body)
 }
 

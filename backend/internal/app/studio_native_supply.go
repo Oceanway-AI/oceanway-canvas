@@ -29,10 +29,34 @@ func studioPrepareNativeCombination(v *platformintegration.NativeRequestVariant,
 	if err != nil {
 		return nil, BadAuthRequest("模型供给合同无效")
 	}
-	if _, explicit := body["size"]; !explicit && v.OutputSize != nil {
-		if value, published := v.Defaults["size"]; published {
-			body["size"] = value
+	var common studioNativeSchemaNode
+	if err := json.Unmarshal(v.Schema, &common); err != nil {
+		return nil, BadAuthRequest("模型参数合同无效")
+	}
+	withDefaults := func(option *platformintegration.NativeSupplyAlternative) (map[string]any, error) {
+		candidate := studioMergeNativeObjects(nil, body)
+		bounds := v.OutputSize
+		if option != nil && option.OutputSize != nil {
+			bounds = option.OutputSize
 		}
+		if _, chosen := candidate["size"]; !chosen && bounds != nil && !bounds.AllowAuto &&
+			bounds.MinWidth > 0 && bounds.MinHeight > 0 && bounds.MinWidth == bounds.MaxWidth && bounds.MinHeight == bounds.MaxHeight {
+			candidate["size"] = fmt.Sprintf("%dx%d", bounds.MinWidth, bounds.MinHeight)
+		}
+		if option != nil {
+			var branch studioNativeSchemaNode
+			if err := json.Unmarshal(option.Schema, &branch); err != nil {
+				return nil, BadAuthRequest("模型供给合同无效")
+			}
+			studioFillNativeRequired(branch, candidate, v.Defaults)
+		}
+		studioFillNativeRequired(common, candidate, v.Defaults)
+		if _, chosen := candidate["size"]; !chosen && bounds != nil {
+			if value, published := v.Defaults["size"]; published {
+				candidate["size"] = value
+			}
+		}
+		return candidate, nil
 	}
 	checkBase := func(candidate map[string]any) ([]byte, error) {
 		if candidate["stream"] == true || candidate["async"] == true {
@@ -50,7 +74,11 @@ func studioPrepareNativeCombination(v *platformintegration.NativeRequestVariant,
 		}
 		return prepared, studioValidateMaterialGroup(v.Materials, refs, studioOutputDurationMS(candidate))
 	}
-	prepared, baseErr := checkBase(body)
+	base, err := withDefaults(nil)
+	if err != nil {
+		return nil, err
+	}
+	prepared, baseErr := checkBase(base)
 	if len(options) == 0 {
 		return prepared, baseErr
 	}
@@ -69,30 +97,22 @@ func studioPrepareNativeCombination(v *platformintegration.NativeRequestVariant,
 	mismatch := baseErr
 	if baseErr == nil {
 		for _, option := range options {
-			mismatch = checkOption(option, body, prepared)
+			mismatch = checkOption(option, base, prepared)
 			if mismatch == nil {
 				return prepared, nil
 			}
 		}
 	}
 	var result []byte
+	// Each supply starts from the same explicit draft. A recommendation from
+	// another supply may fail even when the caller's selections are valid.
 	for _, option := range options {
-		var schema studioNativeSchemaNode
-		if json.Unmarshal(option.Schema, &schema) != nil {
+		candidate, err := withDefaults(&option)
+		if err != nil {
 			continue
 		}
-		candidate := studioMergeNativeObjects(nil, body)
-		studioFillNativeRequired(schema, candidate, v.Defaults)
-		if _, set := candidate["size"]; !set && option.OutputSize != nil {
-			if value, published := v.Defaults["size"]; published {
-				candidate["size"] = value
-			}
-		}
-		value, err := json.Marshal(candidate)
-		if err != nil || bytes.Equal(value, prepared) {
-			continue
-		}
-		if _, err := checkBase(candidate); err != nil || checkOption(option, candidate, value) != nil {
+		value, err := checkBase(candidate)
+		if err != nil || bytes.Equal(value, prepared) || checkOption(option, candidate, value) != nil {
 			continue
 		}
 		if result != nil && !bytes.Equal(value, result) {
