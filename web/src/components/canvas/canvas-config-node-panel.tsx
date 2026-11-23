@@ -388,7 +388,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                             <div className="canvas-media-controls">
                                 <ModelPicker config={config} value={config.model} capability={mode} requirements={requirements} variant="creation" onChange={(model) => onConfigChange(node.id, { model })} />
                                 <MediaParameterControls
-                                    key={config.model + config.nativeVariantId}
+                                    key={config.model}
                                     canvas
                                     mode={mode}
                                     config={config}

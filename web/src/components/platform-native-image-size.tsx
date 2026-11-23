@@ -3,6 +3,7 @@ import { Input } from "antd";
 import { Select } from "@/components/ui/base/select";
 import { applyNativeImagePreset, nativeImageSizeIssue, nativeImageSizePointers, resolutionLabel, selectedNativeImagePreset, usableNativeImagePresets } from "@/lib/platform-native-image-size";
 import { materialsIssue, suppliesFor, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
+import { businessRoutes, publishedParameters } from "@/lib/platform-media-business";
 import type { NativeImageOutputSize, NativeImageSizePreset, NativeMediaVariant } from "@/lib/platform-native-media";
 
 const geminiSize = "/generationConfig/imageConfig/imageSize";
@@ -17,6 +18,16 @@ export function publishedImageSizePresets(variant: NativeMediaVariant) {
         const values = applyNativeImagePreset(variant, {}, preset.id);
         return supplies.some((supply) => !nativeImageSizeIssue({ ...variant, native_request_variant: { ...native, output_size: supply.output_size ?? native.output_size } }, values));
     });
+}
+
+export function businessImagePresets(variant: NativeMediaVariant, variants: NativeMediaVariant[], references?: MaterialCounts) {
+    return businessRoutes(variants, variant, references).flatMap((route) => publishedImageSizePresets(route).map((preset) => ({ route, preset })));
+}
+
+export function setBusinessImagePreset(variant: NativeMediaVariant, target: NativeMediaVariant, explicit: Record<string, unknown>, preset: NativeImageSizePreset) {
+    const sizes = nativeImageSizePointers(variant);
+    const kept = Object.fromEntries(Object.entries(explicit).filter(([pointer]) => !sizes.includes(pointer)));
+    return applyNativeImagePreset(target, publishedParameters(target, kept), preset.id);
 }
 
 export function imageSizeDisplayValues(variant: NativeMediaVariant, values: Record<string, unknown>, references?: MaterialCounts) {
@@ -44,19 +55,22 @@ export function nativeImageSizeGuidance(variant: NativeMediaVariant, explicit: R
 // supplies the choices; the app's existing controls supply light/dark styling.
 export function PlatformNativeImageSize({
     variant,
+    variants = [variant],
     explicit,
     values,
     references,
     onChange,
 }: {
     variant: NativeMediaVariant;
+    variants?: NativeMediaVariant[];
     explicit: Record<string, unknown>;
     values: Record<string, unknown>;
     references?: MaterialCounts;
     onChange: (next: Record<string, unknown>) => void;
 }) {
     const native = variant.native_request_variant;
-    const presets = publishedImageSizePresets(variant);
+    const entries = businessImagePresets(variant, variants, references);
+    const presets = entries.map((entry) => entry.preset);
     const selected = selectedNativeImagePreset(variant, values);
     const gemini = native.protocol.startsWith("gemini.");
     const limits = gemini ? undefined : native.output_size;
@@ -74,8 +88,9 @@ export function PlatformNativeImageSize({
     const tiers = [...new Set(presets.map((p) => p.resolution))];
     const choose = (preset: NativeImageSizePreset, axis?: "aspect_ratio" | "resolution") => {
         setCustom(false);
-        const next = applyNativeImagePreset(variant, explicit, preset.id);
-        if (gemini && axis) {
+        const route = entries.find((item) => item.preset === preset)?.route ?? variant;
+        const next = route === variant ? applyNativeImagePreset(variant, explicit, preset.id) : setBusinessImagePreset(variant, route, explicit, preset);
+        if (route === variant && gemini && axis) {
             const other = axis === "resolution" ? geminiRatio : geminiSize;
             // Gemini exposes two independent pointers. Keep a previous explicit choice,
             // including a conflict, so the user can see and correct the actual draft.

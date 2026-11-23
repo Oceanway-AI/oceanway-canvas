@@ -224,7 +224,7 @@ export function suppliesAtResolution(variant: NativeMediaVariant, explicit: Reco
     );
 }
 
-export function supplyChoiceAllowed(variant: NativeMediaVariant, pointer: string, explicit: Record<string, unknown>, counts?: MaterialCounts) {
+export function supplyChoiceAllowed(variant: NativeMediaVariant, pointer: string, explicit: Record<string, unknown>, counts?: MaterialCounts, requireOtherValues = false) {
     let supplies = suppliesFor(variant);
     if (!resolutionParameter(pointer)) {
         supplies = suppliesAtResolution(variant, explicit, supplies);
@@ -235,7 +235,7 @@ export function supplyChoiceAllowed(variant: NativeMediaVariant, pointer: string
         }
         const other = Object.entries(explicit).filter(([key]) => key !== pointer);
         const compatible = supplies.filter((supply) => other.every(([key, value]) => supplyAllowsValue(variant, supply, key, value, explicit)));
-        if (compatible.length) supplies = compatible;
+        if (requireOtherValues || compatible.length) supplies = compatible;
     }
     return (value: unknown) => supplies.some((supply) => supplyAllowsValue(variant, supply, pointer, value, explicit));
 }

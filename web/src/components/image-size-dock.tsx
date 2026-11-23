@@ -2,24 +2,27 @@ import { useState } from "react";
 import { Link2, Unlink2 } from "lucide-react";
 import { Input } from "antd";
 import { applyNativeImagePreset, resolutionLabel, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
-import { nativeImageSizeGuidance, publishedImageSizePresets } from "./platform-native-image-size";
+import { businessImagePresets, nativeImageSizeGuidance, setBusinessImagePreset } from "./platform-native-image-size";
 import type { MaterialCounts } from "@/lib/platform-media-supply";
 import type { NativeMediaVariant } from "@/lib/platform-native-media";
 
 export function ImageSizeDock({
     variant,
+    variants = [variant],
     values,
     explicit = values,
     references,
     onChange,
 }: {
     variant: NativeMediaVariant;
+    variants?: NativeMediaVariant[];
     values: Record<string, unknown>;
     explicit?: Record<string, unknown>;
     references?: MaterialCounts;
     onChange: (next: Record<string, unknown>) => void;
 }) {
-    const presets = publishedImageSizePresets(variant);
+    const entries = businessImagePresets(variant, variants, references);
+    const presets = entries.map((entry) => entry.preset);
     const limits = variant.native_request_variant.output_size;
     const preset = selectedNativeImagePreset(variant, values);
     const [custom, setCustom] = useState(false);
@@ -43,8 +46,9 @@ export function ImageSizeDock({
         const matches = presets.filter((p) => p[axis] === value);
         const next = matches.find((p) => p[other] === preset?.[other]) ?? matches[0];
         if (!next) return;
-        const changed = applyNativeImagePreset(variant, explicit, next.id);
-        if (variant.native_request_variant.protocol.startsWith("gemini.")) {
+        const route = entries.find((entry) => entry.preset === next)?.route ?? variant;
+        const changed = route === variant ? applyNativeImagePreset(variant, explicit, next.id) : setBusinessImagePreset(variant, route, explicit, next);
+        if (route === variant && variant.native_request_variant.protocol.startsWith("gemini.")) {
             const otherPointer = axis === "resolution" ? "/generationConfig/imageConfig/aspectRatio" : "/generationConfig/imageConfig/imageSize";
             if (Object.hasOwn(explicit, otherPointer)) changed[otherPointer] = explicit[otherPointer];
             else delete changed[otherPointer];

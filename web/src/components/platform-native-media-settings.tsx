@@ -3,10 +3,11 @@ import { useState } from "react";
 import { ImageParameterInput } from "./image-parameter-fields";
 import { Select } from "@/components/ui/base/select";
 import type { ImageParameter } from "@/lib/image-parameters";
-import { creativeParameterLabel, nativeMediaProfile, nativeMediaVariant, nativeMediaVariantOptions, nativeCreationModeOptions, nativeParameterObject, type NativeSchemaField } from "@/lib/platform-native-media";
+import { creativeParameterLabel, nativeMediaProfile, nativeMediaVariant, nativeCreationModeOptions, nativeParameterObject, type NativeSchemaField } from "@/lib/platform-native-media";
 import type { AiConfig } from "@/stores/use-config-store";
 import { nativeImageSizePointers } from "@/lib/platform-native-image-size";
-import { supplyControlFields, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
+import { supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
+import { businessControlFields, businessRoutes, selectBusinessParameter } from "@/lib/platform-media-business";
 import { imageSizeDisplayValues, PlatformNativeImageSize } from "./platform-native-image-size";
 
 export type NativeMediaSettingKey = "nativeParameters" | "nativeVariantId";
@@ -26,28 +27,25 @@ export function PlatformNativeMediaSettings({ config, references, onChange }: { 
             explicit = nativeParameterObject(config.nativeParameters);
             const selection = supplySelection(variant, explicit, references);
             values = selection.values;
-            const pointers = nativeImageSizePointers(variant);
-            if (!controls || pointers.every((key) => controls.includes(key))) sizePointers = pointers;
+            sizePointers = [...new Set(businessRoutes(profile?.variants ?? [variant], variant, references).flatMap((route) => nativeImageSizePointers(route).filter((key) => !route.workbench_parameters || route.workbench_parameters.includes(key))))];
             if (!sizePointers.length) selectionIssue = selection.issue;
         }
     } catch {
         error = "原生参数格式无效，请恢复模型默认值";
     }
     const change = (pointer: string, value: unknown) => {
-        const next = { ...explicit };
-        if (value === undefined) delete next[pointer];
-        else next[pointer] = value;
-        onChange("nativeParameters", JSON.stringify(next));
+        onChange("nativeParameters", JSON.stringify(selectBusinessParameter(explicit, pointer, value)));
     };
+    const modes = profile ? nativeCreationModeOptions(profile.variants, variant) : [];
     return (
         <div className="min-w-0 space-y-3" data-canvas-no-zoom data-canvas-wheel-scroll onMouseDown={(e) => e.stopPropagation()}>
-            {profile && profile.variants.length > 1 && profile.variants.some((v) => v.gateway_protocol.endsWith(".video")) ? (
+            {profile && modes.length > 1 && profile.variants.some((v) => v.gateway_protocol.endsWith(".video")) ? (
                 <Select
                     className="w-full"
-                    ariaLabel={controls ? "生成模式" : "请求协议"}
+                    ariaLabel="生成模式"
                     value={variant?.id}
-                    placeholder={controls ? "选择生成方式" : "选择请求协议"}
-                    options={controls ? nativeCreationModeOptions(profile.variants, variant) : nativeMediaVariantOptions(profile.variants)}
+                    placeholder="选择生成方式"
+                    options={modes}
                     virtual={false}
                     optionRender={(option) => <span className="block whitespace-normal break-words">{option.label}</span>}
                     onChange={(id) => {
@@ -65,13 +63,14 @@ export function PlatformNativeMediaSettings({ config, references, onChange }: { 
                         <PlatformNativeImageSize
                             key={`${config.model}:${variant.id}:${sizeResetRevision}`}
                             variant={variant}
+                            variants={profile?.variants}
                             explicit={explicit}
                             values={imageSizeDisplayValues(variant, values, references)}
                             references={references}
                             onChange={(next) => onChange("nativeParameters", JSON.stringify(next))}
                         />
                     ) : null}
-                    {supplyControlFields(variant, explicit, values, references)
+                    {businessControlFields(profile?.variants ?? [variant], variant, explicit, values, references)
                         .filter(({ pointer }) => !sizePointers.includes(pointer))
                         .sort((a, b) => Number(a.field["x-order"] || 0) - Number(b.field["x-order"] || 0))
                         .map(({ pointer, field, allowed, unavailable }) => (

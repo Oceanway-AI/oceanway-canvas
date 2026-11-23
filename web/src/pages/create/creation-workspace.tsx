@@ -746,17 +746,7 @@ function GenerationSettingsMenu(props: ComposerProps) {
     const nativeConfig = { ...props.config, model: props.model, nativeParameters: props.nativeParameters, nativeVariantId: props.nativeVariantId };
     const native = nativeMediaProfile(nativeConfig);
     if ((props.mode === "video" || props.mode === "image") && native && props.onNativeSettingsChange) {
-        return (
-            <MediaParameterControls
-                key={props.model + ":" + props.nativeVariantId}
-                mode={props.mode}
-                config={nativeConfig}
-                variants={native.variants}
-                modeVariantId={props.nativeModeVariantId}
-                references={props.selectedCounts}
-                onChange={props.onNativeSettingsChange}
-            />
-        );
+        return <MediaParameterControls key={props.model} mode={props.mode} config={nativeConfig} variants={native.variants} modeVariantId={props.nativeModeVariantId} references={props.selectedCounts} onChange={props.onNativeSettingsChange} />;
     }
     const activeQualityOptions = (props.imageProfile?.quality.values || []).map((value) => qualityOptions.find((item) => item.value === value) || { value, label: imageQualityLabel(value), description: "模型支持的质量/分辨率" });
     const qualityLabel = activeQualityOptions.find((item) => item.value === props.quality)?.label || qualityOptions.find((item) => item.value === props.quality)?.label || props.quality || "自动";

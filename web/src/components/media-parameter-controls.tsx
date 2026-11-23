@@ -7,21 +7,12 @@ import { imageSizeDisplayValues } from "@/components/platform-native-image-size"
 import { nativeImageSizePointers, resolutionLabel, selectedNativeImagePreset } from "@/lib/platform-native-image-size";
 import { imageQualityLabel } from "@/lib/image-quality";
 import { NativeParameterInput, type NativeMediaSettingKey } from "@/components/platform-native-media-settings";
-import {
-    creativeParameterLabel,
-    imageExecutionChoices,
-    nativeCreationModeOptions,
-    nativeMediaVariantOptions,
-    nativeParameterChoices,
-    nativeParameterObject,
-    publishedDraftRoute,
-    type NativeMediaVariant,
-    type NativeSchemaField,
-} from "@/lib/platform-native-media";
-import { isImageOutputCountPointer, supplyControlFields, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
+import { creativeParameterLabel, nativeCreationModeOptions, nativeParameterChoices, nativeParameterObject, type NativeMediaVariant, type NativeSchemaField } from "@/lib/platform-native-media";
+import { businessControlFields, businessRoutes, selectBusinessParameter } from "@/lib/platform-media-business";
+import { isImageOutputCountPointer, supplySelection, type MaterialCounts } from "@/lib/platform-media-supply";
 import type { AiConfig } from "@/stores/use-config-store";
 
-type Group = "生成模式" | "生成规格" | "尺寸与分辨率" | "比例" | "背景" | "画质" | "张数" | "时长" | "声音" | "更多参数";
+type Group = "生成模式" | "尺寸与分辨率" | "比例" | "背景" | "画质" | "张数" | "时长" | "声音" | "更多参数";
 function fieldGroup(pointer: string, field: NativeSchemaField, image: boolean): Group {
     const key = pointer.split("/").pop()?.replaceAll("_", "").toLowerCase();
     if (!image && ["ratio", "aspectratio"].includes(key || "")) return "比例";
@@ -70,10 +61,10 @@ export function MediaParameterControls({
     const variant = variants.find((v) => v.id === config.nativeVariantId);
     const modeVariant = variants.find((v) => v.id === modeVariantId) ?? variant;
     const image = mode === "image";
-    const modeGroup = image ? "生成规格" : "生成模式";
-    const selectedModeId = image ? publishedDraftRoute(variants, config.nativeImageChoiceId)?.id : modeVariant?.id;
-    const modes = image ? nativeMediaVariantOptions(imageExecutionChoices(config, references ?? {})) : nativeCreationModeOptions(variants, modeVariant, Boolean(variant));
-    const modeLabel = modes.find((mode) => mode.value === selectedModeId)?.label ?? `选择${image ? "规格" : "模式"}`;
+    const modeGroup = "生成模式";
+    const selectedModeId = modeVariant?.id;
+    const modes = image ? [] : nativeCreationModeOptions(variants, modeVariant, Boolean(variant));
+    const modeLabel = modes.find((mode) => mode.value === selectedModeId)?.label ?? "选择模式";
     function menu(group: Group, label: string, icon: ReactNode, content: ReactNode) {
         return (
             <Popover
@@ -136,8 +127,7 @@ export function MediaParameterControls({
         values = supplySelection(variant, explicit, references).values;
         if (image) {
             values = imageSizeDisplayValues(variant, values, references);
-            const pointers = nativeImageSizePointers(variant);
-            if (pointers.every((key) => !variant.workbench_parameters || variant.workbench_parameters.includes(key))) sizePointers = pointers;
+            sizePointers = [...new Set(businessRoutes(variants, variant, references).flatMap((route) => nativeImageSizePointers(route).filter((key) => !route.workbench_parameters || route.workbench_parameters.includes(key))))];
         }
     } catch {
         return (
@@ -149,9 +139,9 @@ export function MediaParameterControls({
             </>
         );
     }
-    const fields = supplyControlFields(variant, explicit, values, references);
+    const fields = businessControlFields(variants, variant, explicit, values, references);
     function update(key: string, value: unknown) {
-        onChange("nativeParameters", JSON.stringify({ ...explicit, [key]: value }));
+        onChange("nativeParameters", JSON.stringify(selectBusinessParameter(explicit, key, value)));
     }
     const parameterMenu = (group: Group, icon: ReactNode) => {
         const advanced: Group[] = ["背景", "画质", "声音", "更多参数"];
@@ -171,7 +161,7 @@ export function MediaParameterControls({
             summary,
             icon,
             <>
-                {sizePicker && <ImageSizeDock key={sizeResetRevision} variant={variant} values={values} explicit={explicit} references={references} onChange={(next) => onChange("nativeParameters", JSON.stringify(next))} />}
+                {sizePicker && <ImageSizeDock key={sizeResetRevision} variant={variant} variants={variants} values={values} explicit={explicit} references={references} onChange={(next) => onChange("nativeParameters", JSON.stringify(next))} />}
                 {items.map(({ pointer: key, field, allowed, unavailable }) => {
                     const label = creativeParameterLabel(key, field.title);
                     const kind = fieldGroup(key, field, image);

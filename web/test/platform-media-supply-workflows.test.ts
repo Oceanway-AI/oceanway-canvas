@@ -2,8 +2,9 @@ import { expect, test } from "bun:test";
 import type { Schema } from "@cfworker/json-schema";
 import { catalogVariants } from "./fixtures/platform-partial-catalog";
 import publishedGpt from "../../backend/internal/platformintegration/testdata/image-output-size/gpt-default.model.json";
-import { imageExecutionChoices, nativeCreationSettings, nativeDraftRouteKey, nativeMediaReferenceLimits, type NativeMediaVariant } from "@/lib/platform-native-media";
+import { nativeCreationSettings, nativeDraftRouteKey, nativeMediaReferenceLimits, nativeSelectionIssue, type NativeMediaVariant } from "@/lib/platform-native-media";
 import { supplyChoiceAllowed, supplySelection } from "@/lib/platform-media-supply";
+import { businessControlFields } from "@/lib/platform-media-business";
 import { modelCompatibilityError } from "@/lib/model-selection";
 import { systemChannelModelChannels } from "@/lib/user-session";
 import { prepareBackendGenerationTask } from "@/services/api/generation-task";
@@ -203,22 +204,66 @@ test("ordinary video references cannot silently occupy available first and last 
 
 const gpt = publishedGpt.media_generation_profile.variants[0] as unknown as NativeMediaVariant;
 const generate = { ...gpt, id: "generate", media_generation_v1: true };
-test("equivalent image endpoints can be automatic, different paths require an explicit choice before quote or submit", async () => {
+test("equivalent image business inputs choose a single endpoint automatically for quote and submit", async () => {
     const same = { ...generate, id: "same" };
     const alternative = { ...generate, id: "different", native_request_variant: { ...generate.native_request_variant, path: "/alternate/images" } };
     const params = { "/size": "1024x1024" };
     const automatic = requests("image", [generate, same], params, []);
-    expect(imageExecutionChoices(automatic.config, {})).toEqual([]);
     expect((await automatic.submit()).platform?.variantId).toBe("generate");
     const ambiguous = requests("image", [generate, alternative], params, []);
-    expect(imageExecutionChoices(ambiguous.config, {}).map((v) => v.id)).toEqual(["generate", "different"]);
     expect(modelCompatibilityError(ambiguous.config, ambiguous.config.model, { capability: "image", input: { imageCount: 0, characterCount: 0, videoCount: 0, audioCount: 0, textCount: 0 } })).toBe("");
-    expect(ambiguous.quote).toBeNull();
-    await expect(ambiguous.submit()).rejects.toThrow("请选择生成规格");
+    expect(ambiguous.quote?.platform?.variantId).toBe("generate");
+    expect((await ambiguous.submit()).input?.config).toEqual(ambiguous.quote!.input!.config);
     const config = { ...ambiguous.config, nativeImageChoiceId: alternative.id };
     const task = await prepareBackendGenerationTask({ mode: "image", config, prompt: "A scene", referenceImages: [] });
     expect(task.platform?.variantId).toBe(alternative.id);
     expect(studioMediaPriceRequest(config, "image", "A scene", [], "owner")?.platform?.variantId).toBe(alternative.id);
+});
+
+test("SF-A12d restores and edits one resolution across protocol-specific fields, durations and reference limits", async () => {
+    const selected = { ...video, workbench_parameters: ["/metadata/resolution", "/seconds"], specifications_schema: { properties: { "/metadata/resolution": { const: "720p" }, "/seconds": { enum: ["4", "6"] } } } };
+    const image = slot("reference_image", 1);
+    const high = {
+        ...video,
+        id: "upper",
+        gateway_protocol: "modelark.video",
+        workbench_parameters: ["/resolution", "/duration"],
+        defaults: {},
+        specifications_schema: { properties: { "/resolution": { const: "1080p" }, "/duration": { enum: [4, 8] } } },
+        native_request_variant: { ...video.native_request_variant, id: "upper-route", protocol: "modelark.video", path: "/ark", native_reference_inputs: [image], supply_alternatives: undefined },
+    };
+    const config = configFor("video", [selected, high], {});
+    const saved = { nativeVariantId: selected.id, nativeModeVariantId: selected.id, nativeParameters: JSON.stringify({ "/metadata/resolution": "1080p", "/seconds": "4" }) };
+    for (const previous of [saved, { ...saved, nativeModeVariantId: "old", nativeVariantId: "retired" }]) {
+        const { settings } = nativeCreationSettings(config, config.model, previous, { reference_image: 1 });
+        const draft = { ...config, ...settings };
+        expect(settings.nativeVariantId).toBe(high.id);
+        expect(JSON.parse(settings.nativeParameters)).toEqual({ "/resolution": "1080p", "/duration": 4 });
+        const refs = images(1);
+        const quote = studioMediaPriceRequest(draft, "video", "A scene", [{ kind: "image", storageKey: refs[0].storageKey }], "owner");
+        expect(quote?.input?.config).toEqual((await prepareBackendGenerationTask({ mode: "video", config: draft, prompt: "A scene", referenceImages: refs })).input?.config);
+    }
+    for (const [seconds, count] of [
+        ["6", 1],
+        ["4", 2],
+    ] as const) {
+        const previous = { ...saved, nativeParameters: JSON.stringify({ "/metadata/resolution": "1080p", "/seconds": seconds }) };
+        const { settings } = nativeCreationSettings(config, config.model, previous, { reference_image: count });
+        const draft = { ...config, ...settings };
+        expect(settings.nativeVariantId).toBe(high.id);
+        expect(nativeSelectionIssue(draft, { reference_image: count })).not.toBe("");
+        expect(nativeMediaReferenceLimits(draft)?.maxImages).toBe(1);
+        expect(
+            studioMediaPriceRequest(
+                draft,
+                "video",
+                "A scene",
+                images(count).map((r) => ({ kind: "image", storageKey: r.storageKey })),
+                "owner",
+            ),
+        ).toBeNull();
+        await expect(prepareBackendGenerationTask({ mode: "video", config: draft, prompt: "A scene", referenceImages: images(count) })).rejects.toThrow();
+    }
 });
 
 test("a saved image choice quotes and submits its reissued endpoint", async () => {
@@ -232,6 +277,24 @@ test("a saved image choice quotes and submits its reissued endpoint", async () =
     expect(studioMediaPriceRequest(draft, "image", "A scene", [], "owner")?.platform?.variantId).toBe(current.id);
     const task = await prepareBackendGenerationTask({ mode: "image", config: draft, prompt: "A scene" });
     expect(task.platform?.variantId).toBe(current.id);
+});
+
+test("the same tier cannot take an aspect ratio and duration from mutually exclusive protocols", () => {
+    const branch = (id: string, ratio: string, duration: number) => ({
+        ...video,
+        id,
+        workbench_parameters: ["/resolution", "/ratio", "/duration"],
+        specifications_schema: { properties: { "/resolution": { const: "720p" }, "/ratio": { const: ratio }, "/duration": { const: duration } } },
+        native_request_variant: { ...video.native_request_variant, supply_alternatives: undefined },
+    });
+    const a = branch("a", "16:9", 4),
+        b = branch("b", "adaptive", 8);
+    const explicit = { "/resolution": "720p", "/ratio": "16:9", "/duration": 4 };
+    const fields = businessControlFields([a, b], a, explicit, explicit, { reference_image: 1 });
+    expect(fields.find((f) => f.pointer === "/duration")!.allowed(8)).toBe(false);
+    expect(fields.find((f) => f.pointer === "/ratio")!.allowed("adaptive")).toBe(false);
+    const changed = businessControlFields([a, b], a, { "/resolution": "720p", "/ratio": "adaptive" }, {}, { reference_image: 1 });
+    expect(changed.find((f) => f.pointer === "/duration")!.allowed(8)).toBe(true);
 });
 
 const eightMP = { ...gpt.native_request_variant.output_size!, max_pixels: 8294400, allow_auto: true };
