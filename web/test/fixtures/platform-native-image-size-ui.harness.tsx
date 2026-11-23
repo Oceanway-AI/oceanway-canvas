@@ -38,6 +38,7 @@ const { MediaParameterControls } = await import("@/components/media-parameter-co
 const { defaultConfig } = await import("@/stores/use-config-store");
 const { systemChannelModelChannels } = await import("@/lib/user-session");
 const { backendProviderConfig } = await import("@/services/api/generation-task");
+const { nativeCreationSettings } = await import("@/lib/platform-native-media");
 const { buildNodeConfig } = await import("@/components/canvas/canvas-node-prompt-config");
 const { buildGenerationConfig } = await import("@/lib/canvas/canvas-project-generation");
 const { specFromConfig, generationSpecMetadata } = await import("@/lib/canvas/generation-contract");
@@ -83,13 +84,14 @@ function configFor(variant: NativeMediaVariant, capability: "image" | "video" = 
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot> | undefined;
 let current: AiConfig;
-async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVariant; variants?: NativeMediaVariant[]; imageCount: number; mode?: "image" | "video"; canvas?: boolean }, references?: MaterialCounts) {
+async function renderConfig(initial: AiConfig, dock?: { variant: NativeMediaVariant; variants?: NativeMediaVariant[]; imageCount: number; mode?: "image" | "video"; canvas?: boolean; resolveBusiness?: boolean }, references?: MaterialCounts) {
     current = initial;
     function Form() {
         const [config, setConfig] = useState(initial);
         function change(key: "nativeParameters" | "nativeVariantId", value: string) {
             setConfig((previous) => {
                 current = { ...previous, [key]: value };
+                if (dock?.resolveBusiness) Object.assign(current, nativeCreationSettings(current, current.model, current, { reference_image: dock.imageCount }).settings);
                 return current;
             });
         }
@@ -455,6 +457,69 @@ test.each([false, true])("video controls show resolution before reference roles,
     expect(options("图片参考")).toBeDefined();
     await act(async () => options("首尾帧").click());
     expect(current.nativeVariantId).toBe(frames.id);
+});
+
+test.each([false, true])("Seedance-style supply fixture exposes one resolution selector and the chosen tier's ratios (canvas=%p)", async (canvas) => {
+    const route = (id: string, resolution: string, ratio: string, tiers: string[], ratios: string[]): NativeMediaVariant => ({
+        id,
+        gateway_protocol: id,
+        defaults: {},
+        workbench_parameters: [resolution, ratio, "/duration"],
+        specifications_schema: { properties: { [resolution]: { enum: tiers }, [ratio]: { enum: ratios }, "/duration": { const: 4 } } },
+        native_request_variant: { id, protocol: id, path: "/" + id, modes: ["async"], request_schema: {}, native_reference_inputs: [] },
+    });
+    const low = route("modelark.video", "/resolution", "/ratio", ["480p", "720p"], ["16:9"]);
+    const high = route("newapi.video", "/metadata/resolution", "/metadata/aspect_ratio", ["1080p"], ["adaptive"]);
+    const equivalent = { ...low, id: "third", gateway_protocol: "sora.video" };
+    const variants = [low, equivalent, high];
+    await renderConfig({ ...configFor(low, "video", variants), nativeParameters: '{"/resolution":"480p"}' }, { variant: low, variants, imageCount: 0, canvas, resolveBusiness: true });
+    const sizes = await openDock("尺寸与分辨率");
+    const options = document.querySelector('.studio-video-menu[aria-label="尺寸与分辨率"]')!.querySelectorAll("button");
+    expect([...options].map((el) => el.textContent).filter((v) => v === "720p")).toHaveLength(1);
+    expect(sizes("480p").disabled).toBe(false);
+    expect(sizes("1080p").disabled).toBe(false);
+    await act(async () => sizes("1080p").click());
+    expect(current.nativeVariantId).toBe(high.id);
+    expect(JSON.parse(current.nativeParameters!)).toEqual({ "/metadata/resolution": "1080p" });
+    const ratio = await openDock("比例");
+    expect(ratio("16:9").disabled).toBe(true);
+    expect(ratio("自动").disabled).toBe(false);
+    expect(host.querySelectorAll('button[aria-label^="尺寸与分辨率："]')).toHaveLength(1);
+    expect(host.textContent).not.toMatch(/modelark|newapi|sora/);
+});
+
+test.each([false, true])("image size and material inputs select the published native preset across endpoints (canvas=%p)", async (canvas) => {
+    const first = {
+        ...image,
+        workbench_parameters: ["/size"],
+        specifications_schema: { properties: { "/size": { const: "1024x1024" } } },
+        native_request_variant: { ...image.native_request_variant, size_presets: image.native_request_variant.size_presets!.slice(0, 1) },
+    };
+    const size = "/generationConfig/imageConfig/imageSize",
+        ratio = "/generationConfig/imageConfig/aspectRatio";
+    const second: NativeMediaVariant = {
+        id: "gemini",
+        gateway_protocol: "gemini.image",
+        defaults: {},
+        workbench_parameters: [size, ratio],
+        specifications_schema: { properties: { [size]: { const: "4K" }, [ratio]: { const: "1:1" } } },
+        native_request_variant: {
+            id: "gemini-image",
+            protocol: "gemini.image",
+            path: "/generate",
+            modes: ["async"],
+            request_schema: {},
+            native_reference_inputs: [],
+            size_presets: [{ id: "square-4k", resolution: "4K", aspect_ratio: "1:1", values: { generationConfig: { imageConfig: { imageSize: "4K", aspectRatio: "1:1" } } } }],
+        },
+    };
+    const variants = [first, second];
+    await renderConfig({ ...configFor(first, "image", variants), nativeParameters: '{"/size":"1024x1024"}' }, { variant: first, variants, mode: "image", imageCount: 0, canvas, resolveBusiness: true });
+    const choose = await openDock("尺寸与分辨率");
+    await act(async () => choose("4K").click());
+    expect(current.nativeVariantId).toBe(second.id);
+    expect(JSON.parse(current.nativeParameters!)).toEqual({ [size]: "4K", [ratio]: "1:1" });
+    expect(host.querySelector('[aria-label^="生成规格"]')).toBeNull();
 });
 
 test("the video production controls retain a conflicting duration after a resolution change and offer only that tier's durations", async () => {

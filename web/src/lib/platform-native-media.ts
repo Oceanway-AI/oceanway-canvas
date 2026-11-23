@@ -1,6 +1,7 @@
 import { modelOptionName, resolveModelChannel, type AiConfig } from "@/stores/use-config-store";
 import { slotRange, suppliesAtResolution, suppliesFor, supplyParameterIssue, supplySelection, type MaterialCounts, type NativeSupply } from "./platform-media-supply";
 import { creativeParameterLabel } from "./platform-media-label";
+import { businessRoutes, chooseBusinessRoute, finiteBusinessChoices, materialGroup, publishedParameters } from "./platform-media-business";
 export { creativeParameterLabel };
 
 export type NativeSchemaField = Record<string, unknown> & { type?: string | string[]; enum?: unknown[]; const?: unknown; title?: string; description?: string };
@@ -114,23 +115,36 @@ export function nativeMediaVariant(config: AiConfig, model = config.model, id = 
     return profile?.variants.find((v) => v.id === (id || profile.defaultId));
 }
 
-const draftRoutePrefix = "native-route:v1:";
+const legacyRoutePrefix = "native-route:v1:";
+const draftRoutePrefix = "native-route:v2:";
 
 export function isNativeDraftRouteKey(key?: string) {
-    return Boolean(key?.startsWith(draftRoutePrefix));
+    return Boolean(key?.startsWith(draftRoutePrefix) || key?.startsWith(legacyRoutePrefix));
 }
 
 export function nativeDraftRouteKey(variant?: NativeMediaVariant) {
     const route = variant?.native_request_variant;
-    return variant && route?.id ? draftRoutePrefix + JSON.stringify([variant.gateway_protocol, route.id, route.method ?? "", route.path]) : variant?.id;
+    return variant && route?.id ? draftRoutePrefix + JSON.stringify([variant.gateway_protocol, route.id, route.method ?? "", route.path, materialGroup(variant)]) : variant?.id;
 }
 
 export function publishedDraftRoute(variants: NativeMediaVariant[], key?: string) {
     if (!key) return;
     const exact = variants.find((v) => v.id === key);
     if (exact) return exact;
-    const matches = variants.filter((v) => nativeDraftRouteKey(v) === key);
-    return matches.length === 1 ? matches[0] : undefined;
+    if (!isNativeDraftRouteKey(key)) return;
+    const modern = key.startsWith(draftRoutePrefix);
+    try {
+        const parts = JSON.parse(key.slice((modern ? draftRoutePrefix : legacyRoutePrefix).length));
+        if (!Array.isArray(parts) || parts.length !== (modern ? 5 : 4) || !parts.every((part) => typeof part === "string")) return;
+        const [protocol, id, method, path, group] = parts;
+        const original = variants.find((v) => v.gateway_protocol === protocol && v.native_request_variant.id === id && (v.native_request_variant.method ?? "") === method && v.native_request_variant.path === path);
+        if (original) return original;
+        if (modern) return variants.find((v) => materialGroup(v) === group);
+        const equivalent = variants.filter((v) => v.native_request_variant.id === id);
+        if (new Set(equivalent.map(materialGroup)).size === 1) return equivalent[0];
+    } catch {
+        return;
+    }
 }
 
 function imageRoutes(profile: NonNullable<ReturnType<typeof nativeMediaProfile>>, count: number, explicit: Record<string, unknown> = {}, mask = 0, choiceId?: string) {
@@ -140,25 +154,9 @@ function imageRoutes(profile: NonNullable<ReturnType<typeof nativeMediaProfile>>
     const widest = routes.reduce<(typeof routes)[number] | undefined>((best, route) => (!best || route.max > best.max ? route : best), undefined);
     const possible = [...new Set(routes.filter((route) => route.min <= count && count <= route.max).map((route) => route.variant))];
     const counts = { reference_image: count, mask };
-    const matches = possible.map((variant) => ({ variant, ...supplySelection(variant, explicit, counts) }));
-    const eligible = matches.filter((row) => !row.issue);
-    const contracts = new Set(
-        eligible.map(({ variant, values }) => {
-            const native = variant.native_request_variant;
-            const bindings = native.native_reference_inputs.filter((slot) => counts[slot.role as keyof typeof counts] > 0).map(({ role, pointer, transport }) => [role, pointer, transport]);
-            return JSON.stringify([variant.media_generation_v1 === true, variant.gateway_protocol, native.protocol, native.method, native.path, bindings, values]);
-        }),
-    );
-    const choices = contracts.size > 1 ? eligible.map((row) => row.variant) : [];
-    const choice = publishedDraftRoute(choices, choiceId);
-    const chosen = choices.length ? eligible.find((row) => row.variant === choice) : eligible[0];
-    const issue = !chosen && choices.length ? "当前素材和参数支持多个执行规格，请选择生成规格" : matches[0]?.issue;
-    return { referenceVariant: widest?.variant, requestVariant: chosen?.variant, choices, fallback: eligible[0]?.variant ?? possible[0], issue, maxImages: widest?.max ?? 0 };
-}
-
-export function imageExecutionChoices(config: AiConfig, counts: MaterialCounts) {
-    const profile = nativeMediaProfile(config);
-    return profile ? imageRoutes(profile, counts.reference_image ?? 0, draftParameterObject(config.nativeParameters), counts.mask, config.nativeImageChoiceId).choices : [];
+    const preferred = publishedDraftRoute(possible, choiceId);
+    const chosen = chooseBusinessRoute(preferred ? [preferred, ...possible.filter((v) => v !== preferred)] : possible, explicit, counts);
+    return { referenceVariant: widest?.variant, requestVariant: chosen && !chosen.issue ? chosen.variant : undefined, parameters: chosen?.parameters ?? explicit, fallback: chosen?.variant, issue: chosen?.issue, maxImages: widest?.max ?? 0 };
 }
 
 export function publishedReferenceCapacity(config: AiConfig, model: string, roles: string[]) {
@@ -178,13 +176,13 @@ export function publishedImageReferenceLimit(config: AiConfig, model = config.mo
     return platform?.model_type === "image" ? publishedReferenceCapacity(config, model, ["reference_image"]) : undefined;
 }
 
-export function imageReferenceError(config: AiConfig, model: string, count: number, mask = 0, requireChoice = true) {
+export function imageReferenceError(config: AiConfig, model: string, count: number, mask = 0) {
     const profile = nativeMediaProfile(config, model);
     if (!profile) return "";
     try {
         const sameModel = model === config.model;
-        const { requestVariant, maxImages, issue, choices } = imageRoutes(profile, count, nativeParameterObject(sameModel ? config.nativeParameters : undefined), mask, sameModel ? config.nativeImageChoiceId : undefined);
-        return requestVariant || (!requireChoice && choices.length) ? "" : issue || (count > maxImages ? `当前图片模型最多支持 ${maxImages} 张参考图` : "当前图片模型需要符合编辑要求的参考图");
+        const { requestVariant, maxImages, issue } = imageRoutes(profile, count, nativeParameterObject(sameModel ? config.nativeParameters : undefined), mask, sameModel ? config.nativeImageChoiceId : undefined);
+        return requestVariant ? "" : issue || (count > maxImages ? `当前图片模型最多支持 ${maxImages} 张参考图` : "当前图片模型需要符合编辑要求的参考图");
     } catch {
         return "模型参数格式无效，请恢复默认值";
     }
@@ -194,28 +192,36 @@ export function imageRequestConfig(config: AiConfig, count: number, mask = 0) {
     if (platformModelDetailPending(config)) throw new Error("模型参数尚未加载，请在模型选择器中加载后生成");
     if (!nativeMediaProfile(config)) return config;
     if (config.nativeVariantId && !nativeMediaVariant(config)) throw new Error("所选模型参数版本已失效，请刷新模型目录");
-    const routes = imageRoutes(nativeMediaProfile(config)!, count, nativeParameterObject(config.nativeParameters), mask, config.nativeImageChoiceId);
+    const routes = imageRoutes(nativeMediaProfile(config)!, count, nativeParameterObject(config.nativeParameters), mask, config.nativeImageChoiceId || config.nativeVariantId);
     if (!routes.requestVariant) throw new Error(routes.issue || imageReferenceError(config, config.model, count, mask));
-    return { ...config, nativeVariantId: routes.requestVariant.id };
+    return { ...config, nativeVariantId: routes.requestVariant.id, nativeParameters: JSON.stringify(routes.parameters) };
+}
+
+export function videoRequestConfig(config: AiConfig, counts: MaterialCounts) {
+    const profile = nativeMediaProfile(config);
+    const current = nativeMediaVariant(config);
+    if (!profile || !current) return config;
+    const selected = chooseBusinessRoute(businessRoutes(profile.variants, current), nativeParameterObject(config.nativeParameters), counts);
+    return selected ? { ...config, nativeVariantId: selected.variant.id, nativeParameters: JSON.stringify(selected.parameters) } : config;
 }
 
 export function nativeVideoComposerVariants(variants: NativeMediaVariant[], base: NativeMediaVariant, preferredId?: string) {
-    const siblings = variants.filter((v) => v.gateway_protocol === base.gateway_protocol && v.native_request_variant.path === base.native_request_variant.path && v.native_request_variant.method === base.native_request_variant.method);
+    const sameEndpoint = (v: NativeMediaVariant) => v.gateway_protocol === base.gateway_protocol && v.native_request_variant.path === base.native_request_variant.path && v.native_request_variant.method === base.native_request_variant.method;
+    const siblings = [...variants].sort((a, b) => Number(sameEndpoint(b)) - Number(sameEndpoint(a)));
     const references = siblings.filter((v) => creationModeLabel(v) !== "文生视频");
     return {
         reference: references.find((v) => v.id === preferredId) ?? references.find((v) => creationModeLabel(v) === "全能参考") ?? references.find((v) => v.id === base.id) ?? references[0],
-        text: siblings.find((v) => creationModeLabel(v) === "文生视频"),
+        text: materialGroup(base) === "text" ? base : siblings.find((v) => creationModeLabel(v) === "文生视频"),
     };
 }
 
 function videoDraftRoutes(variants: NativeMediaVariant[], base: NativeMediaVariant, preferred: NativeMediaVariant | undefined, explicit: Record<string, unknown>, counts: MaterialCounts) {
     const { reference, text } = nativeVideoComposerVariants(variants, preferred ?? base, preferred?.id);
     const hasReferences = Object.values(counts).some((count) => count > 0);
-    const request = (hasReferences ? reference : text) ?? reference ?? base;
-    if (!hasReferences && text && reference && supplySelection(text, explicit, counts).issue && !supplySelection(reference, explicit, counts).issue) {
-        return { request: reference, reference };
-    }
-    return { request, reference };
+    const ref = reference && chooseBusinessRoute(businessRoutes(variants, reference), explicit, counts);
+    const plain = !hasReferences && text && chooseBusinessRoute(businessRoutes(variants, text), explicit, counts);
+    const selected = plain && (!plain.issue || !ref || ref.issue) ? plain : ref;
+    return { request: selected?.variant ?? base, reference: ref?.variant, parameters: selected?.parameters ?? explicit };
 }
 
 export function nativeCreationSettings(config: AiConfig, model: string, saved: Pick<AiConfig, "nativeParameters" | "nativeVariantId" | "nativeImageChoiceId"> & { nativeModeVariantId?: string }, inputs: number | boolean | MaterialCounts) {
@@ -230,53 +236,42 @@ export function nativeCreationSettings(config: AiConfig, model: string, saved: P
     const explicit = draftParameterObject(base.nativeParameters);
     let referenceVariant = variant;
     let requestVariant = variant;
+    let parameters = explicit;
     if (variant?.gateway_protocol.endsWith(".video")) {
         if (saved.nativeModeVariantId && isNativeDraftRouteKey(saved.nativeModeVariantId) && !selectedMode) {
             return { settings: { ...base, nativeVariantId: saved.nativeModeVariantId }, referenceVariant: undefined };
         }
-        let video = videoDraftRoutes(variants, variant, selectedMode ?? savedVariant, explicit, counts);
-        // Older drafts only stored release hashes. Recover one entire published
-        // request that accepts the saved fields and attachments together.
-        if (saved.nativeVariantId && !savedVariant && !selectedMode && supplySelection(video.request, explicit, counts).issue) {
-            let editable: typeof video | undefined;
-            for (const candidate of variants) {
-                const alternative = videoDraftRoutes(variants, candidate, candidate, explicit, counts);
-                if (!supplySelection(alternative.request, explicit, counts).issue) {
-                    editable = alternative;
-                    break;
-                }
-                const controls = alternative.request.workbench_parameters ?? Object.keys(alternative.request.specifications_schema.properties);
-                if (!editable && Object.keys(explicit).every((key) => controls.includes(key))) editable = alternative;
-            }
-            video = editable ?? video;
-        }
+        const video = videoDraftRoutes(variants, variant, selectedMode ?? savedVariant, explicit, counts);
         referenceVariant = video.reference;
         requestVariant = video.request;
+        parameters = video.parameters;
     } else if (profile) {
-        const routes = imageRoutes(profile, counts.reference_image ?? 0, explicit, counts.mask, saved.nativeImageChoiceId);
+        const routes = imageRoutes(profile, counts.reference_image ?? 0, explicit, counts.mask, saved.nativeImageChoiceId || saved.nativeVariantId);
         referenceVariant = routes.referenceVariant;
         requestVariant = routes.requestVariant ?? routes.fallback ?? referenceVariant ?? variant;
+        parameters = routes.parameters;
     }
-    if (!requestVariant || !variant || requestVariant.id === variant.id) return { settings: base, referenceVariant };
-    return { settings: { nativeVariantId: requestVariant.id, nativeParameters: base.nativeParameters }, referenceVariant };
+    const raw = JSON.stringify(parameters) === JSON.stringify(explicit) ? base.nativeParameters : JSON.stringify(parameters);
+    return { settings: { nativeVariantId: requestVariant?.id ?? base.nativeVariantId, nativeParameters: raw }, referenceVariant };
 }
 
 export function nativeParameterChoices(field: NativeSchemaField, includeRange = true): unknown[] | undefined {
-    if (Object.hasOwn(field, "const")) return [field.const];
-    if (field.enum) return field.enum;
-    if (!includeRange || field.type !== "integer" || typeof field.minimum !== "number" || typeof field.maximum !== "number") return undefined;
-    const min = Math.ceil(field.minimum);
-    const max = Math.floor(field.maximum);
-    if (!Number.isSafeInteger(min) || !Number.isSafeInteger(max) || max < min || max - min > 60) return undefined;
-    return Array.from({ length: max - min + 1 }, (_, i) => min + i).filter((n) => !field.multipleOf || n % Number(field.multipleOf) === 0);
+    return finiteBusinessChoices(field, includeRange);
 }
 
 export function nativeMediaReferenceLimits(config: AiConfig, model = config.model, variant = nativeMediaVariant(config, model)) {
     if (!variant) return undefined;
     const values = draftParameterObject(model === config.model ? config.nativeParameters : undefined);
-    const tier = suppliesAtResolution(variant, values);
-    const compatible = tier.filter((supply) => !supplyParameterIssue(variant, supply, values));
-    const supplies = compatible.length ? compatible : tier;
+    const candidates = nativeMediaProfile(config, model)?.variants ?? [variant];
+    const group = materialGroup(variant);
+    const tier = candidates
+        .filter((v) => materialGroup(v) === group)
+        .flatMap((v) => {
+            const parameters = publishedParameters(v, values);
+            return suppliesAtResolution(v, parameters).map((supply) => ({ variant: v, parameters, supply }));
+        });
+    const compatible = tier.filter(({ variant, parameters, supply }) => !supplyParameterIssue(variant, supply, parameters));
+    const supplies = (compatible.length ? compatible : tier).map(({ supply }) => supply);
     const capacity = (role: string) => Math.max(0, ...supplies.map((supply) => slotRange(supply.native_reference_inputs, role).max));
     return { maxImages: capacity("reference_image"), maxVideos: capacity("reference_video"), maxAudios: capacity("reference_audio"), maxFirstFrames: capacity("first_frame"), maxLastFrames: capacity("last_frame") };
 }
@@ -309,7 +304,8 @@ export function nativeSelectionIssue(config: AiConfig, counts: MaterialCounts) {
             const selected = imageRequestConfig(config, counts.reference_image ?? 0, counts.mask);
             return supplySelection(nativeMediaVariant(selected)!, nativeParameterObject(selected.nativeParameters), counts).issue;
         }
-        return supplySelection(variant, nativeParameterObject(config.nativeParameters), counts).issue;
+        const selected = videoRequestConfig(config, counts);
+        return supplySelection(nativeMediaVariant(selected)!, nativeParameterObject(selected.nativeParameters), counts).issue;
     } catch (error) {
         return error instanceof Error && !(error instanceof SyntaxError) ? error.message : "模型参数格式无效，请恢复默认值";
     }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { imageRequestConfig, nativeMediaVariant, studioMediaGenerationVariant } from "@/lib/platform-native-media";
+import { imageRequestConfig, nativeMediaVariant, studioMediaGenerationVariant, videoRequestConfig } from "@/lib/platform-native-media";
 import { requestFrameImages } from "@/lib/media-reference-slots";
 import { mediaRoleCounts } from "@/lib/platform-media-supply";
 import { resourceIdFromStorageKey, resourceStorageKey } from "@/services/api/resources";
@@ -29,7 +29,10 @@ export function studioMediaPriceRequest(config: AiConfig, mode: string, prompt: 
     try {
         if (refs.mask.length > 1) return null;
         if (mode === "image") config = imageRequestConfig(config, refs.image.length, refs.mask.length);
-        else refs.image = requestFrameImages(nativeMediaVariant(config), refs.image);
+        else {
+            refs.image = requestFrameImages(nativeMediaVariant(config), refs.image);
+            config = videoRequestConfig(config, mediaRoleCounts([...refs.image, ...refs.video, ...refs.audio]));
+        }
         const variantId = studioMediaGenerationVariant(config);
         if (!variantId) return null;
         const parameters = backendProviderConfig(config, mode, mediaRoleCounts([...refs.image, ...refs.video, ...refs.audio, ...refs.mask]));

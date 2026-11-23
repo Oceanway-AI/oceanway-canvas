@@ -595,7 +595,7 @@ export function CanvasNodePromptPanel({
                                 <CanvasCameraControlPopover cameraControl={node.metadata?.cameraControl} onCameraControlChange={(cameraControl) => onConfigChange(node.id, { cameraControl })} theme={theme} compact={!expanded} />
                             )}
                             <MediaParameterControls
-                                key={node.id + config.model + config.nativeVariantId}
+                                key={node.id + config.model}
                                 canvas
                                 mode={mode}
                                 config={config}

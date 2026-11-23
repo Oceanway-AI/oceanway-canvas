@@ -2,7 +2,7 @@ import type { ThinkingRequest } from "@/lib/text-thinking";
 import { createClientUUID } from "@/lib/client-id";
 import { backendProviderConfig, omittedImageQuality } from "./generation-provider-config";
 import { imageParameterRequest } from "@/lib/image-parameters";
-import { imageRequestConfig, nativeMediaVariant, studioMediaGenerationVariant } from "@/lib/platform-native-media";
+import { imageRequestConfig, nativeMediaVariant, studioMediaGenerationVariant, videoRequestConfig } from "@/lib/platform-native-media";
 import { requestFrameImages } from "@/lib/media-reference-slots";
 import { mediaRoleCounts } from "@/lib/platform-media-supply";
 import { getMediaBlob } from "@/services/file-storage";
@@ -307,13 +307,13 @@ function withGenerationRequestConfig<T extends BackendGenerationTaskOptions>(opt
 }
 
 function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepared: PreparedGenerationReferences): CreateTaskInput {
-    const { projectId, mode, prompt, config, metadata } = options;
+    const { projectId, mode, prompt, metadata } = options;
+    let { config } = options;
     const videoOperation = generationOperation(options);
     const workflow = resolveGenerationWorkflowExecution(config, mode);
     const logicalModelId = workflow ? "" : logicalModelIDForConfig(config);
     const platform = resolveModelChannel(config, config.model).modelDetails?.find((item) => item.model === modelOptionName(config.model))?.platform;
     if (platform?.state === "summary" && (mode === "image" || mode === "video")) throw new Error("模型参数尚未加载，请在模型选择器中加载后生成");
-    const variantId = studioMediaGenerationVariant(config);
     let images = prepared.referenceImages;
     if (!workflow && mode === "video" && nativeMediaVariant(config)) {
         images = requestFrameImages(nativeMediaVariant(config), images, (image) => {
@@ -323,6 +323,14 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
             return image.role;
         });
     }
+    const counts = mediaRoleCounts([
+        ...images.map((image) => ({ kind: "image", role: image.role })),
+        ...prepared.referenceVideos.map(() => ({ kind: "video" })),
+        ...prepared.referenceAudios.map(() => ({ kind: "audio" })),
+        ...(prepared.mask ? [{ kind: "mask" }] : []),
+    ]);
+    if (!workflow && mode === "video") config = videoRequestConfig(config, counts);
+    const variantId = studioMediaGenerationVariant(config);
     return {
         ...(projectId ? { projectId } : {}),
         type: `canvas_${mode}`,
@@ -344,16 +352,7 @@ function backendGenerationTaskInput(options: BackendGenerationTaskOptions, prepa
             mode,
             prompt,
             ...(workflow ? { execution: workflowPublicExecution(workflow) } : {}),
-            config: backendProviderConfig(
-                config,
-                mode,
-                mediaRoleCounts([
-                    ...images.map((image) => ({ kind: "image", role: image.role })),
-                    ...prepared.referenceVideos.map(() => ({ kind: "video" })),
-                    ...prepared.referenceAudios.map(() => ({ kind: "audio" })),
-                    ...(prepared.mask ? [{ kind: "mask" }] : []),
-                ]),
-            ),
+            config: backendProviderConfig(config, mode, counts),
             capabilityOptions: logicalModelId ? logicalCapabilityOptions(config, mode) : undefined,
             textHistory: options.textHistory,
             ...(mode === "text" ? { textOptions: { stream: options.streamText !== false, ...(options.thinkingLevel ? { thinkingLevel: options.thinkingLevel } : {}) } } : {}),

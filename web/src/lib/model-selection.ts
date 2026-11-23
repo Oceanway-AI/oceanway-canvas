@@ -2,6 +2,8 @@ import { defaultImageCapabilityConfig, modelCapabilityConfigFor, normalizeImageV
 import { videoResolutionComparisonKey } from "@/lib/video-generation-options";
 import { imageParameterRequest, imageParameterDefaults, imageParameterAccepts } from "./image-parameters";
 import { imageSizePresets } from "@/lib/image-size-presets";
+import { businessRoutes } from "./platform-media-business";
+import { suppliesFor, slotRange } from "./platform-media-supply";
 import {
     nativeVideoComposerVariants,
     imageReferenceError,
@@ -167,19 +169,17 @@ export function modelCompatibilityError(config: AiConfig, model: string, require
         if (!input) return "";
         if (capability === "image") {
             if (input.videoCount || input.audioCount) return "图片模型仅支持参考图片";
-            return imageReferenceError(config, model, visualInputCount, 0, false);
+            return imageReferenceError(config, model, visualInputCount);
         }
-        for (const [kind, count] of [
-            ["image", visualInputCount],
-            ["video", input.videoCount],
-            ["audio", input.audioCount],
-        ] as const) {
-            const refs = variant.native_request_variant.native_reference_inputs || [];
-            const matches = refs.filter((r) => r.role === `reference_${kind}` || (kind === "image" && ["first_frame", "last_frame"].includes(r.role)));
-            const max = matches.reduce((sum, r) => sum + (r.max_items ?? Number.POSITIVE_INFINITY), 0);
-            if (count > max) return `当前协议最多支持 ${max} 个 ${kind} 参考素材`;
-        }
-        return "";
+        const fits = businessRoutes(nativeProfile.variants, variant).some((route) =>
+            suppliesFor(route).some(
+                ({ native_reference_inputs: refs }) =>
+                    visualInputCount <= ["reference_image", "first_frame", "last_frame"].reduce((n, role) => n + slotRange(refs, role).max, 0) &&
+                    input.videoCount <= slotRange(refs, "reference_video").max &&
+                    input.audioCount <= slotRange(refs, "reference_audio").max,
+            ),
+        );
+        return fits ? "" : "当前参考素材数量不符合该模型能力";
     }
     const logicalSpecs = logicalCost?.logicalCapabilityProfiles?.length ? logicalCost.logicalCapabilityProfiles : logicalCost?.logicalCapabilitySpec ? [logicalCost.logicalCapabilitySpec] : [];
     if (logicalSpecs.length) {

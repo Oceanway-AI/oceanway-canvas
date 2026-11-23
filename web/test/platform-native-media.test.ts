@@ -218,7 +218,7 @@ test.each([0, 1])("reissued legacy video draft keeps the entire valid request wi
     }
 });
 
-test("a stable mode survives a new release, and a retired mode remains an explicit selection to repair", () => {
+test("a stable material mode restores the original endpoint or an equivalent published business mode", () => {
     const sora = reissuedRoutes[5];
     const patch = nativeCanvasParameterPatch(draftConfig, undefined, "nativeVariantId", sora.id, "video");
     const key = nativeDraftRouteKey(sora);
@@ -227,7 +227,11 @@ test("a stable mode survives a new release, and a retired mode remains an explic
     const restored = nativeCreationSettings(draftConfig, selected, saved, { reference_image: 1 });
     expect(restored.settings.nativeVariantId).toBe(sora.id);
     const retired = nativeCreationSettings(draftConfig, selected, { ...saved, nativeModeVariantId: nativeDraftRouteKey({ ...sora, native_request_variant: { ...sora.native_request_variant, path: "/retired" } }) }, {});
-    expect(nativeSelectionIssue({ ...draftConfig, ...retired.settings }, {})).toContain("重新选择");
+    expect(nativeSelectionIssue({ ...draftConfig, ...retired.settings }, {})).toBe("");
+    const legacy = "native-route:v1:" + JSON.stringify([sora.gateway_protocol, sora.native_request_variant.id, "POST", "/retired"]);
+    expect(nativeCreationSettings(draftConfig, selected, { ...saved, nativeModeVariantId: legacy }, { reference_image: 1 }).settings.nativeVariantId).toBe("new-newapi.video-omni");
+    const missing = "native-route:v2:" + JSON.stringify(["retired", "frames", "POST", "/old", "last_frame"]);
+    expect(nativeSelectionIssue({ ...draftConfig, ...nativeCreationSettings(draftConfig, selected, { ...saved, nativeModeVariantId: missing }, {}).settings }, {})).toContain("重新选择");
     const node = { id: "draft", type: CanvasNodeType.Video, position: { x: 0, y: 0 }, metadata: { model: selected, ...patch } } as CanvasNodeData;
     expect(synchronizeGenerationSpec(node, { model: "channel::other" }).metadata?.nativeModeVariantId).toBeUndefined();
 });
