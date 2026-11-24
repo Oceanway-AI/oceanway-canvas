@@ -5,6 +5,8 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 
 import { PlatformStoragePane } from "./platform-storage-pane";
+import { useStudioAccount } from "@/hooks/use-studio-account";
+import { studioConsoleNavigationURL } from "@/services/api/studio-account";
 import { refreshSystemChannels } from "@/lib/user-session";
 import { useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { useUserStore } from "@/stores/use-user-store";
@@ -38,6 +40,9 @@ export default function SettingsPage() {
     const updateConfig = useConfigStore((state) => state.updateConfig);
     const shouldPromptContinue = searchParams.get("continue") === "1";
     const userId = useUserStore((state) => state.user?.id);
+    const platformIdentity = useUserStore((state) => state.platformIdentity);
+    const { account } = useStudioAccount();
+    const modelsURL = studioConsoleNavigationURL(account, "models", window.location.pathname);
 
     useEffect(() => {
         setActiveTab(isConfigSection(requestedSection) ? requestedSection : "profile");
@@ -87,11 +92,16 @@ export default function SettingsPage() {
                 <div className="settings-pane-header">
                     <div className="min-w-0">
                         <h2>{t("settings.sections.models.label")}</h2>
-                        <p>{t("account.settings.modelsDescription")}</p>
+                        {!platformIdentity && <p>{t("account.settings.modelsDescription")}</p>}
                     </div>
                 </div>
                 <div className="settings-section">
-                    <ModelDefaultGrid config={effectiveConfig} onChange={(key, model) => updateConfig(key, model)} />
+                    {platformIdentity && (
+                        <Button href={modelsURL} disabled={!modelsURL}>
+                            {t("settings.sections.models.label")} · OceanWay
+                        </Button>
+                    )}
+                    <ModelDefaultGrid config={effectiveConfig} audioOnly={platformIdentity} onChange={(key, model) => updateConfig(key, model)} />
                 </div>
             </SettingsPane>
         ),

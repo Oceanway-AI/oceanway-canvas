@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ModelDefaultGrid } from "../src/pages/settings/model-default-grid";
-import { createModelChannel, defaultConfig, modelOptionsFromChannels, type AiConfig, type ModelCapability, type ModelChannel } from "../src/stores/use-config-store";
+import { createModelChannel, defaultConfig, modelOptionsFromChannels, normalizeConfigSnapshot, withAccountModelDefaults, type AiConfig, type ModelCapability, type ModelChannel } from "../src/stores/use-config-store";
 
 type ModelCost = NonNullable<ModelChannel["modelDetails"]>[number];
 
@@ -16,6 +16,22 @@ function fixture(channels: ModelChannel[], defaults: Partial<AiConfig> = {}): Ai
 function cards(config: AiConfig) {
     return renderToStaticMarkup(<ModelDefaultGrid config={config} onChange={() => {}} />).match(/<button\b[^>]*role="radio"[^>]*>[\s\S]*?<\/button>/g) || [];
 }
+
+test("Platform defaults ignore legacy local choices, stay scoped, and leave audio alone", () => {
+    const render = (preferred: string) => {
+        const rows = ["old-text", "other-text"].map((model) => ({ ...cost(model, "text"), platform: { model_name: model, model_type: "text", is_default: model === preferred, price: { status: "available", version: "1", rates: {} } } }));
+        const channel = createModelChannel({ id: "oceanway-platform", scope: "system", models: [...rows.map((row) => row.model), "my-audio"], modelDetails: [...rows, cost("my-audio", "audio")] });
+        const input = normalizeConfigSnapshot({ config: { ...defaultConfig, channels: [channel], textModel: "oceanway-platform::old-text", audioModel: "oceanway-platform::my-audio" } }).config;
+        return withAccountModelDefaults(input);
+    };
+    expect(render("other-text").textModel).toBe("oceanway-platform::other-text");
+    expect(render("old-text").textModel).toBe("oceanway-platform::old-text");
+    expect(render("unavailable").textModel).toBe("");
+    expect(render("other-text").audioModel).toBe("oceanway-platform::my-audio");
+    const html = renderToStaticMarkup(<ModelDefaultGrid config={render("other-text")} onChange={() => {}} audioOnly />);
+    expect(html).not.toContain("old-text");
+    expect(html).toContain("my-audio");
+});
 
 test("default cards show picker second-level model names alongside their product groups", () => {
     const modelDetails = [cost("text-sku", "text", "GPT", "GPT-4o"), cost("image-sku", "image", "大香蕉", "大香蕉 Pro"), cost("video-sku", "video", "Seedance", "Seedance 2.0 Fast"), cost("audio-sku", "audio", "语音", "语音 HD")];

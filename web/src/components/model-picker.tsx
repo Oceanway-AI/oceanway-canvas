@@ -73,6 +73,7 @@ export function ModelPicker({
     const platformIdentity = useUserStore((state) => state.platformIdentity);
     const catalogStatus = useModelCatalogStore((state) => state.status);
     const catalogError = useModelCatalogStore((state) => state.error);
+    const preview = useModelCatalogStore((state) => state.preview);
     const pickerId = useId();
     // 双保险：即使 store merge 写出非法 theme，这里也兜底到 dark，避免 "reading 'node'" 崩溃
     const rawTheme = useActiveTheme();
@@ -342,6 +343,15 @@ export function ModelPicker({
                             {platformIdentity && catalogStatus === "loading" && (
                                 <div role="status" className="canvas-model-picker-empty">
                                     正在获取模型目录…
+                                    {!modelFilter && options.length === 0 && (
+                                        <ul>
+                                            {preview
+                                                .filter((row) => !capability || row.model_type === capability)
+                                                .map((row) => (
+                                                    <li key={row.id}>{row.display_name || row.model_name}</li>
+                                                ))}
+                                        </ul>
+                                    )}
                                 </div>
                             )}
                         </>

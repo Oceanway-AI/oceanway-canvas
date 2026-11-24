@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"slices"
@@ -19,6 +21,7 @@ type StudioWorkspaceEntry struct {
 	WorkspaceName        string `json:"workspaceName"`
 	MembershipGeneration int64  `json:"membershipGeneration"`
 	Supported            bool   `json:"supported"`
+	PickerSession        string `json:"pickerSession,omitempty"`
 	workspace            platformclient.WorkspaceContext
 }
 
@@ -94,5 +97,10 @@ func (s *Service) StudioWorkspaceContext(ctx context.Context, session platformcl
 	if expectedGeneration != nil && *expectedGeneration != w.MembershipGeneration {
 		return nil, response, NewAppError(409, "团队成员状态已变化，请重新进入空间")
 	}
-	return &StudioWorkspaceEntry{UserID: user.ID, WorkspaceID: w.ID, WorkspaceKind: w.Kind, WorkspaceName: w.Name, MembershipGeneration: w.MembershipGeneration, Supported: w.Kind == "personal", workspace: w}, response, nil
+	entry := &StudioWorkspaceEntry{UserID: user.ID, WorkspaceID: w.ID, WorkspaceKind: w.Kind, WorkspaceName: w.Name, MembershipGeneration: w.MembershipGeneration, Supported: w.Kind == "personal", workspace: w}
+	if user.PlatformSessionID != "" {
+		sum := sha256.Sum256([]byte("studio:picker:" + user.PlatformSessionID))
+		entry.PickerSession = hex.EncodeToString(sum[:])
+	}
+	return entry, response, nil
 }

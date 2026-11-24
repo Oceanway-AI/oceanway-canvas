@@ -7,6 +7,7 @@ export type PlatformPrice = {
 };
 
 export type PlatformModel = {
+    is_default?: boolean;
     state?: "summary" | "detail";
     price_version?: string;
     capability_revision?: string;
