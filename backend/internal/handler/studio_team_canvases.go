@@ -75,8 +75,8 @@ func registerStudioTeamCanvases(api *gin.RouterGroup, svc *service.Service) {
 		case c.FullPath() == canvas.BasePath()+"/:id/sync-status":
 			out, err = svc.UserCanvasSyncStatus(key, id)
 		default:
-			project,e:=svc.UserCanvasProject(key,id)
-			out,err=gin.H{"project":project},e
+			project, e := svc.UserCanvasProject(key, id)
+			out, err = gin.H{"project": project}, e
 		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = service.NotFound("画布不存在")

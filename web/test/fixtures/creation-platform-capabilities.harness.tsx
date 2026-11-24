@@ -57,7 +57,11 @@ globalThis.fetch = (async (url: string | URL | Request) => {
 afterAll(() => dom.happyDOM.abort());
 
 for (const mode of ["text", "image", "video"] as const) {
-    for (const [available, preferred] of [[true, true], [true, false], [false, false]]) {
+    for (const [available, preferred] of [
+        [true, true],
+        [true, false],
+        [false, false],
+    ]) {
         test(`真实首页 ${mode} 模式，平台目录${preferred ? "有默认型号" : available ? "可选但无默认型号" : "尚未发布/加载"}`, async () => {
             const profile = defaultModelCapabilityConfig()[mode]!;
             const config = {

@@ -13,7 +13,7 @@ import (
 // Platform account IDs occupy a separate, numeric namespace.
 func (w StudioWorkspaceEntry) TeamCanvasKey() (string, error) {
 	if w.workspace.Kind != "team" || w.workspace.ID == "" || w.workspace.MembershipGeneration <= 0 ||
-		w.workspace.Team==nil || w.workspace.Team.WorkspaceID!=w.WorkspaceID || w.workspace.Team.ExpiresAt<=time.Now().Unix() ||
+		w.workspace.Team == nil || w.workspace.Team.WorkspaceID != w.WorkspaceID || w.workspace.Team.ExpiresAt <= time.Now().Unix() ||
 		w.workspace.ID != w.WorkspaceID || w.workspace.MembershipGeneration != w.MembershipGeneration {
 		return "", Forbidden("需要有效的团队成员资格")
 	}
