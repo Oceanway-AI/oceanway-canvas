@@ -36,17 +36,31 @@ const ranges: PlatformPriceRange[] = [
 
 test("published ranges preserve exact decimal amounts and conditions without local repricing", () => {
     const model = { price: { status: "available" }, presentation: { price_summary: ranges } } as PlatformModel;
-    expect(platformModelPriceLabel(model)).toBe("✦ 0.00000000123456789–2.500000000000001/s");
+    expect(platformModelPriceLabel(model)).toBe("✦ 0.00000000123456789–2.500000000000001/秒");
     expect(platformModelPriceLabel({ ...model, price: { ...model.price, status: "usage_dependent" }, presentation: { ...model.presentation!, price_summary: [{ ...ranges[0], dimension: "image_count", rate_unit: "count", min: "20", max: "20" }] } })).toBe(
         "✦ 20/张",
     );
-    expect(spokenPlatformPrice(platformModelPriceLabel(model))).toBe("0.00000000123456789–2.500000000000001 OceanWay 积分/s");
-    expect(platformPriceConditions(ranges)).toContain('resolution="720p"');
-    expect(platformPriceConditions(ranges)).toContain("pv-a");
+    expect(spokenPlatformPrice(platformModelPriceLabel(model))).toBe("0.00000000123456789–2.500000000000001 OceanWay 积分/秒");
+    expect(platformPriceConditions(ranges)).toBe("720p ✦ 0.00000000123456789/秒");
+    const secondModel = { ...ranges[0], conditions: [{ ...ranges[0].conditions[0], model_name: "exact-b", amount: "2" }] };
+    expect(platformPriceConditions([...ranges, secondModel])).toBe("exact-a · 720p ✦ 0.00000000123456789/秒\nexact-b · 720p ✦ 2/秒");
     expect(platformPriceConditions([{ ...ranges[0], dimension: "cache_write_5m", rate_unit: "million_tokens" }])).toContain("缓存写入 5 分钟 ✦ 0.00000000123456789/百万 Token");
     expect(platformModelPriceLabel({ ...model, presentation: { ...model.presentation!, price_summary: [] }, price: { status: "available", version: "v1", rates: { price: "1" }, display_items: [{ basis: "example", amount: "10" }] } })).toBe(
         "按实际规格报价",
     );
+});
+
+test.each([
+    ["requests", "count", "次"],
+    ["videos", "count", "条视频"],
+    ["duration", "second", "秒"],
+    ["second", "second", "秒"],
+    ["completion_tokens", "million_tokens", "百万输出 Token"],
+])("formats the published %s dimension consistently on the row and in its conditions", (dimension, rate_unit, unit) => {
+    const range = { ...ranges[0], dimension, rate_unit, min: "0", max: "0" };
+    const model = { price: { status: "available" }, presentation: { price_summary: [range] } } as PlatformModel;
+    expect(platformModelPriceLabel(model)).toBe(`✦ 0/${unit}`);
+    expect(platformPriceConditions([range])).toBe(`720p ✦ ${range.conditions[0].amount}/${unit}`);
 });
 
 test("no samples and disabled statistics never turn into zero percent or uncallable", () => {

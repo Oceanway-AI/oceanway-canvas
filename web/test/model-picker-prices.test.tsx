@@ -137,7 +137,7 @@ function platformMediaFixture(capability: "text" | "image" | "video" = "video") 
     return { channel: config.channels[0], cost, render };
 }
 
-test("Seedance picker prices all reference video seconds and withholds an incomplete reference duration", () => {
+test("Seedance picker keeps the published output token rate visible with complete or missing reference durations", () => {
     const { cost, render } = platformMediaFixture();
     const platform = cost.platform!;
     platform.media_generation_profile = {
@@ -154,8 +154,12 @@ test("Seedance picker prices all reference video seconds and withholds an incomp
         },
     ];
     const input = { videoCount: 2, textCount: 1, imageCount: 0, audioCount: 0, characterCount: 0 };
-    expect(render(undefined, { capability: "video", input: { ...input, videoDurationsMs: [1500, 2500] } })).toContain("≈ ✦ 163.296/s");
-    expect(render(undefined, { capability: "video", input: { ...input, videoDurationsMs: [1500] } })).toContain("暂时无法预估费用");
+    for (const videoDurationsMs of [[1500, 2500], [1500]]) {
+        const html = render(undefined, { capability: "video", input: { ...input, videoDurationsMs } });
+        expect(html).toContain(">✦ 4200/百万输出 Token</span>");
+        expect(html).toContain("720p 有参考视频 4200 OceanWay 积分/百万输出 Token");
+        expect(html).not.toContain("163.296/s");
+    }
 });
 
 test("platform media options show the exact display name and call ID with only curated tags", () => {

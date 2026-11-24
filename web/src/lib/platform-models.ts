@@ -112,14 +112,16 @@ export type PlatformModelGroup = {
 const priceUnits: Record<string, string> = { million_tokens: "百万 Token", call: "次", second: "秒", count: "个", token: "Token", credit: "单位" };
 const priceDimensions: Record<string, string> = { input: "输入", output: "输出", cached: "缓存", cache_read: "缓存读取", cache_write: "缓存写入", cache_write_5m: "缓存写入 5 分钟", cache_write_1h: "缓存写入 1 小时" };
 
-function priceDenominator(range: PlatformPriceRange) {
+function priceDenominator(range: Pick<PlatformPriceRange, "rate_unit" | "dimension">) {
     if (range.rate_unit === "count" && ["image_count", "images"].includes(range.dimension)) return "张";
-    if (range.rate_unit === "second") return "s";
-    return priceUnits[range.rate_unit] || range.rate_unit;
+    if (range.rate_unit === "count" && ["request", "requests", "call", "calls"].includes(range.dimension)) return "次";
+    if (range.rate_unit === "count" && ["video", "videos"].includes(range.dimension)) return "条视频";
+    if (range.rate_unit === "million_tokens" && range.dimension === "completion_tokens") return "百万输出 Token";
+    return priceUnits[range.rate_unit];
 }
 
 function priceDimensionLabel(dimension: string) {
-    return priceDimensions[dimension] || (dimension && !["seconds", "count", "call", "calls", "price", "fixed", "image_count", "images", "completion_tokens"].includes(dimension) ? dimension : "");
+    return priceDimensions[dimension] || "";
 }
 
 export function platformPriceRangesLabel(ranges: PlatformPriceRange[]) {
@@ -127,7 +129,8 @@ export function platformPriceRangesLabel(ranges: PlatformPriceRange[]) {
         .map((range) => {
             const amount = range.min === range.max ? range.min : `${range.min}–${range.max}`;
             const dimension = priceDimensionLabel(range.dimension);
-            return `${dimension ? `${dimension} ` : ""}✦ ${amount}/${priceDenominator(range)}`;
+            const unit = priceDenominator(range);
+            return unit ? `${dimension ? `${dimension} ` : ""}✦ ${amount}/${unit}` : "按实际规格报价";
         })
         .join(" · ");
 }
@@ -143,22 +146,40 @@ export function platformModelPriceLabel(model: PlatformModel) {
     return platformPriceLabel(model.price);
 }
 
+export function platformModelPriceDetails(model: PlatformModel) {
+    if (model.model_type !== "video" || model.price.status === "unavailable") return platformModelPriceLabel(model);
+    const rows = (model.presentation?.price_summary ?? []).flatMap((range) => {
+        if (!range.conditions.some((condition) => Object.keys(condition.specification ?? {}).length)) return [platformPriceRangesLabel([range])];
+        return range.conditions.map((condition) => priceConditionLabel(range, condition));
+    });
+    return rows.join(" · ") || platformModelPriceLabel(model);
+}
+
 export function platformModelCompactPriceLabel(model: PlatformModel) {
     if (model.model_type !== "text" || model.price.status === "unavailable") return platformModelPriceLabel(model);
     const input = model.presentation?.price_summary.filter((range) => range.dimension === "input") || [];
     return platformPriceRangesLabel(input) || "输入价未提供";
 }
 
+function priceConditionLabel(range: PlatformPriceRange, condition: PlatformPriceRange["conditions"][number]) {
+    const labels = Object.entries(condition.specification ?? {}).map(([key, value]) => {
+        if (["resolution", "quality", "size"].includes(key)) return String(value);
+        if (key === "video_input" && value === "none") return "无参考视频";
+        if (key === "video_input" && value === "video") return "有参考视频";
+        if (key === "audio" && typeof value === "boolean") return value ? "含音频" : "无音频";
+        if (["duration", "seconds", "second"].includes(key) && typeof value === "number") return `${value} 秒`;
+        return "按实际规格报价";
+    });
+    return [...labels, platformPriceRangesLabel([{ ...range, min: condition.amount, max: condition.amount }])].join(" ");
+}
+
 export function platformPriceConditions(ranges: PlatformPriceRange[]) {
+    const models = new Set(ranges.flatMap((range) => range.conditions.map((condition) => condition.model_name)));
     return ranges
         .flatMap((range) =>
             range.conditions.map((condition) => {
-                const spec =
-                    Object.entries(condition.specification || {})
-                        .map(([name, value]) => `${name}=${JSON.stringify(value)}`)
-                        .join(", ") || "默认规格";
-                const dimension = priceDimensionLabel(range.dimension);
-                return `${condition.model_name} · ${spec} · ${dimension ? `${dimension} ` : ""}✦ ${condition.amount}/${priceDenominator(range)} · ${condition.price_version}`;
+                const label = priceConditionLabel(range, condition);
+                return models.size > 1 ? `${condition.model_name} · ${label}` : label;
             }),
         )
         .join("\n");
@@ -205,9 +226,8 @@ export function platformPriceLabel(price: PlatformPrice) {
     if (price.status === "unavailable") return "价格暂不可用";
     const unit = priceUnits[price.rate_unit || ""];
     if (price.status === "usage_dependent" || price.usage_schema_required === true || !unit) return "按实际规格报价";
-    const labels: Record<string, string> = { input: "输入", output: "输出", cached: "缓存", cache_read: "缓存读取", cache_write: "缓存写入", price: "", fixed: "" };
     const rates = Object.entries(price.rates || {})
         .filter(([, value]) => typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value))
-        .map(([name, value]) => `${labels[name] ?? name} ✦ ${value}/${unit}`.trim());
+        .map(([name, value]) => `${priceDimensionLabel(name)} ✦ ${value}/${priceDenominator({ rate_unit: price.rate_unit!, dimension: name })}`.trim());
     return rates.join(" · ") || "按实际规格报价";
 }

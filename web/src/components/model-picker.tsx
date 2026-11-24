@@ -1,14 +1,13 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { Popover } from "antd";
-import { seedanceDisplayPrice, videoPriceSettings } from "@oceanway/model-picker/video-unit-price";
-import { nativeMediaVariant, nativeParameterValues, publishedReferenceCapacity } from "@/lib/platform-native-media";
+import { publishedReferenceCapacity } from "@/lib/platform-native-media";
 import { ModelPickerPanel } from "@oceanway/model-picker";
 import { usePopoverAnchorAlign } from "@/hooks/use-popover-anchor-align";
 
 import {
     spokenPlatformPrice,
-    platformModelPriceLabel,
+    platformModelPriceDetails,
     platformModelCompactPriceLabel,
     platformPriceRangesLabel,
     platformPriceConditions,
@@ -471,7 +470,6 @@ export function ModelLabel({
     creationVariant,
     showConfiguredModelName,
     label,
-    requirements,
     showPrice,
     disabledReason,
     showDescription,
@@ -498,22 +496,8 @@ export function ModelLabel({
         const title = platform.content?.display_name?.trim() || modelChannelLabel(config, model);
         const publishedTags = presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
         const tags = mediaReferenceTags(config, model, platform.model_type, publishedTags);
-        let parameters = {};
-        const currentVariant = nativeMediaVariant(config);
-        if (currentVariant) {
-            try {
-                parameters = nativeParameterValues(currentVariant, config.nativeParameters);
-            } catch {
-                parameters = { "/duration": 0 };
-            }
-        }
-        const videoCount = requirements?.input?.videoCount ?? 0;
-        const durations = requirements?.input?.videoDurationsMs;
-        const referenceSeconds = durations?.length === videoCount && durations.every((ms) => Number.isFinite(ms) && ms > 0) ? durations.reduce((sum, ms) => sum + ms, 0) / 1000 : undefined;
-        const settings = videoPriceSettings(parameters, videoCount > 0, referenceSeconds);
-        const estimate = seedanceDisplayPrice(platform, settings);
-        const price = estimate ? (estimate.state === "estimated" ? `≈ ✦ ${estimate.perSecond}/s` : "暂时无法预估费用") : platformModelCompactPriceLabel(platform);
-        const details = platformModelPriceLabel(platform);
+        const price = platformModelCompactPriceLabel(platform);
+        const details = platformModelPriceDetails(platform);
         return (
             <span className="canvas-model-picker-media-row">
                 <span className="canvas-model-picker-option-logo">
@@ -687,7 +671,7 @@ function modelMenuPrice(config: AiConfig, model: string): ModelMenuPrice | undef
     if (!published) return undefined;
     return {
         label: platformModelCompactPriceLabel(published),
-        title: platformModelPriceLabel(published),
+        title: platformModelPriceDetails(published),
     };
 }
 
