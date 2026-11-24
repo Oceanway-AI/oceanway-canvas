@@ -544,6 +544,68 @@ paths:
           $ref: "#/components/responses/Error"
         "409":
           $ref: "#/components/responses/Error"
+  /workspaces/{wid}/canvas-projects:
+    parameters:
+      - $ref: "#/components/parameters/TeamCanvasWorkspace"
+      - $ref: "#/components/parameters/TeamCanvasGeneration"
+    get:
+      tags: [ canvas ]
+      summary: 读取当前团队的画布列表
+      responses:
+        "200": { description: data.projects 返回团队画布摘要 }
+        default: { $ref: "#/components/responses/Error" }
+  /workspaces/{wid}/canvas-projects/{id}:
+    parameters:
+      - $ref: "#/components/parameters/TeamCanvasWorkspace"
+      - $ref: "#/components/parameters/TeamCanvasGeneration"
+      - $ref: "#/components/parameters/TeamCanvasID"
+    get:
+      tags: [ canvas ]
+      summary: 读取团队画布正文与版本
+      responses:
+        "200": { description: data.project 返回团队画布 }
+        default: { $ref: "#/components/responses/Error" }
+  /workspaces/{wid}/canvas-projects/{id}/sync-status:
+    parameters:
+      - $ref: "#/components/parameters/TeamCanvasWorkspace"
+      - $ref: "#/components/parameters/TeamCanvasGeneration"
+      - $ref: "#/components/parameters/TeamCanvasID"
+    get:
+      tags: [ canvas ]
+      summary: 读取团队画布同步状态
+      responses:
+        "200": { description: 返回当前版本和有效编辑租约等同步信息 }
+        default: { $ref: "#/components/responses/Error" }
+  /workspaces/{wid}/canvas-projects/{id}/operations:
+    parameters:
+      - $ref: "#/components/parameters/TeamCanvasWorkspace"
+      - $ref: "#/components/parameters/TeamCanvasGeneration"
+      - $ref: "#/components/parameters/TeamCanvasID"
+    patch:
+      tags: [ canvas ]
+      summary: 按当前成员及其代次幂等提交团队画布操作
+      parameters:
+        - $ref: "#/components/parameters/StudioIdentityVersion"
+        - $ref: "#/components/parameters/StudioActorID"
+      requestBody: { $ref: "#/paths/~1canvas-projects~1{id}~1operations/patch/requestBody" }
+      responses:
+        "200": { description: data.project 返回保存摘要，data.mutationId 返回原请求标识 }
+        default: { $ref: "#/components/responses/Error" }
+  /workspaces/{wid}/canvas-projects/{id}/edit-lease:
+    parameters:
+      - $ref: "#/components/parameters/TeamCanvasWorkspace"
+      - $ref: "#/components/parameters/TeamCanvasGeneration"
+      - $ref: "#/components/parameters/TeamCanvasID"
+    post:
+      tags: [ canvas ]
+      summary: 获取、续期或释放团队画布节点的编辑租约
+      parameters:
+        - $ref: "#/components/parameters/StudioIdentityVersion"
+        - $ref: "#/components/parameters/StudioActorID"
+      requestBody: { $ref: "#/paths/~1canvas-projects~1{id}~1edit-lease/post/requestBody" }
+      responses:
+        "200": { description: 返回服务端时间，获取及续期时同时返回租约和令牌 }
+        default: { $ref: "#/components/responses/Error" }
   /canvas-projects/{id}:
     parameters:
       - in: path
@@ -3190,6 +3252,23 @@ paths:
           $ref: "#/components/responses/Error"
 components:
   parameters:
+    TeamCanvasWorkspace:
+      name: wid
+      in: path
+      required: true
+      schema: { type: string }
+      description: 当前登录成员在 Platform 有效的团队空间 ID
+    TeamCanvasGeneration:
+      name: membership_generation
+      in: query
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+      description: 当前成员代次，失去成员资格返回 403，代次过期返回 409
+    TeamCanvasID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
     AgentRunID:
       name: id
       in: path
