@@ -72,13 +72,16 @@ func TestStudioConsoleNavigationKeepsOriginalAccountAndPage(t *testing.T) {
 		return f.request(t, "GET", "/api/auth/console-navigation?"+query.Encode(), "platform_session=alice", "", status).Result()
 	}
 	for _, returnPath := range []string{"/studio", "/studio/create", "/studio/tasks", "/studio/assets", "/studio/settings", "/studio/canvas", "/studio/skills", "/studio/skills/" + skill.SkillID + "/edit", "/studio/canvas/original-canvas"} {
-		for _, destination := range []string{"account", "wallet", "usage", "subscriptions", "plans", "orders", "recharge"} {
+		for _, destination := range []string{"account", "models", "wallet", "usage", "subscriptions", "plans", "orders", "recharge"} {
 			query.Set("return_path", returnPath)
 			query.Set("destination", destination)
 			response := request(302)
 			location, err := response.Location()
 			if err != nil || location.Host != "console.example.test" || location.Query().Get("return_path") != returnPath || location.Query().Get("return_workspace_id") != "personal-101" {
 				t.Fatal("original page or configured Console origin lost")
+			}
+			if destination == "models" && (location.Path != "/console/account" || location.Query().Get("section") != "models") {
+				t.Fatal("shared model settings not selected")
 			}
 			if response.Header.Get("Cache-Control") != "private, no-store" || response.Header.Get("Referrer-Policy") != "no-referrer" || len(response.Cookies()) != 2 {
 				t.Fatal("private response/cookie propagation missing")

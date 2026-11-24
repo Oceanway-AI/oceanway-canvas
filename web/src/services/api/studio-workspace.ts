@@ -9,6 +9,7 @@ export type StudioWorkspaceContext = {
     workspaceName: string;
     membershipGeneration: number;
     supported: boolean;
+    pickerSession?: string;
 };
 
 export function getStudioWorkspaceContext() {

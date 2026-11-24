@@ -57,6 +57,10 @@ func (s *Service) StudioConsoleNavigation(ctx context.Context, session platformc
 			return "", response, err
 		}
 	}
+	section := ""
+	if destination == "models" {
+		destination, section = "account", "&section=models"
+	}
 	result, err := s.studioPlatform.Client.ConsoleNavigation(ctx, session, account.Workspace, destination, returnPath)
 	if response == nil {
 		response = &platformclient.Response{Header: make(http.Header)}
@@ -65,12 +69,12 @@ func (s *Service) StudioConsoleNavigation(ctx context.Context, session platformc
 	if err != nil {
 		return "", response, platformIdentityError(err)
 	}
-	return s.StudioConsoleURL() + result.Data.ConsolePath, response, nil
+	return s.StudioConsoleURL() + result.Data.ConsolePath + section, response, nil
 }
 
 func validStudioConsoleDestination(destination string) bool {
 	switch destination {
-	case "account", "wallet", "usage", "subscriptions", "plans", "orders", "recharge":
+	case "account", "models", "wallet", "usage", "subscriptions", "plans", "orders", "recharge":
 		return true
 	}
 	return false

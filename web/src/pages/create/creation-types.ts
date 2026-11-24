@@ -51,7 +51,7 @@ export type CreationMessage = {
     mediaRecoverable?: boolean;
     generationEffectKeys?: string[];
 };
-export type CreationConversation = { id: string; title: string; updatedAt: string; canvasId?: string; messages: CreationMessage[] };
+export type CreationConversation = { id: string; title: string; updatedAt: string; canvasId?: string; messages: CreationMessage[]; selectedModels?: Partial<Record<CreationMode, string>> };
 
 export const modeLabels: Record<CreationMode, string> = {
     get text() {

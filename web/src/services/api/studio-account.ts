@@ -32,7 +32,7 @@ export function studioAccountMatches(account: StudioAccountSummary | undefined, 
     return !!account && account.userId === userId && account.workspaceId === workspaceId && account.membershipGeneration === generation;
 }
 
-export type StudioConsoleDestination = "account" | "wallet" | "usage" | "subscriptions" | "plans" | "orders" | "recharge";
+export type StudioConsoleDestination = "account" | "models" | "wallet" | "usage" | "subscriptions" | "plans" | "orders" | "recharge";
 
 // The browser opens a fresh BFF request so account changes and page ownership
 // are checked before the provider prepares the Console return context.

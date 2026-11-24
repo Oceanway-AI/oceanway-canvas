@@ -23,6 +23,7 @@ import { withGenerationConsumersPaused } from "@/services/generation-consumer-li
 import { recordDiagnosticEvent } from "@/services/diagnostics/client-diagnostics";
 import { useModelCatalogStore } from "@/stores/use-model-catalog-store";
 import { getStudioWorkspaceContext } from "@/services/api/studio-workspace";
+import { clearPickerPreview, readPickerPreview, writePickerPreview, type PickerPreviewRow } from "@oceanway/model-picker/preview-cache";
 
 export async function switchUserStorageScope(userId?: string | null) {
     await withGenerationConsumersPaused(async () => {
@@ -50,7 +51,8 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     catalogSnapshot = null;
     catalogEpoch++;
     catalogDetails.clear();
-    useModelCatalogStore.setState({ status: payload.user ? "loading" : "idle", error: null });
+    useModelCatalogStore.setState({ status: payload.user ? "loading" : "idle", error: null, preview: [] });
+    if (!payload.user) clearPickerPreview("studio");
     withUserScopedPersistenceSuppressed(() => useConfigStore.getState().invalidateSystemChannels());
     const previousUserId = useUserStore.getState().user?.id || "";
     const nextUserId = payload.user?.id || "";
@@ -194,6 +196,11 @@ export function refreshSystemChannels(): Promise<void> {
 function refreshCurrentSessionCatalog(generation: number, userId: string, initializeDefaults = false): Promise<void> {
     if (!isCurrentSession(generation, userId)) return Promise.resolve();
     if (catalogRequest?.generation === generation && catalogRequest.userId === userId) return catalogRequest.promise;
+    const { workspaceContext, platformIdentity } = useUserStore.getState();
+    const scope =
+        platformIdentity && workspaceContext?.userId === userId && workspaceContext.pickerSession
+            ? { product: "studio", user: Number(userId), session: workspaceContext.pickerSession, workspace: JSON.stringify([workspaceContext.workspaceId, workspaceContext.membershipGeneration]) }
+            : null;
     const request = { generation, userId, promise: Promise.resolve() };
     request.promise = Promise.resolve().then(async () => {
         try {
@@ -201,7 +208,7 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
             const catalog = useUserStore.getState().platformIdentity ? await loadPlatformCatalog(generation, userId) : await getModelCatalog();
             if (!isCurrentSession(generation, userId)) return;
             const channels = modelCatalogChannels(catalog);
-            if (initializeDefaults) {
+            if (initializeDefaults && catalog.source !== "platform") {
                 // Only a missing initial config gets recommended selections.
                 // Preserve custom channels added while the request was pending.
                 const current = useConfigStore.getState().config;
@@ -220,7 +227,17 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
             } else {
                 useConfigStore.getState().mergeSystemChannels(channels);
             }
-            useModelCatalogStore.setState({ status: "ready", error: null });
+            if (scope) {
+                const rows: PickerPreviewRow[] = [];
+                for (const channel of catalog.channels || [])
+                    for (const model of channel.models) {
+                        const kind = model.platform?.model_type;
+                        if (model.available && (kind === "text" || kind === "image" || kind === "video"))
+                            rows.push({ id: Number(model.id), model_type: kind, model_name: model.modelKey, display_name: model.displayName, is_default: model.platform?.is_default });
+                    }
+                writePickerPreview(scope, rows);
+            }
+            useModelCatalogStore.setState({ status: "ready", error: null, preview: [] });
         } catch (error) {
             if (!isCurrentSession(generation, userId)) return;
             recordDiagnosticEvent({
@@ -234,7 +251,8 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
             catalogEpoch++;
             catalogDetails.clear();
             useConfigStore.getState().invalidateSystemChannels();
-            useModelCatalogStore.setState({ status: "error", error: "模型目录读取失败，请重试。" });
+            if (scope) clearPickerPreview(scope.product);
+            useModelCatalogStore.setState({ status: "error", error: "模型目录读取失败，请重试。", preview: [] });
             throw error;
         } finally {
             if (catalogRequest === request) catalogRequest = null;
@@ -245,7 +263,7 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
     catalogEpoch++;
     catalogDetails.clear();
     useConfigStore.getState().invalidateSystemChannels();
-    useModelCatalogStore.setState({ status: "loading", error: null });
+    useModelCatalogStore.setState({ status: "loading", error: null, preview: scope ? readPickerPreview(scope) : [] });
     return request.promise;
 }
 

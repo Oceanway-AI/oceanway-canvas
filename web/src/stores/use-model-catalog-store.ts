@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { PickerPreviewRow } from "@oceanway/model-picker/preview-cache";
 
 export type ModelCatalogStatus = "idle" | "loading" | "ready" | "error";
 
@@ -6,4 +7,5 @@ export type ModelCatalogStatus = "idle" | "loading" | "ready" | "error";
 export const useModelCatalogStore = create<{
     status: ModelCatalogStatus;
     error: string | null;
-}>(() => ({ status: "idle", error: null }));
+    preview: PickerPreviewRow[];
+}>(() => ({ status: "idle", error: null, preview: [] }));

@@ -57,15 +57,15 @@ globalThis.fetch = (async (url: string | URL | Request) => {
 afterAll(() => dom.happyDOM.abort());
 
 for (const mode of ["text", "image", "video"] as const) {
-    for (const available of [true, false]) {
-        test(`真实首页 ${mode} 模式，平台目录${available ? "仅发布当前能力" : "尚未发布/加载"}`, async () => {
+    for (const [available, preferred] of [[true, true], [true, false], [false, false]]) {
+        test(`真实首页 ${mode} 模式，平台目录${preferred ? "有默认型号" : available ? "可选但无默认型号" : "尚未发布/加载"}`, async () => {
             const profile = defaultModelCapabilityConfig()[mode]!;
             const config = {
                 ...defaultConfig,
                 channels: available
                     ? [
                           {
-                              id: "platform",
+                              id: "oceanway-platform",
                               name: "平台",
                               baseUrl: "/api",
                               apiKey: "",
@@ -77,20 +77,20 @@ for (const mode of ["text", "image", "video"] as const) {
                                       model: "published",
                                       capability: mode,
 
-                                      platform: { model_name: "published", model_type: mode, price: { status: "available", version: "p1", rates: { fixed: "0.1" } } },
+                                      platform: { model_name: "published", model_type: mode, is_default: preferred, price: { status: "available", version: "p1", rates: { fixed: "0.1" } } },
                                       capabilityConfig: { version: 1 as const, [mode]: profile },
                                   },
                               ],
                           },
                       ]
                     : [],
-                model: "platform::published",
-                textModel: "platform::published",
-                imageModel: "platform::published",
-                videoModel: "platform::published",
-                textModels: available && mode === "text" ? ["platform::published"] : [],
-                imageModels: available && mode === "image" ? ["platform::published"] : [],
-                videoModels: available && mode === "video" ? ["platform::published"] : [],
+                model: "oceanway-platform::published",
+                textModel: "oceanway-platform::published",
+                imageModel: "oceanway-platform::published",
+                videoModel: "oceanway-platform::published",
+                textModels: available && mode === "text" ? ["oceanway-platform::published"] : [],
+                imageModels: available && mode === "image" ? ["oceanway-platform::published"] : [],
+                videoModels: available && mode === "video" ? ["oceanway-platform::published"] : [],
             };
             useConfigStore.setState({ config });
             useModelCatalogStore.setState({ status: "loading", error: null });
@@ -121,9 +121,9 @@ for (const mode of ["text", "image", "video"] as const) {
                     Object.getOwnPropertyDescriptor(dom.HTMLTextAreaElement.prototype, "value")!.set!.call(editor, "A quiet ocean");
                     editor.dispatchEvent(new dom.Event("input", { bubbles: true }));
                 });
-                expect(host.querySelector<HTMLButtonElement>(".creation-submit")?.disabled).toBe(!available);
+                expect(host.querySelector<HTMLButtonElement>(".creation-submit")?.disabled).toBe(!preferred);
                 if (available) {
-                    const actual = modelCapabilityConfigFor(config, "platform::published");
+                    const actual = modelCapabilityConfigFor(config, "oceanway-platform::published");
                     for (const other of ["text", "image", "video"] as const) if (other !== mode) expect(actual[other]).toBeUndefined();
                     expect(host.textContent).not.toContain("当前模式暂无可用模型");
                 } else {
@@ -151,7 +151,7 @@ for (const logical of [true, false]) {
         const references = { maxImages: 3, maxVideos: 2, maxAudios: 1 };
         const models = ["text-video", "reference-video"];
         const channel = {
-            id: "platform",
+            id: "oceanway-platform",
             name: "平台",
             baseUrl: "/api",
             apiKey: "",
@@ -164,11 +164,11 @@ for (const logical of [true, false]) {
                 logicalModelId: logical ? model : undefined,
                 capability: "video" as const,
 
-                platform: { model_name: model, model_type: "video", price: { status: "available", version: "p1", rates: { fixed: "0.1" } } },
+                platform: { model_name: model, model_type: "video", is_default: index === 0, price: { status: "available", version: "p1", rates: { fixed: "0.1" } } },
                 capabilityConfig: { version: 1 as const, video: { ...baseProfile, operations: [index ? "reference_to_video" : "text_to_video"], references: index ? references : { maxImages: 0, maxVideos: 0, maxAudios: 0 } } },
             })),
         };
-        const config = { ...defaultConfig, channels: [channel], model: "platform::text-video", videoModel: "platform::text-video", textModels: [], imageModels: [], videoModels: models.map((model) => `platform::${model}`) };
+        const config = { ...defaultConfig, channels: [channel], model: "oceanway-platform::text-video", videoModel: "oceanway-platform::text-video", textModels: [], imageModels: [], videoModels: models.map((model) => `oceanway-platform::${model}`) };
         useConfigStore.setState({ config });
         useUserStore.setState({ platformIdentity: true, hydrated: true, user: { id: "catalog-user", username: "fixture", displayName: "Fixture", role: "user", status: "active" } });
         writeCreationConversationSnapshot(getActiveUserScope(), [{ id: "existing", title: "Existing", messages: [], updatedAt: "2026-11-08T00:00:00Z" }]);
@@ -235,6 +235,7 @@ test.each([
                     platform: {
                         model_name: name,
                         model_type: "video",
+                        is_default: true,
                         price: { status: "usage_dependent", version: "new-token-price", usage_schema: { tokens: { type: "number", unit: "token" }, resolution: { enum: ["480p", "720p"] }, video_input: { enum: ["none", "video"] } } },
                     },
                     capabilityConfig: {

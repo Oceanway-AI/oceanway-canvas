@@ -148,7 +148,7 @@ for (const mode of ["image", "video"] as const) {
                                 model: kind,
                                 capability: kind,
 
-                                platform: { model_name: kind, model_type: kind, price: { status: "available", version: "p1" } },
+                                platform: { model_name: kind, model_type: kind, is_default: true, price: { status: "available", version: "p1" } },
                                 capabilityConfig: { version: 1 as const, [kind]: defaultModelCapabilityConfig()[kind] },
                             })),
                         },
