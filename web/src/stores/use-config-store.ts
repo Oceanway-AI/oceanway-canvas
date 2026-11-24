@@ -408,8 +408,9 @@ export const useConfigStore = create<ConfigStore>()(
                         }),
                     );
                     const userChannels = state.config.channels.filter((channel) => channel.scope !== "system");
+                    const { config } = normalizeConfigSnapshot({ config: { ...state.config, ...state.pendingModelSelections, channels: [...systemChannels, ...userChannels] } });
                     return {
-                        ...normalizeConfigSnapshot({ config: { ...state.config, ...state.pendingModelSelections, channels: [...systemChannels, ...userChannels] } }),
+                        config: systemChannels.some((channel) => channel.id === "oceanway-platform") ? withAccountModelDefaults(config) : config,
                         pendingModelSelections: partial ? state.pendingModelSelections : {},
                     };
                 }),
@@ -445,7 +446,7 @@ function systemModelSelections(config?: Partial<AiConfig>): ModelSelections {
     for (const key of MODEL_SELECTION_KEYS) {
         const value = config?.[key];
         const decoded = typeof value === "string" ? decodeChannelModel(value) : null;
-        if (decoded && systemChannelIDs.has(decoded.channelId)) selections[key] = value;
+        if (decoded && systemChannelIDs.has(decoded.channelId) && (decoded.channelId !== "oceanway-platform" || key === "audioModel")) selections[key] = value;
     }
     return selections;
 }
@@ -455,7 +456,7 @@ function validModelSelections(value: ModelSelections | undefined): ModelSelectio
     for (const key of MODEL_SELECTION_KEYS) {
         const selected = value?.[key];
         const decoded = typeof selected === "string" ? decodeChannelModel(selected) : null;
-        if (decoded?.channelId && decoded.model) selections[key] = selected;
+        if (decoded?.channelId && decoded.model && (decoded.channelId !== "oceanway-platform" || key === "audioModel")) selections[key] = selected;
     }
     return selections;
 }
@@ -556,7 +557,23 @@ function normalizeSelectedModel(value: string, channels: ModelChannel[], options
 export function useEffectiveConfig() {
     const config = useConfigStore((state) => state.config);
     const customChannelsEnabled = useUserStore((state) => state.features.customChannelsEnabled);
-    return useMemo(() => effectiveConfigForCustomChannels(config, customChannelsEnabled), [config, customChannelsEnabled]);
+    const platform = useUserStore((state) => state.platformIdentity);
+    return useMemo(() => {
+        const effective = effectiveConfigForCustomChannels(config, customChannelsEnabled);
+        return platform ? withAccountModelDefaults(effective) : effective;
+    }, [config, customChannelsEnabled, platform]);
+}
+
+export function withAccountModelDefaults(config: AiConfig): AiConfig {
+    const channel = config.channels.find((item) => item.scope === "system" && item.id === "oceanway-platform" && item.enabled !== false);
+    const preferred = (kind: "text" | "image" | "video", options: string[]) => {
+        const row = channel?.modelDetails?.find((item) => item.platform?.model_type === kind && item.platform.is_default === true && item.available !== false);
+        const option = row && channel ? encodeChannelModel(channel.id, row.model) : "";
+        return options.includes(option) ? option : "";
+    };
+    const imageModel = preferred("image", config.imageModels);
+    const textModel = preferred("text", config.textModels);
+    return { ...config, model: imageModel || textModel, imageModel, textModel, videoModel: preferred("video", config.videoModels) };
 }
 
 export function effectiveConfigForCustomChannels(config: AiConfig, customChannelsEnabled: boolean): AiConfig {

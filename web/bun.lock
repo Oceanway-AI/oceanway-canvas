@@ -18,7 +18,7 @@
         "@lobehub/icons": "5.16.0",
         "@mediapipe/tasks-vision": "^1.0.1",
         "@noble/hashes": "2.0.1",
-        "@oceanway/model-picker": "file:vendor/oceanway-model-picker-0.1.4.tgz",
+        "@oceanway/model-picker": "file:vendor/oceanway-model-picker-0.1.5.tgz",
         "@react-three/drei": "^10.7.7",
         "@react-three/fiber": "^9.6.1",
         "@streamdown/code": "^1.1.1",
@@ -536,7 +536,7 @@
 
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "https://registry.npmmirror.com/@nodelib/fs.walk/-/fs.walk-1.2.8.tgz", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
-    "@oceanway/model-picker": ["@oceanway/model-picker@vendor/oceanway-model-picker-0.1.4.tgz", { "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }],
+    "@oceanway/model-picker": ["@oceanway/model-picker@vendor/oceanway-model-picker-0.1.5.tgz", { "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }, "sha512-bXHiyBbr2qR7O+yoM9wSGQbon41NAHSx6/uFLRZ54qzMZd8DXZ+dGhblEGEZ53282a1Oz3MC9wzJ1ewSG717ig=="],
 
     "@oxc-project/types": ["@oxc-project/types@0.139.0", "https://registry.npmmirror.com/@oxc-project/types/-/types-0.139.0.tgz", {}, "sha512-r9gHphtCs+1M7J0pw6Sn/hh/Wpa/iQrOOkrNAlVLF/gHq+/CJmHIWKKUUhdWjcD6CIa8idarspCsASiXCXvFUw=="],
 

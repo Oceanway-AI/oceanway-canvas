@@ -131,7 +131,10 @@ func RegisterStudioMaterialRoutes(api *gin.RouterGroup, svc *service.Service) {
 		}
 		if len(items) != 1 || items[0].Access == nil {
 			if len(items) == 1 && items[0].Error != nil {
-				failService(c, service.NewAppError(items[0].Error.Code, items[0].Error.Message))
+				failure := items[0].Error
+				err := service.NewAppError(failure.Code, failure.Message)
+				err.Reason = service.ErrorReason(failure.Reason)
+				failService(c, err)
 				return
 			}
 			failService(c, service.NewAppError(503, "素材暂时不可访问"))

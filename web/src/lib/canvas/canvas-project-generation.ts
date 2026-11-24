@@ -491,7 +491,7 @@ export function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | u
     const liveOptions = modelRequestOptions(requestedConfig, mode);
     const baseRequirements = requirements?.capability ? { ...requirements, options: { ...liveOptions, ...(requirements.options || {}) } } : { capability: mode, options: liveOptions };
     const useModelGroup = workflowProvider === "model" && !nativeMediaProfile(config, preferredModel);
-    const model = useModelGroup ? resolveCompatibleModel(config, preferredModel, imageSize ? { ...baseRequirements, imageSize } : baseRequirements) || preferredModel : preferredModel;
+    const model = preferredModel && useModelGroup ? resolveCompatibleModel(config, preferredModel, imageSize ? { ...baseRequirements, imageSize } : baseRequirements) || preferredModel : preferredModel;
     const generationDefaults: Partial<ModelGenerationDefaults> =
         workflowProvider === "model"
             ? resolveModelGenerationDefaults(

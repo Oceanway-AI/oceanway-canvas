@@ -72,7 +72,7 @@ func TestStudioSchema100BindingCommandUpgrade(t *testing.T) {
 	if err := db.Migrator().DropColumn(&model.StudioMaterialReference{}, "BindingCommandID"); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.Where("version = ?", 101).Delete(&schemaMigration{}).Error; err != nil {
+	if err := db.Where("version >= ?", 101).Delete(&schemaMigration{}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Exec("INSERT INTO studio_material_references (resource_id, user_id, binding_id) VALUES ('old-resource', '101', 'original-binding')").Error; err != nil {

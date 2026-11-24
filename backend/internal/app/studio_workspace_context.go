@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"slices"
@@ -19,6 +21,7 @@ type StudioWorkspaceEntry struct {
 	WorkspaceName        string `json:"workspaceName"`
 	MembershipGeneration int64  `json:"membershipGeneration"`
 	Supported            bool   `json:"supported"`
+	PickerSession        string `json:"pickerSession,omitempty"`
 	workspace            platformclient.WorkspaceContext
 }
 
@@ -34,17 +37,22 @@ func (s *Service) StudioWorkspaceContext(ctx context.Context, session platformcl
 	client := s.studioPlatform.Client
 	personal := false
 	if canvasID != "" {
-		_, err := s.repo.WithContext(ctx).CanvasProjectMetadataForUser(user.ID, canvasID)
+		repo := s.repo.WithContext(ctx)
+		stored, err := repo.CanvasWorkspaceID(canvasID)
+		if err == nil && stored == "" {
+			_, err = repo.CanvasProjectMetadataForUser(user.ID, canvasID)
+		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, response, NotFound("画布不存在或无权访问")
 		}
 		if err != nil {
 			return nil, response, err
 		}
-		// The current schema only contains personal canvases. ST2 adds explicit
-		// team ownership; never infer it from a URL or the creator's current team.
-		personal = true
-		expectedGeneration = nil
+		if stored != workspaceID {
+			expectedGeneration = nil
+		}
+		personal = stored == ""
+		workspaceID = stored
 	}
 	if !personal && workspaceID == "" {
 		selection, err := client.WorkspaceSelection(ctx, session)
@@ -82,6 +90,9 @@ func (s *Service) StudioWorkspaceContext(ctx context.Context, session platformcl
 	result, err := client.WorkspaceContext(ctx, session, workspaceID)
 	result.Response.AppendCookies(response.Header)
 	if err != nil {
+		if canvasID != "" && !personal && result.Response != nil && (result.Response.StatusCode == 403 || result.Response.StatusCode == 404) {
+			return nil, response, NotFound("画布不存在或无权访问")
+		}
 		return nil, response, platformIdentityError(err)
 	}
 	w := result.Data
@@ -94,5 +105,10 @@ func (s *Service) StudioWorkspaceContext(ctx context.Context, session platformcl
 	if expectedGeneration != nil && *expectedGeneration != w.MembershipGeneration {
 		return nil, response, NewAppError(409, "团队成员状态已变化，请重新进入空间")
 	}
-	return &StudioWorkspaceEntry{UserID: user.ID, WorkspaceID: w.ID, WorkspaceKind: w.Kind, WorkspaceName: w.Name, MembershipGeneration: w.MembershipGeneration, Supported: w.Kind == "personal", workspace: w}, response, nil
+	entry := &StudioWorkspaceEntry{UserID: user.ID, WorkspaceID: w.ID, WorkspaceKind: w.Kind, WorkspaceName: w.Name, MembershipGeneration: w.MembershipGeneration, Supported: w.Kind == "personal", workspace: w}
+	if user.PlatformSessionID != "" {
+		sum := sha256.Sum256([]byte("studio:picker:" + user.PlatformSessionID))
+		entry.PickerSession = hex.EncodeToString(sum[:])
+	}
+	return entry, response, nil
 }

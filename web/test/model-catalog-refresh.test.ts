@@ -20,6 +20,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
     Object.defineProperty(globalThis, "navigator", { configurable: true, value: dom.navigator });
     for (const [key, value] of Object.entries({
         HTMLElement: dom.HTMLElement,
+        localStorage: dom.localStorage,
         SVGElement: dom.SVGElement,
         Element: dom.Element,
         Node: dom.Node,
@@ -170,6 +171,27 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
     test("creation preferences finish synchronous initial hydration", () => {
         expect(useCreationPreferencesStore.persist.hasHydrated()).toBe(true);
         expect(useCreationPreferencesStore.getState().hydrated).toBe(true);
+    });
+
+    test("a slow refresh previews names, not live models, and a new session cannot reuse them", async () => {
+        const context = { userId: "43", workspaceId: "personal-43", workspaceKind: "personal" as const, workspaceName: "", membershipGeneration: 0, supported: true, pickerSession: "scope-a" };
+        useUserStore.setState({ user: user("43"), workspaceContext: context });
+        const page = textCatalog("remembered");
+        page.channels[0].models[0].id = "21";
+        loadCatalog = async () => page;
+        await refreshSystemChannels();
+        const slow = deferred<unknown>();
+        loadCatalog = () => slow.promise;
+        const pending = refreshSystemChannels();
+        expect(useModelCatalogStore.getState().preview.map((row) => row.model_name)).toEqual(["remembered"]);
+        expect(modelNames()).not.toContain("remembered");
+        slow.resolve(page);
+        await pending;
+        useUserStore.setState({ workspaceContext: { ...context, pickerSession: "scope-b" } });
+        const next = refreshSystemChannels();
+        expect(useModelCatalogStore.getState().preview).toEqual([]);
+        await next;
+        useUserStore.setState({ workspaceContext: null });
     });
 
     test("summary pages appear progressively and retain a later selected model", async () => {
@@ -470,7 +492,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         expect(useModelCatalogStore.getState().error).toContain("重试");
         loadCatalog = async () => catalog("fresh-model");
         await refreshSystemChannels();
-        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null });
+        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null, preview: [] });
         expect(modelNames()).toEqual(["fresh-model", "custom-text"]);
     });
 
@@ -524,7 +546,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         await refreshSystemChannels();
         old.reject(new Error("old session failure"));
         await pending;
-        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null });
+        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null, preview: [] });
         expect(modelNames()).toEqual(["new-session-model", "custom-text"]);
     });
 
@@ -543,7 +565,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         await applyUserSession({ provider: "platform", user: null });
         old.resolve(catalog("logged-out-model"));
         await pending;
-        expect(useModelCatalogStore.getState()).toEqual({ status: "idle", error: null });
+        expect(useModelCatalogStore.getState()).toEqual({ status: "idle", error: null, preview: [] });
         expect(modelNames()).not.toContain("logged-out-model");
         expect(useConfigStore.getState().config.channels.every((channel) => channel.scope !== "system")).toBe(true);
     });

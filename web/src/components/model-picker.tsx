@@ -1,14 +1,13 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { Popover } from "antd";
-import { seedanceDisplayPrice, videoPriceSettings } from "@oceanway/model-picker/video-unit-price";
-import { nativeMediaVariant, nativeParameterValues, publishedReferenceCapacity } from "@/lib/platform-native-media";
+import { publishedReferenceCapacity } from "@/lib/platform-native-media";
 import { ModelPickerPanel } from "@oceanway/model-picker";
 import { usePopoverAnchorAlign } from "@/hooks/use-popover-anchor-align";
 
 import {
     spokenPlatformPrice,
-    platformModelPriceLabel,
+    platformModelPriceDetails,
     platformModelCompactPriceLabel,
     platformPriceRangesLabel,
     platformPriceConditions,
@@ -73,6 +72,7 @@ export function ModelPicker({
     const platformIdentity = useUserStore((state) => state.platformIdentity);
     const catalogStatus = useModelCatalogStore((state) => state.status);
     const catalogError = useModelCatalogStore((state) => state.error);
+    const preview = useModelCatalogStore((state) => state.preview);
     const pickerId = useId();
     // 双保险：即使 store merge 写出非法 theme，这里也兜底到 dark，避免 "reading 'node'" 崩溃
     const rawTheme = useActiveTheme();
@@ -342,6 +342,15 @@ export function ModelPicker({
                             {platformIdentity && catalogStatus === "loading" && (
                                 <div role="status" className="canvas-model-picker-empty">
                                     正在获取模型目录…
+                                    {!modelFilter && options.length === 0 && (
+                                        <ul>
+                                            {preview
+                                                .filter((row) => !capability || row.model_type === capability)
+                                                .map((row) => (
+                                                    <li key={row.id}>{row.display_name || row.model_name}</li>
+                                                ))}
+                                        </ul>
+                                    )}
                                 </div>
                             )}
                         </>
@@ -461,7 +470,6 @@ export function ModelLabel({
     creationVariant,
     showConfiguredModelName,
     label,
-    requirements,
     showPrice,
     disabledReason,
     showDescription,
@@ -488,22 +496,8 @@ export function ModelLabel({
         const title = platform.content?.display_name?.trim() || modelChannelLabel(config, model);
         const publishedTags = presentation?.tags ?? platform.content?.tags ?? logicalCost?.tags?.map((tag) => tag.text) ?? [];
         const tags = mediaReferenceTags(config, model, platform.model_type, publishedTags);
-        let parameters = {};
-        const currentVariant = nativeMediaVariant(config);
-        if (currentVariant) {
-            try {
-                parameters = nativeParameterValues(currentVariant, config.nativeParameters);
-            } catch {
-                parameters = { "/duration": 0 };
-            }
-        }
-        const videoCount = requirements?.input?.videoCount ?? 0;
-        const durations = requirements?.input?.videoDurationsMs;
-        const referenceSeconds = durations?.length === videoCount && durations.every((ms) => Number.isFinite(ms) && ms > 0) ? durations.reduce((sum, ms) => sum + ms, 0) / 1000 : undefined;
-        const settings = videoPriceSettings(parameters, videoCount > 0, referenceSeconds);
-        const estimate = seedanceDisplayPrice(platform, settings);
-        const price = estimate ? (estimate.state === "estimated" ? `≈ ✦ ${estimate.perSecond}/s` : "暂时无法预估费用") : platformModelCompactPriceLabel(platform);
-        const details = platformModelPriceLabel(platform);
+        const price = platformModelCompactPriceLabel(platform);
+        const details = platformModelPriceDetails(platform);
         return (
             <span className="canvas-model-picker-media-row">
                 <span className="canvas-model-picker-option-logo">
@@ -677,7 +671,7 @@ function modelMenuPrice(config: AiConfig, model: string): ModelMenuPrice | undef
     if (!published) return undefined;
     return {
         label: platformModelCompactPriceLabel(published),
-        title: platformModelPriceLabel(published),
+        title: platformModelPriceDetails(published),
     };
 }
 

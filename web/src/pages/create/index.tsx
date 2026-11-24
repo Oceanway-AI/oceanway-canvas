@@ -158,7 +158,6 @@ export default function CreatePage() {
         if (!promptOptimizerEnabled || !promptOptimizerInstallation || !promptOptimizerPlugin.createPromptOptimizer) return null;
         return promptOptimizerPlugin.createPromptOptimizer(createPluginHostContext(promptOptimizerPlugin, promptOptimizerInstallation, config));
     }, [config, promptOptimizerEnabled, promptOptimizerInstallation]);
-    const updateConfig = useConfigStore((state) => state.updateConfig);
     const assets = useAssetStore((state) => state.assets);
     const addAsset = useAssetStore((state) => state.addAsset);
     const userId = useUserStore((state) => state.user?.id || null);
@@ -230,9 +229,9 @@ export default function CreatePage() {
         () => conversations.filter((conversation) => conversation.id === activeId || conversation.messages.length > 0).sort((left, right) => conversationTimestamp(right.updatedAt) - conversationTimestamp(left.updatedAt)),
         [activeId, conversations],
     );
-    const rememberedModel = mode === "text" ? config.textModel : mode === "image" ? config.imageModel : config.videoModel;
+    const rememberedModel = activeConversation?.selectedModels?.[mode] ?? (mode === "text" ? config.textModel : mode === "image" ? config.imageModel : config.videoModel);
     const availableModels = useMemo(() => selectableModelsByCapability(config, mode), [config, mode]);
-    const preferredModel = availableModels.includes(rememberedModel) ? rememberedModel : (availableModels[0] ?? "");
+    const preferredModel = availableModels.includes(rememberedModel) ? rememberedModel : "";
     const preferredImageProfile = useMemo(() => (mode === "image" && availableModels.includes(preferredModel) ? modelCapabilityConfigFor(config, preferredModel).image : undefined), [config, mode, availableModels, preferredModel]);
     const hasPrompt = Boolean(prompt.trim());
     const modelRequirements = useMemo<ModelRequirements>(
@@ -265,7 +264,7 @@ export default function CreatePage() {
         [attachments, config, preferredImageProfile, count, hasPrompt, imageResolution, imageParameters, mode, quality, ratio, seconds, videoQuality],
     );
     const preferredNativeProfile = mode === "image" || mode === "video" ? nativeMediaProfile(config, preferredModel) : undefined;
-    const candidateModel = preferredNativeProfile ? preferredModel : resolveCompatibleModel(config, preferredModel, modelRequirements) || preferredModel;
+    const candidateModel = !preferredModel || preferredNativeProfile ? preferredModel : resolveCompatibleModel(config, preferredModel, modelRequirements) || preferredModel;
     const selectedModel = availableModels.includes(candidateModel) ? candidateModel : "";
     const detailPending = platformModelDetailPending(config, selectedModel);
     const imageProfile = useMemo(() => (selectedModel && !detailPending ? modelCapabilityConfigFor(config, selectedModel).image : undefined), [config, selectedModel, detailPending]);
@@ -700,11 +699,6 @@ export default function CreatePage() {
     const selectMode = (next: CreationMode) => {
         setMode(next);
         rememberMode(next);
-        const nextModels = selectableModelsByCapability(config, next);
-        const current = next === "text" ? config.textModel : next === "image" ? config.imageModel : config.videoModel;
-        if (!nextModels.includes(current) && nextModels[0]) {
-            updateConfig(next === "text" ? "textModel" : next === "image" ? "imageModel" : "videoModel", nextModels[0]);
-        }
     };
 
     const setComposerRatio = (value: string) => {
@@ -1454,7 +1448,7 @@ export default function CreatePage() {
         setPrompt(item.content);
         setAttachments(item.attachments ? [...item.attachments] : []);
         setDraftReferences(item.references ? [...item.references] : []);
-        if (item.model) updateConfig(nextMode === "text" ? "textModel" : nextMode === "image" ? "imageModel" : "videoModel", item.model);
+        if (item.model) updateActive((conversation) => ({ ...conversation, selectedModels: { ...conversation.selectedModels, [nextMode]: item.model } }));
         if (!nextSettings) return;
         setRatio(nextSettings.ratio);
         setSeconds(nextSettings.seconds);
@@ -1631,7 +1625,7 @@ export default function CreatePage() {
         imageProfile,
         videoProfile,
         config: generationConfig,
-        onModelChange: (value: string) => updateConfig(mode === "text" ? "textModel" : mode === "image" ? "imageModel" : "videoModel", value),
+        onModelChange: (value: string) => updateActive((conversation) => ({ ...conversation, selectedModels: { ...conversation.selectedModels, [mode]: value } })),
         ratio,
         setRatio: setComposerRatio,
         seconds,

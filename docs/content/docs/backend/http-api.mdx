@@ -236,6 +236,8 @@ handle 放错端点、格式错误或行 ID 不存在时，工具错误回执提
 
 `POST /api/resources/access` 接受 1–100 项 `{ resourceId, purpose?, variant? }`，每项返回访问描述或结构化错误。`display` 默认选择图片 `preview` 或音视频 `playback`，也支持 `thumbnail`、`poster`。`copy`、`download`、`browser-process` 使用原件。生成参考素材由执行授权链解析。
 
+Studio 的 Platform 视频使用 `display/playback`。当逐项 `error.reason` 为 `materials_variant_not_ready` 时，客户端等待并重新查询同一资源。`materials_variant_invalid` 表示派生失败，`materials_forbidden` 表示无权访问。单文件入口分别返回 503、422、403，并保留对应的 `reason`。
+
 返回的 HTTPS 地址、有效期、刷新时间、变体和 revision 来自 Platform。Studio 校验原素材身份、绑定和响应完整性，再交给浏览器使用。访问地址只用于当前访问，画布持久化稳定资源引用。CDN、对象存储凭据及缓存规则由 Platform 管理。
 
 系统 Logo、Live2D 和 Agent 外观继续使用受控本地资源读取和签名入口。资源归属在服务端检查。本地系统资源的签名 TTL 来自运行策略。

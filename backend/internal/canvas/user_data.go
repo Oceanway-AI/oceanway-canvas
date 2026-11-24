@@ -1,8 +1,10 @@
 package canvas
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -257,6 +259,18 @@ func decodeCanvasMutationReceipt(raw string, result *UserDataSummary) error {
 // latest server document. The request is idempotent by mutation ID and commits
 // the canvas row plus its receipt in one database transaction.
 func (s *Service) ApplyUserCanvasOperations(userID, canvasID string, req CanvasOperationsRequest) (UserDataSummary, error) {
+	return s.applyCanvasOperations(userID, canvasID, req, "", userID, 0)
+}
+
+// Team scope is resolved by the host from the live Platform session.
+func (s *Service) ApplyTeamCanvasOperations(storageKey, workspaceID, actorID string, generation int64, canvasID string, req CanvasOperationsRequest) (UserDataSummary, error) {
+	if workspaceID == "" || actorID == "" || generation <= 0 {
+		return UserDataSummary{}, kernel.Forbidden("团队成员资格无效")
+	}
+	return s.applyCanvasOperations(storageKey, canvasID, req, workspaceID, actorID, generation)
+}
+
+func (s *Service) applyCanvasOperations(userID, canvasID string, req CanvasOperationsRequest, workspaceID, actorID string, generation int64) (UserDataSummary, error) {
 	if canvasID == "" || len(canvasID) > 80 || req.MutationID == "" || len(req.MutationID) > 160 || len(req.Operations) == 0 || len(req.Operations) > 500 {
 		return UserDataSummary{}, kernel.BadAuthRequest("画布操作请求 ID、操作内容或批次大小无效")
 	}
@@ -285,13 +299,17 @@ func (s *Service) ApplyUserCanvasOperations(userID, canvasID string, req CanvasO
 			if err := tx.LockCanvasMutation(userID, canvasID); err != nil {
 				return err
 			}
-			candidate := &model.CanvasMutationReceipt{ID: kernel.NewID(), UserID: userID, CanvasID: canvasID, MutationID: req.MutationID, PayloadDigest: digest}
+			mutationID := req.MutationID
+			if workspaceID != "" {
+				mutationID = fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprintf("%s\x00%d\x00%s", actorID, generation, mutationID))))
+			}
+			candidate := &model.CanvasMutationReceipt{ID: kernel.NewID(), UserID: userID, ActorUserID: actorID, MembershipGeneration: generation, CanvasID: canvasID, MutationID: mutationID, PayloadDigest: digest}
 			created, err := tx.TryCreateCanvasMutationReceipt(candidate)
 			if err != nil {
 				return err
 			}
 			if !created {
-				receipt, err := tx.CanvasMutationReceiptForUser(userID, canvasID, req.MutationID)
+				receipt, err := tx.CanvasMutationReceiptForUser(userID, canvasID, mutationID)
 				if err != nil {
 					return err
 				}
@@ -308,6 +326,9 @@ func (s *Service) ApplyUserCanvasOperations(userID, canvasID string, req CanvasO
 				existing = nil
 			}
 			isCreate := existing == nil
+			if existing != nil && existing.PlatformWorkspaceID != workspaceID {
+				return kernel.NotFound("画布不存在")
+			}
 			if isCreate && (len(req.Operations) == 0 || req.Operations[0].Type != "create_canvas") {
 				return kernel.NotFound("画布不存在或已删除")
 			}
@@ -389,6 +410,7 @@ func (s *Service) ApplyUserCanvasOperations(userID, canvasID string, req CanvasO
 				project.ID, project.CreatedAt, project.Revision, project.UpdatedAt = existing.ID, existing.CreatedAt, existing.Revision, now
 			} else {
 				project.CreatedAt, project.Revision, project.UpdatedAt = now, 0, now
+				project.PlatformWorkspaceID, project.CreatorUserID = workspaceID, actorID
 			}
 			var existingPayload string
 			if existing != nil {
