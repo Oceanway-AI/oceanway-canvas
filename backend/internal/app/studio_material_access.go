@@ -133,7 +133,7 @@ func (s *Service) StudioResourceAccess(ctx context.Context, user *model.User, se
 			return nil, c.response, NewAppError(502, "素材访问响应不匹配")
 		}
 		if access.Status != "ready" {
-			results[i].Error = &ResourceAccessFailure{Code: 503, Reason: "material_access_unavailable", Message: "素材暂时不可访问，请稍后重试"}
+			results[i].Error = studioMaterialAccessFailure(access.Error)
 			continue
 		}
 		u, err := url.Parse(access.URL)
@@ -150,6 +150,22 @@ func (s *Service) StudioResourceAccess(ctx context.Context, user *model.User, se
 		results[i].Access = &ResourceAccess{ResourceID: requests[i].ResourceID, RequestedVariant: assets.ResourceVariant(access.RequestedVariant), ActualVariant: assets.ResourceVariant(access.ActualVariant), URL: access.URL, Delivery: assets.DeliveryCDN, IssuedAt: now, ExpiresAt: &expires, RefreshAt: refresh, Revision: access.Revision, FallbackReason: fallback}
 	}
 	return results, c.response, nil
+}
+
+func studioMaterialAccessFailure(failure *platformclient.MaterialError) *ResourceAccessFailure {
+	if failure != nil {
+		switch failure.Code {
+		case "materials_variant_not_ready":
+			return &ResourceAccessFailure{Code: 503, Reason: failure.Code, Message: "素材预览正在准备中"}
+		case "materials_variant_invalid":
+			return &ResourceAccessFailure{Code: 422, Reason: failure.Code, Message: "素材预览处理失败"}
+		case "materials_forbidden":
+			return &ResourceAccessFailure{Code: 403, Reason: failure.Code, Message: "无权访问素材"}
+		case "materials_not_found":
+			return &ResourceAccessFailure{Code: 404, Reason: failure.Code, Message: "素材不存在或不可访问"}
+		}
+	}
+	return &ResourceAccessFailure{Code: 503, Reason: "material_access_unavailable", Message: "素材暂时不可访问，请稍后重试"}
 }
 
 // Browsing the account library only needs read access to a fixed asset version.

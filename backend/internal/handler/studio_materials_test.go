@@ -102,6 +102,55 @@ func studioMaterialFixtureAsset() platformclient.Asset {
 	return platformclient.Asset{AssetID: "asset_1", Owner: platformclient.MaterialOwner{Kind: "account", ID: "101"}, Kind: "image", State: "ready", CurrentVersionID: "version_1", Version: platformclient.AssetVersion{AssetID: "asset_1", VersionID: "version_1", FileID: "file_1"}, File: platformclient.AssetFile{FileID: "file_1", SHA256: strings.Repeat("a", 64), ByteLength: "8", ContentType: "image/png", State: "ready"}}
 }
 
+func TestStudioPlaybackAccessDistinguishesPreparingFromFailure(t *testing.T) {
+	f := newStudioFixture(t)
+	studioLibraryResource(t, f, "video-preview")
+	if err := f.db.Model(&model.Resource{}).Where("id = ?", "video-preview").Update("kind", "video").Error; err != nil {
+		t.Fatal(err)
+	}
+	body := `[{"resourceId":"video-preview","purpose":"display"}]`
+	for _, tc := range []struct {
+		reason string
+		code   int
+	}{
+		{"materials_variant_not_ready", 503},
+		{"materials_variant_invalid", 422},
+		{"materials_forbidden", 403},
+	} {
+		t.Run(tc.reason, func(t *testing.T) {
+			f.materials = func(w http.ResponseWriter, r *http.Request) {
+				var req platformclient.AccessRequest
+				if r.URL.Path != "/api/platform/v1/materials/access" || json.NewDecoder(r.Body).Decode(&req) != nil || len(req.Items) != 1 || req.Items[0].Variant != "playback" {
+					t.Error("expected a playback lookup")
+					w.WriteHeader(400)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(platformclient.AccessResponse{Protocol: platformclient.MaterialsProtocol, Results: []platformclient.AccessResult{{ItemID: req.Items[0].ItemID, Status: "error", Error: &platformclient.MaterialError{Code: tc.reason, Retryable: tc.code == 503, RequestID: "lookup"}}}})
+			}
+			w := f.request(t, "POST", "/api/resources/access", "platform_session=alice", body, 200)
+			var reply struct {
+				Data struct {
+					Items []struct {
+						Error struct {
+							Reason string
+							Code   int
+						}
+					}
+				}
+			}
+			if err := json.Unmarshal(w.Body.Bytes(), &reply); err != nil || len(reply.Data.Items) != 1 || reply.Data.Items[0].Error.Reason != tc.reason || reply.Data.Items[0].Error.Code != tc.code {
+				t.Fatalf("wrong playback state: %s", w.Body.String())
+			}
+			file := f.request(t, "GET", "/api/resources/video-preview/file", "platform_session=alice", "", tc.code)
+			var failure struct{ Reason string }
+			if err := json.Unmarshal(file.Body.Bytes(), &failure); err != nil || failure.Reason != tc.reason || file.Header().Get("Location") != "" {
+				t.Fatalf("file endpoint lost playback state: %s", file.Body.String())
+			}
+		})
+	}
+}
+
 func TestStudioRetainedBindingReadsRecycledFile(t *testing.T) {
 	f := newStudioFixture(t)
 	studioLibraryResource(t, f, "retained-recycled")

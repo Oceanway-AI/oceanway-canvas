@@ -23,10 +23,97 @@ const { act } = await import("react");
 const { createRoot } = await import("react-dom/client");
 const { App } = await import("antd");
 const { MediaResult } = await import("@/pages/create/creation-workspace-messages");
+const { TaskResultPreview } = await import("@/pages/tasks/task-detail-modal");
 const { useUserStore } = await import("@/stores/use-user-store");
 const { apiClient } = await import("@/services/api/request");
 const { clearResourceAccessCache } = await import("@/services/api/resources");
 afterAll(() => dom.happyDOM.abort());
+
+test("视频播放版准备中只轮询原资源，就绪后开放预览，真实加载错误仍可重试", async () => {
+    useUserStore.setState({ platformIdentity: true });
+    const requests: string[] = [];
+    apiClient.defaults.adapter = async (config) => {
+        requests.push(config.url || "");
+        const [{ resourceId }] = JSON.parse(config.data);
+        const item =
+            requests.length === 1 ? { resourceId, error: { code: 503, reason: "materials_variant_not_ready", msg: "准备中" } } : { resourceId, access: { resourceId, url: "https://cdn.example.test/ready.mp4", delivery: "cdn", actualVariant: "playback" } };
+        return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { items: [item] } } };
+    };
+    const host = document.createElement("div");
+    const root = createRoot(host);
+    const noop = () => {};
+    try {
+        await act(async () =>
+            root.render(
+                <App>
+                    <MediaResult
+                        item={{ id: "new-video", role: "assistant", mode: "video", status: "done", content: "", createdAt: "2026-11-15", resultStorageKeys: ["resource:new-video"], resultUrls: ["/api/resources/new-video/file"] }}
+                        onRetryFailure={noop}
+                        onRefreshResult={noop}
+                        onRecoverMedia={noop}
+                        onCreateVariant={noop}
+                        onContinueCanvas={noop}
+                        openingCanvas={false}
+                    />
+                </App>,
+            ),
+        );
+        await act(async () => {
+            await Bun.sleep(100);
+        });
+        expect(requests).toEqual(["/resources/access"]);
+        expect(host.textContent).toContain("正在准备播放");
+        expect(host.querySelector("video")).toBeNull();
+        expect(host.querySelector('button[aria-label="预览生成视频"]')).toBeNull();
+        await act(async () => {
+            await Bun.sleep(2300);
+        });
+        const video = host.querySelector("video")!;
+        expect(video?.getAttribute("src")).toBe("https://cdn.example.test/ready.mp4");
+        await act(async () => video.dispatchEvent(new Event("loadedmetadata")));
+        expect(host.querySelector<HTMLButtonElement>('button[aria-label="预览生成视频"]')?.disabled).toBe(false);
+        await act(async () => video.dispatchEvent(new Event("error")));
+        expect(host.textContent).toContain("视频加载失败");
+        expect(requests).toEqual(["/resources/access", "/resources/access"]);
+        await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="视频加载失败，点击重新加载"]')!.click());
+        await act(async () => {
+            await Bun.sleep(100);
+        });
+        expect(host.querySelector("video")?.getAttribute("src")).toBe("https://cdn.example.test/ready.mp4");
+        expect(requests).toEqual(["/resources/access", "/resources/access", "/resources/access"]);
+    } finally {
+        await act(async () => root.unmount());
+    }
+});
+
+test("历史预览切走后停止等待，普通服务错误仍显示预览不可用", async () => {
+    const calls: string[] = [];
+    apiClient.defaults.adapter = async (config) => {
+        const [{ resourceId }] = JSON.parse(config.data);
+        calls.push(resourceId);
+        const reason = resourceId === "still-preparing" ? "materials_variant_not_ready" : "material_access_unavailable";
+        return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { items: [{ resourceId, error: { code: 503, reason } }] } } };
+    };
+    const host = document.createElement("div");
+    const root = createRoot(host);
+    const render = (resourceId: string) => root.render(<TaskResultPreview item={{ key: resourceId, resourceId, kind: "video" }} variant="playback" alt="生成结果" controls />);
+    try {
+        await act(async () => render("still-preparing"));
+        await act(async () => {
+            await Bun.sleep(100);
+        });
+        expect(host.textContent).toContain("正在准备播放");
+        await act(async () => render("unavailable"));
+        await act(async () => {
+            await Bun.sleep(2250);
+        });
+        expect(host.textContent).toContain("预览不可用");
+        expect(host.querySelector("video")).toBeNull();
+        expect(calls).toEqual(["still-preparing", "unavailable"]);
+    } finally {
+        await act(async () => root.unmount());
+    }
+});
 
 test("固定结果按 Resource 转到画布，也可单独采用为创作素材", async () => {
     useUserStore.setState({ platformIdentity: true });
