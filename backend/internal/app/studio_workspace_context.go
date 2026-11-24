@@ -37,17 +37,22 @@ func (s *Service) StudioWorkspaceContext(ctx context.Context, session platformcl
 	client := s.studioPlatform.Client
 	personal := false
 	if canvasID != "" {
-		_, err := s.repo.WithContext(ctx).CanvasProjectMetadataForUser(user.ID, canvasID)
+		repo := s.repo.WithContext(ctx)
+		stored, err := repo.CanvasWorkspaceID(canvasID)
+		if err == nil && stored == "" {
+			_, err = repo.CanvasProjectMetadataForUser(user.ID, canvasID)
+		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, response, NotFound("画布不存在或无权访问")
 		}
 		if err != nil {
 			return nil, response, err
 		}
-		// The current schema only contains personal canvases. ST2 adds explicit
-		// team ownership; never infer it from a URL or the creator's current team.
-		personal = true
-		expectedGeneration = nil
+		if stored != workspaceID {
+			expectedGeneration = nil
+		}
+		personal = stored == ""
+		workspaceID = stored
 	}
 	if !personal && workspaceID == "" {
 		selection, err := client.WorkspaceSelection(ctx, session)
@@ -85,6 +90,9 @@ func (s *Service) StudioWorkspaceContext(ctx context.Context, session platformcl
 	result, err := client.WorkspaceContext(ctx, session, workspaceID)
 	result.Response.AppendCookies(response.Header)
 	if err != nil {
+		if canvasID != "" && !personal && result.Response != nil && (result.Response.StatusCode == 403 || result.Response.StatusCode == 404) {
+			return nil, response, NotFound("画布不存在或无权访问")
+		}
 		return nil, response, platformIdentityError(err)
 	}
 	w := result.Data
