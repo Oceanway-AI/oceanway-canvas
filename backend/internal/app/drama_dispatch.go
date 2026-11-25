@@ -115,12 +115,15 @@ func (s *Service) dramaDispatchWaits(p *model.DramaProduction) (func(job DramaJo
 	if err != nil {
 		return nil, err
 	}
-	active, err := s.repo.ActiveTaskCountForUser(p.UserID)
-	if err != nil {
-		return nil, err
-	}
 	productionWait := dramaProductionWait(p)
 	limit := policy.Task.ActiveTaskLimit
+	var active int64
+	if limit > 0 {
+		active, err = s.repo.ActiveTaskCountForUser(p.UserID)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return func(job DramaJobView) string {
 		position, ok := ahead[job.ID]
 		if job.Status != model.DramaJobQueued || !ok {

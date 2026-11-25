@@ -13,6 +13,7 @@ const RESOURCE_FILE_URL = /\/resources\/([A-Za-z0-9_-]{1,80})\/file(?:[?#]|$)/;
  * 视频每条一个任务，受账号同时任务数约束；图片可单任务多张，上限为单次张数 × 可用任务数。
  */
 export function workbenchBatchLimit(kind: WorkbenchKind, maxOutputsPerTask: number, activeTaskLimit: number) {
+    if (activeTaskLimit === 0) return kind === "video" ? VIDEO_BATCH_MAX : IMAGE_BATCH_MAX;
     const slots = Math.max(1, Math.floor(activeTaskLimit) || 1);
     if (kind === "video") return Math.max(1, Math.min(VIDEO_BATCH_MAX, slots));
     const perTask = Math.max(1, Math.floor(maxOutputsPerTask) || 1);

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 	"yingce/backend/internal/testdb"
@@ -9,6 +10,45 @@ import (
 	"gorm.io/gorm"
 	"yingce/backend/internal/model"
 )
+
+func TestStudioQueueWithFiveRunningTasksAndNoAccountLimit(t *testing.T) {
+	db, err := testdb.Open(t, &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.AutoMigrate(&model.Task{}, &model.StudioExecution{}, &model.TaskTextDelta{}); err != nil {
+		t.Fatal(err)
+	}
+	repo := New(db)
+	for i := 0; i < 5; i++ {
+		old := model.Task{ID: fmt.Sprintf("old-%d", i), UserID: "user", Type: "canvas_text", Status: model.TaskStatusRunning}
+		if err := db.Create(&old).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, kind := range []string{"canvas_image", "canvas_video"} {
+		task := model.Task{ID: kind, Type: kind, UserID: "user", Status: model.TaskStatusQueued}
+		if _, err := repo.CreateStudioExecution(model.StudioExecution{TaskID: kind, UserID: task.UserID, CommandID: kind, State: "authorizing"}); err != nil {
+			t.Fatal(err)
+		}
+		if err := repo.QueueStudioExecution(task, "fixture", 5); !errors.Is(err, ErrActiveTaskLimit) {
+			t.Fatalf("explicit positive limit: %v", err)
+		}
+		if err := repo.QueueStudioExecution(task, "fixture", 0); err != nil {
+			t.Fatalf("unlimited %s: %v", kind, err)
+		}
+	}
+	retry := model.Task{ID: "explicit-retry", UserID: "user", Status: model.TaskStatusFailed}
+	if err := db.Create(&retry).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.RetryTaskWithActiveLimit("user", &retry, 0); err != nil {
+		t.Fatalf("unlimited retry: %v", err)
+	}
+	if count, err := repo.ActiveTaskCountForUser("user"); err != nil || count != 8 {
+		t.Fatalf("active count = %d, err = %v", count, err)
+	}
+}
 
 func TestStudioExecutionFencesDispatchAndStop(t *testing.T) {
 	for _, submitted := range []bool{false, true} {

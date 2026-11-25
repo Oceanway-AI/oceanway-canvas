@@ -160,12 +160,14 @@ func (s *Service) CreateTask(userID string, req CreateTaskRequest) (*model.Task,
 	if err != nil {
 		return nil, err
 	}
-	activeTasks, err := s.repo.ActiveTaskCountForUser(userID)
-	if err != nil {
-		return nil, err
-	}
-	if activeTasks >= int64(policy.Task.ActiveTaskLimit) {
-		return nil, BadAuthRequest(fmt.Sprintf("同时排队或运行的任务最多 %d 个，请等待已有任务完成", policy.Task.ActiveTaskLimit))
+	if limit := policy.Task.ActiveTaskLimit; limit > 0 {
+		active, err := s.repo.ActiveTaskCountForUser(userID)
+		if err != nil {
+			return nil, err
+		}
+		if active >= int64(limit) {
+			return nil, BadAuthRequest(fmt.Sprintf("同时排队或运行的任务最多 %d 个，请等待已有任务完成", limit))
+		}
 	}
 	// 媒体任务在扣费和调用上游前确认账号文件容量，避免容量已满仍然计费却无法回存产物。
 	// 调用方已持锁时走不加锁的版本；这里不能再抢同一把 storageMu。

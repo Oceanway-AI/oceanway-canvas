@@ -18,6 +18,7 @@ export async function waitForCommerceGenerationSlot(options: SlotOptions) {
         await options.checkBatch?.();
         options.assertCurrent();
         const limit = options.activeLimit();
+        if (limit === 0) return;
         if (!Number.isInteger(limit) || limit < 1) throw new Error("账号任务上限尚未就绪，请刷新后继续");
         // The task endpoint returns at most 100 records. A full page must keep
         // waiting rather than undercount a larger account limit.

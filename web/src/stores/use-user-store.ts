@@ -36,6 +36,8 @@ export type FeatureAvailability = {
     updatedBy?: string;
 };
 
+const defaultRuntimeLimits: RuntimeLimits = { activeTaskLimit: 0, resourceUploadMB: 50, recycleBinRetentionDays: 30 };
+
 export const defaultFeatureAvailability: FeatureAvailability = {
     welcomeEnabled: false,
     shortDramaEnabled: false,
@@ -74,11 +76,11 @@ export const useUserStore = create<UserStore>()((set) => ({
     workspaceError: null,
     platformIdentity: false,
     user: null,
-    runtimeLimits: { activeTaskLimit: 5, resourceUploadMB: 50, recycleBinRetentionDays: 30 },
+    runtimeLimits: defaultRuntimeLimits,
     drawingEngine: { defaultEngine: DEFAULT_DRAWING_ENGINE },
     features: defaultFeatureAvailability,
     setUser: (user) => set({ user }),
-    setRuntimeLimits: (runtimeLimits) => set({ runtimeLimits: runtimeLimits || { activeTaskLimit: 5, resourceUploadMB: 50, recycleBinRetentionDays: 30 } }),
+    setRuntimeLimits: (runtimeLimits) => set({ runtimeLimits: runtimeLimits || defaultRuntimeLimits }),
     setDrawingEngine: (drawingEngine) => set({ drawingEngine: drawingEngine || { defaultEngine: DEFAULT_DRAWING_ENGINE } }),
     setFeatures: (features) => set({ features: features ? { ...defaultFeatureAvailability, ...features } : defaultFeatureAvailability }),
     setHydrated: (hydrated) => set({ hydrated }),
@@ -87,7 +89,7 @@ export const useUserStore = create<UserStore>()((set) => ({
             user: null,
             workspaceContext: null,
             workspaceError: null,
-            runtimeLimits: { activeTaskLimit: 5, resourceUploadMB: 50, recycleBinRetentionDays: 30 },
+            runtimeLimits: defaultRuntimeLimits,
             drawingEngine: { defaultEngine: DEFAULT_DRAWING_ENGINE },
             features: defaultFeatureAvailability,
         }),

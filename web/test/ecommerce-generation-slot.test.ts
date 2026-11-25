@@ -3,6 +3,23 @@ import { assertCommerceBatchHealthy, CommerceBatchPausedError, submitCommerceTas
 import { ApiError } from "../src/services/api/request";
 
 describe("commerce account task slots", () => {
+    test("zero skips the account count but still validates the batch", async () => {
+        let checked = false;
+        await waitForCommerceGenerationSlot({
+            activeLimit: () => 0,
+            checkBatch: async () => {
+                checked = true;
+            },
+            assertCurrent: () => {},
+            listActive: async () => {
+                throw new Error("unexpected account count");
+            },
+            onWaiting: () => {
+                throw new Error("unexpected wait");
+            },
+        });
+        expect(checked).toBe(true);
+    });
     test("a failed image pauses the remaining batch when capacity becomes free", async () => {
         let status = "running";
         let submissions = 0;

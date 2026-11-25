@@ -376,24 +376,23 @@ func (s *Service) requestCloudAgentMediaBatchApproval(run *model.CloudAgentExecu
 		return s.terminateCloudAgent(run, "Agent 运行策略不可用，本轮已停止")
 	}
 	limit := policy.Task.ActiveTaskLimit
-	if limit <= 0 {
-		limit = 1
-	}
 	concurrency := args.Concurrency
 	if concurrency == 0 {
 		concurrency = cloudAgentMediaBatchDefaultSlots
 	}
-	if concurrency > limit {
+	if limit > 0 && concurrency > limit {
 		concurrency = limit
 	}
 	maxRetries := 1
 	if args.MaxRetries != nil {
 		maxRetries = *args.MaxRetries
 	}
-	if active, countErr := s.repo.ActiveTaskCountForUser(run.UserID); countErr == nil && active >= int64(limit) {
-		return s.cloudAgentMediaError(run, state, "admission", false, false, &cloudAgentMediaAdmissionError{
-			error: BadAuthRequest(fmt.Sprintf("当前已有 %d 个任务在排队或运行，达到同时任务上限；请等它们完成后再申请批次", active)), Reason: "active_task_limit", Retryable: true,
-		})
+	if limit > 0 {
+		if active, countErr := s.repo.ActiveTaskCountForUser(run.UserID); countErr == nil && active >= int64(limit) {
+			return s.cloudAgentMediaError(run, state, "admission", false, false, &cloudAgentMediaAdmissionError{
+				error: BadAuthRequest(fmt.Sprintf("当前已有 %d 个任务在排队或运行，达到同时任务上限；请等它们完成后再申请批次", active)), Reason: "active_task_limit", Retryable: true,
+			})
+		}
 	}
 	canvas, err := s.repo.CanvasProjectForUser(run.UserID, state.Request.CanvasID)
 	if err != nil {
@@ -759,10 +758,12 @@ func (s *Service) stepCloudAgentMediaBatch(ctx context.Context, userID, runID st
 	if err != nil {
 		return false, err
 	}
-	if active, err := s.repo.ActiveTaskCountForUser(userID); err != nil {
-		return false, err
-	} else if active >= int64(policy.Task.ActiveTaskLimit) {
-		return false, nil
+	if limit := policy.Task.ActiveTaskLimit; limit > 0 {
+		if active, err := s.repo.ActiveTaskCountForUser(userID); err != nil {
+			return false, err
+		} else if active >= int64(limit) {
+			return false, nil
+		}
 	}
 	err = s.submitCloudAgentMediaBatchItem(run, &state, next, policy)
 	if errors.Is(err, errCloudAgentMediaBatchWait) {

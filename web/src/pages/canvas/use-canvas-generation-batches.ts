@@ -19,6 +19,7 @@ import type { CanvasNodeGenerationOptions } from "./use-canvas-generation-execut
 import type { CanvasNodeGenerationMode } from "@/components/canvas/canvas-node-prompt-panel";
 
 const SCHEDULER_INTERVAL_MS = 2_000;
+const MAX_SUBMISSIONS_PER_TICK = 10;
 const MAX_BATCH_HISTORY = 20;
 
 type BatchTarget = Pick<CanvasGenerationBatchItem, "rowId" | "nodeId" | "inputSnapshot">;
@@ -188,28 +189,30 @@ export function useCanvasGenerationBatches({ projectId, projectLoaded, nodes, no
             );
             if (!hasWaitingItems) return;
 
-            const tasks = await listGenerationTasks(100, { projectId, activeOnly: true }).catch(() => null);
-            if (!tasks) return;
-            const activeTaskCount = tasks.filter((task) => task.status === "queued" || task.status === "running").length;
             const nodeById = new Map(currentNodes.map((node) => [node.id, node]));
-            const pendingReservations = [...controllersRef.current.keys()].filter((key) => {
-                const [, itemId] = key.split(":");
-                const item = currentNodes
-                    .flatMap((node) => node.metadata?.generationBatches || [])
-                    .flatMap((batch) => batch.items)
-                    .find((candidate) => candidate.id === itemId);
-                return item ? !nodeById.get(item.nodeId)?.metadata?.taskId : false;
-            }).length;
-            let availableSlots = Math.max(0, activeTaskLimit - activeTaskCount - pendingReservations);
-            if (!availableSlots) return;
+            // Pace browser submissions without waiting for unrelated running tasks.
+            let availableSlots = MAX_SUBMISSIONS_PER_TICK;
+            if (activeTaskLimit !== 0) {
+                const tasks = await listGenerationTasks(100, { projectId, activeOnly: true }).catch(() => null);
+                if (!tasks) return;
+                const activeTaskCount = tasks.filter((task) => task.status === "queued" || task.status === "running").length;
+                const pendingReservations = [...controllersRef.current.keys()].filter((key) => {
+                    const [, itemId] = key.split(":");
+                    const item = currentNodes
+                        .flatMap((node) => node.metadata?.generationBatches || [])
+                        .flatMap((batch) => batch.items)
+                        .find((candidate) => candidate.id === itemId);
+                    return item ? !nodeById.get(item.nodeId)?.metadata?.taskId : false;
+                }).length;
+                availableSlots = Math.min(availableSlots, Math.max(0, activeTaskLimit - activeTaskCount - pendingReservations));
+                if (!availableSlots) return;
+            }
 
             const candidates: Array<{ batch: CanvasGenerationBatch; item: CanvasGenerationBatchItem; node: CanvasNodeData }> = [];
             for (const sourceNode of currentNodes) {
                 for (const batch of sourceNode.metadata?.generationBatches || []) {
                     if (batch.projectId !== projectId || batch.status === "completed" || batch.status === "cancelled") continue;
-                    let batchAvailableSlots = batch.concurrency
-                        ? Math.max(0, batch.concurrency - batch.items.filter((item) => ["submitting", "queued", "running"].includes(item.status)).length)
-                        : Number.POSITIVE_INFINITY;
+                    let batchAvailableSlots = batch.concurrency ? Math.max(0, batch.concurrency - batch.items.filter((item) => ["submitting", "queued", "running"].includes(item.status)).length) : Number.POSITIVE_INFINITY;
                     for (const item of batch.items) {
                         if (item.status !== "waiting" || availableSlots <= 0 || batchAvailableSlots <= 0) continue;
                         const node = nodeById.get(item.nodeId);
@@ -271,9 +274,8 @@ export function useCanvasGenerationBatches({ projectId, projectLoaded, nodes, no
                 return unchangedModeratedPrompt(node?.metadata, item.inputSnapshot?.prompt ?? (node ? nodeGenerationPrompt(node) : ""));
             });
             const retryableItems = failedItems.filter((item) => !blockedItems.includes(item));
-            if (blockedItems.length) message.warning(blockedItems.some((item) => item.inputSnapshot)
-                ? translate("canvasPage.batches.tasksBlocked", { count: blockedItems.length })
-                : translate("canvasPage.batches.shotsBlocked", { count: blockedItems.length }));
+            if (blockedItems.length)
+                message.warning(blockedItems.some((item) => item.inputSnapshot) ? translate("canvasPage.batches.tasksBlocked", { count: blockedItems.length }) : translate("canvasPage.batches.shotsBlocked", { count: blockedItems.length }));
             if (!retryableItems.length) return;
             const retry = async () => {
                 const retryContexts = new Map<string, Awaited<ReturnType<typeof createGenerationRetryContext>>>();
@@ -351,9 +353,7 @@ export function useCanvasGenerationBatches({ projectId, projectLoaded, nodes, no
                 onOk: () => {
                     const latestNodeById = new Map(nodesRef.current.map((node) => [node.id, node]));
                     const latestBatch = findBatch(nodesRef.current, sourceNodeId, batchId);
-                    const latestStoppableItems = latestBatch
-                        ? latestBatch.items.filter((item) => item.status === "waiting" && stoppableItems.some((candidate) => candidate.id === item.id) && !latestNodeById.get(item.nodeId)?.metadata?.taskId)
-                        : [];
+                    const latestStoppableItems = latestBatch ? latestBatch.items.filter((item) => item.status === "waiting" && stoppableItems.some((candidate) => candidate.id === item.id) && !latestNodeById.get(item.nodeId)?.metadata?.taskId) : [];
                     const stoppableIds = new Set(latestStoppableItems.map((item) => item.id));
                     updateBatch(sourceNodeId, batchId, (current) => {
                         const items = current.items.map((item) => (stoppableIds.has(item.id) ? { ...item, status: "cancelled" as const, errorDetails: undefined } : item));
