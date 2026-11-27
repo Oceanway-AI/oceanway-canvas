@@ -45,6 +45,7 @@ const sent: string[] = [];
 const sendInputs: Array<Record<string, any>> = [];
 const createInputs: Array<Record<string, any>> = [];
 let sendFailure: Error | undefined;
+let profileOffline = false;
 let capabilitiesOverride: (() => Promise<unknown>) | undefined;
 let sendOverride: (() => Promise<{ run: AgentRun }>) | undefined;
 let createOverride: (() => Promise<{ run: AgentRun }>) | undefined;
@@ -64,7 +65,7 @@ const MotionBox = ({ children, className, style }: any) => (
         {children}
     </div>
 );
-mock.module("motion/react", () => ({ AnimatePresence: ({ children }: any) => children, motion: { aside: MotionBox, div: MotionBox }, useReducedMotion: () => true }));
+mock.module("motion/react", () => ({ AnimatePresence: ({ children }: any) => children, motion: { aside: MotionBox, div: MotionBox, li: MotionBox }, useReducedMotion: () => true }));
 mock.module("antd", () => ({
     App: { useApp: () => ({ message: { info: silent, error: silent, warning: silent, success: silent } }) },
     Dropdown: ({ children }: any) => children,
@@ -77,7 +78,10 @@ mock.module("antd", () => ({
 }));
 mock.module("@/services/api/agent", () => ({
     ...agent,
-    getAgentProfile: async () => ({ revision: "profile", hash: "hash", layers: [] }),
+    getAgentProfile: async () => {
+        if (profileOffline) throw new ApiError("Network Error", { retryable: true });
+        return { revision: "profile", hash: "hash", layers: [] };
+    },
     getAgentCapabilities: async () => (capabilitiesOverride ? capabilitiesOverride() : { permissionModes: ["request_approval"], skills: true }),
     subscribeAgentEvents: (id: string, event: (event: AgentEvent) => void, options: any) => {
         const subscription = { id, after: options.after, event, connection: options.onConnectionChange, closed: false };
@@ -238,7 +242,7 @@ const persist = async () => {
         window.dispatchEvent(new Event("pagehide"));
     });
 };
-async function mount(initial: CloudAgentConversation, cloud: CloudAgentConversation[], initialPending: CloudAgentPendingSubmission | null = null) {
+async function mount(initial: CloudAgentConversation, cloud: CloudAgentConversation[], initialPending: CloudAgentPendingSubmission | null = null, inCanvas = true) {
     local = [initial];
     activeId = initial.id;
     remote = cloud;
@@ -259,7 +263,7 @@ async function mount(initial: CloudAgentConversation, cloud: CloudAgentConversat
     setActiveUserScope("sync-user");
     useUserStore.setState({ hydrated: true, user: { id: "sync-user", username: "test", displayName: "test", role: "user", status: "active" } });
     configureModels(false);
-    useGlobalAgentStore.setState({ open: true, canvas: { canvasId: "shared-canvas", nodeCount: 2, selectedNodeIds: [], references: [] } });
+    useGlobalAgentStore.setState({ open: true, canvas: inCanvas ? { canvasId: "shared-canvas", nodeCount: 2, selectedNodeIds: [], references: [] } : null });
     const host = document.createElement("div");
     document.body.append(host);
     const root = createRoot(host);
@@ -283,6 +287,87 @@ function configureModels(ambiguous: boolean) {
     const config = normalizeConfigSnapshot({ config: { ...defaultConfig, channels, textModel: "paid-channel::paid-model", model: "paid-channel::paid-model" } }).config;
     useConfigStore.setState({ config });
 }
+
+test("无画布首句：浏览器误报离线但 Agent 可达时直接创建一轮", async () => {
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+    const mounted = await mount(chat("original", null), [], null, false);
+    try {
+        createOverride = async () => ({ run: { ...makeRun("accepted", "running"), canvasId: "" } });
+        expect(composer.submitMode).toBe("send");
+        await act(async () => composer.onPromptChange("你好"));
+        await act(async () => {
+            composer.onSubmit();
+            await settle();
+        });
+        expect(createInputs).toHaveLength(1);
+        expect(createInputs[0]).toMatchObject({ prompt: "你好", canvasId: "" });
+    } finally {
+        await mounted.close();
+        Reflect.deleteProperty(navigator, "onLine");
+    }
+});
+
+test("无画布首句：真断网时保留队列，重新连接不依赖 online 事件且不重复建轮", async () => {
+    const mounted = await mount(chat("original", null), [], null, false);
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+    try {
+        profileOffline = true;
+        createOverride = async () => ({ run: { ...makeRun("accepted", "running"), canvasId: "" } });
+        await act(async () => window.dispatchEvent(new Event("offline")));
+        await act(async () => composer.onPromptChange("你好"));
+        await act(async () => composer.onSubmit());
+        const button = () => mounted.host.querySelector<HTMLButtonElement>(".agent-outbox-row .agent-outbox-action")!;
+        expect(mounted.host.textContent).toContain("暂时连不上 Agent，消息已保留");
+        expect(button().textContent).toBe("重新连接");
+        expect(button().disabled).toBe(false);
+        await act(async () => {
+            button().click();
+            await settle();
+        });
+        expect(createInputs).toHaveLength(0);
+        expect(mounted.host.querySelector(".agent-outbox-text")?.textContent).toBe("你好");
+        profileOffline = false;
+        await act(async () => {
+            button().click();
+            button().click();
+            await settle();
+        });
+        expect(createInputs).toHaveLength(1);
+        expect(createInputs[0]).toMatchObject({ prompt: "你好", canvasId: "" });
+        expect(mounted.host.querySelector(".agent-outbox-row")).toBeNull();
+    } finally {
+        profileOffline = false;
+        await mounted.close();
+        Reflect.deleteProperty(navigator, "onLine");
+    }
+});
+
+test.each(["手动暂停", "自动继续"])("已入队首句：恢复连接后遵守%s且保持原消息身份", async (mode) => {
+    profileOffline = true;
+    const mounted = await mount(chat("original", null), [], null, false);
+    try {
+        createOverride = async () => ({ run: { ...makeRun("accepted", "running"), canvasId: "" } });
+        // 系统报告在线也不能覆盖 Agent 接口没有收到响应的事实。
+        expect(composer.submitMode).toBe("queue");
+        await act(async () => composer.onPromptChange("等我联网"));
+        await act(async () => composer.onSubmit());
+        const key = composer.tray.props.outbox.items[0].id;
+        if (mode === "手动暂停") await act(async () => composer.tray.props.onPause());
+        profileOffline = false;
+        if (mode === "手动暂停") await focus();
+        else await act(async () => window.dispatchEvent(new Event("online")));
+        if (mode === "手动暂停") {
+            expect(createInputs).toHaveLength(0);
+            expect(composer.tray.props.outbox.paused.reason).toBe("user");
+            await act(async () => composer.tray.props.onResume());
+        }
+        expect(createInputs).toHaveLength(1);
+        expect(createInputs[0]).toMatchObject({ prompt: "等我联网", idempotencyKey: key });
+    } finally {
+        profileOffline = false;
+        await mounted.close();
+    }
+});
 
 test("手机空缓存接续同画布桌面会话，审批被另一端处理后自动收敛且不重复提交", async () => {
     const waiting = makeRun("desktop", "waiting_approval");

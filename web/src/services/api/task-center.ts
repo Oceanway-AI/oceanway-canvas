@@ -6,7 +6,7 @@ import { observeGenerationTaskStatus, observeGenerationTaskStatuses } from "@/se
 import { getActiveUserScope } from "@/lib/user-scope";
 import { useUserStore } from "@/stores/use-user-store";
 import { createStudioGenerationReads } from "@/services/studio-generation-reads";
-import { submitPlatformTask, studioGenerationCommandWasSent } from "@/services/platform-task-submission";
+import { assertStudioGenerationCommand, submitPlatformTask, studioGenerationCommandWasSent } from "@/services/platform-task-submission";
 
 export type { BackendEnvelope } from "@/services/api/request";
 
@@ -261,6 +261,7 @@ const studioGenerationReads = createStudioGenerationReads(getActiveUserScope, as
 // When the tab closed before Studio acknowledged the POST, the local scoped
 // command marker is the only durable identity available to this consumer.
 export async function recoverStudioGenerationCommand(commandId: string, signal: AbortSignal) {
+    assertStudioGenerationCommand(commandId);
     const owner = getActiveUserScope();
     if (!owner || !studioGenerationCommandWasSent(owner, commandId)) return undefined;
     let delayMS = 1000;

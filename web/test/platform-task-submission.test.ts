@@ -1,9 +1,20 @@
 import { describe, expect, test } from "bun:test";
-import { submitPlatformTask } from "../src/services/platform-task-submission";
+import { studioGenerationCommandWasSent, submitPlatformTask } from "../src/services/platform-task-submission";
 import type { CreateTaskInput, GenerationTask } from "../src/services/api/task-center";
 import { ApiError } from "../src/services/api/request";
 
 describe("Platform task submission", () => {
+    test("legacy video retry command is rejected before any create, sent marker or recovery", async () => {
+        const commandId = `retry:${"a".repeat(64)}`;
+        const calls: string[] = [];
+        const touch = async () => {
+            calls.push("network");
+            return { id: "unexpected" } as GenerationTask;
+        };
+        await expect(submitPlatformTask({ commandId, type: "canvas_video", prompt: "shot", platform: { mediaGenerationV1: true, expectedPriceVersion: "p1" } }, { scope: () => "retry-fixture", create: touch, recover: touch })).rejects.toThrow("任务编号");
+        expect(calls).toEqual([]);
+        expect(studioGenerationCommandWasSent("retry-fixture", commandId)).toBe(false);
+    });
     test("a video request with an explicit ceiling keeps that ceiling when the create response is lost", async () => {
         const input: CreateTaskInput = { type: "canvas_video", prompt: "ocean", platform: { expectedPriceVersion: "p1", walletMaxPoints: "250" } };
         let posted: CreateTaskInput | undefined;

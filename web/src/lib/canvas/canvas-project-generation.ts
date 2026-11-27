@@ -148,7 +148,7 @@ export async function createGenerationRetryContext(retryOf: string, attemptGroup
     const bytes = new TextEncoder().encode(`generation-retry\0${attemptGroupId}\0${retryOf}`);
     const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
     const hex = Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
-    return { retryOf, attemptGroupId, clientOperationId: `retry:${hex}` };
+    return { retryOf, attemptGroupId, clientOperationId: `retry-${hex}` };
 }
 
 export function createGenerationBatchRetryContexts(taskIds: readonly string[], attemptGroupId: string) {
