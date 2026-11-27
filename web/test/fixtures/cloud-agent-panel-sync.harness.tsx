@@ -332,6 +332,62 @@ test.each(["已保存", "仍不可读", "切换画布", "切换账号"])("草稿
     }
 });
 
+test("画布偏好明确拒绝时不触发同步、保存请求或建轮", async () => {
+    draftProfile = async () => {
+        throw new ApiError("没有权限", { status: 403 });
+    };
+    let prepares = 0;
+    prepareDraft = () => prepares++;
+    const mounted = await mount(chat("forbidden", null), []);
+    try {
+        await act(async () => composer.onPromptChange("查看画布"));
+        await act(async () => {
+            composer.onSubmit();
+            await settle();
+        });
+        expect(prepares).toBe(0);
+        expect(createInputs).toHaveLength(0);
+        expect(pending).toBeNull();
+    } finally {
+        draftProfile = undefined;
+        prepareDraft = undefined;
+        await mounted.close();
+    }
+});
+
+test("草稿画布离线入队后恢复：预读 404 仍按原队列编号只建一轮", async () => {
+    profileOffline = true;
+    let prepared = false;
+    draftProfile = async () => {
+        if (!prepared) throw new ApiError("画布不可读", { status: 404 });
+    };
+    prepareDraft = () => {
+        prepared = true;
+    };
+    const mounted = await mount(chat("offline-draft", null), []);
+    try {
+        createOverride = async () => ({ run: makeRun("accepted", "running") });
+        await act(async () => composer.onPromptChange("待同步的草稿"));
+        await act(async () => composer.onSubmit());
+        const key = composer.tray.props.outbox.items[0].id;
+        expect(createInputs).toHaveLength(0);
+        expect(prepared).toBe(false);
+        profileOffline = false;
+        await act(async () => {
+            window.dispatchEvent(new Event("online"));
+            await settle();
+        });
+        expect(createInputs).toHaveLength(1);
+        expect(createInputs[0]).toMatchObject({ canvasId: "shared-canvas", profileRevision: "profile", idempotencyKey: key });
+        expect(mounted.host.querySelector(".agent-outbox-row")).toBeNull();
+    } finally {
+        profileOffline = false;
+        draftProfile = undefined;
+        prepareDraft = undefined;
+        await mounted.close();
+    }
+});
+
 test("无画布首句：浏览器误报离线但 Agent 可达时直接创建一轮", async () => {
     Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
     const mounted = await mount(chat("original", null), [], null, false);

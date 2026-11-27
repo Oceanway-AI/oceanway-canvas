@@ -159,16 +159,22 @@ func (s *Service) cloudAgentProfileView(userID, projectID, canvasID string) (Age
 	}
 	if projectID != "" {
 		if _, err := s.repo.ProjectForUser(userID, projectID); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return AgentProfileView{}, kernel.NotFound("项目不存在或无权访问")
+			}
 			return AgentProfileView{}, err
 		}
 	}
 	if canvasID != "" {
 		canvas, err := s.repo.CanvasProjectForUser(userID, canvasID)
 		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return AgentProfileView{}, kernel.NotFound("画布不存在或尚未保存到服务端，请先完成画布同步")
+			}
 			return AgentProfileView{}, err
 		}
 		if projectID != "" && canvas.ProjectID != projectID {
-			return AgentProfileView{}, errors.New("画布不属于指定项目")
+			return AgentProfileView{}, kernel.BadAuthRequest("画布不属于指定项目")
 		}
 		projectID = canvas.ProjectID
 	}

@@ -102,7 +102,7 @@ func TestCloudAgentProfileOwnershipAndScopeValidation(t *testing.T) {
 }
 
 func TestCloudAgentProfileMissingTargetsAreNotFound(t *testing.T) {
-	s, project, canvas := cloudAgentProfileFixture(t)
+	s, db, project, canvas := cloudAgentProfileFixtureDB(t)
 	for _, target := range [][2]string{{"", "draft-canvas"}, {"", "foreign-canvas"}, {"project-2", ""}, {"project-2", canvas}} {
 		_, err := s.CloudAgentProfileForScope("user", target[0], target[1])
 		var appErr *AppError
@@ -112,6 +112,15 @@ func TestCloudAgentProfileMissingTargetsAreNotFound(t *testing.T) {
 	}
 	if _, err := s.CloudAgentProfileForScope("user", project, canvas); err != nil {
 		t.Fatalf("own saved canvas: %v", err)
+	}
+	another := model.Project{ID: "another", UserID: "user", Name: "其他项目", Status: model.ProjectStatusActive}
+	if err := db.Create(&another).Error; err != nil {
+		t.Fatal(err)
+	}
+	_, err := s.CloudAgentProfileForScope("user", another.ID, canvas)
+	var appErr *AppError
+	if !errors.As(err, &appErr) || appErr.Status != 400 {
+		t.Fatalf("canvas outside own requested project: expected 400, got %v", err)
 	}
 }
 
