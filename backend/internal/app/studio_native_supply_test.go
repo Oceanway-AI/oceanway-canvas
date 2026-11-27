@@ -67,6 +67,30 @@ func TestStudioVideoSupplyChecksResolutionDurationAndReferencesTogether(t *testi
 	}
 }
 
+func TestStudioPublishedReferenceCountAndDuration(t *testing.T) {
+	for _, role := range []string{"reference_video", "reference_audio"} {
+		count, segment, total := int64(2), int64(6000), int64(9000)
+		slot := platformintegration.NativeReferenceSlot{Role: role, MaxItems: &count, MaxDurationMS: &segment, MaxTotalDurationMS: &total}
+		check := func(want bool, durations ...int64) {
+			t.Helper()
+			refs := make([]studioNativeReferenceResource, 0, len(durations))
+			for _, ms := range durations {
+				refs = append(refs, studioNativeReferenceResource{Role: role, Resource: &model.Resource{DurationMs: ms}})
+			}
+			err := studioValidateNativeReferences([]platformintegration.NativeReferenceSlot{slot}, refs)
+			if (err == nil) != want {
+				t.Fatalf("%s %v: want accepted=%t, err=%v", role, durations, want, err)
+			}
+		}
+		check(true, 6000, 3000)
+		check(false, 6001)
+		check(false, 5000, 4001)
+		check(false, 1000, 1000, 1000)
+		count, total = 3, 15000
+		check(true, 5000, 5000, 5000)
+	}
+}
+
 func TestStudioNativeSupplyUsesOneOutputSizeAndItsReferencePolicy(t *testing.T) {
 	raw, err := os.ReadFile("../platformintegration/testdata/image-output-size/gpt-default.model.json")
 	if err != nil {

@@ -62,6 +62,13 @@ func cloudAgentMediaDraftConfiguration(a cloudAgentMediaArgs, doc map[string]any
 			return nil, options, BadAuthRequest("草稿生成配置无效，未提交生成任务")
 		}
 		options, selection = spec.Options, spec.ModelSelection
+		if a.Mode == "video" && options.DurationSeconds == nil {
+			// A partial older contract can omit duration even when the node saved it.
+			legacy, err := contract.OptionsFromTaskConfig("video", map[string]any{"videoSeconds": meta["seconds"]})
+			if err == nil && legacy.DurationSeconds != nil && *legacy.DurationSeconds >= 0 {
+				options.DurationSeconds = legacy.DurationSeconds
+			}
+		}
 	} else {
 		config := map[string]any{}
 		for _, key := range []string{"size", "quality", "imageResolution", "imageParameters", "nativeParameters", "nativeVariantId", "vquality"} {

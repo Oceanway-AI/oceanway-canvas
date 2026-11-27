@@ -4,7 +4,7 @@ import test from "node:test";
 import "./node-registry/definitions/index.ts";
 // @ts-expect-error -- Node 原生 TypeScript 测试运行器需要保留扩展名。
 import { canvasNodeHasCommittedContent, writeCanvasNodePrompt } from "./canvas-node-prompt.ts";
-import { canonicalGenerationMetadata } from "./generation-contract";
+import { canonicalGenerationMetadata, readNodeGenerationSpec } from "./generation-contract";
 // @ts-expect-error -- Node 原生 TypeScript 测试运行器需要保留扩展名。
 import { CanvasNodeType, type CanvasNodeData } from "../../types/canvas.ts";
 
@@ -37,6 +37,15 @@ test("媒体节点已有结果时只更新下一版提示词草稿", () => {
         assert.equal(metadata?.status, "success");
         assert.equal(metadata?.generationSpec?.prompt, "下一版提示词");
     }
+});
+
+test("旧视频草稿只从镜像补缺失的时长，不覆盖合同或猜测无效值", () => {
+    const spec = canonicalGenerationMetadata(node(CanvasNodeType.Video, {}), "video").generationSpec!;
+    const read = (seconds: string, durationSeconds?: number) => readNodeGenerationSpec(node(CanvasNodeType.Video, { seconds, generationSpec: { ...spec, options: { durationSeconds } } }))?.options.durationSeconds;
+    assert.equal(read("12"), 12);
+    assert.equal(read("12", 0), 0);
+    assert.equal(read("12", 5), 5);
+    assert.equal(read("auto"), undefined);
 });
 
 test("空媒体草稿同时初始化提交提示词和编辑提示词", () => {

@@ -111,6 +111,10 @@ export function readNodeGenerationSpec(node: Pick<CanvasNodeData, "type" | "meta
             if (value === undefined || value === null || (value === "" && field.name !== "audioVoice")) delete options[field.name];
             else options[field.name] = optionValue(value, field.kind, field.node);
         }
+    } else if (mode === "video" && stored.mode === mode && options.durationSeconds === undefined) {
+        const value = metadata.seconds;
+        const seconds = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
+        if (typeof seconds === "number" && Number.isSafeInteger(seconds) && seconds >= 0) options.durationSeconds = seconds;
     }
     const modelSelection =
         stored?.modelSelection ||
