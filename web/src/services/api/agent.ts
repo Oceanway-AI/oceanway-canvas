@@ -294,7 +294,7 @@ export function subscribeAgentEvents(
                 const response = await fetch(`${String(apiBaseURL).replace(/\/+$/, "")}/agent/runs/${encodeURIComponent(runId)}/events?after=${cursor}`, {
                     credentials: "include",
                     signal: attempt.signal,
-                    headers: { Accept: "text/event-stream", "Last-Event-ID": String(cursor) },
+                    headers: { Accept: "text/event-stream", ...(cursor || failures ? { "Last-Event-ID": String(cursor) } : {}) },
                 });
                 if (!response.ok) {
                     const error = new AgentStreamError(response.status);
