@@ -46,6 +46,8 @@ const sendInputs: Array<Record<string, any>> = [];
 const createInputs: Array<Record<string, any>> = [];
 let sendFailure: Error | undefined;
 let profileOffline = false;
+let draftProfile: ((canvasId?: string) => Promise<void>) | undefined;
+let prepareDraft: ((canvasId: string) => void) | undefined;
 let capabilitiesOverride: (() => Promise<unknown>) | undefined;
 let sendOverride: (() => Promise<{ run: AgentRun }>) | undefined;
 let createOverride: (() => Promise<{ run: AgentRun }>) | undefined;
@@ -78,8 +80,9 @@ mock.module("antd", () => ({
 }));
 mock.module("@/services/api/agent", () => ({
     ...agent,
-    getAgentProfile: async () => {
+    getAgentProfile: async ({ canvasId }: { canvasId?: string }) => {
         if (profileOffline) throw new ApiError("Network Error", { retryable: true });
+        await draftProfile?.(canvasId);
         return { revision: "profile", hash: "hash", layers: [] };
     },
     getAgentCapabilities: async () => (capabilitiesOverride ? capabilitiesOverride() : { permissionModes: ["request_approval"], skills: true }),
@@ -151,7 +154,7 @@ mock.module("@/services/api/skills", () => ({
         throw new Error("不应安装技能");
     },
 }));
-mock.module("@/services/user-data-sync", () => ({ prepareCanvasForCloudAction: async () => {}, applyAgentCanvasPatches: async () => {}, refreshCanvasAfterAgent: async () => {} }));
+mock.module("@/services/user-data-sync", () => ({ prepareCanvasForCloudAction: async (id: string) => prepareDraft?.(id), applyAgentCanvasPatches: async () => {}, refreshCanvasAfterAgent: async () => {} }));
 mock.module("@/components/skills/skill-curation-browser", () => ({ useSkillCuration: () => ({ curation: null }), curationQuery: () => ({}) }));
 mock.module("@/components/canvas/canvas-cloud-agent-chat-ui", () => ({
     AGENT_SCENE_DEFS: [],
@@ -287,6 +290,47 @@ function configureModels(ambiguous: boolean) {
     const config = normalizeConfigSnapshot({ config: { ...defaultConfig, channels, textModel: "paid-channel::paid-model", model: "paid-channel::paid-model" } }).config;
     useConfigStore.setState({ config });
 }
+
+test.each(["已保存", "仍不可读", "切换画布", "切换账号"])("草稿画布首句：准备后%s", async (scenario) => {
+    const calls: string[] = [];
+    let prepared = false;
+    draftProfile = async (id) => {
+        calls.push(`profile:${id}`);
+        if (!prepared || scenario === "仍不可读") throw new ApiError("画布不可读", { status: 404 });
+    };
+    prepareDraft = (id) => {
+        calls.push(`prepare:${id}`);
+        prepared = true;
+        if (scenario === "切换画布") useGlobalAgentStore.setState({ canvas: null });
+        if (scenario === "切换账号") setActiveUserScope("other");
+    };
+    const mounted = await mount(chat("draft", null), []);
+    try {
+        createOverride = async () => ({ run: makeRun("accepted", "running") });
+        expect(calls).toEqual(["profile:shared-canvas"]);
+        await act(async () => composer.onPromptChange("整理这张新画布"));
+        await act(async () => {
+            composer.onSubmit();
+            composer.onSubmit();
+            await settle();
+        });
+        expect(calls).toContain("prepare:shared-canvas");
+        if (scenario === "已保存") {
+            expect(calls).toEqual(["profile:shared-canvas", "prepare:shared-canvas", "profile:shared-canvas"]);
+            expect(createInputs).toHaveLength(1);
+            expect(createInputs[0]).toMatchObject({ canvasId: "shared-canvas", profileRevision: "profile", prompt: "整理这张新画布" });
+        } else {
+            expect(createInputs).toHaveLength(0);
+            expect(pending).toBeNull();
+            if (scenario === "仍不可读") expect(calls).toEqual(["profile:shared-canvas", "prepare:shared-canvas", "profile:shared-canvas"]);
+        }
+    } finally {
+        draftProfile = undefined;
+        prepareDraft = undefined;
+        await mounted.close();
+        setActiveUserScope("sync-user");
+    }
+});
 
 test("无画布首句：浏览器误报离线但 Agent 可达时直接创建一轮", async () => {
     Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
