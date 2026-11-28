@@ -14,7 +14,7 @@ import (
 
 func studioAgentGenerationCommand(e studioExecutionEnvelope) platformclient.MediaCommand {
 	c := e.Consumption
-	return platformclient.MediaCommand{RequestID: e.RequestID, ProductTaskID: e.AgentRunID, Model: e.Selection.Name, VariantID: e.Selection.ID, NativeRequest: e.Body, Consumption: &platformclient.MediaGenerationConstraints{ExpectedCapabilityRevision: c.ExpectedCapabilityRevision, ExpectedConnectionRevision: c.ExpectedConnectionRevision, ExpectedPriceVersion: c.ExpectedPriceVersion, BillingPreference: c.BillingPreference, WalletMaxPoints: c.WalletMaxPoints}}
+	return platformclient.MediaCommand{ReceiptContract: platformclient.MediaTaskFundingReceiptV1, RequestID: e.RequestID, ProductTaskID: e.AgentRunID, Model: e.Selection.Name, VariantID: e.Selection.ID, NativeRequest: e.Body, Consumption: &platformclient.MediaGenerationConstraints{ExpectedCapabilityRevision: c.ExpectedCapabilityRevision, ExpectedConnectionRevision: c.ExpectedConnectionRevision, ExpectedPriceVersion: c.ExpectedPriceVersion, BillingPreference: c.BillingPreference, WalletMaxPoints: c.WalletMaxPoints}}
 }
 
 func (s *Service) approveStudioGeneration(run *model.CloudAgentExecution, state *cloudAgentRuntime, prepared *studioAgentMediaPrepared, quoteID, reason string, policy RuntimePolicySetting, followUp bool) error {

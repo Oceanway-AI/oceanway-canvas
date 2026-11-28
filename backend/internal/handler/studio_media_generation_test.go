@@ -41,6 +41,9 @@ func TestStudioMediaGenerationOriginalAdmissionAndRead(t *testing.T) {
 					if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 						t.Error(err)
 					}
+					if in.ReceiptContract != platformclient.MediaTaskFundingReceiptV1 {
+						t.Error("missing native Task funding receipt contract")
+					}
 					requestID, productTask = in.RequestID, in.ProductTaskID
 					if requestID != "original-v1" || productTask == "" || in.VariantID != "generate" || in.Model != "exact-image" || in.Consumption == nil || in.Consumption.WalletMaxPoints != "0" || !strings.Contains(string(in.NativeRequest), `"prompt":"cat"`) {
 						t.Errorf("bad frozen command")
@@ -55,7 +58,7 @@ func TestStudioMediaGenerationOriginalAdmissionAndRead(t *testing.T) {
 						t.Error("read changed request id")
 					}
 				}
-				_ = json.NewEncoder(w).Encode(map[string]any{"request_id": requestID, "task_id": "platform-task-1", "revision": 1 + reads, "execution_state": "running", "funds_state": "reserved", "outputs": []any{}, "retry_after_ms": 2500})
+				_ = json.NewEncoder(w).Encode(map[string]any{"request_id": requestID, "task_id": "platform-task-1", "revision": 1 + reads, "execution_state": "running", "outputs": []any{}, "retry_after_ms": 2500})
 			}
 			auth := "platform_session=alice"
 			f.request(t, "GET", "/api/model-catalog", auth, "", 200)
