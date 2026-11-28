@@ -16,6 +16,9 @@ func studioTaskFunds(task model.Task) *model.StudioTaskFunds {
 		SettledPoints string `json:"settledPoints"`
 	}
 	if json.Unmarshal([]byte(task.ResultJSON), &result) != nil || result.FundsState == "" {
+		if task.Type == "canvas_text" {
+			return nil
+		}
 		return funds
 	}
 	funds.FundsState, funds.StateAvailable = result.FundsState, true
