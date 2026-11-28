@@ -8,4 +8,6 @@ export const useModelCatalogStore = create<{
     status: ModelCatalogStatus;
     error: string | null;
     preview: PickerPreviewRow[];
-}>(() => ({ status: "idle", error: null, preview: [] }));
+    hasMore: boolean;
+    loadingMore: boolean;
+}>(() => ({ status: "idle", error: null, preview: [], hasMore: false, loadingMore: false }));

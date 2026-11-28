@@ -158,7 +158,8 @@ type CreationMessageStateTone = "pending" | "syncing" | "sync" | "error" | "canc
 
 // 消息头部的状态标签：区分“生成中 / 重新连接中 / 结果待同步 / 生成失败 / 已停止”，不把页面没跟上说成生成失败。
 function creationMessageState(item: CreationMessage): { tone: CreationMessageStateTone; label: string } | null {
-    if (item.status === "pending" || item.status === "streaming") return item.syncInterrupted ? { tone: "syncing", label: "重新连接中" } : item.status === "pending" ? { tone: "pending", label: "生成中" } : null;
+    if (item.status === "pending" || item.status === "streaming")
+        return item.syncInterrupted ? { tone: "syncing", label: item.studioGenerationCommand && !item.taskIds?.length ? "提交待确认" : "重新连接中" } : item.status === "pending" ? { tone: "pending", label: "生成中" } : null;
     if (item.status === "cancelled") return { tone: "cancelled", label: "已停止" };
     if (item.status === "error") {
         if (creationMessageNeedsResultSync(item)) return { tone: "sync", label: "结果待同步" };
@@ -168,12 +169,12 @@ function creationMessageState(item: CreationMessage): { tone: CreationMessageSta
     return null;
 }
 
-function CreationSyncNotice({ refreshing, onRefresh, onRetry }: { refreshing: boolean; onRefresh: () => void; onRetry: () => void }) {
+function CreationSyncNotice({ refreshing, onRefresh, onRetry, awaitingReceipt }: { refreshing: boolean; onRefresh: () => void; onRetry: () => void; awaitingReceipt?: boolean }) {
     return (
         <div className="creation-sync-notice" role="status">
             <span>
                 <CloudOff aria-hidden="true" />
-                连接中断，正在自动重连
+                {awaitingReceipt ? "尚未收到任务编号，正在核对原提交" : "连接中断，正在自动重连"}
             </span>
             <button type="button" onClick={onRefresh} disabled={refreshing} aria-busy={refreshing || undefined}>
                 <RefreshCw aria-hidden="true" className={refreshing ? "animate-spin" : undefined} />
@@ -590,7 +591,11 @@ export function CreationMediaPending({ item, refreshing, onRefresh, onRetry }: {
                 {hint ? <span className="creation-media-pending-hint">{hint}</span> : null}
             </span>
             <span className="creation-media-pending-foot">
-                {item.syncInterrupted ? <CreationSyncNotice refreshing={refreshing} onRefresh={onRefresh} onRetry={onRetry} /> : uncertain ? null : <GenerationPhaseSteps step={generationPhaseStep(phase)} progress={progress} />}
+                {item.syncInterrupted ? (
+                    <CreationSyncNotice refreshing={refreshing} onRefresh={onRefresh} onRetry={onRetry} awaitingReceipt={Boolean(item.studioGenerationCommand && !item.taskIds?.length)} />
+                ) : uncertain ? null : (
+                    <GenerationPhaseSteps step={generationPhaseStep(phase)} progress={progress} />
+                )}
             </span>
         </div>
     );

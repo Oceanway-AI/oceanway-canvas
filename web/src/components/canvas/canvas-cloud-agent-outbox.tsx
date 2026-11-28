@@ -9,7 +9,7 @@ import type { CanvasResourceReference } from "@/lib/canvas/canvas-resource-refer
 import { agentOutboxItemEditable, agentOutboxPauseLabel, agentOutboxPreview, type AgentOutbox, type AgentOutboxItem } from "@/lib/canvas/agent-outbox";
 
 export type AgentOutboxPrimaryAction = {
-    kind: "interject" | "send" | "answer";
+    kind: "interject" | "send" | "answer" | "reconnect";
     label: string;
     /** 不能执行时的原因；null 表示可以执行。 */
     disabledReason: string | null;
@@ -133,7 +133,7 @@ export function AgentOutboxTray({
                         const meta =
                             item.status === "interjecting" ? t("canvasA.outbox.interjecting") : item.status === "dispatching" ? t("canvasA.outbox.dispatching") : item.status === "editing" ? t("canvasA.outbox.editing") : item.error || itemMeta(item);
                         const editable = agentOutboxItemEditable(item);
-                        const ActionIcon = action.kind === "interject" ? Zap : Send;
+                        const ActionIcon = action.kind === "reconnect" ? RotateCcw : action.kind === "interject" ? Zap : Send;
                         return (
                             <motion.li
                                 key={item.id}
@@ -159,7 +159,10 @@ export function AgentOutboxTray({
                                         className="agent-outbox-action"
                                         disabled={busy || Boolean(action.disabledReason)}
                                         onClick={() => onPrimary(item, action)}
-                                        title={action.disabledReason || (action.kind === "interject" ? t("canvasA.outbox.interjectHint") : action.kind === "answer" ? t("canvasA.outbox.answerHint") : t("canvasA.outbox.sendHint"))}
+                                        title={
+                                            action.disabledReason ||
+                                            (action.kind === "reconnect" ? action.label : action.kind === "interject" ? t("canvasA.outbox.interjectHint") : action.kind === "answer" ? t("canvasA.outbox.answerHint") : t("canvasA.outbox.sendHint"))
+                                        }
                                     >
                                         {busy ? <LoaderCircle className="size-3 animate-spin" aria-hidden="true" /> : <ActionIcon className="size-3" aria-hidden="true" />}
                                         {action.label}

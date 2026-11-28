@@ -35,7 +35,7 @@ func (s *Service) createStudioGeneration(ctx context.Context, userID string, ses
 	if err != nil {
 		return nil, response, err
 	}
-	command := platformclient.MediaCommand{RequestID: req.CommandID, ProductTaskID: id, Model: selected.Name, VariantID: selected.ID, NativeRequest: body}
+	command := platformclient.MediaCommand{ReceiptContract: platformclient.MediaTaskFundingReceiptV1, RequestID: req.CommandID, ProductTaskID: id, Model: selected.Name, VariantID: selected.ID, NativeRequest: body}
 	if o := req.Platform; o != nil {
 		command.WorkspaceID = o.WorkspaceID
 		command.Consumption = &platformclient.MediaGenerationConstraints{ExpectedCapabilityRevision: o.ExpectedCapabilityRevision, ExpectedConnectionRevision: o.ExpectedConnectionRevision, ExpectedPriceVersion: o.ExpectedPriceVersion, WalletMaxPoints: o.WalletMaxPoints, BillingPreference: o.BillingPreference}
@@ -194,7 +194,7 @@ func (s *Service) projectStudioGeneration(ctx context.Context, task *model.Task,
 	if g.Progress != nil {
 		task.Progress = *g.Progress
 	}
-	if g.FundsState == "reserved" && g.RetryAfterMS > 0 && (g.ExecutionState == "succeeded" || g.ExecutionState == "failed" || g.ExecutionState == "cancelled" || g.ExecutionState == "rejected") {
+	if (g.FundsState == "reserved" || g.FundsState == "") && g.RetryAfterMS > 0 && (g.ExecutionState == "succeeded" || g.ExecutionState == "failed" || g.ExecutionState == "cancelled" || g.ExecutionState == "rejected") {
 		task.Stage = "正在处理原请求"
 		if g.ExecutionState == "succeeded" {
 			task.Stage = "生成已完成，等待平台结算"

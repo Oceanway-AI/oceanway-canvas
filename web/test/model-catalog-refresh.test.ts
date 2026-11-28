@@ -44,7 +44,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         storage.delete(key);
     };
     const { apiClient } = await import("@/services/api/request");
-    const { refreshSystemChannels, applyUserSession, ensurePlatformModelDetail } = await import("@/lib/user-session");
+    const { refreshSystemChannels, applyUserSession, ensurePlatformModelDetail, loadRemainingModelCatalog } = await import("@/lib/user-session");
     const { useConfigStore, createModelChannel, normalizeConfigSnapshot, CONFIG_STORE_KEY } = await import("@/stores/use-config-store");
     const { useUserStore } = await import("@/stores/use-user-store");
     const { useModelCatalogStore } = await import("@/stores/use-model-catalog-store");
@@ -79,7 +79,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         });
         return { promise, resolve, reject };
     }
-    let loadCatalog: (cursor?: string) => Promise<unknown>;
+    let loadCatalog: (cursor?: string, params?: Record<string, unknown>) => Promise<unknown>;
     let loadDetail: (name: string) => Promise<unknown>;
     let requests = 0;
     beforeEach(() => {
@@ -100,7 +100,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
             let data: unknown;
             if (config.url === "/model-catalog/summaries") {
                 requests++;
-                data = await loadCatalog(config.params?.cursor);
+                data = await loadCatalog(config.params?.cursor, config.params);
             } else if (config.url === "/model-catalog/detail") {
                 data = await loadDetail(config.params?.model_name);
             } else if (config.url === "/auth/workspace-context") data = { userId: useUserStore.getState().user?.id, workspaceId: "personal-" + useUserStore.getState().user?.id, workspaceKind: "personal", membershipGeneration: 0, supported: true };
@@ -200,8 +200,9 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         chooseModel("platform::chosen-model");
         const second = deferred<unknown>();
         loadCatalog = async (cursor) => (cursor ? second.promise : { ...catalog("first-model"), hasMore: true, nextCursor: "page-2" });
-        const pending = refreshSystemChannels();
-        await Bun.sleep(10);
+        await refreshSystemChannels();
+        expect(requests).toBe(3);
+        const pending = loadRemainingModelCatalog();
         expect(modelNames()).toContain("first-model");
         expect(useConfigStore.getState().pendingModelSelections.textModel).toBe("platform::chosen-model");
         second.resolve(catalog("chosen-model"));
@@ -223,6 +224,76 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         expect(details).toBe(1);
         expect(useConfigStore.getState().config.channels[0].modelDetails?.[0].platform?.state).toBe("detail");
         expect(scopedLocalStorage.getItem(CONFIG_STORE_KEY)).not.toContain("exact-detail");
+    });
+
+    test("opening a video picker while only text is loaded shows progress and receives later media automatically", async () => {
+        const second = deferred<unknown>();
+        const third = deferred<unknown>();
+        loadCatalog = async (cursor) => (cursor === "video" ? third.promise : cursor === "image" ? second.promise : { ...textCatalog("text-first"), hasMore: true, nextCursor: "image" });
+        await refreshSystemChannels();
+        const loading = loadRemainingModelCatalog();
+        function Picker() {
+            const config = useConfigStore((state) => state.config);
+            return createElement(ModelPicker, { config, capability: "video", onChange: () => {} });
+        }
+        const host = document.createElement("div");
+        document.body.append(host);
+        const root = createRoot(host);
+        try {
+            await act(async () => root.render(createElement(Picker)));
+            await act(async () => host.querySelector<HTMLButtonElement>("[aria-haspopup]")!.click());
+            expect(document.body.textContent).toContain("正在加载模型目录");
+            expect(document.body.textContent).not.toContain("暂无支持当前输入的视频模型");
+            await act(async () => {
+                const image = mediaCatalog("image-later");
+                image.channels[0].models[0].capability = "image";
+                Object.assign(image.channels[0].models[0].platform, { model_type: "image" });
+                second.resolve({ ...image, hasMore: true, nextCursor: "video" });
+                third.resolve(mediaCatalog("video-last"));
+                await loading;
+            });
+            expect(modelNames()).toEqual(["text-first", "image-later", "video-last", "custom-text"]);
+            expect(useModelCatalogStore.getState().hasMore).toBe(false);
+            expect(document.body.textContent).not.toContain("正在加载模型目录");
+            expect(requests).toBe(3);
+        } finally {
+            await act(async () => root.unmount());
+            host.remove();
+        }
+    });
+
+    test("a later page failure retains the visible models and explicit retry resumes the same cursor", async () => {
+        const cursors: (string | undefined)[] = [];
+        let available = false;
+        loadCatalog = async (cursor) => {
+            cursors.push(cursor);
+            if (!cursor) return { ...textCatalog("text-kept"), hasMore: true, nextCursor: "media" };
+            if (!available) throw new Error("模型目录服务暂不可用");
+            return mediaCatalog("video-recovered");
+        };
+        await refreshSystemChannels();
+        await loadRemainingModelCatalog();
+        expect(modelNames()).toContain("text-kept");
+        expect(useModelCatalogStore.getState().error).toContain("暂不可用");
+        expect(requests).toBe(2);
+        available = true;
+        await loadRemainingModelCatalog();
+        expect(cursors).toEqual([undefined, "media", "media"]);
+        expect(modelNames()).toContain("video-recovered");
+        expect(useModelCatalogStore.getState().error).toBeNull();
+    });
+
+    test("logout stops automatic pagination and ignores its pending media page", async () => {
+        const next = deferred<unknown>();
+        loadCatalog = async (cursor) => (cursor ? next.promise : { ...textCatalog("text"), hasMore: true, nextCursor: "media" });
+        await refreshSystemChannels();
+        const pending = loadRemainingModelCatalog();
+        await applyUserSession({ provider: "platform", user: null });
+        next.resolve({ ...mediaCatalog("old-video"), hasMore: true, nextCursor: "another" });
+        await pending;
+        expect(requests).toBe(2);
+        expect(modelNames()).not.toContain("old-video");
+        expect(useModelCatalogStore.getState().status).toBe("idle");
     });
 
     test.each(["text", "video"] as const)("the mounted %s picker loads its saved selection after each refresh", async (capability) => {
@@ -341,11 +412,17 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
 
     test("mixed revisions and repeated cursors reject partial permissions", async () => {
         loadCatalog = async (cursor) => (cursor ? { ...catalog("second"), catalogRevision: "changed" } : { ...catalog("first"), hasMore: true, nextCursor: "page-2" });
-        await expect(refreshSystemChannels()).rejects.toThrow("模型目录已更新");
-        expect(modelNames()).toEqual(["custom-text"]);
+        await refreshSystemChannels();
+        await loadRemainingModelCatalog();
+        expect(requests).toBe(3);
+        expect(modelNames()).toContain("first");
+        expect(modelNames()).not.toContain("second");
         loadCatalog = async (cursor) => ({ ...catalog(cursor ? "second" : "first"), hasMore: true, nextCursor: "same" });
-        await expect(refreshSystemChannels()).rejects.toThrow("模型目录分页响应无效");
-        expect(modelNames()).toEqual(["custom-text"]);
+        await refreshSystemChannels();
+        await loadRemainingModelCatalog();
+        expect(useModelCatalogStore.getState().error).toContain("模型目录分页响应无效");
+        expect(modelNames()).toContain("first");
+        expect(modelNames()).not.toContain("second");
     });
 
     test("a catalog larger than the browser quota remains in memory and never fills localStorage", async () => {
@@ -489,10 +566,10 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         expect(modelNames()).toEqual(["custom-text"]);
         expect(useConfigStore.getState().config.channels[0]).toMatchObject(custom);
         expect(useModelCatalogStore.getState().status).toBe("error");
-        expect(useModelCatalogStore.getState().error).toContain("重试");
+        expect(useModelCatalogStore.getState().error).toContain("fixture unavailable");
         loadCatalog = async () => catalog("fresh-model");
         await refreshSystemChannels();
-        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null, preview: [] });
+        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null, preview: [], hasMore: false, loadingMore: false });
         expect(modelNames()).toEqual(["fresh-model", "custom-text"]);
     });
 
@@ -536,6 +613,50 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         expect(useModelCatalogStore.getState().status).toBe("error");
     });
 
+    test("startup opens the workspace before the first page resolves and shares that read", async () => {
+        const page = deferred<unknown>();
+        loadCatalog = () => page.promise;
+        await applyUserSession({ provider: "platform", user: user("startup-slow") });
+        expect(useUserStore.getState().hydrated).toBe(true);
+        expect(requests).toBe(1);
+        expect(useModelCatalogStore.getState().status).toBe("loading");
+        const pending = refreshSystemChannels();
+        page.resolve(catalog("ready"));
+        await pending;
+        expect(requests).toBe(1);
+        expect(modelNames()).toContain("ready");
+    });
+
+    test("startup preloads the default and finishes pagination without a picker click", async () => {
+        const first = textCatalog("first"),
+            target = textCatalog("default"),
+            detail = textCatalog("default", "detail");
+        for (const page of [first, target, detail]) page.channels[0].id = "oceanway-platform";
+        Object.assign(target.channels[0].models[0].platform, { is_default: true });
+        Object.assign(detail.channels[0].models[0].platform, { is_default: true });
+        let details = 0;
+        loadDetail = async () => {
+            details++;
+            return { model: detail.channels[0].models[0] };
+        };
+        loadCatalog = async (cursor, params) => {
+            if (cursor) return target;
+            if (params?.defaults_only) {
+                expect(params.model_type).toBe("text");
+                return target;
+            }
+            return { ...first, hasMore: true, nextCursor: "later" };
+        };
+        await applyUserSession({ provider: "platform", user: user("startup-default") });
+        await Bun.sleep(15);
+        await loadRemainingModelCatalog();
+        expect(requests).toBe(3);
+        expect(details).toBe(1);
+        expect(useModelCatalogStore.getState().hasMore).toBe(false);
+        expect(modelNames().filter((n) => n === "default")).toHaveLength(1);
+        expect(useModelCatalogStore.getState().error).toBeNull();
+    });
+
     test("new session for the same identity ignores a late old failure", async () => {
         const old = deferred<unknown>();
         loadCatalog = () => old.promise;
@@ -546,7 +667,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         await refreshSystemChannels();
         old.reject(new Error("old session failure"));
         await pending;
-        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null, preview: [] });
+        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null, preview: [], hasMore: false, loadingMore: false });
         expect(modelNames()).toEqual(["new-session-model", "custom-text"]);
     });
 
@@ -565,7 +686,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         await applyUserSession({ provider: "platform", user: null });
         old.resolve(catalog("logged-out-model"));
         await pending;
-        expect(useModelCatalogStore.getState()).toEqual({ status: "idle", error: null, preview: [] });
+        expect(useModelCatalogStore.getState()).toEqual({ status: "idle", error: null, preview: [], hasMore: false, loadingMore: false });
         expect(modelNames()).not.toContain("logged-out-model");
         expect(useConfigStore.getState().config.channels.every((channel) => channel.scope !== "system")).toBe(true);
     });

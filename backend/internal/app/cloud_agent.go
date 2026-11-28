@@ -27,16 +27,19 @@ const cloudAgentOperation = "cloud_agent"
 // reuses transactional billing, worker leases, cancellation and text replay.
 type CloudAgentRequest struct {
 	// Server replaces this declaration at Studio admission before persisting it.
-	PlatformTextCapability *platformclient.TextCapability `json:"platformTextCapability,omitempty"`
-	ReasoningMode          string                         `json:"reasoningMode,omitempty"`
-	ProfileRevision        string                         `json:"profileRevision,omitempty"`
-	CanvasID               string                         `json:"canvasId"`
-	Prompt                 string                         `json:"prompt"`
-	Model                  string                         `json:"model,omitempty"`
-	LogicalModelID         string                         `json:"logicalModelId,omitempty"`
-	ChannelID              string                         `json:"channelId,omitempty"`
-	ChannelModelKey        string                         `json:"channelModelKey,omitempty"`
-	PermissionMode         string                         `json:"permissionMode"`
+	PlatformTextCapability     *platformclient.TextCapability `json:"platformTextCapability,omitempty"`
+	ReasoningMode              string                         `json:"reasoningMode,omitempty"`
+	ProfileRevision            string                         `json:"profileRevision,omitempty"`
+	CanvasID                   string                         `json:"canvasId"`
+	Prompt                     string                         `json:"prompt"`
+	Model                      string                         `json:"model,omitempty"`
+	LogicalModelID             string                         `json:"logicalModelId,omitempty"`
+	ChannelID                  string                         `json:"channelId,omitempty"`
+	ChannelModelKey            string                         `json:"channelModelKey,omitempty"`
+	ExpectedPriceVersion       string                         `json:"expectedPriceVersion,omitempty"`
+	ExpectedCapabilityRevision string                         `json:"expectedCapabilityRevision,omitempty"`
+	ExpectedConnectionRevision int64                          `json:"expectedConnectionRevision,omitempty"`
+	PermissionMode             string                         `json:"permissionMode"`
 	// PinnedSkillIDs 是用户为对话固定或在本条消息里点名的技能；其他已安装技能由 Agent 按目录自动发现。
 	PinnedSkillIDs        []string `json:"pinnedSkillIds,omitempty"`
 	ContextScope          []string `json:"contextScope"`
@@ -133,9 +136,10 @@ type CloudAgentRun struct {
 // CloudAgentRunViewOptions 是运行详情的读取选项：SinceSeq 只取该序号之后的增量，
 // EventLimit 覆盖默认页大小。零值即默认视图（尾部一窗）。
 type CloudAgentRunViewOptions struct {
-	SinceSeq   int
-	EventLimit int
-	FromStart  bool
+	EventStream bool
+	SinceSeq    int
+	EventLimit  int
+	FromStart   bool
 }
 
 func validateCloudAgentRequest(req *CloudAgentRequest) error {
@@ -355,7 +359,7 @@ func (s *Service) CloudAgentRun(userID, id string, options ...CloudAgentRunViewO
 	// runtime blob was compacted or damaged; the output path has a deliberately
 	// read-only, minimal fallback for that case. The ensure path is only for a
 	// legacy root task whose execution row has not been created yet.
-	if _, lookupErr := s.repo.CloudAgent(userID, id); errors.Is(lookupErr, gorm.ErrRecordNotFound) {
+	if _, lookupErr := s.repo.CloudAgentRevision(userID, id); errors.Is(lookupErr, gorm.ErrRecordNotFound) {
 		if err := s.ensureCloudAgentExecution(task, state); err != nil {
 			return nil, err
 		}

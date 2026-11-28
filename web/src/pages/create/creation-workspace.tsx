@@ -231,7 +231,8 @@ export function CreationComposer(props: ComposerProps) {
     const [trackState, setTrackState] = useState({ canScrollLeft: false, canScrollRight: false, isExpanded: false, isDragging: false });
     const interactionBusy = props.busy || props.referenceReplacementBusy;
     const modelDetailPending = platformModelDetailPending(props.config, props.model);
-    const catalogLoading = useModelCatalogStore((state) => state.status === "loading");
+    const catalogLoading = useModelCatalogStore((state) => state.status === "loading" || (state.hasMore && !state.error));
+    const catalogError = useModelCatalogStore((state) => state.error);
     const modelAvailable = !modelDetailPending && Boolean(props.model && (props.mode === "image" ? props.imageProfile : props.mode === "video" ? props.videoProfile : true));
     const hasOptions = (props.mode === "image" ? props.config.imageModels : props.mode === "video" ? props.config.videoModels : props.config.textModels).length > 0;
     const canSubmit = modelAvailable && Boolean(props.prompt.trim()) && !props.missingReferenceImages && !interactionBusy;
@@ -553,7 +554,7 @@ export function CreationComposer(props: ComposerProps) {
                                 showOptionPrices
                                 variant="creation"
                             />
-                            {!modelAvailable && !modelDetailPending && !hasOptions ? <span role="status">{catalogLoading ? "正在获取模型目录…" : "当前模式暂无可用模型，请选择其他模式或稍后重试"}</span> : null}
+                            {!modelAvailable && !modelDetailPending && !hasOptions ? <span role="status">{catalogLoading ? "正在获取模型目录…" : catalogError || "当前模式暂无可用模型，请选择其他模式或稍后重试"}</span> : null}
                         </>
                     )}
                     {nativeMediaProfile(props.config, props.model) || (props.mode === "video" && props.videoProfile) || (props.mode === "image" && imageSettingsSupported) ? <GenerationSettingsMenu {...props} /> : null}

@@ -55,6 +55,7 @@ import {
     type AgentRun,
 } from "@/services/api/agent";
 import { agentApprovalMatchesSettings, agentApprovalTargetGenerating } from "@/lib/canvas/agent-media-approval";
+import { ApiError } from "@/services/api/request";
 import { appendAgentPromptPrefill } from "@/lib/canvas/agent-prompt-prefill";
 import type { CanvasNodeData } from "@/types/canvas";
 import type { AgentMediaSettings } from "@/services/api/agent";
@@ -110,7 +111,7 @@ import {
 import { loadCloudAgentConversation, mergeCloudAgentConversations, refreshCloudAgentConversations } from "@/services/cloud-agent-history";
 import { canvasCloudAgentConversation, cloudAgentFollowDecision } from "@/lib/canvas/cloud-agent-follow";
 import { resolveCloudAgentModel } from "@/lib/canvas/cloud-agent-model-restore";
-import { logicalModelIDForConfig, modelDisplayName, modelOptionName, resolveModelRequestConfig, selectableModelsByCapability, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
+import { logicalModelIDForConfig, modelDisplayName, modelOptionName, resolveModelChannel, resolveModelRequestConfig, selectableModelsByCapability, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { modelSupportsImageInspection, selectImageInspectionModel } from "@/lib/canvas/image-to-previs-agent";
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
 import { useUserStore } from "@/stores/use-user-store";
@@ -219,7 +220,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
     const [profileView, setProfileView] = useState<AgentProfileView | null>(null);
     const [profileLoading, setProfileLoading] = useState(false);
     const [profileSaving, setProfileSaving] = useState(false);
-    const [profileError, setProfileError] = useState<string>();
+    const [profileError, setProfileError] = useState<{ message: string; missingCanvas: boolean }>();
     const profileRequestRef = useRef(0);
     const { message: appMessage } = App.useApp();
     const [skills, setSkills] = useState<Skill[]>([]);
@@ -344,15 +345,6 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         setLongTextOffer(null);
     }, [canvasId]);
     useEffect(() => () => releaseAttachmentUrls(draftAttachmentsRef.current), []);
-    useEffect(() => {
-        const update = () => setOnline(navigator.onLine !== false);
-        window.addEventListener("online", update);
-        window.addEventListener("offline", update);
-        return () => {
-            window.removeEventListener("online", update);
-            window.removeEventListener("offline", update);
-        };
-    }, []);
     // ⌘/Ctrl+J：任何页面打开 Agent 并把光标放进输入框；焦点已在 Agent 里时收起。
     useEffect(() => {
         const focusComposer = (attempt = 0) => {
@@ -611,24 +603,60 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
         if (!open || view !== "chat") setSkillsOpen(false);
     }, [open, view]);
 
-    const reloadProfile = useCallback(async () => {
+    const fetchProfile = useCallback(async () => {
         const requestId = ++profileRequestRef.current;
         setProfileLoading(true);
         setProfileError(undefined);
         setProfileView(null);
         try {
             const result = await getAgentProfile({ projectId: domainProjectId, canvasId });
-            if (profileRequestRef.current === requestId) setProfileView(result);
+            if (profileRequestRef.current !== requestId) return;
+            setProfileView(result);
+            // navigator.onLine 是系统提示；当前账号的 Agent 接口响应才证明 Studio 可达。
+            setOnline(true);
+            return result;
         } catch (cause) {
-            if (profileRequestRef.current === requestId) setProfileError(cause instanceof Error ? cause.message : String(cause));
+            if (profileRequestRef.current !== requestId) return;
+            setProfileError({ message: cause instanceof Error ? cause.message : String(cause), missingCanvas: Boolean(canvasId) && cause instanceof ApiError && cause.status === 404 });
+            setOnline(cause instanceof ApiError ? cause.status !== undefined : navigator.onLine !== false);
+            throw cause;
         } finally {
             if (profileRequestRef.current === requestId) setProfileLoading(false);
         }
-    }, [canvasId, domainProjectId]);
+    }, [canvasId, domainProjectId, accountScope, userId]);
+
+    const reloadProfile = useCallback(async () => {
+        // 预读错误已显示在面板；发送时的强校验保留原错误。
+        await fetchProfile().catch(() => undefined);
+    }, [fetchProfile]);
 
     useEffect(() => {
+        const onNetworkChange = () => {
+            if (navigator.onLine === false) setOnline(false);
+            void reloadProfile();
+        };
         void reloadProfile();
+        window.addEventListener("online", onNetworkChange);
+        window.addEventListener("offline", onNetworkChange);
+        return () => {
+            profileRequestRef.current++;
+            window.removeEventListener("online", onNetworkChange);
+            window.removeEventListener("offline", onNetworkChange);
+        };
     }, [reloadProfile]);
+
+    useEffect(() => {
+        if (!open || online) return;
+        const recheck = () => {
+            if (document.visibilityState !== "hidden") void reloadProfile();
+        };
+        window.addEventListener("focus", recheck);
+        document.addEventListener("visibilitychange", recheck);
+        return () => {
+            window.removeEventListener("focus", recheck);
+            document.removeEventListener("visibilitychange", recheck);
+        };
+    }, [open, online, reloadProfile]);
 
     const saveProfile = async (input: { scope: AgentProfileScope; projectId?: string; canvasId?: string; content: string; revision: number }) => {
         setProfileSaving(true);
@@ -1327,6 +1355,10 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
     // 队列项主按钮：运行中插进当前轮；空闲时立即发送（离开了入队时的画布则改在此页面发送；Agent 提问时作为回答）。
     const runOutboxPrimary = (item: AgentOutboxItem, action: AgentOutboxPrimaryAction) => {
         if (action.disabledReason) return;
+        if (action.kind === "reconnect") {
+            void reloadProfile();
+            return;
+        }
         if (action.kind === "interject") {
             void interjectOutboxItem(item);
             return;
@@ -1438,25 +1470,36 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
             // Editing model settings or prompt must not silently create a new charge.
             if (pending?.request && pending.request.prompt !== value) throw new Error("上一条请求结果待确认，请先原样重试上一条消息，再发送新要求");
             if (!pending?.request) {
-                if (profileLoading) throw new Error("正在确认长期偏好快照，请稍后再发送");
-                if (!profileView || profileError) throw new Error("长期偏好快照尚未确认，请重新读取后再发送");
+                if (profileError && !profileError.missingCanvas) throw new Error(profileError.message);
+                const targetIsCurrent = () => {
+                    const activeCanvas = useGlobalAgentStore.getState().canvas;
+                    return accountIsCurrent() && currentScope.current === scope && (activeCanvas?.canvasId ?? "") === canvasId && activeCanvas?.domainProjectId === domainProjectId;
+                };
                 const capabilities = await getAgentCapabilities();
-                if (!accountIsCurrent() || currentScope.current !== scope) return "skipped";
+                if (!targetIsCurrent()) return "skipped";
                 if (!capabilities.permissionModes.includes(settings.permissionMode)) throw new Error("当前后端不支持所选 Agent 权限，请更新后端");
                 if (settings.skillIds.length && !capabilities.skills) throw new Error("当前后端尚未接入技能库");
                 // 只有当前页面是画布时才绑定画布；其他页面发出的是平台级对话轮次。
                 if (canvasId) await prepareCanvasForCloudAction(canvasId);
-                if (!accountIsCurrent() || currentScope.current !== scope) return "skipped";
+                if (!targetIsCurrent()) return "skipped";
+                // 新画布的首次预读可为 404；落库后必须拿到这个目标的有效 revision 才能提交。
+                const profile = profileView && !profileError && !profileLoading ? profileView : await fetchProfile();
+                if (!targetIsCurrent()) return "skipped";
+                if (!profile) throw new Error("长期偏好已重新加载，请确认后再发送");
                 const agentConfig = { ...config, model: effectiveModel };
                 const requestConfig = resolveModelRequestConfig(agentConfig, effectiveModel);
                 const logicalModelId = logicalModelIDForConfig(agentConfig);
+                const platformModel = resolveModelChannel(agentConfig, effectiveModel).modelDetails?.find((item) => item.model === modelOptionName(effectiveModel))?.platform;
                 const focus = outboxItem ? outboxFocus(outboxItem) : liveFocusSnapshot(composerExtras);
                 const input = {
                     canvasId,
                     prompt: value,
                     reasoningMode: settings.reasoningMode,
-                    profileRevision: profileView.revision,
+                    profileRevision: profile.revision,
                     model: modelOptionName(effectiveModel) || undefined,
+                    ...(platformModel?.model_type === "text"
+                        ? { expectedPriceVersion: platformModel.price_version || platformModel.price.version, expectedCapabilityRevision: platformModel.capability_revision, expectedConnectionRevision: platformModel.connection_revision }
+                        : {}),
                     ...(logicalModelId ? { logicalModelId } : requestConfig.channelId ? { channelId: requestConfig.channelId, channelModelKey: modelOptionName(effectiveModel) || undefined } : {}),
                     pinnedSkillIds: [...new Set([...usableSkillIds, ...resolveSkillMentions(value, installedSkills).map((skill) => skill.skillId)])].slice(0, 16),
                     focusNodeIds: canvasId ? focus.focusNodeIds : [],
@@ -1642,7 +1685,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
             outboxDispatchRef.current = false;
         }
     };
-    const outboxDispatchReady = historyHydrated && pendingHydrated && outboxReady && !cloudOpeningId && Boolean(profileView) && !profileLoading && !profileError;
+    const outboxDispatchReady = historyHydrated && pendingHydrated && outboxReady && !cloudOpeningId && !profileLoading && (Boolean(profileView) || Boolean(profileError?.missingCanvas));
     const outboxDispatchBlocker = agentOutboxDispatchBlocker(outbox, {
         ready: outboxDispatchReady,
         requestInFlight: busy || Boolean(pendingSubmission.current?.request),
@@ -2363,10 +2406,12 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                   : "本轮结束后依次发送"
             : outboxDispatchBlocker === "request"
               ? "上一条消息确认后发送"
-              : outboxDispatchBlocker === "offline"
+              : outboxDispatchBlocker === "offline" || (outboxDispatchBlocker === "not_ready" && !online)
                 ? online
                     ? "连接恢复后发送"
-                    : "离线，联网后继续"
+                    : profileLoading
+                      ? "正在检查连接…"
+                      : "暂时连不上 Agent，消息已保留"
                 : outboxDispatchBlocker === "canvas_busy"
                   ? "画布空闲后发送"
                   : outboxDispatchBlocker === "scope_changed"
@@ -2378,13 +2423,16 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                             ? "第 1 条没发出去，处理后继续"
                             : "处理中…"
                       : outboxDispatchBlocker === "not_ready"
-                        ? "正在准备…"
+                        ? profileError
+                            ? "Agent 偏好读取失败"
+                            : "正在准备…"
                         : outboxDispatchBlocker === null
                           ? "正在发送…"
                           : "";
 
     const outboxPrimaryAction = (item: AgentOutboxItem): AgentOutboxPrimaryAction => {
         if (agentRunAcceptsInterjection(run) || stopping) return { kind: "interject", label: "插话", disabledReason: agentOutboxInterjectBlocker(item, outboxInterjectContext()) };
+        if (!online || (profileError && !profileError.missingCanvas)) return { kind: "reconnect", label: online ? "重读偏好" : "重新连接", disabledReason: profileLoading ? "正在检查连接…" : null };
         const kind = pendingQuestion ? "answer" : "send";
         const label = pendingQuestion ? "作为回答发送" : item.canvasId !== canvasId ? "在此页面发送" : item.status === "failed" ? "重试" : "立即发送";
         const disabledReason = running
@@ -2518,7 +2566,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                                         profileView={profileView}
                                         profileLoading={profileLoading}
                                         profileSaving={profileSaving}
-                                        profileError={profileError}
+                                        profileError={profileError?.message}
                                         projectId={domainProjectId}
                                         canvasId={canvasId}
                                         onReloadProfile={reloadProfile}

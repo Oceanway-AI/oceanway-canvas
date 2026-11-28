@@ -14,6 +14,17 @@ type SubmissionDependencies = {
 
 const submissions = new WeakMap<CreateTaskInput, { owner: string; commandId: string }>();
 
+// StudioCreateTask and StudioTaskByCommand both reject other IDs before looking up or creating a task.
+export class InvalidStudioGenerationCommand extends Error {
+    constructor() {
+        super("这次提交的任务编号无效，未创建生成任务。请重新编辑后提交。");
+    }
+}
+
+export function assertStudioGenerationCommand(commandId: string) {
+    if (!commandId || commandId.length > 128 || /[^A-Za-z0-9_-]/.test(commandId)) throw new InvalidStudioGenerationCommand();
+}
+
 // A lost create response only reads the original command. No second POST is
 // made, and an account switch cannot adopt another account's pending task.
 export async function submitPlatformTask(input: CreateTaskInput, deps: SubmissionDependencies) {
@@ -31,6 +42,7 @@ export async function submitPlatformTask(input: CreateTaskInput, deps: Submissio
     }
     if (submission.owner !== scope) throw new Error("账号已切换，请在原账号中查看任务状态");
     const { commandId } = submission;
+    assertStudioGenerationCommand(commandId);
     if (input.platform && (input.platform.mediaGenerationV1 || input.type === "canvas_image" || input.type === "canvas_video")) return submitMediaCommand(input, scope, commandId, deps, assertScope);
     let task: GenerationTask;
     try {

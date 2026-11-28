@@ -20,6 +20,7 @@ import (
 )
 
 type studioExecutionEnvelope struct {
+	OnDemandMedia      bool                                        `json:"onDemandMedia,omitempty"`
 	Task               model.Task                                  `json:"task"`
 	Selection          platformintegration.ModelSelection          `json:"selection"`
 	RequestID          string                                      `json:"requestId"`

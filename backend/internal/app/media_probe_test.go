@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -68,6 +69,36 @@ func TestParseMediaProbeOutput(t *testing.T) {
 	}
 	if _, err := parseMediaProbeOutput([]byte("not json")); err == nil {
 		t.Fatal("invalid probe output: want error")
+	}
+}
+
+func TestProbeMediaFileWithoutProbeLeavesMetadataUnknown(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	info, err := probeMediaFile(context.Background(), filepath.Join("testdata", "rotation-90.mp4"))
+	if !errors.Is(err, errMediaProbeUnavailable) || info.DurationMs != 0 || info.Width != 0 || info.Height != 0 {
+		t.Fatalf("missing ffprobe: %+v, %v", info, err)
+	}
+}
+
+func TestProbeMediaFileReadsAudioDuration(t *testing.T) {
+	requireFFmpegTools(t)
+	path := filepath.Join(t.TempDir(), "audio.wav")
+	if output, err := exec.Command("ffmpeg", "-v", "error", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono", "-t", "2", path).CombinedOutput(); err != nil {
+		t.Fatalf("generate test audio: %v %s", err, output)
+	}
+	info, err := probeMediaFile(context.Background(), path)
+	if err != nil || info.DurationMs != 2000 || info.Width != 0 || info.Height != 0 {
+		t.Fatalf("audio probe = %+v, error = %v", info, err)
+	}
+}
+
+func TestProbeMediaFileReadsVideoRotation(t *testing.T) {
+	requireFFmpegTools(t)
+	// A generated red 320x240 frame with a 90-degree display matrix. Keep the
+	// fixture fixed because FFmpeg versions differ in writing rotate metadata.
+	info, err := probeMediaFile(context.Background(), filepath.Join("testdata", "rotation-90.mp4"))
+	if err != nil || info.Width != 240 || info.Height != 320 || info.DurationMs < 900 {
+		t.Fatalf("rotated video probe = %+v, error = %v", info, err)
 	}
 }
 

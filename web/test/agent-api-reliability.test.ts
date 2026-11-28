@@ -122,7 +122,7 @@ describe("Agent SSE recovery", () => {
         globalThis.fetch = (async (url, init) => {
             const cursor = new URL(String(url)).searchParams.get("after")!;
             cursors.push(cursor);
-            expect((init?.headers as Record<string, string>)["Last-Event-ID"]).toBe(cursor);
+            expect((init?.headers as Record<string, string>)["Last-Event-ID"]).toBe(cursors.length === 1 ? undefined : cursor);
             if (cursors.length === 2) throw new TypeError("connection reset");
             return stream(cursors.length === 1 ? event(1) + snapshot("running") : event(1) + event(2) + snapshot("completed"));
         }) as typeof fetch;
@@ -130,6 +130,17 @@ describe("Agent SSE recovery", () => {
         expect(await result.done).toBeUndefined();
         expect(cursors).toEqual(["0", "1", "1"]);
         expect(result.events.filter((e) => e.seq > 0).map((e) => e.seq)).toEqual([1, 2]);
+    });
+
+    it("reconnects from zero after EOF on an empty live run", async () => {
+        const headers: Array<string | undefined> = [];
+        globalThis.fetch = (async (_url, init) => {
+            headers.push((init?.headers as Record<string, string>)["Last-Event-ID"]);
+            return stream(headers.length === 1 ? snapshot("running") : event(1) + snapshot("completed"));
+        }) as typeof fetch;
+        const result = observe();
+        expect(await result.done).toBeUndefined();
+        expect(headers).toEqual([undefined, "0"]);
     });
 
     it("waits for durable cleanup after a terminal status", async () => {
@@ -195,28 +206,26 @@ describe("Agent SSE recovery", () => {
 
 describe("Agent admission replay and durable pending records", () => {
     const input: CreateAgentRunInput = { canvasId: "canvas", prompt: "generate", model: "original", idempotencyKey: "stable-key-123" };
-    it("retries with a frozen original body/key and a bounded HTTP timeout", async () => {
+    it("returns a pending catalog response without replaying the original POST", async () => {
         const bodies: unknown[] = [];
         const mutable = { ...input };
         transport.http.post = async (_path: string, body: unknown, options: unknown) => {
             bodies.push(structuredClone(body));
-            expect(options).toEqual({ timeout: 15_000 });
-            mutable.model = "changed";
-            if (bodies.length < 3) throw { retryable: true };
-            return { run: { id: "accepted" } };
+            expect(options).toEqual({ timeout: 35_000 });
+            throw { status: 503, reason: "catalog_projection_pending", retryAfterMs: 1000, retryable: true };
         };
-        expect(await api.createAgentRun(mutable)).toMatchObject({ run: { id: "accepted" } });
-        expect(bodies).toEqual([input, input, input]);
+        await expect(api.createAgentRun(mutable)).rejects.toMatchObject({ reason: "catalog_projection_pending" });
+        expect(bodies).toEqual([input]);
     });
 
-    it("limits transport failures to three attempts, but never retries admission rejection", async () => {
+    it("never replays message admission on transport failure or rejection", async () => {
         let attempts = 0;
         transport.http.post = async () => {
             attempts++;
             throw { retryable: true };
         };
         await expect(api.sendAgentMessage("parent", input)).rejects.toMatchObject({ retryable: true });
-        expect(attempts).toBe(3);
+        expect(attempts).toBe(1);
         attempts = 0;
         transport.http.post = async () => {
             attempts++;
@@ -238,7 +247,7 @@ describe("Agent admission replay and durable pending records", () => {
             throw { retryable: true };
         };
         try {
-            await expect(api.sendAgentMessage("parent", input)).rejects.toMatchObject({ name: "AbortError" });
+            await expect(api.sendAgentMessage("parent", input)).rejects.toMatchObject({ retryable: true });
             expect(attempts).toBe(1);
         } finally {
             setActiveUserScope(previousScope);

@@ -56,6 +56,58 @@ globalThis.fetch = (async (url: string | URL | Request) => {
 }) as typeof fetch;
 afterAll(() => dom.happyDOM.abort());
 
+test("旧视频重试卡片重开后退出假重连，保留原提示词、不自动重发", async () => {
+    const userId = "legacy-retry-fixture";
+    const { setActiveUserScope } = await import("@/lib/user-scope");
+    setActiveUserScope(userId);
+    useUserStore.setState({ platformIdentity: true, hydrated: true, user: { id: userId, username: "fixture", displayName: "Fixture", role: "user", status: "active" } });
+    const at = "2026-11-27T02:22:52Z";
+    const command = `retry:${"a".repeat(64)}`;
+    writeCreationConversationSnapshot(userId, [
+        {
+            id: "legacy",
+            title: "镜头",
+            updatedAt: at,
+            messages: [
+                { id: "prompt", role: "user", mode: "video", content: "保留镜头描述", createdAt: at },
+                { id: "response", role: "assistant", mode: "video", content: "", createdAt: at, status: "pending", syncInterrupted: true, studioGenerationCommand: command, retryOf: "old-task" },
+            ],
+        },
+    ]);
+    const adapter = apiClient.defaults.adapter;
+    const taskCalls: string[] = [];
+    apiClient.defaults.adapter = async (config) => {
+        if (config.url === "/tasks" || config.url?.startsWith("/tasks/by-command")) taskCalls.push(config.url);
+        return { config, headers: {}, status: 200, statusText: "OK", data: { code: 0, data: { entries: [], items: [], categories: {}, total: "0" } } };
+    };
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const host = document.createElement("div");
+    const root = createRoot(host);
+    try {
+        await act(async () =>
+            root.render(
+                <QueryClientProvider client={client}>
+                    <App>
+                        <MemoryRouter>
+                            <CreatePage />
+                        </MemoryRouter>
+                    </App>
+                </QueryClientProvider>,
+            ),
+        );
+        for (let i = 0; i < 100 && !host.textContent?.includes("任务编号无效"); i++) await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+        expect(host.textContent).toContain("保留镜头描述");
+        expect(host.textContent).toContain("未能开始生成");
+        expect(host.textContent).toContain("任务编号无效");
+        expect(host.textContent).not.toContain("正在自动重连");
+        expect(taskCalls).toEqual([]);
+    } finally {
+        await act(async () => root.unmount());
+        apiClient.defaults.adapter = adapter;
+        client.clear();
+    }
+});
+
 for (const mode of ["text", "image", "video"] as const) {
     for (const [available, preferred] of [
         [true, true],

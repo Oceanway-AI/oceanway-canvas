@@ -36,7 +36,7 @@ import { loadAssetsForUse, saveRemoteUserDataNow } from "@/services/user-data-sy
 import { useAppearanceStore } from "@/stores/use-appearance-store";
 import { cn } from "@/lib/utils";
 import { createClientUUID } from "@/lib/client-id";
-import { studioGenerationCommandWasSent } from "@/services/platform-task-submission";
+import { InvalidStudioGenerationCommand, studioGenerationCommandWasSent } from "@/services/platform-task-submission";
 import { useUserStore } from "@/stores/use-user-store";
 import type { PromptOptimizerProvider } from "@/lib/plugins/plugin-types";
 import { promptOptimizerPlugin, PROMPT_OPTIMIZER_PLUGIN_ID } from "@/lib/plugins/builtin/prompt-optimizer";
@@ -619,7 +619,13 @@ export default function CreatePage() {
                         item.studioGenerationCommand === command ? { ...item, studioGenerationCommand: undefined, taskIds: [task.id], clientOperationId: command, status: "pending", generationStatus: task.status } : item,
                     );
                 })
-                .catch(() => {});
+                .catch((error: unknown) => {
+                    if (controller.signal.aborted || getActiveUserScope() !== activeConversationScope || !(error instanceof InvalidStudioGenerationCommand)) return;
+                    return updateConversationMessage(conversationId, messageId, (item) =>
+                        item.studioGenerationCommand === command && item.status === "pending" && !item.taskIds?.length ? { ...item, status: "error", studioGenerationCommand: undefined, syncInterrupted: undefined, error: error.message } : item,
+                    );
+                })
+                .catch((error) => console.warn("创作提交状态保存失败", error));
         }
         return () => controller.abort();
     }, [hydrated, unboundCommandKey, updateConversationMessage, recoveryEpoch, activeConversationScope]);
@@ -643,7 +649,10 @@ export default function CreatePage() {
     // 重新查询原任务并接回结果：任务仍在进行就回到生成中继续跟进，已成功就补回作品；不会提交新任务。
     const refreshMessageResult = async (item: CreationMessage) => {
         const taskIds = item.taskIds || [];
-        if (!taskIds.length) return;
+        if (!taskIds.length) {
+            if (item.studioGenerationCommand && item.status === "pending") setRecoveryEpoch((value) => value + 1);
+            return;
+        }
         const refresh = beginResultRefresh(item.id);
         if (!refresh) return;
         const scope = getActiveUserScope();
@@ -1273,7 +1282,7 @@ export default function CreatePage() {
                 updateOriginAssistant((item) => ({ ...item, status: "cancelled", content: t("create.status.stopped") }));
                 return;
             }
-            if ((boundTaskIds.size || (command && studioGenerationCommandWasSent(activeConversationScope, command))) && !runtime.isGenerationTaskTerminalError(error)) {
+            if ((boundTaskIds.size || (command && !(error instanceof InvalidStudioGenerationCommand) && studioGenerationCommandWasSent(activeConversationScope, command))) && !runtime.isGenerationTaskTerminalError(error)) {
                 // 任务已在后端建立，只是页面没等到终态或没读到结果（轮询中断、网络抖动、结果下载失败）：
                 // 这不是生成失败。交给恢复监听继续跟进原任务；默认引导重新生成会让用户再付一次费。
                 handedOverToRecovery = true;

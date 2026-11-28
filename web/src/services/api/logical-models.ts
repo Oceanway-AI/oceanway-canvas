@@ -103,8 +103,8 @@ export function getModelCatalog() {
     return http.get<ModelCatalogResponse>("/model-catalog");
 }
 
-export function getModelCatalogPage(cursor = "") {
-    return http.get<ModelCatalogResponse>("/model-catalog/summaries", { params: { limit: 50, ...(cursor ? { cursor } : {}) } });
+export function getModelCatalogPage(cursor = "", filter?: { model_type: "text"; query?: string; defaults_only?: boolean }) {
+    return http.get<ModelCatalogResponse>("/model-catalog/summaries", { params: { limit: 50, ...filter, ...(cursor ? { cursor } : {}) } });
 }
 
 export function getModelCatalogDetail(model: import("@/lib/platform-models").PlatformModel) {

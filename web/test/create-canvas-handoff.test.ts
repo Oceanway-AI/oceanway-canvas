@@ -386,6 +386,8 @@ test("Create image batch retry preserves per-index lineage under one attempt gro
 
     const oldTaskIds = ["dreamina:create-image-old-0001", "dreamina:create-image-old-0002", "dreamina:create-image-old-0003"];
     const contexts = await createBatchRetryContexts(oldTaskIds, "create-image-attempt-group-0001");
+    for (const context of contexts) expect(context.clientOperationId).toMatch(/^[A-Za-z0-9_-]{1,128}$/);
+    expect(await createBatchRetryContexts(oldTaskIds, "create-image-attempt-group-0001")).toEqual(contexts);
 
     expect(contexts.map(({ retryOf, attemptGroupId }) => ({ retryOf, attemptGroupId }))).toEqual([
         { retryOf: oldTaskIds[0], attemptGroupId: "create-image-attempt-group-0001" },
