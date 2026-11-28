@@ -2,6 +2,7 @@ import { getFeatureAvailability, type AuthSessionPayload } from "@/services/api/
 import { projectImageParameters, imageParametersForSpec } from "./image-parameters";
 import { getModelCatalog, getModelCatalogPage, getModelCatalogDetail, type CapabilitySpec, type ModelCatalogResponse, type OptionConstraint, type PublicChannelCatalog, type PublicLogicalModel } from "@/services/api/logical-models";
 import { platformModelVersion } from "@/lib/platform-models";
+import { decodeChannelModel, encodeChannelModel } from "@/stores/config-model-options";
 import { localForageStorage } from "@/lib/localforage-storage";
 import { appQueryClient } from "@/lib/query-client";
 import { scopedLocalStorage, setActiveUserScope, withUserScopedPersistenceSuppressed } from "@/lib/user-scope";
@@ -43,6 +44,7 @@ let catalogRequest: { generation: number; userId: string; promise: Promise<void>
 let catalogSnapshot: ModelCatalogResponse | null = null;
 let catalogEpoch = 0;
 const catalogCursors = new Set<string>();
+let startupExtra: { channel: string; name: string } | undefined;
 const catalogDetails = new Map<string, Promise<void>>();
 
 export async function applyUserSession(payload: AuthSessionPayload) {
@@ -77,6 +79,7 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     useUserStore.getState().setRuntimeLimits(payload.runtimeLimits);
     useUserStore.getState().setDrawingEngine(payload.drawingEngine);
     useUserStore.getState().setFeatures(payload.features);
+    let firstPage: Promise<ModelCatalogResponse> | undefined;
     if (payload.provider === "platform" && payload.user) {
         try {
             const context = await getStudioWorkspaceContext();
@@ -93,10 +96,15 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     }
     await switchUserStorageScope(payload.user?.id);
     if (!isCurrentSession(generation, nextUserId)) return;
+    if (payload.user && payload.provider === "platform") {
+        firstPage = getModelCatalogPage();
+        // The request can reject before local preferences finish hydrating.
+        void firstPage.catch(() => undefined);
+    }
     installRemoteUserDataAutoSync();
     try {
         // 缓存恢复和同步基线必须先于工作区开放，防止生成/编辑抢跑，或被初始化误记为已同步。
-        await hydrateUserSessionData(payload, generation);
+        await hydrateUserSessionData(payload, generation, firstPage);
     } catch (error) {
         if (isCurrentSession(generation, nextUserId)) console.warn("用户工作区后台初始化失败，基础页面仍可继续", error);
     } finally {
@@ -115,7 +123,7 @@ function resetUserScopedMemory() {
     useGlobalAgentStore.getState().reset();
 }
 
-async function hydrateUserSessionData(payload: AuthSessionPayload, generation: number) {
+async function hydrateUserSessionData(payload: AuthSessionPayload, generation: number, firstPage?: Promise<ModelCatalogResponse>) {
     const startedAt = performance.now();
     const userId = payload.user?.id || "";
     const [canvas, canvasHistory, assets, plugins] = await Promise.allSettled([
@@ -147,7 +155,7 @@ async function hydrateUserSessionData(payload: AuthSessionPayload, generation: n
     // Read the catalog independently of asset/project initialization.
     useConfigStore.getState().invalidateSystemChannels();
     hydratingCatalogGeneration = null;
-    if (userId) void refreshCurrentSessionCatalog(generation, userId, !persistedConfig).catch(() => undefined);
+    if (userId) void refreshCurrentSessionCatalog(generation, userId, !persistedConfig, firstPage).catch(() => undefined);
     else useModelCatalogStore.setState({ status: "idle", error: null });
 
     if (userId) {
@@ -194,7 +202,7 @@ export function refreshSystemChannels(): Promise<void> {
     return refreshCurrentSessionCatalog(sessionGeneration, userId);
 }
 
-function refreshCurrentSessionCatalog(generation: number, userId: string, initializeDefaults = false): Promise<void> {
+function refreshCurrentSessionCatalog(generation: number, userId: string, initializeDefaults = false, firstPage?: Promise<ModelCatalogResponse>): Promise<void> {
     if (!isCurrentSession(generation, userId)) return Promise.resolve();
     if (catalogRequest?.generation === generation && catalogRequest.userId === userId) return catalogRequest.promise;
     const { workspaceContext, platformIdentity } = useUserStore.getState();
@@ -206,8 +214,9 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
     request.promise = Promise.resolve().then(async () => {
         try {
             if (!isCurrentSession(generation, userId)) return;
-            const catalog = useUserStore.getState().platformIdentity ? await loadPlatformCatalog(generation, userId) : await getModelCatalog();
+            const catalog = useUserStore.getState().platformIdentity ? await loadPlatformCatalog(generation, userId, "", firstPage) : await getModelCatalog();
             if (!isCurrentSession(generation, userId)) return;
+            const savedText = useConfigStore.getState().pendingModelSelections.textModel || useConfigStore.getState().config.textModel;
             const channels = modelCatalogChannels(catalog);
             if (initializeDefaults && catalog.source !== "platform") {
                 // Only a missing initial config gets recommended selections.
@@ -239,6 +248,7 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
                 writePickerPreview(scope, rows);
             }
             useModelCatalogStore.setState({ status: "ready", error: null, preview: [], hasMore: Boolean(catalog.hasMore) });
+            if (firstPage) void preloadStartupText(generation, userId, catalogEpoch, savedText).catch(() => undefined);
         } catch (error) {
             if (!isCurrentSession(generation, userId)) return;
             recordDiagnosticEvent({
@@ -265,14 +275,15 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
     catalogDetails.clear();
     useConfigStore.getState().invalidateSystemChannels();
     catalogCursors.clear();
+    startupExtra = undefined;
     useModelCatalogStore.setState({ status: "loading", error: null, preview: scope ? readPickerPreview(scope) : [], hasMore: false, loadingMore: false });
     return request.promise;
 }
 
-async function loadPlatformCatalog(generation: number, userId: string, cursor = ""): Promise<ModelCatalogResponse> {
+async function loadPlatformCatalog(generation: number, userId: string, cursor = "", firstPage?: Promise<ModelCatalogResponse>): Promise<ModelCatalogResponse> {
     const epoch = catalogEpoch;
     const revision = cursor ? catalogSnapshot?.catalogRevision : undefined;
-    const page = await getModelCatalogPage(cursor);
+    const page = await (firstPage ?? getModelCatalogPage(cursor));
     if (!isCurrentSession(generation, userId) || epoch !== catalogEpoch) throw new Error("账号会话或目录已切换");
     if (page.source !== "platform" || !page.catalogRevision || !Array.isArray(page.channels)) throw new Error("模型目录摘要响应无效");
     if (revision && revision !== page.catalogRevision) throw Object.assign(new Error("模型目录已更新，请重新加载"), { status: 409 });
@@ -282,10 +293,25 @@ async function loadPlatformCatalog(generation: number, userId: string, cursor = 
         const previous = channels.get(channel.id);
         const models = new Map((previous?.models || []).map((item) => [item.modelKey, item]));
         for (const item of channel.models) {
+            if (startupExtra?.channel === channel.id && startupExtra.name === item.modelKey) {
+                const pinned = models.get(item.modelKey);
+                if (pinned?.platform && item.platform && platformModelVersion(pinned.platform) !== platformModelVersion(item.platform)) throw Object.assign(new Error("模型目录已更新，请重新加载"), { status: 409 });
+                models.set(item.modelKey, item.available && pinned?.platform?.state === "detail" ? { ...item, platform: pinned.platform } : item);
+                continue;
+            }
             if (models.has(item.modelKey)) throw new Error("模型目录分页包含重复型号");
             models.set(item.modelKey, item);
         }
         channels.set(channel.id, { ...channel, models: [...models.values()] });
+    }
+    const extra = startupExtra;
+    if (extra) {
+        if (page.channels.some((channel) => channel.id === extra.channel && channel.models.some((item) => item.modelKey === extra.name))) startupExtra = undefined;
+        else if (!page.hasMore) {
+            const channel = channels.get(extra.channel);
+            if (channel) channels.set(extra.channel, { ...channel, models: channel.models.filter((item) => item.modelKey !== extra.name) });
+            startupExtra = undefined;
+        }
     }
     catalogSnapshot = { ...page, channels: [...channels.values()] };
     if (page.nextCursor) catalogCursors.add(page.nextCursor);
@@ -321,6 +347,32 @@ export async function loadNextModelCatalogPage() {
     } finally {
         if (epoch === catalogEpoch) useModelCatalogStore.setState({ loadingMore: false });
     }
+}
+
+async function preloadStartupText(generation: number, userId: string, epoch: number, selection: string) {
+    const channelId = "oceanway-platform";
+    const selected = decodeChannelModel(selection || "");
+    if (selected && selected.channelId !== channelId) return;
+    const name = selected?.model || selection || "";
+    const match = (item: PublicChannelCatalog["models"][number]) => item.available && item.platform?.state === "summary" && item.platform.model_type === "text" && (name ? item.modelKey === name : item.platform.is_default);
+    let channel = catalogSnapshot?.channels?.find((row) => row.id === channelId);
+    if (!channel) return;
+    let item = channel.models.find(match);
+    if (!item && catalogSnapshot?.hasMore) {
+        const filtered = await getModelCatalogPage("", { model_type: "text", ...(name ? { query: name } : { defaults_only: true }) });
+        if (!isCurrentSession(generation, userId) || epoch !== catalogEpoch || filtered.source !== "platform" || !filtered.catalogRevision) return;
+        channel = catalogSnapshot?.channels?.find((row) => row.id === channelId);
+        item = filtered.channels?.find((row) => row.id === channelId)?.models.find(match);
+        if (!channel || !item || !catalogSnapshot?.channels) return;
+        const existing = channel.models.find((row) => row.modelKey === item!.modelKey);
+        if (existing && !match(existing)) return;
+        if (!existing && catalogSnapshot.hasMore) {
+            startupExtra = { channel: channelId, name: item.modelKey };
+            catalogSnapshot = { ...catalogSnapshot, channels: catalogSnapshot.channels.map((row) => (row === channel ? { ...row, models: [...row.models, item!] } : row)) };
+            useConfigStore.getState().mergeSystemChannels(modelCatalogChannels(catalogSnapshot), true);
+        }
+    }
+    if (item) await ensurePlatformModelDetail(encodeChannelModel(channelId, item.modelKey));
 }
 
 export function ensurePlatformModelDetail(modelOption: string): Promise<void> {

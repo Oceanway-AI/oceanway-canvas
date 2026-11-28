@@ -79,7 +79,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         });
         return { promise, resolve, reject };
     }
-    let loadCatalog: (cursor?: string) => Promise<unknown>;
+    let loadCatalog: (cursor?: string, params?: Record<string, unknown>) => Promise<unknown>;
     let loadDetail: (name: string) => Promise<unknown>;
     let requests = 0;
     beforeEach(() => {
@@ -100,7 +100,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
             let data: unknown;
             if (config.url === "/model-catalog/summaries") {
                 requests++;
-                data = await loadCatalog(config.params?.cursor);
+                data = await loadCatalog(config.params?.cursor, config.params);
             } else if (config.url === "/model-catalog/detail") {
                 data = await loadDetail(config.params?.model_name);
             } else if (config.url === "/auth/workspace-context") data = { userId: useUserStore.getState().user?.id, workspaceId: "personal-" + useUserStore.getState().user?.id, workspaceKind: "personal", membershipGeneration: 0, supported: true };
@@ -541,6 +541,50 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         await new Promise((resolve) => setTimeout(resolve, 20));
         expect(modelNames()).toEqual(["custom-text"]);
         expect(useModelCatalogStore.getState().status).toBe("error");
+    });
+
+    test("startup opens the workspace before the first page resolves and shares that read", async () => {
+        const page = deferred<unknown>();
+        loadCatalog = () => page.promise;
+        await applyUserSession({ provider: "platform", user: user("startup-slow") });
+        expect(useUserStore.getState().hydrated).toBe(true);
+        expect(requests).toBe(1);
+        expect(useModelCatalogStore.getState().status).toBe("loading");
+        const pending = refreshSystemChannels();
+        page.resolve(catalog("ready"));
+        await pending;
+        expect(requests).toBe(1);
+        expect(modelNames()).toContain("ready");
+    });
+
+    test("startup fetches a default outside page one without consuming the next cursor", async () => {
+        const first = textCatalog("first"),
+            target = textCatalog("default"),
+            detail = textCatalog("default", "detail");
+        for (const page of [first, target, detail]) page.channels[0].id = "oceanway-platform";
+        Object.assign(target.channels[0].models[0].platform, { is_default: true });
+        Object.assign(detail.channels[0].models[0].platform, { is_default: true });
+        let details = 0;
+        loadDetail = async () => {
+            details++;
+            return { model: detail.channels[0].models[0] };
+        };
+        loadCatalog = async (cursor, params) => {
+            if (cursor) return target;
+            if (params?.defaults_only) {
+                expect(params.model_type).toBe("text");
+                return target;
+            }
+            return { ...first, hasMore: true, nextCursor: "later" };
+        };
+        await applyUserSession({ provider: "platform", user: user("startup-default") });
+        await Bun.sleep(15);
+        expect(requests).toBe(2);
+        expect(details).toBe(1);
+        expect(useModelCatalogStore.getState().hasMore).toBe(true);
+        await loadNextModelCatalogPage();
+        expect(modelNames().filter((n) => n === "default")).toHaveLength(1);
+        expect(useModelCatalogStore.getState().error).toBeNull();
     });
 
     test("new session for the same identity ignores a late old failure", async () => {

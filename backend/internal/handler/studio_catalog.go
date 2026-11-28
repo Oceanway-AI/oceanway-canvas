@@ -32,17 +32,18 @@ func registerStudioCatalogRoutes(api *gin.RouterGroup, svc *service.Service) {
 		}
 		c.Header("Cache-Control", "private, no-store")
 		var query struct {
-			WorkspaceID string `form:"workspace_id"`
-			ModelType   string `form:"model_type"`
-			Query       string `form:"query"`
-			Cursor      string `form:"cursor"`
-			Limit       int    `form:"limit" binding:"min=0,max=50"`
+			WorkspaceID  string `form:"workspace_id"`
+			ModelType    string `form:"model_type"`
+			DefaultsOnly bool   `form:"defaults_only"`
+			Query        string `form:"query"`
+			Cursor       string `form:"cursor"`
+			Limit        int    `form:"limit" binding:"min=0,max=50"`
 		}
 		if c.ShouldBindQuery(&query) != nil {
 			failService(c, service.BadAuthRequest("模型目录查询参数无效"))
 			return
 		}
-		catalog, response, err := svc.StudioModelCatalogPage(c.Request.Context(), platformintegration.Session(c.Request), platformclient.ModelSummaryQuery{WorkspaceID: query.WorkspaceID, ModelType: query.ModelType, Query: query.Query, Cursor: query.Cursor, Limit: query.Limit})
+		catalog, response, err := svc.StudioModelCatalogPage(c.Request.Context(), platformintegration.Session(c.Request), platformclient.ModelSummaryQuery{WorkspaceID: query.WorkspaceID, ModelType: query.ModelType, DefaultsOnly: query.DefaultsOnly, Query: query.Query, Cursor: query.Cursor, Limit: query.Limit})
 		studioCatalogReadHeaders(c, response, err)
 		if err != nil {
 			failService(c, err)
