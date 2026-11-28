@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
 	"yingce/backend/internal/platformintegration"
@@ -177,6 +178,15 @@ func (s *Service) studioAgentModelList(userID string, state *cloudAgentRuntime, 
 	}
 	if envelope.CatalogVersion != "" {
 		if args.ChannelModelKey == "" {
+			if envelope.OnDemandMedia {
+				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				defer cancel()
+				items, err := s.studioExecutionMediaSummaries(ctx, root, args.Mode, "")
+				if err != nil {
+					return nil, err
+				}
+				return studioAgentSummaryList(items, args, refs)
+			}
 			return studioAgentSummaryList(envelope.CatalogSummaries, args, refs)
 		}
 		detail, err := s.studioAgentCatalogDetail(userID, state.RuntimeRunID, args.ChannelModelKey, args.NativeVariantID)

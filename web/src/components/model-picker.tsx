@@ -25,7 +25,7 @@ import { modelDisplayName, modelIcon, modelOptionName, resolveModelChannel, sele
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { useModelCatalogStore } from "@/stores/use-model-catalog-store";
-import { ensurePlatformModelDetail, refreshSystemChannels } from "@/lib/user-session";
+import { ensurePlatformModelDetail, loadNextModelCatalogPage, refreshSystemChannels } from "@/lib/user-session";
 import { ModelLogo } from "@/components/model-logo";
 import { ModelTags } from "@/components/model-tags";
 import { referenceCapabilityTag, type ModelTag } from "@/lib/model-tags";
@@ -72,6 +72,8 @@ export function ModelPicker({
     const platformIdentity = useUserStore((state) => state.platformIdentity);
     const catalogStatus = useModelCatalogStore((state) => state.status);
     const catalogError = useModelCatalogStore((state) => state.error);
+    const hasMore = useModelCatalogStore((state) => state.hasMore);
+    const loadingMore = useModelCatalogStore((state) => state.loadingMore);
     const preview = useModelCatalogStore((state) => state.preview);
     const pickerId = useId();
     // 双保险：即使 store merge 写出非法 theme，这里也兜底到 dark，避免 "reading 'node'" 崩溃
@@ -329,6 +331,14 @@ export function ModelPicker({
                             {detailLoading && (
                                 <div role="status" className="canvas-model-picker-empty">
                                     正在加载模型参数…
+                                </div>
+                            )}
+                            {platformIdentity && catalogStatus === "ready" && hasMore && (
+                                <div className="canvas-model-picker-catalog-error">
+                                    {catalogError && <span role="alert">{catalogError}</span>}
+                                    <button type="button" disabled={loadingMore} onClick={() => void loadNextModelCatalogPage().catch(() => {})}>
+                                        {loadingMore ? "正在加载…" : catalogError ? "重试下一页" : "加载更多型号"}
+                                    </button>
                                 </div>
                             )}
                             {platformIdentity && catalogStatus === "error" && (

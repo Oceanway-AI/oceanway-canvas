@@ -1,6 +1,5 @@
 import { http, apiBaseURL } from "@/services/api/request";
 import { consumeTaskTextStream, createTaskTextStreamParser } from "@/services/api/task-text-stream";
-import { getActiveUserScope } from "@/lib/user-scope";
 
 export type AgentPermissionMode = "read_only" | "auto" | "request_approval";
 export type AgentReasoningMode = import("@/lib/text-thinking").ThinkingRequest;
@@ -152,25 +151,8 @@ export type CreateAgentRunInput = {
     idempotencyKey: string;
 };
 
-// Only Agent admission endpoints have server-side fingerprint/idempotency protection.
-// Never apply this policy to arbitrary provider generation POSTs.
-async function submitAgentRequest(path: string, input: CreateAgentRunInput) {
-    const body = JSON.parse(JSON.stringify(input)) as CreateAgentRunInput;
-    const scope = getActiveUserScope();
-    for (let attempt = 0; ; attempt++) {
-        if (getActiveUserScope() !== scope) throw new DOMException("账号已切换，已停止原账号的请求重试", "AbortError");
-        try {
-            return await http.post<{ run: AgentRun }>(path, body, { timeout: 15_000 });
-        } catch (cause) {
-            const error = cause as { retryable?: boolean; retryAfterMs?: number };
-            if (!error.retryable || attempt >= 2) throw cause;
-            const delay = Math.max(500 * 2 ** attempt * (0.75 + Math.random() * 0.5), error.retryAfterMs || 0);
-            // Long rate-limit waits return control to the user with the original
-            // pending request intact instead of keeping the composer hung.
-            if (delay > 10_000) throw cause;
-            await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-    }
+function submitAgentRequest(path: string, input: CreateAgentRunInput) {
+    return http.post<{ run: AgentRun }>(path, input, { timeout: 35_000 });
 }
 
 export async function createAgentRun(input: CreateAgentRunInput) {

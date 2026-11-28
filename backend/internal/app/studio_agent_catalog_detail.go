@@ -6,7 +6,42 @@ import (
 	"time"
 
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
+	"yingce/backend/internal/model"
 )
+
+func (s *Service) studioExecutionMediaSummaries(ctx context.Context, root *model.StudioExecution, mode, name string) ([]platformclient.ModelSummary, error) {
+	if root.State != "agent" || root.Released {
+		return nil, NewAppError(409, "本轮执行授权已结束")
+	}
+	auth, err := s.decryptSettingSecret(root.AuthorizationEncrypted)
+	if err != nil {
+		return nil, err
+	}
+	kinds := []string{"image", "video"}
+	if mode != "" {
+		kinds = []string{mode}
+	}
+	var items []platformclient.ModelSummary
+	for _, kind := range kinds {
+		var match func(platformclient.ModelSummary) bool
+		if name != "" {
+			match = func(item platformclient.ModelSummary) bool {
+				return item.ModelName == name && item.InvocationStatus == "available"
+			}
+		}
+		page, _, err := studioReadCatalogSummaries(platformclient.ModelSummaryQuery{ModelType: kind, Query: name, Limit: 50}, func(q platformclient.ModelSummaryQuery) (platformclient.Result[platformclient.ModelSummaryPage], error) {
+			return s.studioPlatform.Client.ExecutionModelSummaries(ctx, platformclient.ExecutionContext{Authorization: auth}, q)
+		}, match)
+		if err != nil {
+			return nil, studioCatalogError(err)
+		}
+		items = append(items, page...)
+		if name != "" && len(items) > 0 {
+			break
+		}
+	}
+	return items, nil
+}
 
 func studioValidateCatalogDetail(detail platformclient.ModelDetail, query platformclient.ModelDetailQuery) error {
 	if detail.Version != platformclient.ModelCatalogVersion || detail.State != "detail" || detail.CatalogRevision == "" || detail.ModelName != query.ModelName || detail.Model.ModelName != query.ModelName || query.VariantID != "" && detail.VariantID != query.VariantID {
@@ -59,6 +94,16 @@ func (s *Service) studioAgentCatalogDetail(userID, runID, name, variant string) 
 			if envelope.CatalogSummaries[i].ModelName == name {
 				summary = &envelope.CatalogSummaries[i]
 				break
+			}
+		}
+		if summary == nil && envelope.OnDemandMedia && envelope.CatalogVersion == platformclient.ModelCatalogVersion {
+			items, err := s.studioExecutionMediaSummaries(ctx, root, "", name)
+			if err != nil {
+				return platformclient.ModelDetail{}, err
+			}
+			if len(items) == 1 {
+				summary = &items[0]
+				envelope.CatalogSummaries = append(envelope.CatalogSummaries, *summary)
 			}
 		}
 		if summary == nil || envelope.CatalogVersion != platformclient.ModelCatalogVersion {

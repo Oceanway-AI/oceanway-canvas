@@ -1,11 +1,27 @@
 package handler
 
 import (
+	"errors"
 	"github.com/Oceanway-AI/oceanway-platform/platformclient"
 	"github.com/gin-gonic/gin"
+	"strconv"
 	"yingce/backend/internal/platformintegration"
 	"yingce/backend/internal/service"
 )
+
+func studioCatalogReadHeaders(c *gin.Context, response *platformclient.Response, err error) {
+	response.AppendCookies(c.Writer.Header())
+	var appErr *service.AppError
+	if response == nil || !errors.As(err, &appErr) || appErr.Reason != "catalog_projection_pending" {
+		return
+	}
+	values := response.Header.Values("Retry-After")
+	if len(values) == 1 {
+		if n, e := strconv.Atoi(values[0]); e == nil && n >= 1 && n <= 60 && strconv.Itoa(n) == values[0] {
+			c.Header("Retry-After", values[0])
+		}
+	}
+}
 
 func registerStudioCatalogRoutes(api *gin.RouterGroup, svc *service.Service) {
 	api.GET("/model-catalog/summaries", func(c *gin.Context) {
@@ -27,7 +43,7 @@ func registerStudioCatalogRoutes(api *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		catalog, response, err := svc.StudioModelCatalogPage(c.Request.Context(), platformintegration.Session(c.Request), platformclient.ModelSummaryQuery{WorkspaceID: query.WorkspaceID, ModelType: query.ModelType, Query: query.Query, Cursor: query.Cursor, Limit: query.Limit})
-		response.AppendCookies(c.Writer.Header())
+		studioCatalogReadHeaders(c, response, err)
 		if err != nil {
 			failService(c, err)
 			return
@@ -55,7 +71,7 @@ func registerStudioCatalogRoutes(api *gin.RouterGroup, svc *service.Service) {
 			return
 		}
 		item, response, err := svc.StudioModelCatalogDetail(c.Request.Context(), platformintegration.Session(c.Request), platformclient.ModelDetailQuery{WorkspaceID: query.WorkspaceID, ModelName: query.ModelName, VariantID: query.VariantID, ExpectedPriceVersion: query.Price, ExpectedCapabilityRevision: query.Capability, ExpectedConnectionRevision: query.Connection}, user)
-		response.AppendCookies(c.Writer.Header())
+		studioCatalogReadHeaders(c, response, err)
 		if err != nil {
 			failService(c, err)
 			return

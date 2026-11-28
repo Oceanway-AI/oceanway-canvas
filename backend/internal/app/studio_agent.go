@@ -35,6 +35,9 @@ func (s *Service) CreateStudioCloudAgentRun(ctx context.Context, userID string, 
 			return nil, response, err
 		}
 		req.PlatformTextCapability = frozen.Selection.TextCapability
+		if req.ChannelModelKey == "" {
+			req.ChannelModelKey = frozen.Selection.Name
+		}
 		view, err := s.createCloudAgentRun(userID, req, parentID, func(user string, root CreateTaskRequest) (*model.Task, error) {
 			return s.studioCreateAgentRoot(ctx, user, session, root, response, platformclient.Catalog{}, nil, "")
 		})
@@ -43,30 +46,48 @@ func (s *Service) CreateStudioCloudAgentRun(ctx context.Context, userID string, 
 	if !errors.Is(lookupErr, gorm.ErrRecordNotFound) {
 		return nil, response, lookupErr
 	}
-	summaries, revision, err := s.studioAgentCatalogSnapshot(ctx, session, response)
+	query := platformclient.ModelDetailQuery{ModelName: req.ChannelModelKey, ExpectedPriceVersion: req.ExpectedPriceVersion, ExpectedCapabilityRevision: req.ExpectedCapabilityRevision, ExpectedConnectionRevision: req.ExpectedConnectionRevision}
+	if query.ModelName == "" || query.ExpectedPriceVersion == "" {
+		summaries, _, err := studioReadCatalogSummaries(platformclient.ModelSummaryQuery{ModelType: "text", Query: query.ModelName, DefaultsOnly: query.ModelName == "", Limit: 50}, func(q platformclient.ModelSummaryQuery) (platformclient.Result[platformclient.ModelSummaryPage], error) {
+			result, err := s.studioPlatform.Client.ModelSummaries(ctx, session, q)
+			result.Response.AppendCookies(response.Header)
+			return result, err
+		}, func(m platformclient.ModelSummary) bool {
+			return (query.ModelName == "" && m.IsDefault || m.ModelName == query.ModelName) && m.InvocationStatus == "published_text"
+		})
+		if err != nil {
+			return nil, response, studioCatalogError(err)
+		}
+		if len(summaries) == 0 || summaries[0].PriceVersion == "" {
+			return nil, response, BadAuthRequest("未找到当前可用的平台文本模型，请重新选择")
+		}
+		query.ModelName = summaries[0].ModelName
+		if query.ExpectedPriceVersion == "" {
+			query.ExpectedPriceVersion = summaries[0].PriceVersion
+		}
+		if query.ExpectedCapabilityRevision == "" {
+			query.ExpectedCapabilityRevision = summaries[0].CapabilityRevision
+		}
+		if query.ExpectedConnectionRevision == 0 {
+			query.ExpectedConnectionRevision = summaries[0].ConnectionRevision
+		}
+	}
+	detail, err := s.studioPlatform.Client.ModelDetail(ctx, session, query)
+	detail.Response.AppendCookies(response.Header)
 	if err != nil {
 		return nil, response, studioCatalogError(err)
 	}
-	var catalog platformclient.Catalog
-	for _, m := range summaries {
-		if m.ModelName == req.ChannelModelKey {
-			detail, err := s.studioPlatform.Client.ModelDetail(ctx, session, platformclient.ModelDetailQuery{ModelName: m.ModelName, ExpectedPriceVersion: m.PriceVersion})
-			if detail.Response != nil {
-				detail.Response.AppendCookies(response.Header)
-			}
-			if err != nil {
-				return nil, response, studioCatalogError(err)
-			}
-			if err := studioValidateCatalogDetail(detail.Data, platformclient.ModelDetailQuery{ModelName: m.ModelName, ExpectedPriceVersion: m.PriceVersion}); err != nil {
-				return nil, response, err
-			}
-			catalog.Items = []platformclient.Model{detail.Data.Model}
-			req.PlatformTextCapability = detail.Data.Model.TextCapability()
-			break
-		}
+	if err := studioValidateCatalogDetail(detail.Data, query); err != nil {
+		return nil, response, err
 	}
+	if detail.Data.Model.ModelType != "text" {
+		return nil, response, BadAuthRequest("所选模型不是文本模型")
+	}
+	req.ChannelModelKey = query.ModelName
+	req.PlatformTextCapability = detail.Data.Model.TextCapability()
+	catalog := platformclient.Catalog{Items: []platformclient.Model{detail.Data.Model}}
 	view, err := s.createCloudAgentRun(userID, req, parentID, func(user string, root CreateTaskRequest) (*model.Task, error) {
-		return s.studioCreateAgentRoot(ctx, user, session, root, response, catalog, summaries, revision)
+		return s.studioCreateAgentRoot(ctx, user, session, root, response, catalog, nil, detail.Data.CatalogRevision)
 	})
 	return view, response, err
 }
@@ -113,7 +134,7 @@ func (s *Service) studioCreateAgentRoot(ctx context.Context, userID string, sess
 			return nil, e
 		}
 		task := model.Task{ID: id, UserID: userID, ProjectID: req.ProjectID, Type: req.Type, Operation: cloudAgentOperation, Provider: "platform", Model: selected.Name, Prompt: req.Prompt, InputJSON: string(raw), Status: model.TaskStatusTextReplay, Stage: "Agent 控制面载体"}
-		envelope, e := s.encryptStudioValue(studioExecutionEnvelope{Task: task, Selection: selected, AgentRunID: id, CatalogVersion: platformclient.ModelCatalogVersion, CatalogRevision: revision, CatalogSummaries: summaries})
+		envelope, e := s.encryptStudioValue(studioExecutionEnvelope{Task: task, Selection: selected, AgentRunID: id, CatalogVersion: platformclient.ModelCatalogVersion, CatalogRevision: revision, CatalogSummaries: summaries, OnDemandMedia: true})
 		if e != nil {
 			return nil, e
 		}

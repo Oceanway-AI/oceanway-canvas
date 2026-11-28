@@ -27,16 +27,19 @@ const cloudAgentOperation = "cloud_agent"
 // reuses transactional billing, worker leases, cancellation and text replay.
 type CloudAgentRequest struct {
 	// Server replaces this declaration at Studio admission before persisting it.
-	PlatformTextCapability *platformclient.TextCapability `json:"platformTextCapability,omitempty"`
-	ReasoningMode          string                         `json:"reasoningMode,omitempty"`
-	ProfileRevision        string                         `json:"profileRevision,omitempty"`
-	CanvasID               string                         `json:"canvasId"`
-	Prompt                 string                         `json:"prompt"`
-	Model                  string                         `json:"model,omitempty"`
-	LogicalModelID         string                         `json:"logicalModelId,omitempty"`
-	ChannelID              string                         `json:"channelId,omitempty"`
-	ChannelModelKey        string                         `json:"channelModelKey,omitempty"`
-	PermissionMode         string                         `json:"permissionMode"`
+	PlatformTextCapability     *platformclient.TextCapability `json:"platformTextCapability,omitempty"`
+	ReasoningMode              string                         `json:"reasoningMode,omitempty"`
+	ProfileRevision            string                         `json:"profileRevision,omitempty"`
+	CanvasID                   string                         `json:"canvasId"`
+	Prompt                     string                         `json:"prompt"`
+	Model                      string                         `json:"model,omitempty"`
+	LogicalModelID             string                         `json:"logicalModelId,omitempty"`
+	ChannelID                  string                         `json:"channelId,omitempty"`
+	ChannelModelKey            string                         `json:"channelModelKey,omitempty"`
+	ExpectedPriceVersion       string                         `json:"expectedPriceVersion,omitempty"`
+	ExpectedCapabilityRevision string                         `json:"expectedCapabilityRevision,omitempty"`
+	ExpectedConnectionRevision int64                          `json:"expectedConnectionRevision,omitempty"`
+	PermissionMode             string                         `json:"permissionMode"`
 	// PinnedSkillIDs 是用户为对话固定或在本条消息里点名的技能；其他已安装技能由 Agent 按目录自动发现。
 	PinnedSkillIDs        []string `json:"pinnedSkillIds,omitempty"`
 	ContextScope          []string `json:"contextScope"`

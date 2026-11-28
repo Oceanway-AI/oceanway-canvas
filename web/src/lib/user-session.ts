@@ -42,6 +42,7 @@ let hydratingCatalogGeneration: number | null = null;
 let catalogRequest: { generation: number; userId: string; promise: Promise<void> } | null = null;
 let catalogSnapshot: ModelCatalogResponse | null = null;
 let catalogEpoch = 0;
+const catalogCursors = new Set<string>();
 const catalogDetails = new Map<string, Promise<void>>();
 
 export async function applyUserSession(payload: AuthSessionPayload) {
@@ -51,7 +52,7 @@ export async function applyUserSession(payload: AuthSessionPayload) {
     catalogSnapshot = null;
     catalogEpoch++;
     catalogDetails.clear();
-    useModelCatalogStore.setState({ status: payload.user ? "loading" : "idle", error: null, preview: [] });
+    useModelCatalogStore.setState({ status: payload.user ? "loading" : "idle", error: null, preview: [], hasMore: false, loadingMore: false });
     if (!payload.user) clearPickerPreview("studio");
     withUserScopedPersistenceSuppressed(() => useConfigStore.getState().invalidateSystemChannels());
     const previousUserId = useUserStore.getState().user?.id || "";
@@ -225,7 +226,7 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
                     }).config,
                 );
             } else {
-                useConfigStore.getState().mergeSystemChannels(channels);
+                useConfigStore.getState().mergeSystemChannels(channels, Boolean(catalog.hasMore));
             }
             if (scope) {
                 const rows: PickerPreviewRow[] = [];
@@ -237,7 +238,7 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
                     }
                 writePickerPreview(scope, rows);
             }
-            useModelCatalogStore.setState({ status: "ready", error: null, preview: [] });
+            useModelCatalogStore.setState({ status: "ready", error: null, preview: [], hasMore: Boolean(catalog.hasMore) });
         } catch (error) {
             if (!isCurrentSession(generation, userId)) return;
             recordDiagnosticEvent({
@@ -252,7 +253,7 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
             catalogDetails.clear();
             useConfigStore.getState().invalidateSystemChannels();
             if (scope) clearPickerPreview(scope.product);
-            useModelCatalogStore.setState({ status: "error", error: "模型目录读取失败，请重试。", preview: [] });
+            useModelCatalogStore.setState({ status: "error", error: error instanceof Error ? error.message : "模型目录读取失败，请重试。", preview: [], hasMore: false });
             throw error;
         } finally {
             if (catalogRequest === request) catalogRequest = null;
@@ -263,38 +264,63 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
     catalogEpoch++;
     catalogDetails.clear();
     useConfigStore.getState().invalidateSystemChannels();
-    useModelCatalogStore.setState({ status: "loading", error: null, preview: scope ? readPickerPreview(scope) : [] });
+    catalogCursors.clear();
+    useModelCatalogStore.setState({ status: "loading", error: null, preview: scope ? readPickerPreview(scope) : [], hasMore: false, loadingMore: false });
     return request.promise;
 }
 
-async function loadPlatformCatalog(generation: number, userId: string): Promise<ModelCatalogResponse> {
-    const seen = new Set<string>();
-    let cursor = "";
-    let revision = "";
-    do {
-        const page = await getModelCatalogPage(cursor);
-        if (!isCurrentSession(generation, userId)) throw new Error("账号会话已切换");
-        if (page.source !== "platform" || !page.catalogRevision || !Array.isArray(page.channels)) throw new Error("模型目录摘要响应无效");
-        if (revision && revision !== page.catalogRevision) throw new Error("模型目录已更新，请重新加载");
-        revision = page.catalogRevision;
-        const channels = new Map((catalogSnapshot?.channels || []).map((channel) => [channel.id, channel]));
-        for (const channel of page.channels) {
-            const previous = channels.get(channel.id);
-            const models = new Map((previous?.models || []).map((item) => [item.modelKey, item]));
-            for (const item of channel.models) {
-                if (models.has(item.modelKey)) throw new Error("模型目录分页包含重复型号");
-                models.set(item.modelKey, item);
-            }
-            channels.set(channel.id, { ...channel, models: [...models.values()] });
+async function loadPlatformCatalog(generation: number, userId: string, cursor = ""): Promise<ModelCatalogResponse> {
+    const epoch = catalogEpoch;
+    const revision = cursor ? catalogSnapshot?.catalogRevision : undefined;
+    const page = await getModelCatalogPage(cursor);
+    if (!isCurrentSession(generation, userId) || epoch !== catalogEpoch) throw new Error("账号会话或目录已切换");
+    if (page.source !== "platform" || !page.catalogRevision || !Array.isArray(page.channels)) throw new Error("模型目录摘要响应无效");
+    if (revision && revision !== page.catalogRevision) throw Object.assign(new Error("模型目录已更新，请重新加载"), { status: 409 });
+    if (page.hasMore && (!page.nextCursor || catalogCursors.has(page.nextCursor))) throw new Error("模型目录分页响应无效");
+    const channels = new Map((catalogSnapshot?.channels || []).map((channel) => [channel.id, channel]));
+    for (const channel of page.channels) {
+        const previous = channels.get(channel.id);
+        const models = new Map((previous?.models || []).map((item) => [item.modelKey, item]));
+        for (const item of channel.models) {
+            if (models.has(item.modelKey)) throw new Error("模型目录分页包含重复型号");
+            models.set(item.modelKey, item);
         }
-        catalogSnapshot = { ...page, channels: [...channels.values()] };
-        useConfigStore.getState().mergeSystemChannels(modelCatalogChannels(catalogSnapshot), Boolean(page.hasMore));
-        if (!page.hasMore) return catalogSnapshot;
-        if (!page.nextCursor || seen.has(page.nextCursor)) throw new Error("模型目录分页响应无效");
-        seen.add(page.nextCursor);
-        cursor = page.nextCursor;
-    } while (cursor);
-    throw new Error("模型目录分页响应无效");
+        channels.set(channel.id, { ...channel, models: [...models.values()] });
+    }
+    catalogSnapshot = { ...page, channels: [...channels.values()] };
+    if (page.nextCursor) catalogCursors.add(page.nextCursor);
+    return catalogSnapshot;
+}
+
+export async function loadNextModelCatalogPage() {
+    const { loadingMore, status } = useModelCatalogStore.getState();
+    if (status !== "ready" || loadingMore || !catalogSnapshot?.hasMore || !catalogSnapshot.nextCursor) return;
+    const generation = sessionGeneration,
+        epoch = catalogEpoch,
+        userId = useUserStore.getState().user?.id || "";
+    useModelCatalogStore.setState({ loadingMore: true, error: null });
+    try {
+        const page = await loadPlatformCatalog(generation, userId, catalogSnapshot.nextCursor);
+        if (epoch !== catalogEpoch || !isCurrentSession(generation, userId)) return;
+        useConfigStore.getState().mergeSystemChannels(modelCatalogChannels(page), Boolean(page.hasMore));
+        useModelCatalogStore.setState({ hasMore: Boolean(page.hasMore) });
+    } catch (error) {
+        if (epoch !== catalogEpoch || !isCurrentSession(generation, userId)) return;
+        const status = (error as { status?: number })?.status;
+        if (status === 409 || status === 401 || status === 403) {
+            if (status === 409) await refreshCurrentSessionCatalog(generation, userId);
+            else {
+                catalogEpoch++;
+                catalogSnapshot = null;
+                catalogDetails.clear();
+                clearPickerPreview("studio");
+                useConfigStore.getState().invalidateSystemChannels();
+                useModelCatalogStore.setState({ status: "error", error: error instanceof Error ? error.message : "无权读取模型目录", hasMore: false, loadingMore: false, preview: [] });
+            }
+        } else useModelCatalogStore.setState({ error: error instanceof Error ? error.message : "下一页读取失败" });
+    } finally {
+        if (epoch === catalogEpoch) useModelCatalogStore.setState({ loadingMore: false });
+    }
 }
 
 export function ensurePlatformModelDetail(modelOption: string): Promise<void> {

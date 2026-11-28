@@ -44,7 +44,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         storage.delete(key);
     };
     const { apiClient } = await import("@/services/api/request");
-    const { refreshSystemChannels, applyUserSession, ensurePlatformModelDetail } = await import("@/lib/user-session");
+    const { refreshSystemChannels, applyUserSession, ensurePlatformModelDetail, loadNextModelCatalogPage } = await import("@/lib/user-session");
     const { useConfigStore, createModelChannel, normalizeConfigSnapshot, CONFIG_STORE_KEY } = await import("@/stores/use-config-store");
     const { useUserStore } = await import("@/stores/use-user-store");
     const { useModelCatalogStore } = await import("@/stores/use-model-catalog-store");
@@ -200,8 +200,9 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         chooseModel("platform::chosen-model");
         const second = deferred<unknown>();
         loadCatalog = async (cursor) => (cursor ? second.promise : { ...catalog("first-model"), hasMore: true, nextCursor: "page-2" });
-        const pending = refreshSystemChannels();
-        await Bun.sleep(10);
+        await refreshSystemChannels();
+        expect(requests).toBe(2);
+        const pending = loadNextModelCatalogPage();
         expect(modelNames()).toContain("first-model");
         expect(useConfigStore.getState().pendingModelSelections.textModel).toBe("platform::chosen-model");
         second.resolve(catalog("chosen-model"));
@@ -341,11 +342,17 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
 
     test("mixed revisions and repeated cursors reject partial permissions", async () => {
         loadCatalog = async (cursor) => (cursor ? { ...catalog("second"), catalogRevision: "changed" } : { ...catalog("first"), hasMore: true, nextCursor: "page-2" });
-        await expect(refreshSystemChannels()).rejects.toThrow("模型目录已更新");
-        expect(modelNames()).toEqual(["custom-text"]);
+        await refreshSystemChannels();
+        await loadNextModelCatalogPage();
+        expect(requests).toBe(3);
+        expect(modelNames()).toContain("first");
+        expect(modelNames()).not.toContain("second");
         loadCatalog = async (cursor) => ({ ...catalog(cursor ? "second" : "first"), hasMore: true, nextCursor: "same" });
-        await expect(refreshSystemChannels()).rejects.toThrow("模型目录分页响应无效");
-        expect(modelNames()).toEqual(["custom-text"]);
+        await refreshSystemChannels();
+        await loadNextModelCatalogPage();
+        expect(useModelCatalogStore.getState().error).toContain("模型目录分页响应无效");
+        expect(modelNames()).toContain("first");
+        expect(modelNames()).not.toContain("second");
     });
 
     test("a catalog larger than the browser quota remains in memory and never fills localStorage", async () => {
@@ -489,10 +496,10 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         expect(modelNames()).toEqual(["custom-text"]);
         expect(useConfigStore.getState().config.channels[0]).toMatchObject(custom);
         expect(useModelCatalogStore.getState().status).toBe("error");
-        expect(useModelCatalogStore.getState().error).toContain("重试");
+        expect(useModelCatalogStore.getState().error).toContain("fixture unavailable");
         loadCatalog = async () => catalog("fresh-model");
         await refreshSystemChannels();
-        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null, preview: [] });
+        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null, preview: [], hasMore: false, loadingMore: false });
         expect(modelNames()).toEqual(["fresh-model", "custom-text"]);
     });
 
@@ -546,7 +553,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         await refreshSystemChannels();
         old.reject(new Error("old session failure"));
         await pending;
-        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null, preview: [] });
+        expect(useModelCatalogStore.getState()).toEqual({ status: "ready", error: null, preview: [], hasMore: false, loadingMore: false });
         expect(modelNames()).toEqual(["new-session-model", "custom-text"]);
     });
 
@@ -565,7 +572,7 @@ if (process.env.MODEL_CATALOG_REFRESH_CHILD !== "1") {
         await applyUserSession({ provider: "platform", user: null });
         old.resolve(catalog("logged-out-model"));
         await pending;
-        expect(useModelCatalogStore.getState()).toEqual({ status: "idle", error: null, preview: [] });
+        expect(useModelCatalogStore.getState()).toEqual({ status: "idle", error: null, preview: [], hasMore: false, loadingMore: false });
         expect(modelNames()).not.toContain("logged-out-model");
         expect(useConfigStore.getState().config.channels.every((channel) => channel.scope !== "system")).toBe(true);
     });

@@ -111,7 +111,7 @@ import {
 import { loadCloudAgentConversation, mergeCloudAgentConversations, refreshCloudAgentConversations } from "@/services/cloud-agent-history";
 import { canvasCloudAgentConversation, cloudAgentFollowDecision } from "@/lib/canvas/cloud-agent-follow";
 import { resolveCloudAgentModel } from "@/lib/canvas/cloud-agent-model-restore";
-import { logicalModelIDForConfig, modelDisplayName, modelOptionName, resolveModelRequestConfig, selectableModelsByCapability, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
+import { logicalModelIDForConfig, modelDisplayName, modelOptionName, resolveModelChannel, resolveModelRequestConfig, selectableModelsByCapability, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { modelSupportsImageInspection, selectImageInspectionModel } from "@/lib/canvas/image-to-previs-agent";
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
 import { useUserStore } from "@/stores/use-user-store";
@@ -1489,6 +1489,7 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                 const agentConfig = { ...config, model: effectiveModel };
                 const requestConfig = resolveModelRequestConfig(agentConfig, effectiveModel);
                 const logicalModelId = logicalModelIDForConfig(agentConfig);
+                const platformModel = resolveModelChannel(agentConfig, effectiveModel).modelDetails?.find((item) => item.model === modelOptionName(effectiveModel))?.platform;
                 const focus = outboxItem ? outboxFocus(outboxItem) : liveFocusSnapshot(composerExtras);
                 const input = {
                     canvasId,
@@ -1496,6 +1497,9 @@ export const CanvasCloudAgentPanel = memo(function CanvasCloudAgentPanel() {
                     reasoningMode: settings.reasoningMode,
                     profileRevision: profile.revision,
                     model: modelOptionName(effectiveModel) || undefined,
+                    ...(platformModel?.model_type === "text"
+                        ? { expectedPriceVersion: platformModel.price_version || platformModel.price.version, expectedCapabilityRevision: platformModel.capability_revision, expectedConnectionRevision: platformModel.connection_revision }
+                        : {}),
                     ...(logicalModelId ? { logicalModelId } : requestConfig.channelId ? { channelId: requestConfig.channelId, channelModelKey: modelOptionName(effectiveModel) || undefined } : {}),
                     pinnedSkillIds: [...new Set([...usableSkillIds, ...resolveSkillMentions(value, installedSkills).map((skill) => skill.skillId)])].slice(0, 16),
                     focusNodeIds: canvasId ? focus.focusNodeIds : [],

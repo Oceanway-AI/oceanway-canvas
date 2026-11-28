@@ -24,19 +24,28 @@ func studioCatalogError(err error) error {
 	if upstream != nil && (upstream.StatusCode == 400 || upstream.StatusCode == 404) {
 		return WrapAppError(upstream.StatusCode, "模型选择或版本无效，请刷新目录", upstream)
 	}
-	return platformIdentityError(err)
+	if upstream != nil && (upstream.StatusCode == 401 || upstream.StatusCode == 403 || upstream.StatusCode == 429) {
+		return platformIdentityError(err)
+	}
+	var body struct {
+		Code string `json:"code"`
+	}
+	if upstream != nil && upstream.StatusCode == 503 && json.Unmarshal(upstream.RawBody(), &body) == nil && body.Code == "catalog_projection_pending" {
+		mapped := WrapAppError(503, "平台正在更新模型目录，请稍后重新读取", err)
+		mapped.Reason = "catalog_projection_pending"
+		return mapped
+	}
+	mapped := WrapAppError(503, "模型目录服务暂不可用，请稍后重新读取", err)
+	mapped.Reason = "catalog_unavailable"
+	return mapped
 }
 
-func (s *Service) studioAgentCatalogSnapshot(ctx context.Context, session platformclient.SessionContext, response *platformclient.Response) ([]platformclient.ModelSummary, string, error) {
+func studioReadCatalogSummaries(query platformclient.ModelSummaryQuery, read func(platformclient.ModelSummaryQuery) (platformclient.Result[platformclient.ModelSummaryPage], error), match func(platformclient.ModelSummary) bool) ([]platformclient.ModelSummary, string, error) {
 	items := []platformclient.ModelSummary{}
-	query := platformclient.ModelSummaryQuery{Limit: 50}
 	revision := ""
 	seen := map[string]bool{}
 	for {
-		page, err := s.studioPlatform.Client.ModelSummaries(ctx, session, query)
-		if page.Response != nil {
-			page.Response.AppendCookies(response.Header)
-		}
+		page, err := read(query)
 		if err != nil {
 			return nil, "", err
 		}
@@ -44,7 +53,16 @@ func (s *Service) studioAgentCatalogSnapshot(ctx context.Context, session platfo
 			return nil, "", NewAppError(409, "模型目录已更新，请刷新后继续")
 		}
 		revision = page.Data.CatalogRevision
-		items = append(items, page.Data.Items...)
+		for _, item := range page.Data.Items {
+			if item.ModelType != query.ModelType {
+				continue
+			}
+			if match == nil {
+				items = append(items, item)
+			} else if match(item) {
+				return []platformclient.ModelSummary{item}, revision, nil
+			}
+		}
 		if !page.Data.HasMore {
 			return items, revision, nil
 		}
