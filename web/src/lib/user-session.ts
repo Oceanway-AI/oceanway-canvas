@@ -43,6 +43,7 @@ let hydratingCatalogGeneration: number | null = null;
 let catalogRequest: { generation: number; userId: string; promise: Promise<void> } | null = null;
 let catalogSnapshot: ModelCatalogResponse | null = null;
 let catalogEpoch = 0;
+let catalogPagination: { epoch: number; promise: Promise<void> } | null = null;
 const catalogCursors = new Set<string>();
 let startupExtra: { channel: string; name: string } | undefined;
 const catalogDetails = new Map<string, Promise<void>>();
@@ -202,7 +203,7 @@ export function refreshSystemChannels(): Promise<void> {
     return refreshCurrentSessionCatalog(sessionGeneration, userId);
 }
 
-function refreshCurrentSessionCatalog(generation: number, userId: string, initializeDefaults = false, firstPage?: Promise<ModelCatalogResponse>): Promise<void> {
+function refreshCurrentSessionCatalog(generation: number, userId: string, initializeDefaults = false, firstPage?: Promise<ModelCatalogResponse>, continuePages = true): Promise<void> {
     if (!isCurrentSession(generation, userId)) return Promise.resolve();
     if (catalogRequest?.generation === generation && catalogRequest.userId === userId) return catalogRequest.promise;
     const { workspaceContext, platformIdentity } = useUserStore.getState();
@@ -249,6 +250,7 @@ function refreshCurrentSessionCatalog(generation: number, userId: string, initia
             }
             useModelCatalogStore.setState({ status: "ready", error: null, preview: [], hasMore: Boolean(catalog.hasMore) });
             if (firstPage) void preloadStartupText(generation, userId, catalogEpoch, savedText).catch(() => undefined);
+            if (catalog.source === "platform" && continuePages) void loadRemainingModelCatalog().catch(() => undefined);
         } catch (error) {
             if (!isCurrentSession(generation, userId)) return;
             recordDiagnosticEvent({
@@ -334,8 +336,10 @@ export async function loadNextModelCatalogPage() {
         if (epoch !== catalogEpoch || !isCurrentSession(generation, userId)) return;
         const status = (error as { status?: number })?.status;
         if (status === 409 || status === 401 || status === 403) {
-            if (status === 409) await refreshCurrentSessionCatalog(generation, userId);
-            else {
+            if (status === 409) {
+                await refreshCurrentSessionCatalog(generation, userId, false, undefined, false);
+                if (isCurrentSession(generation, userId)) useModelCatalogStore.setState({ error: "模型目录已更新，请重新加载剩余型号" });
+            } else {
                 catalogEpoch++;
                 catalogSnapshot = null;
                 catalogDetails.clear();
@@ -347,6 +351,26 @@ export async function loadNextModelCatalogPage() {
     } finally {
         if (epoch === catalogEpoch) useModelCatalogStore.setState({ loadingMore: false });
     }
+}
+
+export function loadRemainingModelCatalog(): Promise<void> {
+    const epoch = catalogEpoch;
+    if (catalogPagination?.epoch === epoch) return catalogPagination.promise;
+    const generation = sessionGeneration;
+    const userId = useUserStore.getState().user?.id || "";
+    const request = { epoch, promise: Promise.resolve() };
+    request.promise = (async () => {
+        while (isCurrentSession(generation, userId) && epoch === catalogEpoch && catalogSnapshot?.hasMore) {
+            if (useModelCatalogStore.getState().status !== "ready" || useModelCatalogStore.getState().loadingMore) return;
+            const cursor = catalogSnapshot.nextCursor;
+            await loadNextModelCatalogPage();
+            if (useModelCatalogStore.getState().error || catalogSnapshot?.nextCursor === cursor) return;
+        }
+    })().finally(() => {
+        if (catalogPagination === request) catalogPagination = null;
+    });
+    catalogPagination = request;
+    return request.promise;
 }
 
 async function preloadStartupText(generation: number, userId: string, epoch: number, selection: string) {

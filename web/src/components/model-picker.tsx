@@ -25,7 +25,7 @@ import { modelDisplayName, modelIcon, modelOptionName, resolveModelChannel, sele
 import { useActiveTheme } from "@/stores/canvas/use-canvas-theme-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { useModelCatalogStore } from "@/stores/use-model-catalog-store";
-import { ensurePlatformModelDetail, loadNextModelCatalogPage, refreshSystemChannels } from "@/lib/user-session";
+import { ensurePlatformModelDetail, loadRemainingModelCatalog, refreshSystemChannels } from "@/lib/user-session";
 import { ModelLogo } from "@/components/model-logo";
 import { ModelTags } from "@/components/model-tags";
 import { referenceCapabilityTag, type ModelTag } from "@/lib/model-tags";
@@ -308,7 +308,7 @@ export function ModelPicker({
                         variants: "型号",
                         back: "返回模型列表",
                         noMatches: "没有匹配的模型",
-                        empty: catalogStatus === "error" ? "目录恢复后可选择平台型号" : catalogStatus === "loading" ? "" : emptyModelLabel(config, capability),
+                        empty: catalogStatus === "error" ? "目录恢复后可选择平台型号" : catalogStatus === "loading" || hasMore ? "" : emptyModelLabel(config, capability),
                     }}
                     renderOption={({ group, item }) => renderModelOption(group, item)}
                     renderGroupHeading={(group) => {
@@ -334,11 +334,15 @@ export function ModelPicker({
                                 </div>
                             )}
                             {platformIdentity && catalogStatus === "ready" && hasMore && (
-                                <div className="canvas-model-picker-catalog-error">
+                                <div className={catalogError ? "canvas-model-picker-catalog-error" : "canvas-model-picker-empty"}>
                                     {catalogError && <span role="alert">{catalogError}</span>}
-                                    <button type="button" disabled={loadingMore} onClick={() => void loadNextModelCatalogPage().catch(() => {})}>
-                                        {loadingMore ? "正在加载…" : catalogError ? "重试下一页" : "加载更多型号"}
-                                    </button>
+                                    {loadingMore || !catalogError ? (
+                                        <span role="status">正在加载模型目录…</span>
+                                    ) : (
+                                        <button type="button" onClick={() => void loadRemainingModelCatalog().catch(() => {})}>
+                                            重试加载
+                                        </button>
+                                    )}
                                 </div>
                             )}
                             {platformIdentity && catalogStatus === "error" && (
